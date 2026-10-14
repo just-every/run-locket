@@ -1,0 +1,47 @@
+/* The app shell: mark and wordmark, six sections, the signed-in person, and the page title row. */
+body:has(.lk-app) { margin: 0; background: var(--lk-paper); }
+.lk-app { min-height: 100vh; background: var(--lk-paper); color: var(--lk-ink); font: 15px/1.5 var(--lk-font); font-variant-numeric: lining-nums tabular-nums; -webkit-font-smoothing: antialiased; }
+.lk-app *, .lk-app *::before, .lk-app *::after { box-sizing: border-box; }
+.lk-app :focus-visible { outline: 2px solid var(--lk-green); outline-offset: 2px; }
+.lk-app a { color: inherit; }
+.lk-app h1 { margin: 0; font: 600 64px/1.05 var(--lk-font-serif); letter-spacing: -.025em; }
+.lk-app h2 { margin: 0; font: 600 24px/1.2 var(--lk-font-serif); letter-spacing: -.01em; }
+.lk-app h3 { margin: 24px 0 12px; font: 600 20px/1.25 var(--lk-font-serif); }
+.lk-app h4 { margin: 0 0 4px; font-size: 13px; font-weight: 400; color: var(--lk-ink-2); }
+.lk-app p { margin: 0 0 10px; }
+.lk-app small { display: block; color: var(--lk-ink-2); font-size: 13px; line-height: 18px; }
+.lk-muted { color: var(--lk-ink-2); }
+.lk-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; overflow-wrap: break-word; }
+.lk-nowrap { white-space: nowrap; }
+.lk-visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.lk-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 32px; width: min(100% - 128px, 1312px); margin: 0 auto; height: 78px; border-bottom: 1px solid var(--lk-rule); }
+.lk-brand { display: inline-flex; align-items: center; gap: 14px; justify-self: start; font: 600 32px/1 var(--lk-font-serif); letter-spacing: -.02em; text-decoration: none; }
+.lk-brand img { width: 48px; height: 48px; }
+.lk-header nav { display: flex; align-items: stretch; gap: 36px; height: 100%; }
+.lk-header nav a { display: flex; align-items: center; font-size: 17px; font-weight: 500; color: var(--lk-ink-2); text-decoration: none; border-bottom: 2px solid transparent; padding-top: 2px; white-space: nowrap; }
+.lk-header nav a:hover { color: var(--lk-ink); }
+.lk-header nav a.lk-active { color: var(--lk-ink); border-bottom-color: var(--lk-green); }
+.lk-app .lk-tabs a:focus-visible { outline-offset: 4px; border-radius: 6px; }
+/* A section link fills the header's height, so its focus ring is drawn round the label alone. */
+.lk-header nav a { position: relative; }
+.lk-app .lk-header nav a:focus-visible { outline: none; }
+.lk-header nav a:focus-visible::after { content: ''; position: absolute; inset: 20px -10px 18px; border: 2px solid var(--lk-green); border-radius: 8px; }
+.lk-account { justify-self: end; display: flex; align-items: center; gap: 22px; }
+.lk-account-name { font: 500 18px/1.2 var(--lk-font-serif); text-align: left; padding-right: 22px; border-right: 1px solid var(--lk-rule); }
+.lk-account-name small { font: 400 14px/1.4 var(--lk-font); }
+
+.lk-main { width: min(100% - 128px, 1312px); margin: 0 auto; padding: 26px 0 72px; }
+.lk-titlebar { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+.lk-titlebar p { margin: 10px 0 0; max-width: 820px; font-size: 18px; }
+.lk-actions { display: flex; gap: 16px; flex-wrap: wrap; padding-bottom: 6px; }
+.lk-back { display: inline-flex; align-items: center; gap: 10px; font-size: 16px; margin-bottom: 18px; text-decoration: none; color: var(--lk-ink); }
+.lk-back:hover { text-decoration: underline; text-underline-offset: 3px; }
+.lk-alert { border: 1px solid color-mix(in srgb, var(--lk-bad-ink) 25%, transparent); background: var(--lk-bad-bg); color: var(--lk-bad-ink); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.lk-alert button { margin-left: auto; }
+.lk-note { border: 1px solid color-mix(in srgb, var(--lk-green-ink) 25%, transparent); background: var(--lk-green-tint); color: var(--lk-green-ink); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; }
+.lk-empty { color: var(--lk-ink-2); padding: 18px 4px; }
+.lk-empty-state { display: grid; justify-items: center; text-align: center; gap: 14px; padding: 64px 24px 56px; }
+.lk-empty-state img { width: 96px; height: 96px; }
+.lk-app .lk-empty-state h2 { font-size: 48px; line-height: 1.1; font-weight: 600; text-wrap: balance; }
+.lk-empty-state p { margin: 0; max-width: 640px; font-size: 18px; color: var(--lk-ink-2); text-wrap: balance; }

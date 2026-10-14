@@ -1,0 +1,83 @@
+{
+  "id": "locket",
+  "name": "locket",
+  "version": "0.1.0",
+  "maturity": "first-release-local",
+  "category": "status",
+  "spine": {
+    "id": "foundation",
+    "record": "No domain record selected"
+  },
+  "description": "Locket keeps a small business's commercial agreements from request to renewal: approved templates and a clause playbook, negotiated versions, cited review findings, approvals pinned to the exact version, a signature-ready package for the signing service you already use, executed files reconciled on return, obligations and renewal notice deadlines.",
+  "capabilities": [
+    {
+      "id": "http-dispatch",
+      "clauses": [
+        "HTTP-001"
+      ]
+    }
+  ],
+  "nonGoals": [
+    "Finished product functionality",
+    "Speculative domain data"
+  ],
+  "externals": [
+    {
+      "id": "cloudflare",
+      "required": true,
+      "why": "Worker hosting",
+      "data": [
+        "HTTP requests"
+      ],
+      "adapters": []
+    }
+  ],
+  "env": [],
+  "deploy": {
+    "healthPath": "/health",
+    "publicPaths": [
+      "/",
+      "/health",
+      "/signin"
+    ],
+    "notes": "Native owner sessions guard /app; unknown paths return real 404s; the development outbox is local-only."
+  },
+  "extensionPoints": {
+    "contributions": [],
+    "policies": [],
+    "events": [],
+    "slots": [],
+    "adapters": []
+  },
+  "limits": {
+    "status": "unmeasured"
+  },
+  "accessibility": {
+    "level": "WCAG 2.2 AA",
+    "status": "target; unaudited"
+  },
+  "operatingCost": {
+    "status": "unmeasured"
+  },
+  "composition": {
+    "base": "base",
+    "family": "contracts",
+    "edition": "locket",
+    "modules": [
+      "job-queue",
+      "release",
+      "deploy-kit",
+      "container",
+      "demo-host",
+      "integrations",
+      "mail",
+      "ai",
+      "portability",
+      "erasure",
+      "dependencies",
+      "operator-auth",
+      "owner-claim",
+      "import-kit"
+    ]
+  }
+}

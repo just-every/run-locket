@@ -1,0 +1,61 @@
+/* Brygada 1918 and Libre Franklin (SIL Open Font License 1.1), self-hosted from
+   public/fonts. The page makes no third-party request. */
+@font-face {
+  font-family: 'Libre Franklin';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/libre-franklin/libre-franklin-latin-wght-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Brygada 1918';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/brygada1918/brygada1918-latin-wght-normal.woff2') format('woff2');
+}
+/* Local fallbacks scaled to each face's average advance width (A-Z, a-z, 0-9)
+   and its hhea ascent and descent, divided by the scale, so text barely moves
+   when the web font arrives. */
+@font-face {
+  font-family: 'Libre Franklin Fallback';
+  font-weight: 100 450;
+  src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans');
+  size-adjust: 105.6477%;
+  ascent-override: 91.4360%;
+  descent-override: 23.2849%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Libre Franklin Fallback';
+  font-weight: 451 900;
+  src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold');
+  size-adjust: 107.0209%;
+  ascent-override: 90.2628%;
+  descent-override: 22.9862%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Brygada 1918 Fallback';
+  font-weight: 400 650;
+  src: local('Georgia'), local('Liberation Serif'), local('LiberationSerif');
+  size-adjust: 104.0396%;
+  ascent-override: 88.4279%;
+  descent-override: 24.0293%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Brygada 1918 Fallback';
+  font-weight: 651 900;
+  src: local('Georgia Bold'), local('Georgia-Bold'), local('Liberation Serif Bold'), local('LiberationSerif-Bold');
+  size-adjust: 105.5022%;
+  ascent-override: 87.2020%;
+  descent-override: 23.6962%;
+  line-gap-override: 0%;
+}
+
+:root {
+  --font-body: 'Libre Franklin', 'Libre Franklin Fallback', Arial, sans-serif;
+  font-family: var(--font-body);
+}
+button, input, select, textarea { font-family: inherit; }

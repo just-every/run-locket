@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "contracts-locket",
+  "main": "src/server.ts",
+  "compatibility_date": "2026-09-08",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "contracts-locket",
+      "database_id": "local-contracts-locket-only",
+      "migrations_dir": "migrations/core"
+    }
+  ]
+}

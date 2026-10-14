@@ -1,0 +1,19 @@
+/* This edition's declared theme: the installer, sign-in, confirmation, /setup,
+   the Lobby, the run site and the development outbox read these --rer-* tokens,
+   and the app's own tokens (src/ui/style/tokens.css) take its colours and faces
+   from them. Fonts: public/fonts/fonts.css. */
+:root {
+  --rer-font-body: 'Libre Franklin', 'Libre Franklin Fallback', Arial, sans-serif;
+  --rer-font-heading: 'Brygada 1918', 'Brygada 1918 Fallback', Georgia, serif;
+  --rer-page: #FBFAF4;
+  --rer-surface: #FFFFFD;
+  --rer-text: #0E2419;
+  --rer-muted: #56625B;
+  --rer-border: #7C8880;
+  --rer-focus: #2F5A40;
+  --rer-link: #2F5A40;
+  --rer-accent: #0A2C1C;
+  --rer-accent-text: #FFFFFF;
+  --rer-radius: 14px;
+  --rer-logo: url('/brand/mark.svg');
+}

@@ -1,0 +1,29 @@
+{
+  "sections": [
+    {
+      "title": "Start here",
+      "pages": [
+        { "slug": "getting-started", "title": "Getting started", "file": "getting-started.md", "summary": "Run Locket on your computer, finish setup as the owner, and add your first agreement." },
+        { "slug": "move-in", "title": "Move in from DocuSign", "file": "move-in.md", "summary": "Bring completed DocuSign envelopes in with their signed PDFs and certificates, after a dry run that writes nothing." },
+        { "slug": "backup-and-restore", "title": "Back up and restore", "file": "backup-and-restore.md", "summary": "Export the archive from the app, or the whole installation with rer, and restore it into an empty one." }
+      ]
+    },
+    {
+      "title": "Daily work",
+      "pages": [
+        { "slug": "requests-and-versions", "title": "Requests and versions", "file": "requests-and-versions.md", "summary": "Capture a request with its attachments, then negotiate in versions you can compare line by line." },
+        { "slug": "review-and-approval", "title": "Review and approval", "file": "review-and-approval.md", "summary": "Review against your clause playbook and approve the exact version that will be signed." },
+        { "slug": "signature-and-execution", "title": "Signature and execution", "file": "signature-and-execution.md", "summary": "Hand the approved version to the signing service you already use, then record the signed PDF and certificate." },
+        { "slug": "terms-obligations-and-renewals", "title": "Terms, obligations and renewals", "file": "terms-obligations-and-renewals.md", "summary": "Confirm terms against the signed words, give obligations an owner, and decide each renewal before its notice deadline." }
+      ]
+    },
+    {
+      "title": "Running Locket",
+      "pages": [
+        { "slug": "people-and-roles", "title": "People and roles", "file": "people-and-roles.md", "summary": "Invite people, give each one a role, and keep restricted agreements to the people who need them." },
+        { "slug": "agents-and-the-api", "title": "Agents and the API", "file": "agents-and-the-api.md", "summary": "Let your own agent prepare proposals through the same API the screens use; people approve them." },
+        { "slug": "run-it-locally", "title": "Run it locally", "file": "run-it-locally.md", "summary": "The rer commands for running, stopping, checking and resetting your installation, and where its data lives." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+/* Locket's header on Base's shared Run and not-found pages (linked after their own style by src/site/pages.tsx):
+   the homepage's gutter, wordmark and rule, and commands that scroll inside their block on phones instead of wrapping. */
+body > .bar { box-sizing: border-box; width: min(100% - 128px, 1312px); max-width: none; height: 96px; padding: 0; border-bottom: 1px solid #DCDDD2; }
+body > .bar .brand { gap: 14px; font-size: 32px; }
+body > .bar .brand img { width: 44px; height: 44px; }
+body > .bar nav { gap: 44px; font-size: 19px; }
+@media (max-width: 760px) {
+  body > .bar { width: calc(100% - 32px); height: 72px; }
+  body > .bar .brand { gap: 10px; font-size: 26px; }
+  body > .bar .brand img { width: 34px; height: 34px; }
+  body > .bar nav { gap: 24px; font-size: 17px; }
+  .code pre { white-space: pre; overflow-wrap: normal; }
+}

@@ -1,0 +1,24 @@
+/* Locket's tokens, shared by the app and the run site (SPEC §2, the 12ui picks).
+   Paper, ink, the pill, the green and both faces come from the edition theme
+   (public/rer-theme.css), so each value is written once. */
+:root {
+  --lk-font: var(--rer-font-body);
+  --lk-font-serif: var(--rer-font-heading);
+  --lk-paper: var(--rer-page);
+  --lk-surface: var(--rer-surface);
+  --lk-ink: var(--rer-text);
+  --lk-ink-2: var(--rer-muted);
+  --lk-pill: var(--rer-accent);
+  --lk-green: var(--rer-focus);
+  --lk-rule: #DCDDD2;
+  --lk-rule-2: #ECEDE5;
+  --lk-green-tint: #DCE8D8;
+  --lk-green-ink: #1E4D33;
+  --lk-selected: #EBF0E7;
+  --lk-warn-bg: #F6EED5; --lk-warn-ink: #7A5A12;
+  --lk-info-bg: #E4EEF2; --lk-info-ink: #2A4E60;
+  --lk-neutral-bg: #E6E7DF; --lk-neutral-ink: #3D4A43;
+  --lk-bad-bg: #F6E3DE; --lk-bad-ink: #9A2F1E;
+  --lk-radius: 14px;
+  --lk-shadow: 0 1px 2px rgb(14 36 25 / .05), 0 8px 24px rgb(14 36 25 / .06);
+}
