@@ -3,6 +3,7 @@
 Locket keeps a small business's commercial agreements from request to renewal: approved templates and a clause playbook, negotiated versions, cited review findings, approvals pinned to the exact version, a signature-ready package for the signing service you already use, executed files reconciled on return, obligations and renewal notice deadlines. Agents you invite prepare work; people approve it. MIT licensed.
 
 - Source code: [just-every/run-locket](https://github.com/just-every/run-locket).
+- Site: [run-locket.com](https://run-locket.com).
 
 # Run it locally
 
