@@ -5,6 +5,7 @@
 import type { Bindings } from '../auth.server'
 import { handlers } from '../locket/api'
 import { runCommand } from '../locket/commands'
+import { day } from '../locket/display'
 import type { Actor, Role } from '../locket/model'
 import { textPdf } from '../locket/pdf'
 import { team } from './examples'
@@ -13,8 +14,8 @@ const base64 = (bytes: Uint8Array) => btoa(Array.from(bytes, b => String.fromCha
 const sample = (filename: string, title: string, body: string, footer: string) => ({ filename, base64: base64(textPdf(title, body, footer)) })
 
 export async function seedJourneys(env: Bindings, ownerId: string, now: Date) {
-  const at = now.getTime(), day = 86_400_000
-  const date = (offset: number) => new Date(at + offset * day).toISOString().slice(0, 10)
+  const at = now.getTime(), dayMs = 86_400_000
+  const date = (offset: number) => new Date(at + offset * dayMs).toISOString().slice(0, 10)
   const sessions: string[] = []
   // Short-lived sessions whose tokens are never issued: commands re-check them in SQL.
   async function actor(id: string, role: Role): Promise<Actor> {
@@ -74,12 +75,12 @@ export async function seedJourneys(env: Bindings, ownerId: string, now: Date) {
         ['6A1F3C85-9D2B-4E7C-A0F4-3B5D7E9F1A24', 'Orchard Lane Studios', 'Mutual confidentiality agreement', 'NDA', date(-150), '', '', 'Isla Moreno', 'isla@orchardlane.example'],
       ]
       const header = 'Envelope ID,Subject,Status,Recipient Name,Recipient Email,Completed On,Counterparty,Agreement Type,End Date,Notice Days'
-      const csv = [header, ...rows.map(([id, party, title, type, done, endDate, notice, name, email]) => [id, `Please DocuSign: ${party} ${title}`, 'Completed', `${name}; Ella Wilson`, `${email}; ella@northbank.example`, `${done} 10:00:00`, party, type, endDate, notice].join(','))].join('\n') + '\n'
+      const csv = [header, ...rows.map(([id, party, title, type, done, endDate, notice, name, email]) => [id, `Please DocuSign: ${title}`, 'Completed', `${name}; Ella Wilson`, `${email}; ella@northbank.example`, `${done} 10:00:00`, party, type, endDate, notice].join(','))].join('\n') + '\n'
       const files = rows.flatMap(([id, party, title, , done]) => [
         { path: `${id}/${title}.pdf`, base64: base64(textPdf(title, `SAMPLE ONLY - fictional signed copy\nBetween Northbank Studio and ${party}.\nCompleted ${done}.`, 'Fictional demo sample - not a real signature')) },
         { path: `${id}/Summary.pdf`, base64: base64(textPdf('Certificate of Completion (fictional)', `SAMPLE ONLY - fictional summary for envelope ${id}.`, 'Fictional demo sample - not a real certificate')) },
       ])
-      const dry = await run(owner, 'import.preview', { kit: 'docusign-archive', label: `DocuSign archive to ${date(-30)}`, dateFormat: 'iso', manifest: { filename: 'envelopes.csv', base64: base64(new TextEncoder().encode(csv)) }, files })
+      const dry = await run(owner, 'import.preview', { kit: 'docusign-archive', label: `DocuSign archive to ${day(date(-30))}`, dateFormat: 'iso', manifest: { filename: 'envelopes.csv', base64: base64(new TextEncoder().encode(csv)) }, files })
       const batch = await env.DB.prepare('SELECT version, fingerprint FROM lk_import_batches WHERE id=?').bind(dry.batchId).first<{ version: number; fingerprint: string }>()
       await run(owner, 'import.apply', { batchId: dry.batchId, version: batch!.version, fingerprint: batch!.fingerprint })
     }
