@@ -135,12 +135,17 @@
 .lk-invite .lk-form-actions button { width: 100%; }
 .lk-export { margin-top: 22px; padding: 8px 12px; }
 .lk-export .lk-engraved-body { display: flex; justify-content: center; }
-.lk-app .lk-export .lk-button { width: 100%; min-height: 48px; background: rgb(255 255 253 / .7); }
+.lk-app .lk-export .lk-button { width: 100%; min-height: 48px; padding: 10px 18px; line-height: 1.25; white-space: normal; text-align: center; background: rgb(255 255 253 / .7); }
 .lk-app .lk-side-head h2 a { text-decoration: none; }
 .lk-app .lk-side-head h2 a:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 .lk-table td[data-label="Value (AUD)"], .lk-table td[data-label="Current version"], .lk-table td[data-label=Owner] { white-space: nowrap; }
 .lk-activity td[data-label=Agreement] a, .lk-activity td[data-label=Actor] .lk-serif { white-space: nowrap; }
 .lk-register-table td:first-child { min-width: 196px; }
+/* Beside the summary at laptop widths the register drops its version column (the summary shows it) so values and deadlines stay in view. */
+@media (min-width: 1101px) and (max-width: 1600px) {
+  .lk-register .lk-split { grid-template-columns: minmax(0, 1fr) 400px; }
+  .lk-register-table th:nth-child(6), .lk-register-table td[data-label="Current version"] { display: none; }
+}
 .lk-app .lk-side .lk-side-head h2 { font-size: 28px; }
 .lk-notice-card .lk-engraved { gap: 16px; }
 .lk-notice-card .lk-big-date { font-size: 26px; white-space: nowrap; }

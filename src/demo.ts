@@ -1,5 +1,5 @@
 import type { Bindings } from './auth.server'
-import { clauses, examples, rules, team } from './demo/examples'
+import { clauses, examples, ownerName, rules, team } from './demo/examples'
 import { seedJourneys } from './demo/journeys'
 import { noticeDeadline } from './locket/dates'
 import { canonical, sha256 } from './locket/model'
@@ -17,6 +17,8 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
     const names = Object.keys(row)
     writes.push(env.DB.prepare(`INSERT INTO ${table} (${names.join(',')}) VALUES (${names.map(() => '?').join(',')}) ON CONFLICT DO NOTHING`).bind(...Object.values(row)))
   }
+  // A fresh demo owner claims with Base's placeholder name; give it the studio lead's.
+  writes.push(env.DB.prepare("UPDATE oa_operators SET display_name=? WHERE id=? AND display_name='Owner'").bind(ownerName, owner.id))
   for (const [id, name, email, role] of team) {
     add('oa_operators', { id, email, display_name: name, role: 'member', status: 'active', created_at: at - 40 * day })
     add('lk_roles', { operator_id: id, role, updated_by: owner.id, updated_at: at - 40 * day })

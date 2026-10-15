@@ -2,14 +2,14 @@ import { useState } from 'react'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Badge, EmptyState, Field, Form, value } from './controls'
-import { parse, personName, roleLabel, termLabel, termValue, when, words } from './format'
+import { money, parse, personName, roleLabel, termLabel, termValue, when, words } from './format'
 
 const kindLabel: Record<string, string> = { intake: 'Intake extraction', review: 'Playbook review', family: 'Agreement family links', terms: 'Terms and obligations', renewal: 'Renewal notice' }
 const deciders: Record<string, string[]> = { intake: ['owner', 'counsel', 'approver', 'requester'], review: ['owner', 'counsel'], family: ['owner', 'counsel'], terms: ['owner', 'counsel', 'approver'], renewal: ['owner', 'approver'] }
 
 function Changes({ p }: { p: Row }) {
   const payload = parse(p.payload)
-  if (p.kind === 'intake') return <ul className="lk-changes"><li>Create “{payload.title}” ({words(payload.type ?? 'other')})</li><li>Counterparty: {payload.party?.name ?? 'existing party'}</li>{payload.value && <li>Value: ${payload.value} AUD</li>}{payload.templateVersionId && <li>Populate an approved template</li>}</ul>
+  if (p.kind === 'intake') return <ul className="lk-changes"><li>Create “{payload.title}” ({words(payload.type ?? 'other')})</li><li>Counterparty: {payload.party?.name ?? 'existing party'}</li>{payload.value && <li>Value: {Number.isFinite(Number(payload.value)) ? money(Math.round(Number(payload.value) * 100)) : payload.value} AUD</li>}{payload.templateVersionId && <li>Populate an approved template</li>}</ul>
   if (p.kind === 'review') return <ul className="lk-changes">{(payload.findings ?? []).map((f: any, i: number) => <li key={i}><strong>{f.clauseKey}</strong>: {f.result === 'met' ? 'rule met' : f.result === 'breached' ? 'rule breached' : 'cannot determine'} — “{f.quote}”{f.proposedWording ? <em> → {f.proposedWording}</em> : null}</li>)}</ul>
   if (p.kind === 'family') return <ul className="lk-changes"><li>Link as {words(payload.relation ?? '')} of another agreement</li>{(payload.contradictions ?? []).map((c: string) => <li key={c}>Contradiction: {c}</li>)}</ul>
   if (p.kind === 'terms') return <ul className="lk-changes">{(payload.terms ?? []).map((t: any) => <li key={t.key}>{termLabel[t.key] ?? words(t.key)}: {termValue(t.key, t.value)} — “{t.citation?.quote}”{t.citation?.page ? ` (page ${t.citation.page})` : ''}</li>)}</ul>

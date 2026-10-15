@@ -1,4 +1,6 @@
 // Fictional Northbank Studio work, kept separate from the seed's empty real installs.
+// The hosted demo's owner signs in as nora@northbank.example (deploy-demo.json).
+export const ownerName = 'Nora Blake'
 export const team = [
   ['demo-counsel', 'Priya Shah', 'priya@northbank.example', 'counsel'],
   ['demo-commercial', 'Marcus Chen', 'marcus@northbank.example', 'approver'],

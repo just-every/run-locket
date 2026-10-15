@@ -3,6 +3,7 @@
   "domain": "run-locket.com",
   "name": "Locket",
   "instanceType": "basic",
+  "ownerEmail": "nora@northbank.example",
   "settings": {
     "MAIL_FROM": "contracts@northbank.example"
   }
