@@ -1,5 +1,6 @@
 import type { Bindings } from './auth.server'
 import { clauses, examples, rules, team } from './demo/examples'
+import { seedJourneys } from './demo/journeys'
 import { noticeDeadline } from './locket/dates'
 import { canonical, sha256 } from './locket/model'
 import { textPdf } from './locket/pdf'
@@ -36,7 +37,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
     const values = { values: { scope: title }, clauses: { payment: 'net30', liability: 'cap' } }
     const digest = await versionDigest({ agreementId: id, number: 1, files: [{ role: 'rendition', sha256: hash }], text: body, fields: values })
     add('lk_parties', { id: partyId, name: party, kind: type === 'supplier' ? 'supplier' : 'customer', email: `contracts@${key}.example`, created_by: 'demo-operations', created_at: created })
-    add('lk_agreements', { id, reference: `LK-${String(index + 1).padStart(4, '0')}`, title, type, party_id: partyId, value_cents: value, currency: 'AUD', owner_id: owner.id, requester_id: 'demo-operations', status, restricted: 0, needed_by: date(days), start_date: date(-60), timezone: 'Australia/Sydney', origin: historical ? 'legacy' : 'intake', current_version_id: versionId, created_at: created, updated_at: at - index * 3600000 })
+    add('lk_agreements', { id, reference: `LK-${String(index + 1).padStart(4, '0')}`, title, type, party_id: partyId, value_cents: value, currency: 'AUD', owner_id: [owner.id, 'demo-counsel', 'demo-commercial', 'demo-operations'][index % 4], requester_id: 'demo-operations', status, restricted: 0, needed_by: date(days), start_date: date(-60), timezone: 'Australia/Sydney', origin: historical ? 'legacy' : 'intake', current_version_id: versionId, created_at: created, updated_at: at - index * 3600000 })
     add('lk_versions', { id: versionId, agreement_id: id, number: 1, kind: historical ? 'legacy' : 'template', label: historical ? 'Fictional historical summary (no signed original)' : 'Sample draft for review', template_version_id: historical ? null : `demo-template-${type === 'supplier' ? 'supply' : 'services'}-v1`, fields: JSON.stringify(values), text: body, text_source: historical ? 'person' : 'template', digest, created_by: 'demo-operations', created_at: created })
     add('lk_artifacts', { id: `${id}-pdf`, agreement_id: id, version_id: versionId, role: 'rendition', filename: `${key}-sample-unsigned.pdf`, media_type: 'application/pdf', size: bytes.length, sha256: hash, provenance: JSON.stringify({ source: 'fictional-demo', note: 'Unsigned sample, not execution evidence' }), imported: 0, uploaded_by: 'demo-operations', uploaded_at: created })
     add('lk_artifact_chunks', { artifact_id: `${id}-pdf`, ordinal: 0, bytes: [...bytes] })
@@ -66,4 +67,5 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   add('oa_first_run', { singleton: 1, completed_by: owner.id, completed_at: at })
   // Keep each D1 request comfortably below provider parameter limits.
   for (let i = 0; i < writes.length; i += 40) await env.DB.batch(writes.slice(i, i + 40))
+  await seedJourneys(env, owner.id, now)
 }

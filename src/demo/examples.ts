@@ -12,7 +12,7 @@ export const examples = [
   ['lumina', 'Lumina Cloud', 'Cloud hosting subscription', 'supplier', 'imported', 1800000, 35],
   ['atlas', 'Atlas Logistics', 'Freight services agreement', 'supplier', 'imported', 7200000, 50],
   ['wattle', 'Wattle Workspace', 'Studio lease', 'supplier', 'imported', 5400000, 80],
-  ['river', 'Riverbend Foods', 'Retail packaging design', 'customer', 'in_review', 6400000, 10],
+  ['river', 'Riverbend Foods', 'Retail packaging design', 'customer', 'approved', 6400000, 10],
   ['marlow', 'Marlow Digital', 'Mutual confidentiality agreement', 'nda', 'draft', null, 12],
   ['salt', 'Saltwater Research', 'Customer research engagement', 'customer', 'draft', 2400000, 28],
   ['bright', 'Brightside Energy', 'Annual design retainer', 'customer', 'approved', 12000000, 18],
