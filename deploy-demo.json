@@ -2,5 +2,9 @@
   "version": 1,
   "domain": "run-locket.com",
   "name": "Locket",
-  "instanceType": "basic"
+  "instanceType": "basic",
+  "settings": {
+    "MAIL_PROVIDER": "development",
+    "MAIL_FROM": "contracts@northbank.example"
+  }
 }
