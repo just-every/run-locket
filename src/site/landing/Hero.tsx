@@ -11,7 +11,7 @@ export function Hero() {
         <h1 id="hero-title">{hero.headline[0]}<br />{hero.headline[1]}</h1>
         <p className="ld-subhead">{hero.subhead}</p>
         <p className="ld-free">100% free, open source alternative to <strong>{hero.alternatives[0]}</strong> and <strong>{hero.alternatives[1]}</strong></p>
-        <Actions />
+        <Actions demo />
       </div>
       <figure className="ld-steps" aria-label={hero.drawing}>
         <ol>
