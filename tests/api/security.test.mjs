@@ -17,7 +17,7 @@ test('sessions, roles, idempotent commands and stale writes are enforced by the 
   // Signed out and cross-site requests are refused before any work.
   assert.equal((await h.request('/api/locket/state')).status, 401)
   assert.equal((await h.request('/api/locket/commands', { method: 'POST', body: { commandId: randomUUID(), type: 'party.save', payload: { name: 'X', kind: 'other' } } })).status, 401)
-  const crossSite = await fetch(h.origin + '/api/locket/commands', { method: 'POST', headers: { origin: 'https://attacker.example', 'content-type': 'application/json', cookie: h.owner.cookie }, body: JSON.stringify({ commandId: randomUUID(), type: 'party.save', payload: { name: 'X', kind: 'other' } }) })
+  const crossSite = await h.owner.request('/api/locket/commands', { method: 'POST', headers: { origin: 'https://attacker.example' }, body: { commandId: randomUUID(), type: 'party.save', payload: { name: 'X', kind: 'other' } } })
   assert.equal(crossSite.status, 403)
 
   // Viewers read; agents prepare; neither writes agreements or approves.

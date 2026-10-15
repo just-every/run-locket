@@ -23,7 +23,7 @@ rer dev
 
 The first time you open Locket it shows **Finish setup** with your name and email. Tick **I confirm this owner account is ready to use.** and choose **Finish setup**. Locket then opens on Agreements.
 
-Until setup is finished, the installation's home page says it is waiting for its owner. After that it offers **Sign in**, which emails a sign-in link. On your own computer no email leaves the machine: the sign-in page links to the local development outbox, where the link waits.
+Until setup is finished, the installation's home page says it is waiting for its owner. After that it offers **Sign in**, which emails a sign-in link. On your own computer no email leaves the machine: `rer dev` prints an `RER_OPEN` link that opens Locket already signed in as the owner.
 
 ## Add your first agreement
 

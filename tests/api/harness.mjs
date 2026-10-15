@@ -5,6 +5,7 @@ import { unstable_splitSqlQuery } from 'wrangler'
 import { build } from 'esbuild'
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { createServer } from 'node:net'
 import { join } from 'node:path'
 import { randomBytes, randomUUID } from 'node:crypto'
 import assert from 'node:assert/strict'
@@ -15,31 +16,42 @@ async function worker() {
   return bundled
 }
 
+async function freePort() {
+  const server = createServer()
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+  const { port } = server.address()
+  await new Promise(resolve => server.close(resolve))
+  return port
+}
+
 export async function installation() {
   const root = await mkdtemp(join(tmpdir(), 'locket-api-'))
   const setup = randomBytes(32).toString('hex')
-  let origin = 'http://localhost'
+  // Production-shaped: local runtimes suppress mail, so invitation links leave
+  // through the real Resend sender and are captured at the network edge.
+  const origin = `https://127.0.0.1:${await freePort()}`, mails = []
   const script = await worker()
-  const options = port => ({
+  const mf = new Miniflare({
     ...convertV4MiniflareOptions({
-      host: '127.0.0.1', port, modules: true, script, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: ['DB'],
-      bindings: { AUTH_LOCAL: 'true', AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: randomBytes(32).toString('hex'), SETUP_TOKEN: setup, MAIL_PROVIDER: 'development', MAIL_FROM: 'auth@example.test', RER_DEV_KEY: randomBytes(32).toString('hex') },
+      host: '127.0.0.1', port: Number(new URL(origin).port), https: true, modules: true, script, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: ['DB'],
+      bindings: { AUTH_LOCAL: 'false', AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: randomBytes(32).toString('hex'), SETUP_TOKEN: setup, MAIL_PROVIDER: 'resend', MAIL_FROM: 'auth@example.test', MAIL_API_KEY: 'test-only-key' },
+      outboundService: async request => {
+        if (request.url !== 'https://api.resend.com/emails') throw new Error('Unexpected test network destination')
+        mails.push(await request.json())
+        return Response.json({ id: `test-receipt-${mails.length}` })
+      },
     }),
     resourcePersistencePath: root,
   })
-  const mf = new Miniflare(options(0))
   try {
-    const address = await mf.ready
-    origin = address.origin
-    // The real listener, so URL, Host and Origin all describe this installation.
-    await mf.setOptions(options(Number(address.port)))
+    await mf.ready
     const db = await mf.getD1Database('DB')
     for (const file of (await readdir('migrations/core')).filter(n => n.endsWith('.sql')).sort()) {
       const sql = await readFile('migrations/core/' + file, 'utf8')
       await db.batch(unstable_splitSqlQuery(sql).map(q => db.prepare(q)))
     }
     const request = (path, { method = 'GET', body, as, headers = {} } = {}) =>
-      fetch(origin + path, { method, redirect: 'manual', headers: { origin, 'content-type': 'application/json', ...(as ? { cookie: as } : {}), ...headers }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) })
+      mf.dispatchFetch(origin + path, { method, redirect: 'manual', headers: { origin, 'content-type': 'application/json', ...(as ? { cookie: as } : {}), ...headers }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) })
     const boot = await request('/auth/bootstrap', { method: 'POST', body: { token: setup, displayName: 'Olive Owner' } })
     assert.equal(boot.status, 303, await boot.text())
     const ownerCookie = boot.headers.getSetCookie().map(v => v.split(';')[0]).join('; ')
@@ -68,9 +80,9 @@ export async function installation() {
     async function invite(email, role) {
       const res = await owner.request('/auth/invite', { method: 'POST', body: { email, displayName: email.split('@')[0], role: 'member' } })
       assert.equal(res.status, 202, await res.text())
-      const outbox = await db.prepare('SELECT message FROM rer_mail_development_outbox ORDER BY created_at DESC, sequence DESC LIMIT 1').first()
-      const token = String(JSON.parse(outbox.message).text).match(/\/auth\/confirm\?token=([^\s]+)/)[1]
-      const confirmed = await request('/auth/confirm', { method: 'POST', body: { token: decodeURIComponent(token) } })
+      const link = new URL(mails.at(-1).text.match(/https?:\/\/[^\s]+/)[0])
+      assert.equal(link.origin, origin)
+      const confirmed = await request('/auth/confirm', { method: 'POST', body: { token: link.searchParams.get('token') } })
       assert.equal(confirmed.status, 303, await confirmed.text())
       const person = client(confirmed.headers.getSetCookie().map(v => v.split(';')[0]).join('; '))
       const session = await (await person.request('/auth/session')).json()

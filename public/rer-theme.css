@@ -1,5 +1,5 @@
 /* This edition's declared theme: the installer, sign-in, confirmation, /setup,
-   the Lobby, the run site and the development outbox read these --rer-* tokens,
+   the Lobby and the run site read these --rer-* tokens,
    and the app's own tokens (src/ui/style/tokens.css) take its colours and faces
    from them. Fonts: public/fonts/fonts.css. */
 :root {

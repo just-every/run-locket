@@ -4,7 +4,6 @@
   "name": "Locket",
   "instanceType": "basic",
   "settings": {
-    "MAIL_PROVIDER": "development",
     "MAIL_FROM": "contracts@northbank.example"
   }
 }

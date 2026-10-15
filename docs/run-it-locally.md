@@ -23,7 +23,7 @@ rer doctor
 
 Your agreements and files live in `.wrangler/state` inside the Locket folder. Private settings live in `.dev.vars`, readable only by you. Keep both out of anything you share. To copy or move an installation, see [Back up and restore](/docs/backup-and-restore).
 
-On your own computer, sign-in emails go to a local outbox instead of the internet: the sign-in page links to it.
+On your own computer no email is sent: open the `RER_OPEN` link that `rer dev` prints and Locket opens signed in as the owner.
 
 ## Your own server
 

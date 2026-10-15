@@ -93,7 +93,7 @@ async function port() {
 }
 async function start(root, p) {
   const runtime = child(root, [
-    "preview",
+    "dev",
     "--port",
     String(p),
     "--no-queue",
@@ -118,35 +118,20 @@ async function start(root, p) {
         headers: { origin, "content-type": "application/json", cookie: as },
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
-    // Preview serves production output and does not print a dev sign-in link.
-    // This test owns the installation and uses its private key for local mail.
+    // Outside a browser, this test presents its installation's private dev
+    // key and enters as the owner, as RER_OPEN does; local mail is suppressed.
     const key = (await readFile(join(root, '.rer/local/dev-key.env'), 'utf8'))
       .match(/^RER_DEV_KEY=([A-Za-z0-9_-]+)/m)?.[1];
     assert.ok(key, "Setup created this installation's private dev key");
-    const gate = await request("/__dev/key", "POST", { key });
-    cookie = gate.headers
+    const entered = await fetch(`${origin}/auth/dev/enter?as=owner`, {
+      redirect: "manual",
+      headers: { "x-rer-dev-key": key },
+    });
+    assert.equal(entered.status, 303, await entered.text());
+    cookie = entered.headers
       .getSetCookie()
       .map((x) => x.split(";")[0])
       .join("; ");
-    await request("/auth/magic-link", "POST", { email: "owner@example.test" });
-    const listing = await (await request("/__dev/outbox")).text();
-    const msg = listing.match(/href="(\/__dev\/outbox\?message=[^"]+)"/)?.[1];
-    assert.ok(msg);
-    const body = await (await request(msg.replaceAll("&amp;", "&"))).text();
-    const href = body.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)?.[1];
-    assert.ok(href);
-    const token = new URL(
-      href.replaceAll("&amp;", "&"),
-      origin,
-    ).searchParams.get("token");
-    const confirmed = await request("/auth/confirm", "POST", { token });
-    assert.equal(confirmed.status, 303);
-    cookie +=
-      "; " +
-      confirmed.headers
-        .getSetCookie()
-        .map((x) => x.split(";")[0])
-        .join("; ");
     return {
       request,
       sessionCookie: () => cookie,
@@ -161,13 +146,13 @@ async function start(root, p) {
         return result.result;
       },
       async close() {
-        await command(root, ["preview", "--stop"]);
+        await command(root, ["dev", "--stop"]);
         if (runtime.proc.exitCode === null) runtime.proc.kill("SIGTERM");
         await runtime.done;
       },
     };
   } catch (error) {
-    await command(root, ["preview", "--stop"]).catch(() => {});
+    await command(root, ["dev", "--stop"]).catch(() => {});
     if (runtime.proc.exitCode === null) runtime.proc.kill("SIGTERM");
     await runtime.done;
     throw error;
