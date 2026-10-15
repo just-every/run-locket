@@ -118,9 +118,11 @@ async function start(root, p) {
         headers: { origin, "content-type": "application/json", cookie: as },
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
-    const open = runtime.output().match(/RER_OPEN (\S+)/)?.[1];
-    assert.ok(open, "Preview supplies the private dev key gate");
-    const key = new URLSearchParams(new URL(open).hash.slice(1)).get("rer-dev");
+    // Preview serves production output and does not print a dev sign-in link.
+    // This test owns the installation and uses its private key for local mail.
+    const key = (await readFile(join(root, '.rer/local/dev-key.env'), 'utf8'))
+      .match(/^RER_DEV_KEY=([A-Za-z0-9_-]+)/m)?.[1];
+    assert.ok(key, "Setup created this installation's private dev key");
     const gate = await request("/__dev/key", "POST", { key });
     cookie = gate.headers
       .getSetCookie()
