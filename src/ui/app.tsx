@@ -45,7 +45,7 @@ export function LocketApp() {
   return (
     <div className="lk-app">
       <header className="lk-header">
-        <a className="lk-brand" href="#agreements"><img src="/brand/mark.svg" alt="" />Locket</a>
+        <a className="lk-brand" href="#agreements"><img src="/brand/mark.svg" alt="" /><span data-rer-name>Locket</span></a>
         <nav aria-label="Locket">
           {tabs.map(t => <a key={t.id} href={`#${t.id}`} className={t.id === active ? 'lk-active' : undefined} aria-current={t.id === active ? 'page' : undefined}>{t.title}</a>)}
         </nav>

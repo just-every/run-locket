@@ -77,7 +77,8 @@
       "dependencies",
       "operator-auth",
       "owner-claim",
-      "import-kit"
+      "import-kit",
+      "demo"
     ]
   }
 }
