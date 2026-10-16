@@ -5,8 +5,8 @@ import { repository } from './repository'
 export const run: RunData = {
   name: 'Locket',
   repository,
-  clone: `git clone ${repository}.git locket`,
-  folder: 'locket',
+  clone: 'npx -y @runeditrun/rer dev just-every/run-locket',
+  folder: 'run-locket',
   requirements: 'Runs on macOS, Linux or Windows with WSL2.',
   licence: 'MIT',
   docs: true,

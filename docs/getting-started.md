@@ -3,13 +3,10 @@ Locket runs on your own computer. You need Node 22 or later and pnpm 10.12.4, on
 ## Run it on your computer
 
 ```sh
-curl -fsSL https://runeditrun.com/install.sh | sh
-export PATH="$HOME/.local/bin:$PATH"
-git clone https://github.com/just-every/run-locket.git locket
-cd locket && rer dev
+npx -y @runeditrun/rer dev just-every/run-locket
 ```
 
-The first two lines install `rer`, the Run Edit Run command, once per computer and put it on this shell's path (or use `npm install -g @runeditrun/rer`). `rer dev` installs everything, makes you the owner and prints a link that opens Locket signed in. Treat that link like a password: it signs you in as the owner.
+That one line installs `rer`, the Run Edit Run command, clones Locket and starts it; to start it again later, run `cd run-locket && rer dev`. `rer dev` installs everything, makes you the owner and prints a link that opens Locket signed in. Treat that link like a password: it signs you in as the owner.
 
 To set the installation up for your real mailbox instead of a local owner, run the steps yourself and answer the setup prompt:
 
