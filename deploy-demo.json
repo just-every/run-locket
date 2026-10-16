@@ -2,7 +2,6 @@
   "version": 1,
   "domain": "run-locket.com",
   "name": "Locket",
-  "instanceType": "standard-1",
   "ownerEmail": "nora@northbank.example",
   "settings": {
     "MAIL_FROM": "contracts@northbank.example"
