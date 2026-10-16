@@ -80,7 +80,7 @@
 .lk-list li { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--lk-rule-2); }
 .lk-people li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 14px; padding: 10px 0; border-bottom: 1px solid var(--lk-rule-2); }
 .lk-people .lk-person { font: 500 17px/1.3 var(--lk-font-serif); }
-.lk-people li small { grid-column: 1; }
+.lk-people li small { grid-column: 1; overflow-wrap: anywhere; }
 .lk-people li > select, .lk-people li > .lk-badge { grid-column: 2; grid-row: 1 / span 2; }
 .lk-people select { width: 150px; min-height: 40px; }
 .lk-people li > .lk-badge { justify-content: center; width: 150px; }
