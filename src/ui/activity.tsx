@@ -66,7 +66,7 @@ export function Activity({ state, locket }: { state: LocketState; locket: Locket
           <ul className="lk-people">{state.operators.map(o => (
             <li key={o.id}>
               <Person name={o.name} />
-              <small>{o.email ?? ''}{o.status !== 'active' ? ` · ${o.status}` : ''}</small>
+              <small>{o.email ? <>{o.email.split('@')[0]}@<wbr />{o.email.split('@').slice(1).join('@')}</> : ''}{o.status !== 'active' ? ` · ${o.status}` : ''}</small>
               {owner && o.role !== 'owner' ? (
                 <select aria-label={`Role for ${o.name}`} value={o.role} disabled={busy} onChange={e => void run('role.set', { operatorId: o.id, role: e.target.value })}>{assignable.map(r => <option key={r} value={r}>{roleLabel[r]}</option>)}</select>
               ) : <Badge value={o.role} tone={o.role === 'owner' ? 'good' : 'neutral'} label={roleLabel[o.role]} />}
