@@ -8,11 +8,11 @@ npx -y @runeditrun/rer dev just-every/run-locket
 
 That one line installs `rer`, the Run Edit Run command, clones Locket and starts it; to start it again later, run `cd run-locket && rer dev`. `rer dev` installs everything, makes you the owner and prints a link that opens Locket signed in. Treat that link like a password: it signs you in as the owner.
 
-To set the installation up for your real mailbox instead of a local owner, run the steps yourself and answer the setup prompt:
+To set the installation up for your real mailbox instead of a local owner, set it up first in place of the one line, answer the setup prompt, then start it:
 
 ```sh
-rer install
-rer setup
+npx -y @runeditrun/rer setup just-every/run-locket
+cd run-locket
 rer dev
 ```
 
