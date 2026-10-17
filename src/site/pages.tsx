@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { contractPageHtml } from '../base/contract-page'
 import { runPageHtml, siteNotFoundHtml, type SiteBuild, type SiteContext } from '../base/run-site'
 import { identity } from '../identity'
 import { DocsArticle } from './docs/DocsArticle'
@@ -14,10 +15,10 @@ import { run } from './run'
  * at `/run`; the docs at `/docs` and `/docs/<slug>`, rendered from docs/site.json and docs/*.md; and the not-found page.
  * Every page is static, works without script and links to no instance-only route.
  */
-/** Base's shared pages wear Locket's site header: one more same-origin stylesheet after their own style. */
+/** Base's shared pages (Run, Contract, not found) wear Locket's site header: one more same-origin stylesheet after their own style. */
 const withSiteHeader = (html: string) => html.replace(/<\/head\s*>/i, '<link rel="stylesheet" href="/brand/run.css"></head>')
 
-export function sitePages({ styles }: SiteContext): SiteBuild {
+export function sitePages({ styles, contract }: SiteContext): SiteBuild {
   const document = (title: string, description: string, body: ReactElement) => '<!doctype html>' + renderToStaticMarkup(
     <html lang="en">
       <head>
@@ -39,10 +40,11 @@ export function sitePages({ styles }: SiteContext): SiteBuild {
   return {
     pages: [
       { path: '/', html: document(meta.title, meta.description, <Landing />) },
-      { path: '/run', html: withSiteHeader(runPageHtml(identity, run)) },
+      { path: '/run', html: withSiteHeader(runPageHtml(identity, run, contract)) },
+      ...(contract ? [{ path: '/contract', html: withSiteHeader(contractPageHtml(identity, run, contract)) }] : []),
       { path: '/docs', html: document('Docs · Locket', docsLead, <DocsIndex />) },
       ...docsPages.map(page => ({ path: `/docs/${page.slug}`, html: document(`${page.title} · Locket docs`, page.summary, <DocsArticle slug={page.slug} />) })),
-      { path: '/404', html: withSiteHeader(siteNotFoundHtml(identity, run)) },
+      { path: '/404', html: withSiteHeader(siteNotFoundHtml(identity, run, contract)) },
     ],
     assets: ['rer-theme.css', 'fonts', 'brand'],
   }
