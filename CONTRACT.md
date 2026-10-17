@@ -20,11 +20,11 @@ A buyer replacing an incumbent needs the whole job, so the target is the whole j
 - **Draft.** Approved templates with fields and conditional clauses that produce Word documents, a clause library with fallbacks, template authoring from existing Word files, and playbooks drafted from templates and history for counsel to approve (`DRAFT-*`, `PLAY-*`).
 - **Negotiate.** Versions with exact originals, Word tracked changes and comments read and written, a Locket for Word add-in, browser redlining, internal and external sides kept apart, and counterparty exchange by email and secure link (`NEG-*`).
 - **Review.** Built-in AI review against the active playbook with cited findings and editable redlines, natural-language questions over the repository with cited answers, and model records and controls (`REVIEW-*`).
-- **Approve.** Conditional rules by type, USD value, department and risk, exceptions by the rule's authority, approvals pinned to the exact version, and approval from email, chat, Word or phone (`APPROVE-*`).
-- **Sign.** Live Docusign, Adobe Acrobat Sign, Dropbox Sign and Inkwell connections with status webhooks and automatic retrieval of signed files and certificates, filing into connected storage, and clickwrap acceptance of published terms (`SIGN-*`, `EXEC-*`).
-- **Keep.** A permission-restricted repository fed by OCR and bulk import, extracted and confirmed metadata, custom fields, search, saved views, agreement families and counterparty records (`REPO-*`).
+- **Approve.** Conditional rules by type, USD value, department and risk, exceptions by the rule's authority, approvals pinned to the exact version, approval from email, chat, Word or phone, and reminders and escalation for pending approvals (`APPROVE-*`).
+- **Sign.** Signers chosen by rule with a fallback, signature fields placed from template signature blocks or by a coordinator, multi-document packets, live Docusign, Adobe Acrobat Sign, Dropbox Sign and Inkwell connections with status webhooks and automatic retrieval of signed files and certificates, filing into connected storage, and clickwrap acceptance of published terms (`SIGN-*`, `EXEC-*`).
+- **Keep.** A permission-restricted repository fed by OCR and bulk import, extracted and confirmed metadata whose AI and OCR accuracy is proven on a live provider against named labelled sets (`REVIEW-006`), custom fields, search, saved views, bulk edits and CSV round-trips, agreement families and counterparty records (`REPO-*`).
 - **Follow through.** Obligations with owners and fulfilment evidence, renewal and notice deadlines delivered by email and calendar with escalation, renewal briefs, and notices sent with delivery evidence (`OBL-*`, `RENEW-*`).
-- **Connect and report.** Accounting and procurement links (Pantry, QuickBooks Online, NetSuite, Purse, Coupa), storage (Google Drive, OneDrive/SharePoint, Chest), a public API, webhooks and Zapier and Crank apps, SSO and SCIM, cycle-time and portfolio reporting, phone-width and native apps, and move-in from every named incumbent (`LINK-*`, `INT-*`, `REPORT-*`, `MOBILE-*`, `MOVE-*`).
+- **Connect and report.** Accounting and procurement links (Pantry, QuickBooks Online, NetSuite, Purse, Coupa), storage (Google Drive, OneDrive/SharePoint, Chest), a public API, webhooks and Zapier and Crank apps, SSO and SCIM, the business's own contracting entities, a self-hosted install with stated updates and security answers, cycle-time and portfolio reporting, phone-width and native apps, and move-in from every named incumbent, including Ironclad workflows still in progress at cutover (`LINK-*`, `INT-*`, `ENTITY-001`, `OPS-001`, `REPORT-*`, `MOBILE-*`, `MOVE-*`).
 - **Go further.** Agents that reconcile what was signed with what happens (invoices, service levels, supplier performance), carry authorised renewal, renegotiation or remediation to a verified outcome, and report missed obligations and avoidable spend in USD (`AGENT-*`).
 
 ### Neighbouring products stay separate
@@ -93,23 +93,23 @@ These are the clauses the first release promised. They still hold, rewritten onl
 ### Intake and requests
 
 #### INTAKE-002 — Configurable request forms and routing.
-Owner or counsel design a request form per agreement type without code: fields (text, number, USD money, date, pick list, person, counterparty, file), conditional questions (a supplier contract over $50,000 asks for a security questionnaire), required attachments, and routing rules that assign the responsible person, reviewer and approval route by type, value, department, region and risk answers. A form or rule change is drafted, previewed against sample answers that show the resulting route and required documents, then published as a new version; requests already in flight keep the version they started with.
+Owner or counsel design a request form per agreement type without code: fields (text, number, USD money, date, pick list, person, counterparty, file), conditional questions (a supplier contract over $50,000 asks for a security questionnaire), required attachments, and routing rules that assign the responsible person, reviewer and approval route by type, value, department, region and risk answers. A form or rule change is drafted, previewed against sample answers that show the resulting route and required documents, then published as a new version; requests already in flight keep the version they started with. Each form also names who may launch it, by role, group or department (`REPO-009`). Anyone else does not see the form, and a launch through the API is refused.
 
-*Acceptance:* a browser journey creates a supplier form with a conditional security question and a rule routing values over $50,000 to counsel, previews two sample requests (one above, one below the threshold) and sees the two routes, publishes, then submits both requests through the form; an in-flight request created before publishing keeps its original route.
+*Acceptance:* a browser journey creates a supplier form with a conditional security question and a rule routing values over $50,000 to counsel, limits launching to the Procurement group, previews two sample requests (one above, one below the threshold) and sees the two routes, publishes, then submits both requests through the form; an in-flight request created before publishing keeps its original route; a requester outside Procurement does not see the form and their API launch is refused.
 
 *Status:* partial. Typed requests with configurable required attachments ship (`src/locket/agreements.ts`); the form designer, conditional fields, rule-based routing and preview do not exist.
 
 #### INTAKE-003 — Email intake.
 Each installation has an intake address (Postmark inbound, or a forwarding rule from a Gmail or Outlook mailbox). An email to it, or a message forwarded by a staff member, becomes a draft request: the sender is matched to an operator, attachments are stored byte-for-byte as the first version and supporting files, and `INTAKE-007` proposes the request details. Mail from unknown senders is held for owner review, never auto-created. Replies on the thread attach to the same request.
 
-*Acceptance:* a Workers journey with a Postmark inbound fake posts a forwarded counterparty MSA with a DOCX and a PDF; a draft request appears for the matched sender with both files and their digests, and proposed details awaiting confirmation. A reply attaches to the same request, and mail from an unknown sender lands in the held queue.
+*Acceptance:* a Workers journey with a Postmark inbound fake posts a forwarded counterparty MSA with a DOCX and a PDF; a draft request appears for the matched sender with both files and their digests, and proposed details awaiting confirmation. A reply attaches to the same request, and mail from an unknown sender lands in the held queue. A live run against a Postmark inbound stream on a Postmark test server is recorded before the clause is accepted.
 
 *Status:* missing. No inbound email path exists.
 
 #### INTAKE-004 — CRM intake and status writeback: Salesforce, HubSpot and Orbit.
-The owner connects Salesforce, HubSpot or Orbit with OAuth. A seller starts a contract request from an opportunity or deal (a Salesforce Lightning action, a HubSpot CRM card, an Orbit deal action); account, contacts, amount in USD and close date populate the request. Locket writes the agreement's status, current version link and, on execution, the executed PDF link and key dates back to the deal. Field mappings are visible and editable; a failed writeback is shown on the agreement and the connection (`INT-004`).
+The owner connects Salesforce, HubSpot or Orbit with OAuth. A seller starts a contract request from an opportunity or deal (a Salesforce Lightning action, a HubSpot CRM card, an Orbit deal action); account, contacts, amount in USD and close date populate the request. The deal's products (Salesforce opportunity products, HubSpot line items, Orbit deal lines) come across with product, quantity, unit price, discount and term, and fill the pricing table of the generated order form (`DRAFT-002`). Locket writes the agreement's status, current version link and, on execution, the executed PDF link and key dates back to the deal. Field mappings are visible and editable; a failed writeback is shown on the agreement and the connection (`INT-004`).
 
-*Acceptance:* a Workers journey with a HubSpot API fake and an Orbit fake starts a request from a deal, sees the mapped fields, drives the agreement to executed and reads the deal's status, link and end date written back; a forced 500 on writeback shows a retryable failure on both the agreement and the connection. The same journey runs against a Salesforce fake.
+*Acceptance:* a Workers journey with a HubSpot API fake and an Orbit fake starts a request from a deal, sees the mapped fields, drives the agreement to executed and reads the deal's status, link and end date written back; a forced 500 on writeback shows a retryable failure on both the agreement and the connection. A deal with three line items produces an order form whose pricing table lists them and totals the deal amount in USD. The same journey runs against a Salesforce fake. Live runs against a Salesforce Developer Edition org and a HubSpot developer test account are recorded before the clause is accepted.
 
 *Status:* missing. No CRM connector exists.
 
@@ -137,9 +137,9 @@ When a counterparty's document arrives (upload, email or CRM), the built-in mode
 ### Repository and ingestion
 
 #### REPO-002 — PDF text and OCR.
-Every PDF, including scanned and image-only signed copies, gets a searchable text layer with page and position anchors through OCR on the owner's configured document service, run asynchronously with progress. The original bytes are untouched; the text layer is a derived rendition. Search, citations (`REVIEW-001`, `TERMS-001`) and extraction use it, and a person can see each page's OCR confidence and correct a misread passage, which is kept with history.
+Every PDF, including scanned and image-only signed copies, gets a searchable text layer with page and position anchors, run asynchronously with progress. A PDF that already carries a text layer is read directly. Scanned and image-only pages go to the OCR provider the owner chooses, with the owner's own credentials: Amazon Textract, Google Cloud Document AI (Enterprise Document OCR) or Azure AI Document Intelligence (Read model). Provider choice and switch-off sit with the model settings (`REVIEW-005`). The original bytes are untouched; the text layer is a derived rendition. Search, citations (`REVIEW-001`, `TERMS-001`) and extraction use it, and a person can see each page's OCR confidence and correct a misread passage, which is kept with history.
 
-*Acceptance:* a journey with an OCR-provider fake uploads a 20-page scanned agreement; the text becomes searchable, a term is cited to page 14, the original downloads with its original digest, and a corrected passage keeps the machine reading in history.
+*Acceptance:* a journey with an OCR-provider fake uploads a 20-page scanned agreement; the text becomes searchable, a term is cited to page 14, the original downloads with its original digest, and a corrected passage keeps the machine reading in history. The same journey runs against Textract, Document AI and Document Intelligence fakes. The clause is accepted only when a live OCR run under `REVIEW-006` meets the OCR bar with at least one named provider.
 
 *Status:* partial. DOCX text is read (`src/locket/docx.ts`); PDF text extraction and OCR do not exist.
 
@@ -151,9 +151,9 @@ An owner imports a legacy repository in bulk: a ZIP or folder of up to 10,000 PD
 *Status:* partial. Reviewed, undoable batch import ships for DocuSign archives (`src/locket/imports/commands.ts`, `tests/api/move-in.test.mjs`); generic PDF/DOCX bulk import, OCR, extraction and large-file streaming do not exist.
 
 #### REPO-004 — Built-in term and metadata extraction.
-For any executed or imported agreement, the built-in model proposes parties and our signing entity, effective, end and renewal dates, auto-renewal, renewal term, notice period and method, termination rights, governing law, payment terms, total and annual value in USD (with original currency kept), price-increase caps, liability caps, insurance requirements and every custom field (`REPO-005`), each citing its passage and confidence. Proposals follow `TERMS-001`: nothing drives a deadline until confirmed. Extraction accuracy is measured on a held-out labelled set of US commercial agreements and shown per field.
+For any executed or imported agreement, the built-in model proposes parties and our signing entity, effective, end and renewal dates, auto-renewal, renewal term, notice period and method, termination rights, governing law, payment terms, total and annual value in USD (with original currency kept), price-increase caps, liability caps, insurance requirements and every custom field (`REPO-005`), each citing its passage and confidence. Proposals follow `TERMS-001`: nothing drives a deadline until confirmed. Extraction accuracy is measured on a live provider under `REVIEW-006` and shown to the owner per field. A field whose latest live result is below its bar is marked low-confidence on every proposal and is never offered for bulk confirmation (`REPO-003`).
 
-*Acceptance:* a journey with a model-provider fake extracts 14 standard fields and two custom fields from a fixture MSA with citations; a person confirms twelve, corrects one and rejects one; the renewal deadline appears after the end date and notice period are confirmed. A recorded evaluation over at least 100 labelled agreements reports per-field precision and recall.
+*Acceptance:* a journey with a model-provider fake extracts 14 standard fields and two custom fields from a fixture MSA with citations; a person confirms twelve, corrects one and rejects one; the renewal deadline appears after the end date and notice period are confirmed. The clause is accepted only when a live run under `REVIEW-006` meets the extraction bars.
 
 *Status:* partial. Cited terms proposed by an agent or importer are confirmed by people (`src/locket/proposals.ts`, `src/locket/obligations.ts`); built-in extraction and custom fields do not exist.
 
@@ -199,12 +199,27 @@ Each counterparty has its legal entity name, entity type and state of formation,
 
 *Status:* partial. Counterparties with a name, kind and email are created and reused by intake (`src/locket/agreements.ts`); entity details, notice addresses, signatories, merging and the counterparty page do not exist.
 
+#### REPO-011 — Bulk repository actions.
+From any search, filter or saved view (`REPO-006`, `REPO-007`), a person selects up to 5,000 agreements and acts on all of them at once:
+
+- Set or clear a standard or custom field (`REPO-005`), such as Department = Sales or a corrected agreement type.
+- Reassign the responsible person, and every open obligation and reminder a departing person owns (`OBL-001`, `RENEW-002`), to a named colleague.
+- Change group and department access (`REPO-009`).
+- Download the selected originals, signed files and certificates as one ZIP with a manifest of file digests.
+- Export the selection's metadata to CSV, edit it in a spreadsheet and re-import it as an update. A dry run shows the diff by record and field, and nothing changes until a person applies that exact dry run.
+
+Every bulk change is applied record by record through the same role, access, version and atomic checks as a single edit (`SEC-001`). A record the person may not edit, or one that changed after it was selected, is reported as skipped and left untouched. Each changed record shows an audited change linked to the bulk operation (`AUDIT-001`). A bulk operation can be reverted as one, which restores the prior values and keeps both changes in history. Restricted agreements stay invisible to people without access (`ACCESS-001`). Viewers cannot run bulk actions; agents may only propose a bulk update for a person to apply (`PROPOSE-001`).
+
+*Acceptance:* a journey filters 300 imported agreements, sets Department = Sales on all of them, and reassigns a departing owner's 40 agreements and their open obligations to a colleague. It moves 25 agreements to the Finance group and downloads 20 originals as a ZIP whose digests match. It then exports the CSV, corrects the type on 15 rows and re-imports it, seeing a dry-run diff of exactly those 15 before applying. Each record's activity shows its audited change, and reverting the department change restores the prior values with history kept. A viewer's bulk edit is refused, and a record changed after selection is reported as skipped.
+
+*Status:* missing. The register has no selection or bulk actions.
+
 ### Drafting and playbooks
 
 #### DRAFT-002 — Word documents from templates.
-A populated template produces a formatted DOCX (and its PDF rendition) that keeps the template's styles, numbering, headers and tables, with conditional clauses chosen by the requester's answers and fields filled. Business users generate standard agreements (NDA, MSA, order form, SOW) self-service; the result is the first version with its digest.
+A populated template produces a formatted DOCX (and its PDF rendition) that keeps the template's styles, numbering, headers and tables, with conditional clauses chosen by the requester's answers and fields filled. Repeating pricing tables fill from line items (`INTAKE-004`, `LINK-003`) with a USD total. The template's signature blocks carry through as signature fields (`SIGN-005`). Business users generate standard agreements (NDA, MSA, order form, SOW) self-service; the result is the first version with its digest.
 
-*Acceptance:* a journey populates an approved Word-based MSA template whose answers include a conditional data-processing clause; the downloaded DOCX opens with the template's styles and numbering, contains the conditional clause and the fields, and its PDF rendition is approved for signing.
+*Acceptance:* a journey populates an approved Word-based MSA template whose answers include a conditional data-processing clause; the downloaded DOCX opens with the template's styles and numbering, contains the conditional clause and the fields, renders a three-row pricing table with its total, and its PDF rendition is approved for signing.
 
 *Status:* partial. Approved templates produce populated text and a text PDF (`src/locket/library.ts`, `src/locket/pdf.ts`); DOCX output with preserved formatting and answer-driven conditional clauses do not exist.
 
@@ -241,7 +256,7 @@ Locket reads Word tracked changes (insertions, deletions, moves, formatting), co
 #### NEG-003 — Locket for Word add-in.
 An Office add-in for Word on Windows, Mac and the web, distributed through Microsoft AppSource and the buyer's Microsoft 365 admin, signs in with the person's Locket session, opens the current version, shows playbook findings beside the clauses they cite, inserts clause-library text, applies accepted AI redlines as tracked changes, and saves back as a new version with the stale-version check. Approvers can review and approve the exact version from the add-in.
 
-*Acceptance:* a Word-on-the-web journey opens an agreement in the add-in, sees three findings anchored to their clauses, applies one AI redline as a tracked change, saves as version 4, and is refused when saving over a version someone else has replaced; an approver approves version 4 from the add-in and the approval pins its digest.
+*Acceptance:* a Word-on-the-web journey opens an agreement in the add-in, sees three findings anchored to their clauses, applies one AI redline as a tracked change, saves as version 4, and is refused when saving over a version someone else has replaced; an approver approves version 4 from the add-in and the approval pins its digest. A sideloaded run in Word on the web against a Microsoft 365 developer tenant, and the add-in's passing AppSource validation, are recorded before the clause is accepted.
 
 *Status:* missing. No Word add-in exists.
 
@@ -269,9 +284,9 @@ A person sends the external version to counterparty contacts from Locket by emai
 ### Built-in AI review
 
 #### REVIEW-002 — Built-in playbook review.
-On any version (ours or theirs, DOCX or OCR'd PDF), a person runs review: the built-in model checks every rule in the active playbook and returns, per rule, met, breached or cannot determine, with the exact cited passage, the reason, and proposed wording from the rule's fallbacks. Findings arrive as a proposal under `REVIEW-001`; a reviewer accepts, edits or rejects each one, and only accepted findings drive exception approvals. Review of a 40-page agreement against 30 rules completes within 2 minutes. Accuracy is measured on a held-out labelled set and shown to the owner.
+On any version (ours or theirs, DOCX or OCR'd PDF), a person runs review: the built-in model checks every rule in the active playbook and returns, per rule, met, breached or cannot determine, with the exact cited passage, the reason, and proposed wording from the rule's fallbacks. Findings arrive as a proposal under `REVIEW-001`; a reviewer accepts, edits or rejects each one, and only accepted findings drive exception approvals. Review of a 40-page agreement against 30 rules completes within 2 minutes at the 90th percentile, measured on a live provider. Accuracy is measured live under `REVIEW-006` and shown to the owner per rule.
 
-*Acceptance:* a journey with a model-provider fake runs review on a fixture supplier agreement against a 12-rule playbook; findings cite passages that match the version text, a quote that is not in the text is refused, a reviewer edits one proposed wording and rejects one finding, and the exception route reflects only accepted findings. A recorded evaluation over at least 50 labelled agreements reports per-rule agreement with counsel.
+*Acceptance:* a journey with a model-provider fake runs review on a fixture supplier agreement against a 12-rule playbook; findings cite passages that match the version text, a quote that is not in the text is refused, a reviewer edits one proposed wording and rejects one finding, and the exception route reflects only accepted findings. The clause is accepted only when a live run under `REVIEW-006` meets the review bars, including the 2-minute time.
 
 *Status:* partial. Cited findings, quote checking and proposals from an external agent ship (`src/locket/review.ts`, `src/locket/proposals.ts`, `tests/api/flows.test.mjs`); the built-in model run does not exist.
 
@@ -290,11 +305,39 @@ A person asks questions in plain English ("Which supplier agreements auto-renew 
 *Status:* missing. No question answering exists.
 
 #### REVIEW-005 — Model choice, records and switch-off.
-The owner chooses the model provider (Anthropic or OpenAI with the owner's API key under a no-training, zero-retention agreement, or Cloudflare Workers AI) and can switch AI off for the installation or per agreement type. Every model output records the provider, model, prompt version, playbook version, input document digests and the person who accepted it. Usage and estimated cost are shown in USD per month.
+The owner chooses the model provider (Anthropic or OpenAI with the owner's API key under a no-training, zero-retention agreement, or Cloudflare Workers AI) and can switch AI off for the installation or per agreement type. Every model output records the provider, model, prompt version, playbook version, input document digests and the person who accepted it. Usage and estimated cost are shown in USD per month. The same settings choose the OCR provider (`REPO-002`). Beside each provider and model they show its latest live evaluation (`REVIEW-006`). A task the model has not passed live is not offered.
 
-*Acceptance:* a journey configures a provider fake, runs review and extraction, reads each output's record (model, prompt, playbook and input digests), switches AI off for NDAs and sees review refused on an NDA, and reads the month's usage in USD.
+*Acceptance:* a journey configures a provider fake, runs review and extraction, reads each output's record (model, prompt, playbook and input digests), switches AI off for NDAs and sees review refused on an NDA, and reads the month's usage in USD. A model with no passing live evaluation for review is shown as not evaluated, and review is refused with it.
 
 *Status:* missing. Locket makes no model calls.
+
+#### REVIEW-006 — Live accuracy evidence for review, extraction and OCR.
+No AI review, extraction or OCR task is offered for a provider and model until an evaluation command in the repository has run the shipped prompts against that real provider and recorded the result. A fake never counts. Each run is committed as an evaluation record: provider, model, prompt version, dataset name, version and digest, per-field and per-rule scores, latency and USD cost. A new prompt version or model needs a new passing run before it is offered.
+
+The labelled sets are named:
+
+- **Clause location:** the CUAD v1 test split from the Atticus Project (102 of CUAD's 510 US commercial contracts, 41 labelled clause categories). It is scored on the categories that map to Locket fields: parties, agreement, effective and expiration dates, renewal term, notice period to terminate renewal, governing law, termination for convenience, cap on liability, uncapped liability, insurance, audit rights, minimum commitment, price restrictions, exclusivity and most favoured nation.
+- **Normalised values:** a held-out Locket set of 100 US commercial agreements (NDAs, MSAs, order forms, supplier agreements and amendments), labelled by counsel with normalised values (dates, day counts, USD amounts, states). It is kept out of prompt development, and its labels and digest are committed.
+- **Review:** 50 agreements from that held-out set against a 12-rule US supplier playbook, each rule labelled met, breached or cannot determine by counsel.
+- **OCR:** the 102 CUAD test contracts rendered as 200-dpi greyscale page images, scored against CUAD's text.
+
+The bars a run must meet:
+
+- **Extraction:** clause-location recall of at least 0.85 and precision of at least 0.80 for each mapped CUAD category. Exact-value accuracy of at least 0.90 for each normalised field, and at least 0.95 for end date, notice period and auto-renewal, the fields that drive deadlines.
+- **Review:** per-rule agreement with counsel of at least 0.85. No rule may call a breached case "met" in more than 3% of its breached cases. Every cited quote matches the version text.
+- **OCR:** character error rate of at most 2% overall and at most 5% on any single contract, with the page anchor correct for every cited passage.
+- **Speed:** at the 90th percentile, review of a 40-page agreement against 30 rules in 2 minutes and extraction of a 40-page agreement in 60 seconds.
+
+*Acceptance:* the evaluation command run against a provider fake refuses to record a result, because it is not a live run. A live run with Anthropic (and with OpenAI or Workers AI where offered), plus one with at least one named OCR provider, is committed with dataset digests and meets every bar. The model settings (`REVIEW-005`) show those results. A recorded run that misses one bar leaves that task unavailable for that model.
+
+*Status:* missing. No evaluation command, labelled set or recorded live run exists.
+
+#### REVIEW-007 — Plain-English summary of one agreement.
+A person generates a plain-English summary of a single agreement for a business stakeholder. It covers the parties and our entity (`ENTITY-001`); what each side must do; price and payment; the term, renewal and notice deadline; termination rights; liability and insurance; and the playbook exceptions accepted. Every line cites its passage and says whether the value is confirmed or still proposed. The summary is pinned to the version it was made from. It is marked stale when a new version or a corrected term arrives, and is never silently rewritten. It can be shared only with people who may see the agreement. The model run follows `REVIEW-005` and is offered only after the extraction bar in `REVIEW-006` is met.
+
+*Acceptance:* a journey with a model-provider fake summarises a fixture MSA. Every line cites a passage in the version text, and an unconfirmed renewal term is labelled proposed. Adding version 3 marks the summary stale, and a viewer without access to the agreement cannot open the summary.
+
+*Status:* missing. No summaries exist.
 
 ### Approval routing
 
@@ -312,12 +355,19 @@ Approvers are asked by email, Slack, Teams or Nook, in the Word add-in or on a p
 
 *Status:* missing. Approvals are given only in the Locket screens.
 
+#### APPROVE-004 — Approval reminders and escalation.
+A pending approval reminds its approver through their notification channel (`NOTIFY-001`, `APPROVE-003`) at owner-configured intervals. The default is after 1 business day, then daily, in the approver's US time zone. If it is still pending after a configured time (default 3 business days), it escalates to the approver's delegate (`APPROVE-002`), or to the rule's escalation contact when there is no delegate. Anyone working on the agreement can press "Remind approver", at most once every 4 hours per approver. Every reminder and escalation is recorded in the agreement's activity, and reminders stop as soon as the approval is given, declined or withdrawn.
+
+*Acceptance:* a journey with a Postmark fake and a controlled clock submits an agreement for approval. The approver is reminded after 1 business day and escalated to their delegate after 3. A manual reminder is sent and a second one within 4 hours is refused. Once the approver approves, no further reminder goes out, and each reminder and the escalation appear in the activity.
+
+*Status:* missing. Approvals send no reminders.
+
 ### Signing and execution
 
 #### SIGN-002 — Live Docusign, Adobe Acrobat Sign and Dropbox Sign.
-The owner connects a Docusign, Adobe Acrobat Sign or Dropbox Sign account with OAuth. From an approved signature package (`SIGN-001`), Locket creates and sends the envelope with recipients, signing order and signature fields, records the envelope ID, and tracks status through the provider's webhooks (Docusign Connect, Acrobat Sign webhooks, Dropbox Sign callbacks), verifying each callback's signature. People see sent, viewed, signed, declined and voided per signer, can send reminders, and Locket voids the envelope if the agreement changes after sending. Provider credentials stay in the owner's secret store.
+The owner connects a Docusign, Adobe Acrobat Sign or Dropbox Sign account with OAuth. From an approved signature package (`SIGN-001`), Locket creates and sends the envelope with every document in the packet and the recipients, signing order, CCs and signature fields that `SIGN-005` decides, records the envelope ID, and tracks status through the provider's webhooks (Docusign Connect, Acrobat Sign webhooks, Dropbox Sign callbacks), verifying each callback's signature. People see sent, viewed, signed, declined and voided per signer, can send reminders, and Locket voids the envelope if the agreement changes after sending. Provider credentials stay in the owner's secret store.
 
-*Acceptance:* a Workers journey with a Docusign API fake sends an approved package, receives signed callbacks for viewed, one signer completed and envelope completed, rejects a callback with a bad signature, and voids an envelope when a new version is added; the same journey runs against Acrobat Sign and Dropbox Sign fakes. A live sandbox run against each provider's developer account is recorded before the clause is accepted.
+*Acceptance:* a Workers journey with a Docusign API fake sends an approved two-document package with its `SIGN-005` signers and fields, receives signed callbacks for viewed, one signer completed and envelope completed, rejects a callback with a bad signature, and voids an envelope when a new version is added; the same journey runs against Acrobat Sign and Dropbox Sign fakes. A live sandbox run against each provider's developer account is recorded before the clause is accepted.
 
 *Status:* partial. Provider-named packages, routing manifests and recorded envelope IDs ship (`src/locket/execution.ts`, `tests/api/flows.test.mjs`); live sending, webhooks, reminders and voiding do not exist.
 
@@ -341,6 +391,18 @@ Counsel publishes versioned standard terms (terms of service, data processing ad
 *Acceptance:* a journey publishes terms version 1, accepts it through the embed on a test page, publishes version 2 requiring re-acceptance, and sees the same user prompted again; the export lists both acceptances with digests, time and IP.
 
 *Status:* missing. No clickwrap capability exists.
+
+#### SIGN-005 — Signer rules, signature fields and multi-document packets.
+Locket decides who signs, where they sign and what they sign before an envelope leaves, so nothing needs tagging by hand in the provider.
+
+- **Our signer by rule.** The owner sets rules that choose our signatory by agreement type, USD value, department and our contracting entity (`ENTITY-001`), on the same rule engine and preview as `APPROVE-002`. For example, the VP Sales signs under $100,000 and the CFO at $100,000 or more. Every rule set has a required fallback signer, used when no rule matches or the chosen signer is marked unavailable. Counterparty signers come from the request's contacts and the counterparty's authorised signatories (`REPO-010`).
+- **Fields from templates.** Templates carry signature blocks per party role: signature, name, title, date and initials. Locket writes these into the signing PDF as each provider's anchor or text tags (Docusign anchor tabs, Acrobat Sign text tags, Dropbox Sign text tags, and the same placements for Inkwell), so fields land on the blocks automatically.
+- **Signature coordinator.** Before sending, a person with the signature role reviews the packet. They can reorder, add or remove signers and add CCs. On a document with no template blocks, such as counterparty paper, they place fields by hand on a page preview. Every change is recorded in the routing manifest.
+- **Packets.** One envelope carries the main agreement plus approved signable attachments, such as a DPA, order form or SOW. Each document is pinned by digest and covered by the approval (`APPROVE-001`). Attachments that are not for signature can travel as reference documents.
+
+*Acceptance:* a journey takes a $250,000 MSA plus a DPA from templates to the Docusign fake as one envelope holding both documents and their digests. The CFO is the internal signer by rule, and the fields sit on each template's signature blocks as anchor tabs. A $50,000 agreement routes to the VP Sales, and with the CFO marked unavailable the fallback signer is chosen. On a counterparty PDF, the coordinator places a signature and a date field on page 7 and adds a CC, and the envelope carries those placements. The same packet reaches the Acrobat Sign, Dropbox Sign and Inkwell fakes with matching fields.
+
+*Status:* partial. Ordered signers and copy recipients entered by hand are recorded in the routing manifest and reconciled at execution (`src/locket/execution.ts`, `tests/api/flows.test.mjs`); signer rules, the fallback signer, template signature blocks, field placement and multi-document packets do not exist.
 
 ### Obligations and renewals
 
@@ -368,7 +430,7 @@ Each renewal and obligation deadline sends reminder emails at owner-configured o
 #### RENEW-003 — Deadlines on Google Calendar and Outlook.
 A person connects Google Calendar or Outlook (Microsoft Graph) and chooses which deadlines appear (their own, their team's, all they may see). Notice deadlines, end dates and obligation due dates become calendar events with a link back, updated when a confirmed term is corrected and removed when the agreement ends or the deadline is met.
 
-*Acceptance:* a journey with Google Calendar and Graph fakes connects both, confirms terms and sees the notice-deadline event created; correcting the end date moves the event; recording the renewal decision marks it done.
+*Acceptance:* a journey with Google Calendar and Graph fakes connects both, confirms terms and sees the notice-deadline event created; correcting the end date moves the event; recording the renewal decision marks it done. Live runs against a Google Workspace test calendar and a Microsoft 365 developer tenant are recorded before the clause is accepted.
 
 *Status:* missing. No calendar connection exists.
 
@@ -421,7 +483,7 @@ An accepted proposal in Platter (or PandaDoc) opens a customer contract request 
 #### INT-001 — Google Drive, OneDrive/SharePoint and Chest.
 The owner connects Google Drive, OneDrive/SharePoint or Chest. Locket imports from chosen folders (`REPO-003`) and files executed agreements and certificates into a folder structure by naming rule (for example `Contracts/{counterparty}/{year}`), linking each stored copy back to the record. Locket remains the system of record; changes made to copies in storage do not alter Locket's originals.
 
-*Acceptance:* a journey with Drive and Graph fakes imports a folder of 30 agreements, executes a new agreement and finds it filed under the naming rule in both; editing the stored copy leaves Locket's original digest unchanged.
+*Acceptance:* a journey with Drive and Graph fakes imports a folder of 30 agreements, executes a new agreement and finds it filed under the naming rule in both; editing the stored copy leaves Locket's original digest unchanged. Live runs against a Google Drive test folder and a SharePoint document library in a Microsoft 365 developer tenant are recorded before the clause is accepted.
 
 *Status:* missing. No storage connection exists.
 
@@ -474,6 +536,23 @@ On a verified request (for example under the California Consumer Privacy Act), t
 
 *Status:* missing. No erasure, hold or retention capability exists.
 
+#### ENTITY-001 — Our contracting entities.
+The owner records each of the business's own legal entities: legal name, entity type, state or country of formation, EIN or foreign tax ID, registered and notice addresses, default currency and time zone, and authorised signatories. Every agreement names the entity that contracts. Templates, clause wordings, playbooks and signer rules (`SIGN-005`) can be limited to an entity. The entity's legal name, notice address and signatory fill templates and outgoing notices (`RENEW-006`). Search, saved views and reports filter and group by entity, and extraction proposes our entity from the document (`INTAKE-007`, `REPO-004`).
+
+*Acceptance:* a journey adds a Delaware parent company and a UK subsidiary. An agreement for the UK entity offers only that entity's template and routes to its signatory. Its termination notice carries the UK entity's notice address, and the register filters agreements by entity.
+
+*Status:* missing. Agreements have no record of our contracting entity.
+
+#### OPS-001 — Self-hosted install, updates and security answers.
+Locket runs in the buyer's own Cloudflare account. `rer setup` and `rer deploy` create the Worker, D1 database and R2 storage there, so contract data stays in the buyer's account.
+
+- **Updates.** Releases ship with release notes and their migration list at least monthly. Security fixes ship within 7 days of a fix being available. The owner previews an update, then applies it with one `rer` command, which takes a complete export (`PORT-001`) before running forward-only migrations. Release notes call out any change to how data is handled.
+- **Security answers.** The repository ships a completed security questionnaire for a self-hosted install, in the SIG Lite and CAIQ question sets procurement teams send. It covers data flows, subprocessors (Cloudflare and each connector the owner enables), encryption in transit and at rest, access control, audit (`AUDIT-001`), backup and restore, incident response and vulnerability handling. It also sets out the split of responsibilities between the buyer and the software. Locket claims no SOC 2 report of its own for software the buyer runs; Cloudflare's SOC 2 Type II report covers the platform.
+
+*Acceptance:* a fresh `rer deploy` to a test Cloudflare account creates the Worker, database and storage in that account. Updating from the previous release takes an export, applies the migrations and keeps every record and file digest. The questionnaire lists every connector the build can enable as a subprocessor, which a check compares with the build's connectors.
+
+*Status:* partial. Setup, deploy to the owner's own Cloudflare account, and complete export and restore ship (`OPERATIONS.md`, `deploy.json`, `tests/portable.mjs`); the release cadence, the one-command update with an automatic export and the security questionnaire do not exist.
+
 ### Reporting
 
 #### REPORT-001 — Cycle time, throughput and bottlenecks.
@@ -516,9 +595,15 @@ Native iOS and Android apps (App Store and Google Play) sign in with the install
 ### Move-in from incumbents
 
 #### MOVE-002 — Ironclad move-in.
-From an Ironclad repository export (record metadata CSV or API export, documents and attachments), a dry run maps Ironclad record types and properties to Locket types and fields (unmapped properties become custom fields or are listed), keeps every document byte-for-byte with its Ironclad record ID, imports signed copies as executed agreements with imported execution records, and brings dates and values in as proposed terms. Apply, undo and journal follow `MOVE-001`.
+The kit reads Ironclad's three documented outputs, alone or together:
 
-*Acceptance:* a journey with a documented-shape Ironclad fixture of 50 records runs the dry run showing mappings and unmapped properties, applies it, downloads documents with matching digests, confirms proposed terms on two, and undoes an unused batch. An authorised real export is recorded before the clause is accepted.
+- **Repository metadata export:** CSV, JSON or XLSX, exported by an Ironclad admin from the Dashboard or the Imports tab.
+- **Attachments ZIP:** the bulk download of the selected records' documents as one ZIP.
+- **Public API:** the Records API (`GET /records`, with each record's type, properties, attachments and parent and child links), and attachment downloads, which Ironclad prepares as a background job that the kit polls until ready.
+
+A dry run maps each Ironclad record type to a Locket agreement type and each property to a Locket field or custom field (`REPO-005`). The mapping is shown and editable, and every unmapped property is listed for a person to create as a custom field or skip. Ironclad's parent and child linked records become agreement families (`REPO-008`) with their relation. Every document is matched to its record and kept byte-for-byte with its digest. Files without a record and records without a file are listed. Each imported item keeps its Ironclad record ID, and its workflow ID where it came from a workflow, and is searchable by them. Signed records import as executed agreements with imported execution records, and dates and values come in as proposed terms (`TERMS-001`). Apply, undo and journal follow `MOVE-001`. Workflows still in progress move under `MOVE-006`, and clickwrap acceptances under `MOVE-007`.
+
+*Acceptance:* a journey uses a fixture built from Ironclad's documented export columns, Records API JSON and an attachments ZIP. It holds 50 records, including two parent MSAs with three child order forms and one amendment. The dry run shows the type and property mappings and lists three unmapped properties. After applying, the families are linked with their relations, documents download with matching digests, and each agreement is found by its Ironclad record ID. Proposed terms are confirmed on two, and an unused batch is undone. The same fixture imported through the API path (a Records API fake whose attachment job reports pending, then ready) gives the same result. An authorised real export and a live run against an Ironclad sandbox's API are recorded before the clause is accepted.
 
 *Status:* missing. Only the DocuSign kit exists.
 
@@ -542,6 +627,20 @@ Completed PandaDoc documents and Adobe Acrobat Sign agreements, with their audit
 *Acceptance:* journeys with documented-shape PandaDoc and Acrobat Sign archives import completed documents with their audit trails and refuse incomplete ones in the dry run.
 
 *Status:* missing. Only the DocuSign kit exists.
+
+#### MOVE-006 — Ironclad workflows in progress at cutover.
+On the day the Ironclad licence ends, a buyer still has active workflows mid-negotiation. The kit reads them from Ironclad's Workflows API: each workflow's ID, template or third-party paper, launch-form answers, current step, assignees, documents and counterparty. A dry run lists each one as an open Locket agreement at its matching stage. Workflows in create or review steps become drafts, and those in approval or signature steps become agreements in review. The latest document comes in as the current version and the counterparty's files as counterparty versions, byte-for-byte with their digests. Launch-form answers become request fields, and the Ironclad workflow ID is kept and searchable. Approvals and signatures given in Ironclad never carry over: each imported workflow is approved again under `APPROVE-001`. A workflow already out for signature in Ironclad is listed, so the owner can finish it there and import the signed copy under `MOVE-002`, or prepare a new signature package in Locket. Apply and undo follow `MOVE-001`.
+
+*Acceptance:* a journey with a Workflows API fake holds 5 active workflows: two in review, two in negotiation with counterparty markups, and one approved and out for signature. After the dry run and apply, five open agreements appear in the request queue (`INTAKE-006`) at their mapped stages. Their latest documents and counterparty files match the fake's digests, and each shows its Ironclad workflow ID. None carries an approval, and one is then approved under `APPROVE-001`. The workflow out for signature is listed for the owner's decision. A live run against an Ironclad sandbox's Workflows API is recorded before the clause is accepted.
+
+*Status:* missing. No Ironclad workflow import exists.
+
+#### MOVE-007 — Ironclad Clickwrap acceptance history.
+A buyer moving clickwrap to `SIGN-004` keeps proof of who accepted what. The kit reads the acceptance activity from Ironclad Clickwrap (its activity export or REST API): the signer's identifier and email, the contract and version accepted, acceptance time, IP address, and each version's document. It imports them as acceptance records labelled imported, linked to each terms version kept byte-for-byte. From then on, Locket's own versions and re-acceptance rules apply. Apply and undo follow `MOVE-001`.
+
+*Acceptance:* a journey with a documented-shape Ironclad Clickwrap fixture of 200 acceptances over two terms versions imports them as labelled imported acceptances with their versions and digests. A user who accepted only version 1 is prompted to accept Locket's next published version under `SIGN-004`. The export lists imported and native acceptances distinctly, and an unused batch undoes cleanly.
+
+*Status:* missing. No clickwrap import exists.
 
 ## Push further
 
@@ -653,6 +752,8 @@ Agents serve the job beyond what today's up-and-comers ship: they connect what w
 - **Approval:** commercial approval always; exceptions by the rule's authority; requester self-approval refused except for the owner; configured rules add approvers (`APPROVE-002`).
 - **Notice deadline:** end date minus notice days, at 23:59:59 local time in the agreement's zone, optionally rolled to the previous US business day (`US-001`).
 - **Reminders:** 90, 60, 30 and 7 days before each notice deadline, escalation at 30 days without a decision (`RENEW-002`).
+- **Approval reminders:** after 1 business day, then daily; escalation to the delegate after 3 business days (`APPROVE-004`).
+- **AI and OCR:** offered for a provider and model only after a passing live run on the named labelled sets (`REVIEW-006`).
 - **Move-in order:** DocuSign archive (shipped), then Ironclad, PandaDoc and Adobe Acrobat Sign, then Icertis, Agiloft, SpotDraft and Juro. Only an authorised real export with original bytes, source IDs and disclosed missing files is accepted as owner move-in evidence.
 - **Limits:** today 5 MB per uploaded file and 6 MB per move-in batch; the target is 50 MB per file and streamed batches of up to 10,000 files (`REPO-003`).
 
@@ -668,6 +769,7 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 | Act as the ledger, pay suppliers, raise POs or bill customers | Pantry, QuickBooks Online, NetSuite, Purse, Coupa, Nectar and Stripe Billing, linked under `LINK-*` |
 | Operate an email carrier, a mail house or a model | Postmark (or the installation's Base mail provider) for email; a certified-mail or courier service for letters with tracking recorded (`RENEW-006`); the owner's chosen OCR and model provider (`REVIEW-005`) |
 | Manage legal matters, litigation, e-discovery or outside-counsel billing | Satchel or Clio; agreements link to the matter |
+| Hold its own SOC 2 report for software the buyer runs in their own Cloudflare account | The completed security questionnaire and shared-responsibility split (`OPS-001`), with Cloudflare's SOC 2 Type II report for the platform |
 | Claim EU, UK or other non-US regulatory compliance, or hold a health-data agreement | US-first; other jurisdictions' requirements are recorded as clauses when a buyer needs them, with counsel's review |
 
 ## Status
@@ -677,8 +779,8 @@ Judged from the code and tests at commit `60d8141678e03c5186ab053e58f0ed92e8c107
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 0 | 35 | 35 | 70 |
-| All | 19 | 35 | 35 | 89 |
+| Target and push further | 0 | 37 | 42 | 79 |
+| All | 19 | 37 | 42 | 98 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -716,6 +818,7 @@ Judged from the code and tests at commit `60d8141678e03c5186ab053e58f0ed92e8c107
 | `REPO-008` | Agreement families | target | partial | `src/locket/agreements.ts` | The family page and governing-term view do not, and no flow test exercises family links |
 | `REPO-009` | Groups, departments and field-level access | target | partial | `src/locket/access.ts`; `tests/api/security.test.mjs` | Groups, departments and field-level hiding do not exist |
 | `REPO-010` | Counterparty records | target | partial | `src/locket/agreements.ts` | Entity details, notice addresses, signatories, merging and the counterparty page do not exist |
+| `REPO-011` | Bulk repository actions | target | missing |  | The register has no selection or bulk actions |
 | `DRAFT-002` | Word documents from templates | target | partial | `src/locket/library.ts`; `src/locket/pdf.ts` | DOCX output with preserved formatting and answer-driven conditional clauses do not exist |
 | `DRAFT-003` | Clause library in negotiation | target | partial | `src/locket/library.ts` | A searchable library, insertion during negotiation and usage counts do not exist |
 | `DRAFT-004` | Templates authored from existing Word documents | target | missing |  | Templates are authored as text in Locket |
@@ -729,12 +832,16 @@ Judged from the code and tests at commit `60d8141678e03c5186ab053e58f0ed92e8c107
 | `REVIEW-003` | AI redlines a person edits before sending | target | partial | `src/locket/review.ts` | Turning findings into tracked changes does not exist |
 | `REVIEW-004` | Ask the repository | target | missing |  | No question answering exists |
 | `REVIEW-005` | Model choice, records and switch-off | target | missing |  | Locket makes no model calls |
+| `REVIEW-006` | Live accuracy evidence for review, extraction and OCR | target | missing |  | No evaluation command, labelled set or recorded live run exists |
+| `REVIEW-007` | Plain-English summary of one agreement | target | missing |  | No summaries exist |
 | `APPROVE-002` | Conditional approval rules in USD | target | partial | `src/locket/review.ts`; `tests/api/flows.test.mjs` | Configurable value, department and condition rules, ordering and delegates do not exist |
 | `APPROVE-003` | Approve where people work | target | missing |  | Approvals are given only in the Locket screens |
+| `APPROVE-004` | Approval reminders and escalation | target | missing |  | Approvals send no reminders |
 | `SIGN-002` | Live Docusign, Adobe Acrobat Sign and Dropbox Sign | target | partial | `src/locket/execution.ts`; `tests/api/flows.test.mjs` | Live sending, webhooks, reminders and voiding do not exist |
 | `SIGN-003` | Inkwell signing | target | missing |  | No Inkwell connection exists |
 | `EXEC-002` | Automatic retrieval and filing of executed agreements | target | partial | `src/locket/execution.ts` | Automatic retrieval, filing and notification do not exist |
 | `SIGN-004` | Clickwrap acceptance of published terms | target | missing |  | No clickwrap capability exists |
+| `SIGN-005` | Signer rules, signature fields and multi-document packets | target | partial | `src/locket/execution.ts`; `tests/api/flows.test.mjs` | Signer rules, the fallback signer, template signature blocks, field placement and multi-document packets do not exist |
 | `OBL-001` | Obligation extraction, owners and status | target | partial | `src/locket/obligations.ts`; `tests/api/flows.test.mjs` | Built-in extraction, status values beyond done and owner lists do not exist |
 | `OBL-002` | Fulfilment evidence and escalation | target | partial | `src/locket/obligations.ts` | Evidence requirements, overdue escalation and risk ratings do not exist |
 | `RENEW-002` | Delivered reminders and escalation by email | target | partial | `src/locket/obligations.ts`; `src/locket/dates.ts` | No reminder is scheduled or sent |
@@ -753,6 +860,8 @@ Judged from the code and tests at commit `60d8141678e03c5186ab053e58f0ed92e8c107
 | `US-001` | US defaults | target | partial | `src/locket/model.ts`; `src/locket/dates.ts` | Values are stored and shown in AUD, the default zone is Australia/Sydney, counterparties carry an ABN, and US defaults, business-day rolling and multi-currency do not exist |
 | `AUDIT-001` | Filterable activity audit trail | target | partial | `src/locket/views.ts`; `tests/api/flows.test.mjs` | Filtering, CSV export and view and download events are absent |
 | `ERASE-001` | Personal-data erasure with legal hold | target | missing |  | No erasure, hold or retention capability exists |
+| `ENTITY-001` | Our contracting entities | target | missing |  | Agreements have no record of our contracting entity |
+| `OPS-001` | Self-hosted install, updates and security answers | target | partial | `OPERATIONS.md`; `deploy.json`; `tests/portable.mjs` | The release cadence, the one-command update with an automatic export and the security questionnaire do not exist |
 | `REPORT-001` | Cycle time, throughput and bottlenecks | target | missing |  | No analytics exist |
 | `REPORT-002` | Custom and scheduled reports | target | missing |  | No reports or schedules exist |
 | `REPORT-003` | Portfolio dashboard | target | missing |  | The register lists agreements and next deadlines without a dashboard |
@@ -762,6 +871,8 @@ Judged from the code and tests at commit `60d8141678e03c5186ab053e58f0ed92e8c107
 | `MOVE-003` | Icertis and Agiloft move-in | target | missing |  | No Icertis or Agiloft kit exists |
 | `MOVE-004` | SpotDraft and Juro move-in | target | missing |  | No SpotDraft or Juro kit exists |
 | `MOVE-005` | PandaDoc and Adobe Acrobat Sign archives | target | missing |  | Only the DocuSign kit exists |
+| `MOVE-006` | Ironclad workflows in progress at cutover | target | missing |  | No Ironclad workflow import exists |
+| `MOVE-007` | Ironclad Clickwrap acceptance history | target | missing |  | No clickwrap import exists |
 | `AGENT-001` | Invoices reconciled against signed terms | push-further | partial | `src/locket/obligations.ts` | Invoice and PO reconciliation does not exist |
 | `AGENT-002` | Service levels and supplier performance | push-further | missing |  | No service-level comparison exists |
 | `AGENT-003` | Renewal decision to verified notice delivery | push-further | partial | `src/locket/obligations.ts` | Sending, delivery tracking and chasing do not exist |
