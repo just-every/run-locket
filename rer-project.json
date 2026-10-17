@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "projectId": "just-every/run-locket",
+  "name": "locket",
+  "sourceRepository": "https://github.com/just-every/run-locket",
+  "license": "MIT"
+}
