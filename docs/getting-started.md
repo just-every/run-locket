@@ -1,14 +1,24 @@
-Locket runs on your own computer. You need Node 22 or later and pnpm 10.12.4, on macOS, Linux or Windows with WSL2.
+Locket runs on your own computer: macOS, Linux or Windows with WSL2.
 
 ## Run it on your computer
 
+First install `rer`, the Run Edit Run command. It installs for you alone, with its own Node if you have no Node 22 or later, and changes no shell settings; if its last line puts `rer` on your PATH, run that line too.
+
 ```sh
-npx -y @runeditrun/rer dev just-every/run-locket
+curl -fsSL https://runeditrun.com/install.sh | sh
 ```
 
-That one line installs `rer`, the Run Edit Run command, clones Locket and starts it; to start it again later, run `cd run-locket && rer dev`. `rer dev` installs everything, makes you the owner and prints a link that opens Locket signed in. Treat that link like a password: it signs you in as the owner.
+Then start Locket:
 
-To set the installation up for your real mailbox instead of a local owner, set it up first in place of the one line, answer the setup prompt, then start it:
+```sh
+rer dev just-every/run-locket
+```
+
+`rer` gets Locket, installs everything, makes you the owner and prints a link that opens Locket signed in. Treat that link like a password: it signs you in as the owner. To start it again later, run `cd run-locket && rer dev`.
+
+Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-locket` does both steps in one line.
+
+To set the installation up for your real mailbox instead of a local owner, set it up first in place of `rer dev just-every/run-locket`, answer the setup prompt, then start it:
 
 ```sh
 npx -y @runeditrun/rer setup just-every/run-locket

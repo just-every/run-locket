@@ -1,13 +1,30 @@
-/* Locket's header on Base's shared Run and not-found pages (linked after their own style by src/site/pages.tsx):
-   the homepage's gutter, wordmark and rule, and commands that scroll inside their block on phones instead of wrapping. */
-body > .bar { box-sizing: border-box; width: min(100% - 128px, 1312px); max-width: none; height: 96px; padding: 0; border-bottom: 1px solid #DCDDD2; }
-body > .bar .brand { gap: 14px; font-size: 32px; }
-body > .bar .brand img { width: 44px; height: 44px; }
-body > .bar nav { gap: 44px; font-size: 19px; }
+/* Locket's look on Base's shared Run, Contract and not-found pages (linked after their own style by src/site/pages.tsx):
+   the homepage's grid page, header lockup, heavy headings, white hairline step cards and ink step numbers. Tokens come
+   from /rer-theme.css. */
+.nw { white-space: nowrap; }
+body { background-color: var(--rer-page); background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px), linear-gradient(to bottom, var(--grid) 1px, transparent 1px); background-size: 40px 40px; }
+body > .bar { box-sizing: border-box; width: min(100% - 90px, 1440px); max-width: none; padding: 31px 6px 0 0; }
+body > .bar .brand { gap: 20px; font-size: 38px; font-weight: 800; letter-spacing: -.035em; }
+body > .bar .brand img { width: 52px; height: 60px; }
+body > .bar nav { gap: 42px; font-size: 19px; }
+body > .bar nav a:hover { text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.intro h1, .hero h1 { font-weight: 860; letter-spacing: -.05em; word-spacing: .12em; font-variation-settings: 'opsz' 32; }
+.intro h1::after, .hero h1::after { content: ''; display: block; width: 96px; height: 6px; margin: 22px auto 0; border-radius: 3px; background: var(--heading-gradient); }
+.step { border: 1px solid var(--line); border-radius: 18px; background: #fff; box-shadow: var(--card-shadow); backdrop-filter: none; }
+.step h2 { font-weight: 800; letter-spacing: -.03em; word-spacing: .11em; }
+.num { font-weight: 800; }
+.btn { border-radius: 16px; background: var(--ink); box-shadow: 0 10px 24px -14px rgb(17 17 17 / .7); }
+.code { border-radius: 12px; }
+.facts a, .go a { color: var(--claret); }
+@media (max-width: 900px) {
+  .code pre { padding: 46px 14px 14px; white-space: pre-wrap; overflow-wrap: normal; }
+  .copy { top: 8px; right: 8px; transform: none; min-height: 32px; padding: 0 12px; font-size: 13px; }
+}
 @media (max-width: 760px) {
-  body > .bar { width: calc(100% - 32px); height: 72px; }
-  body > .bar .brand { gap: 10px; font-size: 26px; }
-  body > .bar .brand img { width: 34px; height: 34px; }
-  body > .bar nav { gap: 24px; font-size: 17px; }
-  .code pre { white-space: pre; overflow-wrap: normal; }
+  body { background-size: 32px 32px; }
+  body > .bar { width: calc(100% - 32px); padding: 16px 0 0; }
+  body > .bar .brand { gap: 10px; font-size: 25px; }
+  body > .bar .brand img { width: 31px; height: 36px; }
+  body > .bar nav { gap: 18px; font-size: 15px; }
+  .intro h1::after, .hero h1::after { width: 72px; height: 5px; margin-top: 16px; }
 }

@@ -1,0 +1,155 @@
+/* 11 interlude, 12 moving in, 13 closing: desk px on the stage. */
+
+/* The mascot: the mark, with its arm and what it holds drawn in the mark's outline. */
+.mascot { position: absolute; display: block; }
+.mascot-mark { position: absolute; z-index: 2; }
+.mascot-gear { position: absolute; z-index: 1; overflow: visible; fill: none; stroke: #2B010D; stroke-linecap: round; stroke-linejoin: round; }
+.mascot-gear .flag { fill: #F08A3C; stroke-width: 7; }
+.mascot-gear .pole { stroke-width: 9; }
+.mascot-gear .arm { stroke-width: 11; }
+.mascot-gear .paw { fill: #2B010D; stroke: none; }
+.mascot-shadow { position: absolute; z-index: 0; border-radius: 50%; background: radial-gradient(closest-side, rgb(17 17 17 / .12), transparent); }
+
+/* 11 */
+.interlude-stage { height: 914px; }
+.mascot-flag { left: 430px; top: 140px; width: 480px; height: 460px; z-index: 3; }
+.mascot-flag .mascot-gear { left: 0; top: 0; width: 190px; height: 460px; }
+.mascot-flag .mascot-mark { left: 166px; top: 63px; width: 286px; height: 330px; }
+.interlude-stage > .mascot-shadow { left: 584px; top: 512px; width: 340px; height: 30px; }
+.band { position: absolute; inset: 0; width: 1536px; height: 914px; z-index: 1; overflow: visible; }
+.band-card { fill: #fff; stroke: #E4E4E8; filter: drop-shadow(0 8px 14px rgb(17 17 17 / .07)); }
+.band text { fill: #4B5563; font: 500 15px var(--rer-font-body); letter-spacing: .24em; }
+.band .tick { stroke: #A3A7AF; stroke-width: 1.5; }
+.band .tick-month { stroke: #6B7280; stroke-width: 2; }
+.band .pin-line { fill: none; stroke: var(--claret); stroke-width: 2.6; stroke-dasharray: 2 7; stroke-linecap: round; }
+.band .pin { fill: var(--claret); }
+.pins { position: absolute; inset: 0; }
+.pin-card { position: absolute; z-index: 2; padding: 20px 22px 18px; }
+.pin-date { color: #1D1F24; font-size: 16.5px; letter-spacing: .12em; }
+.pin-title { margin-top: 6px; font-size: 22px; letter-spacing: -.025em; white-space: nowrap; font-weight: 700; letter-spacing: -.02em; }
+.pin-body { display: grid; justify-items: start; gap: 4px; margin-top: 4px; color: #6B7280; font-size: 19.5px; line-height: 1.35; }
+.pin-body .small { font-size: 17.5px; }
+.pin-body .pill { margin-top: 6px; font-size: 18px; padding: 4px 14px; }
+.pin-edge { border-left: 8px solid var(--claret); }
+.pin-cobalt { left: 237px; top: 280px; width: 230px; }
+.pin-northwind { left: 498px; top: 680px; width: 340px; }
+.pin-bluebird { left: 908px; top: 282px; width: 258px; }
+.pin-brightline { left: 896px; top: 680px; width: 241px; }
+.pin-harbor { left: 1186px; top: 283px; width: 238px; }
+.pin-term5 { left: 1196px; top: 690px; width: 300px; }
+
+/* 12 */
+.movein-stage { height: 1010px; --hd-size: 87px; }
+.movein-head { left: 130px; top: 52px; }
+.movein-lede { position: absolute; left: 897px; top: 108px; width: 530px; font-size: 26px; line-height: 1.5; }
+.strip { position: absolute; left: 116px; top: 284px; width: 1304px; height: 154px; padding: 16px 22px; }
+.strip .mini-label { padding: 0 2px 12px; border-bottom: 1px solid var(--line-2); }
+.strip ul { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 12px; }
+.strip li { display: grid; padding: 0 12px; }
+.strip li + li { border-left: 1px solid var(--line); padding-left: 32px; }
+.strip b { font-size: 44px; font-weight: 800; letter-spacing: -.035em; line-height: 1.1; }
+.strip span { color: #4B5563; font-size: 19.5px; }
+.ironclad { position: absolute; left: 112px; top: 488px; width: 596px; height: 366px; padding: 32px 28px; background: #FBFBFC; rotate: -3deg; }
+.rec-title { margin-top: 10px; font-size: 26px; font-weight: 750; letter-spacing: -.02em; }
+.ironclad .kv { --kv: 128px; margin-top: 18px; font-size: 17px; }
+.ironclad .kv > div { padding: 9px 6px; }
+.movein-arrow { left: 707px; top: 624px; width: 120px; height: 10px; }
+.locket-rec { position: absolute; left: 850px; top: 470px; width: 583px; height: 418px; padding: 22px 26px; }
+.locket-rec .mini-label { color: var(--claret); font-weight: 650; font-size: 15px; }
+.locket-rec .rec-title { margin-top: 6px; font-size: 30px; font-weight: 800; letter-spacing: -.03em; }
+.rec-sub { color: #4B5563; font-size: 21px; }
+.locket-rec ul { margin-top: 14px; }
+.locket-rec li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 2px; border-top: 1px solid var(--line-2); font-size: 18.5px; color: #1D1F24; }
+.locket-rec .ckdot { width: 30px; height: 30px; }
+.terminal { position: absolute; left: 916px; top: 876px; width: 546px; padding: 12px 20px 14px; border-radius: 12px; background: #15161B; color: #F3F4F6; box-shadow: 0 18px 30px -18px rgb(17 17 17 / .6); z-index: 3; }
+.term-lights { display: flex; gap: 8px; }
+.term-lights i { background: #9CA0A8; }
+.terminal pre { margin: 8px 0 0; font: 500 14.5px/1.6 var(--rer-font-mono); white-space: pre-wrap; }
+.term-prompt { color: #9CA3AF; }
+.term-note { color: #9CA3AF; }
+
+/* 13 */
+.closing-stage { height: 1000px; --hd-size: 112px; }
+.closing-copy { position: absolute; left: 0; right: 0; top: 300px; text-align: center; z-index: 2; }
+.closing-copy .hd { letter-spacing: -.055em; }
+.closing-copy .lede { margin-top: 30px; font-size: 30px; }
+.closing-actions { display: flex; justify-content: center; gap: 18px; margin-top: 34px; }
+.closing-actions .btn-run { height: 66px; padding: 0 38px; font-size: 25px; border-radius: 20px; }
+.fwd { position: absolute; padding: 22px 30px; font-size: 17px; color: #4B5563; }
+.fwd-title { margin-bottom: 4px; color: var(--ink); font-size: 22px; font-weight: 750; letter-spacing: -.015em; }
+.fwd-bluebird { left: 92px; top: 100px; width: 445px; rotate: -4deg; }
+.fwd-cobalt { left: 1050px; top: 98px; width: 420px; display: flex; align-items: center; gap: 20px; rotate: -4deg; }
+.fwd-northwind { left: 125px; top: 733px; width: 416px; display: flex; align-items: center; gap: 20px; }
+.fwd .ckdot { width: 46px; height: 46px; }
+.fwd .ckdot .ck { width: 24px; height: 24px; }
+.fwd-northwind .ck { color: var(--ink); }
+.fwd-northwind .ckdot .ck { color: var(--done-ink); }
+.closing-l1 { left: 540px; top: 190px; width: 80px; height: 100px; }
+.closing-l2 { left: 930px; top: 194px; width: 130px; height: 110px; }
+.closing-l3 { left: 334px; top: 566px; width: 90px; height: 160px; }
+.mascot-date { left: 1072px; top: 520px; width: 400px; height: 380px; z-index: 2; }
+.mascot-date .mascot-mark { left: 0; top: 72px; width: 260px; height: 300px; }
+.mascot-date .mascot-gear { left: 236px; top: 110px; width: 120px; height: 200px; z-index: 1; }
+.tearoff { position: absolute; left: 258px; top: 2px; width: 136px; height: 136px; padding: 22px 10px 0; border: 5px solid #2B010D; border-radius: 12px; background: #fff; rotate: 8deg; text-align: center; overflow: hidden; z-index: 3; }
+.tearoff::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 22px; background: var(--claret); }
+.tearoff i { position: absolute; top: -12px; width: 10px; height: 28px; border-radius: 6px; background: #2B010D; }
+.tearoff i:first-child { left: 34px; }
+.tearoff i:nth-child(2) { right: 34px; }
+.tearoff b { position: relative; display: block; margin-top: 14px; color: #111; font: 900 30px/1.02 var(--rer-font-heading); letter-spacing: -.03em; }
+.mascot-shadow-closing { left: 1040px; top: 872px; width: 320px; height: 34px; }
+
+@media (max-width: 1279px) {
+  .movein-stage, .closing-stage { --hd-size: 64px; }
+  .interlude-stage { padding-top: 40px; }
+  .sec .stage > .mascot-flag { order: 0; align-self: center; zoom: .6; width: 480px !important; height: 470px; margin-left: -40px; }
+  .interlude-stage > .mascot-shadow, .band { display: none; }
+  .pins { position: relative; display: grid; gap: 14px; padding-left: 26px; }
+  .pins::before { content: ''; position: absolute; left: 6px; top: 8px; bottom: 8px; border-left: 2.5px dotted var(--claret); }
+  .pin-card { position: relative; left: auto; top: auto; width: auto; padding: 16px 18px; }
+  .pin-card::before { content: ''; position: absolute; left: -27px; top: 20px; width: 14px; height: 14px; border-radius: 50%; background: var(--claret); }
+  .pin-edge::before { left: -34px; }
+  .pin-date { font-size: 14px; }
+  .pin-title { font-size: 20px; }
+  .pin-body { font-size: 16px; }
+  .pin-body .small { font-size: 15px; }
+  .pin-body .pill { font-size: 14px; }
+  .movein-lede { width: auto !important; font-size: 19px; color: var(--body); }
+  .strip { height: auto; padding: 16px; }
+  .strip ul { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 0; }
+  .strip li, .strip li + li { padding: 0 12px; border-left: 0; }
+  .strip li:nth-child(even) { border-left: 1px solid var(--line); }
+  .strip b { font-size: 32px; }
+  .strip span { font-size: 15px; }
+  .strip .cursor { display: none; }
+  .ironclad { order: 4; height: auto; padding: 20px 16px; }
+  .locket-rec { order: 3; height: auto; padding: 18px 16px; }
+  .terminal { order: 5; padding: 12px 14px; }
+  .rec-title { font-size: 20px; }
+  .locket-rec .rec-title { font-size: 22px; }
+  .rec-sub { font-size: 16px; }
+  .ironclad .kv { font-size: 14px; }
+  .files .files-sep { display: none; }
+  .files .nw { display: block; font-size: 13.5px; }
+  .locket-rec li { font-size: 14.5px; }
+  .locket-rec .ckdot { width: 24px; height: 24px; }
+  .terminal pre { font-size: 13px; }
+  .closing-stage { padding-top: 48px; }
+  .closing-copy { order: 0; text-align: left; }
+  .closing-copy .lede { margin-top: 16px; font-size: 19px; }
+  .closing-actions { flex-wrap: wrap; justify-content: flex-start; gap: 12px; margin-top: 22px; }
+  .closing-actions .btn-run { height: 56px; font-size: 19px; padding: 0 26px; border-radius: 14px; }
+  .fwd { padding: 16px 18px; font-size: 15px; }
+  .fwd-title { font-size: 18px; }
+  .fwd .ckdot { width: 34px; height: 34px; }
+  .fwd .ckdot .ck { width: 18px; height: 18px; }
+  .fwd-bluebird { order: 2; }
+  .fwd-bluebird .cursor { left: auto !important; right: 80px; top: 56px !important; }
+  .fwd-cobalt { order: 3; }
+  .fwd-northwind { order: 4; }
+  .sec .stage > .mascot-date { order: 5; align-self: center; zoom: .62; width: 400px !important; height: 400px; margin: 20px 0 0 -60px; }
+  .mascot-shadow-closing { display: none; }
+}
+@media (max-width: 759px) {
+  .movein-stage, .closing-stage { --hd-size: 44px; }
+  .movein-lede, .closing-copy .lede { font-size: 17px; }
+}

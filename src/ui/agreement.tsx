@@ -36,7 +36,7 @@ export function AgreementPage({ state, id, tab, locket }: { state: LocketState; 
         <Engraved className="lk-facts-card" medallion="document">
           <dl className="lk-facts">
             <div><dt>Owner</dt><dd><Person name={personName(state, a.owner_id)} /></dd></div>
-            <div><dt>Value (AUD)</dt><dd>{money(a.value_cents)}</dd></div>
+            <div><dt>Value (USD)</dt><dd>{money(a.value_cents)}</dd></div>
             <div><dt>Needed by</dt><dd>{day(a.needed_by)}</dd></div>
             <div><dt>Start date</dt><dd>{day(a.start_date)}</dd></div>
           </dl>
@@ -69,7 +69,7 @@ function Details({ state, a, locket }: { state: LocketState; a: any; locket: Loc
         {editable ? (
           <Form busy={busy} submit="Save details" onSubmit={data => void run('request.update', { agreementId: a.id, version: a.version, title: value(data, 'title'), value: value(data, 'value'), ownerId: value(data, 'ownerId'), neededBy: value(data, 'neededBy'), restricted: data.get('restricted') === 'on' })}>
             <Field label="Title"><input name="title" defaultValue={a.title} required /></Field>
-            <Field label="Value (AUD)" hint="Changing the value withdraws earlier approvals."><input name="value" inputMode="decimal" defaultValue={a.value_cents === null ? '' : String(a.value_cents / 100)} /></Field>
+            <Field label="Value (USD)" hint="Changing the value withdraws earlier approvals."><input name="value" inputMode="decimal" defaultValue={a.value_cents === null ? '' : String(a.value_cents / 100)} /></Field>
             <Field label="Responsible person"><select name="ownerId" defaultValue={a.owner_id}>{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
             <Field label="Needed by"><input name="neededBy" type="date" defaultValue={a.needed_by ?? ''} /></Field>
             <label className="lk-check"><input type="checkbox" name="restricted" defaultChecked={!!a.restricted} /> Restricted: only owner, counsel, requester, responsible person and people granted access can see it</label>

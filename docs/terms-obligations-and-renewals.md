@@ -10,12 +10,12 @@ On the **Terms and obligations** tab, **Propose or correct a term**: end date, e
 
 ## Notice deadlines
 
-With a confirmed end date and notice period, the agreement appears under **Renewals**. Its notice deadline is the end date minus the notice period, at 23:59 in the agreement's time zone (Australia/Sydney unless you change it), daylight saving included. The queue is sorted by deadline, shows how many days are left, and marks **Decide soon** within 30 days.
+With a confirmed end date and notice period, the agreement appears under **Renewals**. Its notice deadline is the end date minus the notice period, at 11:59 pm in the agreement's time zone (America/New_York, unless the agreement was created through the API with another zone), daylight saving time included. The queue is sorted by deadline, shows how many days are left, and marks **Decide soon** within 30 days.
 
 ## Decide and give notice
 
 1. **Decision**: the owner or an approver chooses **Renew**, **Renegotiate** or **Terminate**, with an internal note if useful.
 2. **Notice**: anyone working the agreement can **Draft a notice** to the counterparty. The owner or an approver then chooses **Approve for sending**; whoever drafted it cannot approve it, unless they are the owner.
-3. Send the notice yourself, then **Record that it was sent**: how (email, post, courier, by hand or a portal), when, and evidence such as the sent email or a receipt.
+3. Send the notice yourself, then **Record that it was sent**: how (email, mail, courier, by hand or a portal), when, and evidence such as the sent email or a receipt.
 
 An approved notice reads **Approved, not sent** until you record the sending. Locket does not send email or notices on your behalf.

@@ -1,0 +1,193 @@
+/* 05 negotiate, 06 approve-sign-file, 07 renewal: desk px on the stage. */
+
+/* 05 */
+.negotiate-stage { height: 1060px; --hd-size: 76px; }
+.negotiate-head { left: 0; right: 0; top: 46px; text-align: center; }
+.negotiate-head .lede { margin-top: 24px; font-size: 20.5px; }
+.word { position: absolute; left: 95px; top: 298px; width: 1348px; height: 626px; display: grid; grid-template-columns: 790px 1fr; grid-template-rows: 42px 1fr; overflow: hidden; }
+.word-bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 30px; padding: 0 20px; border-bottom: 1px solid var(--line); background: #F6F6F8; color: #33363D; font-size: 16px; }
+.word-lights { display: flex; gap: 8px; }
+.word-lights i, .term-lights i { width: 12px; height: 12px; border-radius: 50%; background: #9CA0A8; }
+.word-doc { display: flex; flex-direction: column; border-right: 1px solid var(--line); background: #FAFAFB; }
+.word-tools { display: flex; align-items: center; gap: 20px; height: 52px; padding: 0 28px; color: #33363D; font-size: 14px; }
+.word-tools svg { width: 20px; height: 20px; fill: none; stroke: #33363D; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.word-tools b, .word-tools i, .word-tools u { font: 600 18px/1 'Source Serif 4', Georgia, serif; }
+.word-style { display: inline-flex; align-items: center; gap: 6px; padding-right: 18px; border-right: 1px solid var(--line); }
+.word-style svg { width: 14px; height: 14px; }
+.word-page { position: relative; flex: 1; margin: 0 10px; padding: 40px 96px 0 42px; border: 1px solid #ECECEF; border-bottom: 0; background: #fff; font-family: 'Source Serif 4', Georgia, serif; color: #1D1F24; }
+.word-page h3 { font-size: 27px; font-weight: 600; letter-spacing: -.005em; }
+.word-page h3:not(:first-child) { margin-top: 40px; }
+.word-page p { margin-top: 10px; font-size: 22px; line-height: 1.42; }
+.word-page del, .word-page ins { text-decoration-thickness: 1.5px; }
+.word-page ins { text-decoration: underline; text-underline-offset: 4px; }
+.word-page .am { color: #17703A; }
+.word-page del.am { color: var(--claret); }
+.word-page .gs { color: var(--theirs); }
+.word-page .av { position: absolute; right: 40px; width: 42px; height: 42px; font-size: 15px; }
+.word-page .av-green { top: 46px; }
+.word-page .av-purple { top: 162px; }
+.word-pane { position: relative; padding: 14px 16px 16px; font-size: 15px; }
+.word-pane-title { font: 800 27px/1.2 var(--rer-font-heading); letter-spacing: -.03em; }
+.word-pane > .quiet { font-size: 16px; }
+.word-rows { display: grid; gap: 6px; margin-top: 10px; }
+.wrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 10px 7px 12px; border-radius: 8px; font-size: 15px; color: #1D1F24; }
+.wrow-accepted { background: #EEF8F1; }
+.wrow-rejected { background: #FBEFF2; }
+.wrow .ck { color: var(--done-ink); }
+.wrow-pill { flex: none; padding: 3px 10px; border-radius: 6px; font-size: 13.5px; }
+.wrow-accepted .wrow-pill { background: #D7F0DE; color: #17703A; }
+.wrow-rejected .wrow-pill { background: #F7D9E0; color: var(--claret); }
+.word-playbook { margin-top: 10px; padding: 10px 16px; border-radius: 8px; background: #EEF8F1; color: #17703A; font-size: 16px; font-weight: 500; }
+.word-saved { margin-top: 10px; color: var(--quiet); font-size: 15px; }
+.word-save { display: grid; place-items: center; height: 42px; margin-top: 12px; border-radius: 8px; background: #1F2024; color: #fff; font-size: 16px; font-weight: 600; }
+.word-original { display: flex; align-items: center; gap: 14px; margin-top: 10px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; color: #4B4F58; font-size: 14.5px; }
+.word-original .glyph { width: 28px; height: 28px; }
+.negotiate-reply { position: absolute; left: 478px; top: 956px; width: 580px; display: flex; align-items: center; gap: 16px; padding: 12px 18px; font-size: 17px; color: #33363D; }
+.negotiate-reply b { color: var(--ink); font-weight: 650; }
+
+/* 06 */
+.sign-stage { height: 1024px; --hd-size: 75px; }
+.sign-head { left: 105px; top: 146px; width: 600px; }
+.sign-head .lede { margin-top: 36px; width: 480px; font-size: 26px; line-height: 1.48; }
+.sign-slack { position: absolute; left: 622px; top: 36px; width: 762px; display: flex; gap: 18px; padding: 22px 26px 20px; rotate: 1.3deg; }
+.sign-tile { flex: none; width: 46px; height: 44px; border-radius: 9px; background: #CDCFD4; }
+.sign-app { font-size: 18.5px; font-weight: 700; }
+.sign-slack .mini-label { margin-top: 4px; font-size: 13.5px; }
+.sign-ask { margin-top: 10px; font-size: 21px; font-weight: 650; letter-spacing: -.01em; }
+.sign-rule { margin-top: 2px; color: var(--body); font-size: 18px; }
+.sign-buttons { display: flex; gap: 12px; margin-top: 12px; }
+.sb { display: inline-grid; place-items: center; height: 42px; padding: 0 24px; border: 1.5px solid #C9CBD1; border-radius: 8px; font-size: 17px; font-weight: 500; }
+.sb-go { border-color: #1E7A40; background: #1E7A40; color: #fff; }
+.sign-approved { display: inline-block; margin-top: 12px; padding: 7px 14px; border-radius: 8px; background: var(--done-bg); color: #155C2E; font-size: 15.5px; }
+.sign-link { left: 640px; top: 238px; width: 70px; height: 100px; }
+.sign-envelope { position: absolute; left: 735px; top: 292px; width: 730px; padding: 24px 30px 20px; rotate: 1.2deg; }
+.sign-env-title { font: 860 31px/1.15 var(--rer-font-heading); letter-spacing: -.04em; word-spacing: .14em; }
+.sign-envelope > .quiet { margin-top: 6px; font-size: 17px; }
+.signers { margin-top: 12px; }
+.signers li { position: relative; display: flex; align-items: center; gap: 18px; padding: 7px 10px; font-size: 16px; color: #26292F; }
+.signers li b { font-weight: 500; color: var(--ink); }
+.signers .av { width: 44px; height: 44px; }
+.signer-down { padding: 0 0 0 26px !important; color: #3E7BD6; font-size: 20px; line-height: 1; }
+.signer-swap { border-radius: 10px; background: #FDF5D3; }
+.ck.big { width: 24px; height: 24px; color: var(--done); stroke-width: 2.6; }
+.sign-fields { margin-top: 10px; font-size: 16px; }
+.sign-toast { position: absolute; left: 62px; top: 716px; width: 1412px; display: flex; align-items: center; gap: 18px; padding: 12px 22px; font-size: 16.5px; color: #26292F; }
+.sign-toast .glyph { width: 36px; height: 36px; fill: #A9ACB3; stroke: #A9ACB3; }
+.sign-toast .ckdot { width: 28px; height: 28px; }
+.sign-toast .ck { color: var(--done-ink); }
+.sign-toast .ckdot .ck { color: #fff; }
+.sign-obligations { position: absolute; left: 65px; top: 802px; width: 905px; }
+.sign-obligations ul { display: grid; grid-template-columns: 293px 276px 305px; gap: 16px; margin-top: 16px; }
+.ob { display: flex; gap: 16px; padding: 16px 18px 14px; font-size: 16.5px; color: #1D1F24; }
+.ob > div { display: grid; gap: 8px; align-content: start; }
+.ob .chip { font-size: 15px; background: #F1F2F4; }
+.ob-who { display: flex; align-items: center; gap: 12px; color: #33363D; font-size: 16px; }
+.ob-who .av { width: 36px; height: 36px; font-size: 13.5px; }
+.sign-term { position: absolute; left: 1027px; top: 802px; width: 446px; }
+.sign-term::before { content: ''; position: absolute; left: -32px; top: 0; height: 178px; border-left: 1px solid #D9DADF; }
+.ob-term { margin-top: 16px; border-left: 7px solid var(--claret); }
+.ob-term .glyph { width: 34px; height: 34px; stroke: var(--claret); stroke-width: 1.8; }
+
+/* 07 */
+.renewal-stage { height: 908px; --hd-size: 82px; }
+.renewal-head { left: 73px; top: 52px; width: 780px; }
+.renewal-head .lede { margin-top: 32px; width: 735px; font-size: 24px; line-height: 1.42; }
+.renewal-record { position: absolute; left: 88px; top: 394px; width: 718px; padding: 38px 30px 26px; rotate: -2.5deg; }
+.rr-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.rr-head > span { display: grid; }
+.rr-head b { font: 800 34px/1.1 var(--rer-font-heading); letter-spacing: -.035em; }
+.rr-head .quiet { font-size: 20px; margin-top: 2px; }
+.rr-head .rr-value { font-size: 32px; }
+.rr-rows { --kv: 196px; font-size: 21px; }
+.rr-rows > div { padding: 12px 12px; }
+.rr-deadline { border-radius: 10px; background: var(--claret-tint); }
+.rr-deadline dt, .rr-deadline dd { color: var(--claret) !important; font-weight: 600; }
+.renewal-cal { position: absolute; left: 584px; top: 628px; width: 556px; display: flex; gap: 26px; padding: 26px 30px 24px; rotate: -2.5deg; z-index: 3; }
+.cal-date { flex: none; display: grid; width: 84px; height: 92px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; text-align: center; box-shadow: 0 4px 10px -6px rgb(17 17 17 / .3); }
+.cal-date span { padding: 4px 0; background: var(--claret); color: #fff; font-size: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.cal-date b { font-size: 38px; font-weight: 800; letter-spacing: -.03em; line-height: 1.3; }
+.cal-title { font-size: 20px; }
+.cal-title b { font-weight: 650; }
+.renewal-cal .quiet { margin-top: 4px; font-size: 18px; }
+.renewal-cal .pill { margin-top: 12px; font-size: 17px; }
+.renewal-sticky { left: 1130px; top: 668px; width: 182px; height: 172px; rotate: -8deg; font-size: 30px; }
+.ladder { position: absolute; left: 872px; top: 58px; width: 590px; padding: 30px 24px 22px; rotate: 3deg; }
+.ladder-title { font-size: 26px; }
+.ladder-title b { font-weight: 750; letter-spacing: -.02em; }
+.ladder-title span { color: #4B4F58; }
+.ladder ol { display: grid; gap: 12px; margin-top: 16px; }
+.rung { padding: 13px 16px; border-radius: 12px; border: 1px solid #ECECEF; background: #F8F8FA; color: #33363D; font-size: 16px; line-height: 1.45; }
+.rung b { color: var(--ink); font-weight: 650; }
+.rung-done { border-color: transparent; background: var(--done-bg); color: #155C2E; }
+.rung-done b { color: #0F3F21; }
+.rung-done .ck { color: var(--done-ink); }
+.rung-bounce { background: #fff; }
+.bounce { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 8px 14px; border-radius: 8px; background: var(--fail-bg); color: var(--fail); font-size: 15.5px; }
+.bounce-dot { flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--fail); }
+.note-lastday { rotate: -6deg; color: #4B4F58; font-size: 19px; }
+.note-lastday .hand-arrow { left: -30px; top: 50px; width: 32px; height: 32px; }
+.renewal-link { left: 838px; top: 478px; width: 70px; height: 160px; }
+
+@media (max-width: 1279px) {
+  .negotiate-stage, .sign-stage, .renewal-stage { --hd-size: 64px; }
+  .negotiate-head .lede, .sign-head .lede, .renewal-head .lede { width: auto; font-size: 19px; color: var(--body); }
+  .sign-head, .renewal-head { width: auto !important; }
+  .word { display: flex; flex-direction: column; height: auto; overflow: visible; }
+  .word-bar { height: 40px; font-size: 13px; gap: 16px; }
+  .word-tools { display: none; }
+  .word-page { margin: 0; padding: 20px 64px 20px 18px; border: 0; }
+  .word-page h3:not(:first-child) { margin-top: 22px; }
+  .word-page h3 { font-size: 21px; }
+  .word-page p { font-size: 18px; }
+  .word-page .av { right: 14px; width: 34px; height: 34px; font-size: 13px; }
+  .word-page .av-green { top: 18px; }
+  .word-page .av-purple { top: 116px; }
+  .word-pane { border-top: 1px solid var(--line); padding: 16px 14px; }
+  .wrow { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .wrow-pill { font-size: 13px; }
+  .word-playbook, .word-saved, .word-original { font-size: 14px; }
+  .negotiate-reply { font-size: 15px; padding: 12px 14px; }
+  .sign-envelope { order: 2; padding: 18px 16px; }
+  .sign-slack { order: 3; padding: 18px 16px; gap: 12px; }
+  .sign-toast { order: 4; flex-wrap: wrap; font-size: 15px; padding: 12px 14px; gap: 10px; }
+  .sign-obligations { order: 5; }
+  .sign-term { order: 6; }
+  .sign-term::before { display: none; }
+  .sign-obligations ul { grid-template-columns: minmax(0, 1fr); }
+  .sign-tile { width: 36px; height: 36px; }
+  .sign-ask { font-size: 17px; }
+  .sign-rule, .sign-app { font-size: 15px; }
+  .sb { height: 38px; font-size: 15px; padding: 0 16px; }
+  .sign-approved { font-size: 14px; }
+  .sign-env-title { font-size: 24px; }
+  .sign-envelope > .quiet, .sign-fields { font-size: 14px; }
+  .signers li { gap: 12px; font-size: 15px; padding: 8px 6px; }
+  .signers .av { width: 34px; height: 34px; }
+  .signer-swap .cursor { left: auto !important; right: 70px; top: 50px !important; }
+  .ob { font-size: 15px; padding: 14px; gap: 12px; }
+  .ob-who { font-size: 14px; }
+  .ob .chip { font-size: 13px; }
+  .renewal-record { order: 2; padding: 22px 16px 16px; }
+  .renewal-cal { order: 3; padding: 18px 16px; gap: 16px; }
+  .ladder { order: 4; padding: 20px 14px 16px; }
+  .renewal-sticky { order: 5; align-self: flex-end; width: 170px !important; height: 120px; font-size: 22px; rotate: -6deg !important; }
+  .rr-head { flex-wrap: wrap; gap: 4px 12px; }
+  .rr-head b { font-size: 24px; }
+  .rr-head .quiet { font-size: 15px; }
+  .rr-head .rr-value { font-size: 22px; }
+  .rr-rows { font-size: 15px; }
+  .rr-rows > div { padding: 9px 6px; }
+  .cal-date { width: 64px; height: 74px; }
+  .cal-date b { font-size: 28px; }
+  .cal-title { font-size: 16px; }
+  .renewal-cal .quiet { font-size: 14px; }
+  .renewal-cal .pill { font-size: 13px; }
+  .ladder-title { font-size: 20px; }
+  .rung { font-size: 14px; padding: 12px; }
+  .bounce { font-size: 14px; align-items: flex-start; }
+  .bounce-dot { margin-top: 3px; width: 12px; height: 12px; }
+}
+@media (max-width: 759px) {
+  .negotiate-stage, .sign-stage, .renewal-stage { --hd-size: 44px; }
+  .negotiate-head .lede, .sign-head .lede, .renewal-head .lede { font-size: 17px; }
+}

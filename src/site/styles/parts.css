@@ -1,0 +1,82 @@
+/* The homepage's shared parts (../landing/parts.tsx): cards, pills, chips, avatars, cursors, stickies, sparks, hand
+   notes, dotted connectors and glyphs. Sizes are desk px on the wide stage. */
+.card { position: relative; background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--card-shadow); }
+.tilt-l { rotate: -2deg; }
+.review-title, .sign-env-title, .rec-title, .fc-title, .pin-title, .vtitle, .brief-title, .ask-total, .word-pane-title, .mandate-title, .thread-title, .amend-title b, .request-deal-title, .request-lkt-title, .rr-head b, .fwd-title, .ask-bulk-title, .ladder-title b, .hero-approve-title, .hero-card-title { word-spacing: .06em; }
+.vtitle, .ask-total, .brief-title, .rec-title, .fc-title { word-spacing: .15em; }
+.tilt-r { rotate: 2deg; }
+
+.ck { width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; display: inline-block; vertical-align: -.12em; }
+.ckdot { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; }
+.ckdot .ck { width: 18px; height: 18px; stroke-width: 2.6; }
+.ckdot-done { background: var(--done); color: #fff; }
+.ckdot-soft { background: var(--done-bg); color: var(--done-ink); }
+
+.pill { display: inline-block; padding: 5px 13px; border-radius: 999px; font-size: 16px; font-weight: 500; line-height: 1.25; white-space: nowrap; }
+.pill .ck { color: inherit; margin-left: 2px; }
+.pill-done { background: var(--done-bg); color: var(--done-ink); }
+.pill-fail { background: var(--fail-bg); color: var(--fail); }
+.pill-amber { background: var(--amber-bg); color: var(--amber-ink); }
+.pill-claret { background: var(--claret-tint); color: var(--claret); }
+.pill-grey { background: var(--tint); color: var(--body); }
+.pill-outline { background: #fff; color: var(--ink); border: 1.5px solid #B9BCC4; }
+
+.chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 8px; background: #F1F2F4; color: var(--body); font-size: 15px; line-height: 1.35; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.av { display: inline-grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+.av-blue { background: #E8EEF9; color: #23407A; }
+.av-green { background: #E3F4E8; color: #17703A; }
+.av-purple { background: #EFE3FB; color: #5B1E99; }
+.av-lilac { background: #EEEAFB; color: #4B3A9A; }
+.av-grey { background: #ECEDF0; color: #3B3F48; }
+.av-claret { background: var(--claret); color: #fff; }
+
+/* Cursors: a filled arrow and the person's pill. */
+.sb-go, .word-save, .finding-comment, .doc-p, .ask-confirmed, .cal-pill { position: relative; }
+.cursor { position: absolute; z-index: 5; display: block; width: 0; height: 0; pointer-events: none; }
+.cursor svg { position: absolute; left: 0; top: 0; width: 30px; height: 32px; stroke: #fff; stroke-width: 1.6; stroke-linejoin: round; filter: drop-shadow(0 2px 3px rgb(17 17 17 / .25)); }
+.cursor > span { position: absolute; left: 20px; top: 26px; padding: 4px 13px 5px; border-radius: 10px; font: 600 19px/1.2 var(--rer-font-body); white-space: nowrap; box-shadow: 0 6px 14px -8px rgb(17 17 17 / .5); }
+.cursor-pill-left > span { left: auto; right: 6px; }
+.cursor-flip svg { scale: -1 1; left: -30px; }
+.cursor-priya svg { fill: var(--priya); }
+.cursor-priya > span { background: var(--priya); color: #fff; }
+.cursor-marcus svg { fill: #1B1B1F; }
+.cursor-marcus > span { background: var(--marcus); color: var(--marcus-ink); }
+.cursor-jenna svg { fill: var(--jenna); }
+.cursor-jenna > span { background: var(--jenna); color: #fff; }
+
+.sticky { position: absolute; z-index: 4; display: grid; place-content: center; padding: 18px 20px; background: var(--sticky); color: #1B1B1F; font: 400 31px/1.12 var(--font-hand); text-align: center; box-shadow: 0 2px 3px rgb(17 17 17 / .08), 0 18px 28px -16px rgb(17 17 17 / .35); }
+.sticky .ul { display: block; height: 6px; margin: 4px auto 0; width: 70%; border-bottom: 2.5px solid #1B1B1F; border-radius: 50%; rotate: -4deg; }
+.sticky .ck { width: .8em; height: .8em; stroke-width: 2.6; }
+
+.spark { position: absolute; z-index: 3; width: 34px; height: 34px; fill: none; stroke: var(--spark); stroke-width: 3.4; stroke-linecap: round; pointer-events: none; }
+
+.hand { position: absolute; z-index: 4; display: block; color: var(--claret); font: 400 31px/1.08 var(--font-hand); white-space: nowrap; }
+.hand-text { display: block; }
+.hand-arrow { position: absolute; overflow: visible; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+
+.conn { position: absolute; z-index: 1; overflow: visible; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 2 8; pointer-events: none; }
+.conn path { vector-effect: non-scaling-stroke; }
+.conn marker path { stroke-dasharray: none; stroke-width: 1.6; fill: none; }
+.conn-claret { stroke: var(--claret); }
+.conn-claret marker path { stroke: var(--claret); }
+.conn-copper { stroke: var(--spark); }
+.conn-copper marker path { stroke: var(--spark); }
+
+.glyph { width: 30px; height: 30px; flex: none; fill: none; stroke: #33363D; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+@media (max-width: 1279px) {
+  .tilt-l, .tilt-r { rotate: none; }
+  .pill { font-size: 14px; padding: 4px 11px; white-space: normal; }
+  .chip { font-size: 13px; }
+  .av { width: 34px; height: 34px; font-size: 13px; }
+  .ckdot { width: 26px; height: 26px; }
+  .ckdot .ck { width: 15px; height: 15px; }
+  .cursor svg { width: 22px; height: 24px; }
+  .cursor > span { left: 15px; top: 19px; font-size: 14px; padding: 3px 10px 4px; border-radius: 8px; }
+  .cursor-flip svg { left: -22px; }
+  .sticky { font-size: 22px; padding: 12px 14px; }
+  .spark { width: 26px; height: 26px; }
+  .hand { font-size: 22px; }
+  .glyph { width: 24px; height: 24px; }
+}

@@ -14,7 +14,7 @@ export const relations = ['amends', 'order_under', 'schedule_to', 'renews'] as c
 /** Decided default: attachments each request type must carry before review. */
 export const defaultRequirements: Record<string, string[]> = {
   customer: ['Statement of work or schedule'],
-  supplier: ['Insurance certificate of currency'],
+  supplier: ['Certificate of insurance'],
   amendment: ['Signed parent agreement'],
   order_form: [],
   nda: [],
@@ -123,7 +123,7 @@ const createRequest: Handler = async (c, p) => {
     checks.push(sql('EXISTS(SELECT 1 FROM lk_agreements WHERE id=?)', parentId))
   }
   const id = crypto.randomUUID(), reference = 'LK-' + id.slice(0, 6).toUpperCase()
-  const zone = p.timezone ? timezone(p, 'timezone') : 'Australia/Sydney'
+  const zone = p.timezone ? timezone(p, 'timezone') : 'America/New_York'
   const relation = parentId ? (type === 'amendment' ? 'amends' : type === 'order_form' ? 'order_under' : oneOf(p, 'relation', relations)) : null
   const writes: Sql[] = [...party.writes]
   let version: NewVersion | null = null
@@ -132,7 +132,7 @@ const createRequest: Handler = async (c, p) => {
   writes.push(
     sql(
       'INSERT INTO lk_agreements VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)',
-      id, reference, title, type, party.id, valueCents, 'AUD', ownerId, c.actor.id, 'draft', bool(p, 'restricted') ? 1 : 0,
+      id, reference, title, type, party.id, valueCents, 'USD', ownerId, c.actor.id, 'draft', bool(p, 'restricted') ? 1 : 0,
       optionalDate(p, 'neededBy'), optionalDate(p, 'startDate'), zone, parentId, relation, 'intake', version?.id ?? null, c.now, c.now,
     ),
   )
@@ -320,7 +320,7 @@ const importLegacy: Handler = async (c, p) => {
     result: { id, reference, versionId, sha256: artifact.sha256 },
     writes: [
       ...party.writes,
-      sql('INSERT INTO lk_agreements VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)', id, reference, title, type, party.id, money(p, 'value'), 'AUD', ownerId, c.actor.id, 'imported', bool(p, 'restricted') ? 1 : 0, null, optionalDate(p, 'startDate'), p.timezone ? timezone(p, 'timezone') : 'Australia/Sydney', null, null, 'legacy', versionId, c.now, c.now),
+      sql('INSERT INTO lk_agreements VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)', id, reference, title, type, party.id, money(p, 'value'), 'USD', ownerId, c.actor.id, 'imported', bool(p, 'restricted') ? 1 : 0, null, optionalDate(p, 'startDate'), p.timezone ? timezone(p, 'timezone') : 'America/New_York', null, null, 'legacy', versionId, c.now, c.now),
       ...artifact.writes,
       sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', versionId, id, 1, 'legacy', `Imported from ${sourceSystem}`, null, null, body, source, vdigest, c.actor.id, c.now),
     ],

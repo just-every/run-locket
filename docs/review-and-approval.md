@@ -20,4 +20,4 @@ Every agreement needs commercial approval from the owner or an approver. Each br
 
 An approval counts only for the version and context it was given on: the version's files and text, the value, the counterparty and the findings that need a decision. A new version or a changed value withdraws earlier approvals, visibly, and the agreement goes back to review. A finding that a rule is met changes nothing an approval rests on.
 
-Locket organises and prepares agreements. It does not give legal advice or decide whether an agreement is valid or enforceable.
+Locket organizes and prepares agreements. It does not give legal advice or decide whether an agreement is valid or enforceable.

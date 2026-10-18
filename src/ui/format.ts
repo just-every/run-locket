@@ -8,14 +8,14 @@ export const statusLabel: Record<string, string> = {
   out_for_signature: 'Out for signature',
   executed: 'Executed',
   imported: 'Imported',
-  cancelled: 'Cancelled',
+  cancelled: 'Canceled',
 }
 export const typeLabel: Record<string, string> = { customer: 'Customer', supplier: 'Supplier', nda: 'NDA', amendment: 'Amendment', order_form: 'Order form', other: 'Other' }
 export const words = (value: string) => value.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())
 
 export function money(cents: number | null | undefined): string {
   if (cents === null || cents === undefined) return '—'
-  return '$' + (cents / 100).toLocaleString('en-AU', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })
+  return '$' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })
 }
 
 export const personName = (state: LocketState, id: string | null | undefined) => (id ? state.operators.find(o => o.id === id)?.name ?? 'Former member' : '—')

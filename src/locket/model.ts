@@ -75,7 +75,7 @@ export function date(p: Input, key: string): string {
 export function optionalDate(p: Input, key: string): string | null {
   return p[key] === undefined || p[key] === null || p[key] === '' ? null : date(p, key)
 }
-/** Exact AUD amounts as decimal strings with at most two fractional digits. */
+/** Exact USD amounts as decimal strings with at most two fractional digits. */
 export function money(p: Input, key: string): number | null {
   const value = p[key]
   if (value === undefined || value === null || value === '') return null
@@ -93,9 +93,9 @@ export function list(p: Input, key: string, max = 100): unknown[] {
 export function timezone(p: Input, key: string): string {
   const value = text(p, key, 64)
   try {
-    new Intl.DateTimeFormat('en-AU', { timeZone: value })
+    new Intl.DateTimeFormat('en-US', { timeZone: value })
   } catch {
-    fail('INVALID', `${key} must be an IANA time zone such as Australia/Sydney.`, 400, { field: key })
+    fail('INVALID', `${key} must be an IANA time zone such as America/New_York.`, 400, { field: key })
   }
   return value
 }

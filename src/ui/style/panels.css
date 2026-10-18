@@ -138,7 +138,7 @@
 .lk-app .lk-export .lk-button { width: 100%; min-height: 48px; padding: 10px 18px; line-height: 1.25; white-space: normal; text-align: center; background: rgb(255 255 253 / .7); }
 .lk-app .lk-side-head h2 a { text-decoration: none; }
 .lk-app .lk-side-head h2 a:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
-.lk-table td[data-label="Value (AUD)"], .lk-table td[data-label="Current version"], .lk-table td[data-label=Owner] { white-space: nowrap; }
+.lk-table td[data-label="Value (USD)"], .lk-table td[data-label="Current version"], .lk-table td[data-label=Owner] { white-space: nowrap; }
 .lk-activity td[data-label=Agreement] a, .lk-activity td[data-label=Actor] .lk-serif { white-space: nowrap; }
 .lk-register-table td:first-child { min-width: 196px; }
 /* Beside the summary at laptop widths the register drops its version column (the summary shows it) so values and deadlines stay in view. */

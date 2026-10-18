@@ -84,7 +84,7 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole('heading', { name: 'New agreement request' })).toBeVisible()
     await page.getByLabel('Agreement title *').fill(`Harbour supply ${tag}`)
     await page.getByLabel('Request type *').selectOption('supplier')
-    await page.getByLabel('Agreement value (AUD)').fill('48000')
+    await page.getByLabel('Agreement value (USD)').fill('48000')
     await page.getByRole('radio', { name: 'New', exact: true }).check()
     await page.getByLabel('Name', { exact: true }).fill(`Harbour ${tag}`)
     await page.getByLabel('Template version').selectOption({ label: `Supply ${tag} v1` })
@@ -97,7 +97,7 @@ for (const width of [1440, 390]) {
 
     // Versions: attach the required certificate, then submit.
     await expect(page.getByRole('heading', { name: 'Required attachments' })).toBeVisible()
-    await page.locator('li').filter({ hasText: 'Insurance certificate of currency' }).locator('input[type=file]').setInputFiles({ name: 'coc.pdf', mimeType: 'application/pdf', buffer: pdf('Certificate of currency') })
+    await page.locator('li').filter({ hasText: 'Certificate of insurance' }).locator('input[type=file]').setInputFiles({ name: 'coi.pdf', mimeType: 'application/pdf', buffer: pdf('Certificate of insurance') })
     await expect(page.getByText('Attached', { exact: true })).toBeVisible()
     await submit(page, page.locator('main'), 'Submit for review')
     await expect(page.locator('.lk-subtitle').getByText('In review')).toBeVisible()

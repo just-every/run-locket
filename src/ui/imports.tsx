@@ -68,10 +68,10 @@ export function Imports({ state, locket }: { state: LocketState; locket: Locket 
               const result = await run('import.preview', { kit: 'docusign-archive', label: value(data, 'label'), dateFormat: value(data, 'dateFormat'), manifest: await fileToPayload(manifest), files: payloadFiles })
               if (result) { setSelected(result.batchId); form.reset() }
             }}>
-              <Field label="Batch name"><input name="label" required placeholder="DocuSign archive to 30 Sep 2026" /></Field>
+              <Field label="Batch name"><input name="label" required placeholder="DocuSign archive to Sep 30, 2026" /></Field>
               <Field label="Envelope report (CSV)" hint="Reports → Envelope Report → Download CSV, with Envelope ID, Subject, Status, Completed On, Recipient Name and Recipient Email columns."><input type="file" name="manifest" accept=".csv" required /></Field>
               <Field label="Downloaded envelopes folder" hint="One folder per envelope ID holding its signed PDFs and Summary.pdf (Certificate of Completion)."><input type="file" name="files" multiple {...{ webkitdirectory: '' }} /></Field>
-              <Field label="Dates in the report are"><select name="dateFormat" defaultValue="dmy"><option value="dmy">Day/Month/Year (Australian account)</option><option value="mdy">Month/Day/Year (US account)</option><option value="iso">Year-Month-Day</option></select></Field>
+              <Field label="Dates in the report are"><select name="dateFormat" defaultValue="mdy"><option value="mdy">Month/Day/Year (US account)</option><option value="dmy">Day/Month/Year (account outside the US)</option><option value="iso">Year-Month-Day</option></select></Field>
             </Form>
           </section>
           <section className="lk-panel">

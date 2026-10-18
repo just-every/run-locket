@@ -47,9 +47,9 @@ test('02 intake captures the deal and blocks review until required attachments a
   assert.equal(a.needed_by, '2026-11-30')
   assert.equal(s.parties.find(p => p.id === a.party_id).name, 'Fast Couriers')
   const required = s.requirements.filter(r => r.agreement_id === a.id)
-  assert.deepEqual(required.map(r => r.label), ['Insurance certificate of currency'])
+  assert.deepEqual(required.map(r => r.label), ['Certificate of insurance'])
   const blocked = await tm.requester.command('agreement.submit', { agreementId: a.id, version: a.version }, { error: 'MISSING_ATTACHMENTS' })
-  assert.deepEqual(blocked.error.details.missing, ['Insurance certificate of currency'])
+  assert.deepEqual(blocked.error.details.missing, ['Certificate of insurance'])
   await tm.requester.command('requirement.attach', { agreementId: a.id, requirementId: required[0].id, file: file('coc.pdf', pdf('Certificate of currency')) })
   const after = await find(tm.requester, a.id)
   assert.equal((await tm.requester.command('agreement.submit', { agreementId: a.id, version: after.version })).status, 'in_review')
@@ -298,22 +298,22 @@ test('11 the renewal queue computes notice deadlines in the agreement time zone 
       await tm.counsel.command('term.decide', { agreementId: id, termId: term.id, decision: 'confirm' })
     }
   }
-  // Sydney daylight saving starts on 4 October 2026: the deadline offset changes across it.
+  // New York daylight saving ends on 1 November 2026 (the default agreement time zone): the deadline offset changes across it.
   const after = (await executed(h, tm, lib, { title: 'After DST', party: 'A Co' })).id
   const before = (await executed(h, tm, lib, { title: 'Before DST', party: 'B Co' })).id
-  await confirm(after, [['end_date', '2026-11-03', 'SUPPLY AGREEMENT'], ['notice_days', '30', 'Goods: Packaging.']])
-  await confirm(before, [['end_date', '2026-11-02', 'SUPPLY AGREEMENT'], ['notice_days', '30', 'Goods: Packaging.']])
+  await confirm(after, [['end_date', '2026-12-01', 'SUPPLY AGREEMENT'], ['notice_days', '30', 'Goods: Packaging.']])
+  await confirm(before, [['end_date', '2026-11-30', 'SUPPLY AGREEMENT'], ['notice_days', '30', 'Goods: Packaging.']])
   let s = await tm.owner.state()
   const r1 = s.renewals.find(r => r.agreement_id === after), r2 = s.renewals.find(r => r.agreement_id === before)
-  assert.equal(r1.deadline_date, '2026-10-04')
-  assert.equal(new Date(r1.deadline_at).toISOString(), '2026-10-04T12:59:59.000Z')
-  assert.equal(r2.deadline_date, '2026-10-03')
-  assert.equal(new Date(r2.deadline_at).toISOString(), '2026-10-03T13:59:59.000Z')
+  assert.equal(r1.deadline_date, '2026-11-01')
+  assert.equal(new Date(r1.deadline_at).toISOString(), '2026-11-02T04:59:59.000Z')
+  assert.equal(r2.deadline_date, '2026-10-31')
+  assert.equal(new Date(r2.deadline_at).toISOString(), '2026-11-01T03:59:59.000Z')
   assert.deepEqual(s.renewals.map(r => r.agreement_id), [before, after])
   await tm.requester.command('notice.prepare', { renewalId: r1.id, recipient: 'legal@a.example', body: 'x' }, { error: 'NO_DECISION' })
   await tm.requester.command('renewal.decide', { renewalId: r1.id, decision: 'terminate' }, { error: 'FORBIDDEN' })
   await tm.approver.command('renewal.decide', { renewalId: r1.id, decision: 'terminate', reason: 'Moving supplier' })
-  const prepared = await agent.command('proposal.prepare', { kind: 'renewal', payload: { renewalId: r1.id, recipient: 'legal@a.example', body: 'We give notice that the agreement ends on 3 November 2026 and will not renew.' }, evidence: ['Confirmed end date 2026-11-03', 'Confirmed notice period 30 days'] })
+  const prepared = await agent.command('proposal.prepare', { kind: 'renewal', payload: { renewalId: r1.id, recipient: 'legal@a.example', body: 'We give notice that the agreement ends on December 1, 2026 and will not renew.' }, evidence: ['Confirmed end date 2026-12-01', 'Confirmed notice period 30 days'] })
   const accepted = await tm.approver.command('proposal.decide', { proposalId: prepared.id, decision: 'approve' })
   const noticeId = accepted.outcome.noticeId
   await tm.requester.command('notice.sent', { noticeId, method: 'email', sentAt: '2026-09-20T01:00:00Z' }, { error: 'STATUS' })

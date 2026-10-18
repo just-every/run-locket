@@ -14,7 +14,7 @@ A Combined PDF carries the certificate only when your account attaches it; Locke
 Open **Imports** and fill in **New DocuSign archive dry run**:
 
 - **Batch name**, for example the date range.
-- **Dates in the report are**: Day/Month/Year for an Australian account, Month/Day/Year for a US one, or Year-Month-Day.
+- **Dates in the report are**: Month/Day/Year for a US account, Day/Month/Year for an account outside the US, or Year-Month-Day.
 - **Envelope report (CSV)** and the **Downloaded envelopes folder**.
 
 **Run dry run** shows every envelope's outcome and writes nothing: **To import**, **Not completed**, **Missing evidence** (no PDF, no envelope ID or an unreadable date), **Duplicates** (repeated in the report, or already in Locket) and **Missing certificates**, plus any files the report does not name.

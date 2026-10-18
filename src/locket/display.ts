@@ -3,17 +3,17 @@
 // summaries the server writes read the same formatters, so a moment reads the
 // same everywhere.
 
-const dateParts = { day: '2-digit', month: 'short', year: 'numeric' } as const
+const dateParts = { month: 'short', day: 'numeric', year: 'numeric' } as const
 
-/** A calendar date (YYYY-MM-DD) as people read it: 01 May 2027. */
-export const day = (iso: string | null | undefined) => (iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString('en-AU', { ...dateParts, timeZone: 'UTC' }) : '—')
+/** A calendar date (YYYY-MM-DD) as people read it: May 1, 2027. */
+export const day = (iso: string | null | undefined) => (iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', { ...dateParts, timeZone: 'UTC' }) : '—')
 /** The local calendar date of a moment. */
-export const dayOf = (ms: number | null | undefined) => (ms ? new Date(ms).toLocaleDateString('en-AU', dateParts) : '—')
+export const dayOf = (ms: number | null | undefined) => (ms ? new Date(ms).toLocaleDateString('en-US', dateParts) : '—')
 /** A moment in the reader's time zone, to the minute. */
-export const when = (ms: number | null | undefined) => (ms ? new Date(ms).toLocaleString('en-AU', { ...dateParts, hour: '2-digit', minute: '2-digit' }) : '—')
-/** A moment in a named time zone, 24-hour: 01 May 2027, 23:59. */
+export const when = (ms: number | null | undefined) => (ms ? new Date(ms).toLocaleString('en-US', { ...dateParts, hour: 'numeric', minute: '2-digit' }) : '—')
+/** A moment in a named time zone: May 1, 2027, 11:59 PM. */
 export function deadline(ms: number, zone: string) {
-  return new Date(ms).toLocaleString('en-AU', { ...dateParts, hour: '2-digit', minute: '2-digit', timeZone: zone, hour12: false })
+  return new Date(ms).toLocaleString('en-US', { ...dateParts, hour: 'numeric', minute: '2-digit', timeZone: zone })
 }
 
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`

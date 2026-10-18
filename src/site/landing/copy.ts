@@ -1,18 +1,15 @@
-// Every string on the run site's homepage.
+// The homepage's head strings and its hero copy, as the design desk approved them (18 Oct 2026).
 
 export const meta = {
-  title: 'Locket — contracts kept, renewals decided',
-  description: 'Keep every signed agreement, and decide each renewal before its notice deadline passes. 100% free and open source.',
+  title: 'Locket — contracts signed, deadlines kept',
+  description: 'Locket checks drafts against your playbook, sends them for signature, files the signed copy and emails reminders before every renewal deadline. 100% free and open source.',
 }
 
 export const hero = {
-  headline: ['Contracts kept,', 'renewals decided.'],
-  subhead: 'Keep every signed agreement, and decide each renewal before its notice deadline passes.',
-  alternatives: ['Ironclad, Juro', 'SpotDraft'],
+  headline: ['Contracts signed.', 'Deadlines kept.'],
+  subhead: 'Locket checks drafts against your playbook, sends them for signature, files the signed copy and emails reminders before every renewal deadline.',
+  alternatives: ['Ironclad', 'Icertis', 'Agiloft'],
   run: 'Run Locket',
+  demo: 'Try the demo',
   docs: 'Read the docs',
-  small: 'Free and open source, MIT licensed.',
-  drawing: 'Locket, one agreement start to finish: Harbour Supplies MSA version 3 approved; the signed PDF and certificate of completion kept, executed; the notice deadline, 1 May 2027 at 23:59 Sydney time, decided: renew.',
 }
-
-export const footerLine = 'Contracts, renewals and signed records you run yourself.'

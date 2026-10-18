@@ -1,37 +1,37 @@
-/* Locket's sign-in, confirmation and first-run setup cards (the picked 12ui sign-in and setup designs):
-   the mark and name centred above one engraved certificate card, Brygada headings, pill buttons.
-   Linked after Base's own hashed style by src/frame.ts; every value reads the edition theme. */
-html.rer-themed body { display: block; min-height: 100vh; margin: 0; padding: 172px 20px 72px; background: var(--rer-page); color: var(--rer-text); font-family: var(--rer-font-body); }
-html.rer-themed main { position: relative; box-sizing: border-box; width: 100%; max-width: 640px; margin: 0 auto; padding: 42px 58px 50px; border: 32px solid transparent; border-image: url('/brand/guilloche-border.svg') 32 round; border-radius: 16px; background: linear-gradient(rgb(255 255 253 / .9), rgb(255 255 253 / .9)), url('/brand/ground.svg') 0 0 / 160px 40px, #F3F7F0; box-shadow: 0 1px 2px rgb(14 36 25 / .05), 0 14px 36px rgb(14 36 25 / .08); text-align: left; }
+/* Locket's sign-in, confirmation and first-run setup cards in the run site's look: the approved mark and name
+   centered above one white hairline card on the faint square grid, heavy Inter headings, ink buttons.
+   Linked after Base's own hashed style by src/frame.ts; every value reads the edition theme (/rer-theme.css). */
+html.rer-themed body { display: block; min-height: 100vh; margin: 0; padding: 172px 20px 72px; background-color: var(--rer-page); background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px), linear-gradient(to bottom, var(--grid) 1px, transparent 1px); background-size: 40px 40px; color: var(--rer-text); font-family: var(--rer-font-body); }
+html.rer-themed main { position: relative; box-sizing: border-box; width: 100%; max-width: 640px; margin: 0 auto; padding: 42px 58px 50px; border: 1px solid var(--line); border-radius: 20px; background: var(--rer-surface); box-shadow: var(--card-shadow); text-align: left; }
 html.rer-themed body:not(:has(main dl)) { padding-top: 250px; }
-html.rer-themed main > .brand, html.rer-themed main > .rer-brand { position: absolute; top: -142px; left: -32px; right: -32px; display: flex; justify-content: center; align-items: center; gap: 16px; margin: 0; color: var(--rer-text); font: 600 44px/1 var(--rer-font-heading); letter-spacing: -.02em; }
-html.rer-themed main > .brand::before, html.rer-themed main > .rer-brand::before { width: 64px; height: 64px; }
-html.rer-themed main h1 { margin: 0 0 28px; color: var(--rer-text); font: 600 44px/1.1 var(--rer-font-heading); letter-spacing: -.02em; text-align: center; }
+html.rer-themed main > .brand, html.rer-themed main > .rer-brand { position: absolute; top: -112px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 16px; margin: 0; color: var(--rer-text); font: 800 44px/1 var(--rer-font-heading); letter-spacing: -.035em; }
+html.rer-themed main > .brand::before, html.rer-themed main > .rer-brand::before { width: 56px; height: 64px; }
+html.rer-themed main h1 { margin: 0 0 28px; color: var(--rer-text); font: 860 44px/1.1 var(--rer-font-heading); letter-spacing: -.045em; word-spacing: .12em; text-align: center; }
 html.rer-themed main h1 + p { text-align: center; font-size: 18px; margin: -12px 0 28px; }
-html.rer-themed main h2 { margin: 36px 0 12px; font: 600 26px/1.2 var(--rer-font-heading); text-align: center; }
+html.rer-themed main h2 { margin: 36px 0 12px; font: 800 26px/1.2 var(--rer-font-heading); letter-spacing: -.03em; word-spacing: .08em; text-align: center; }
 html.rer-themed main p { color: var(--rer-muted); }
 html.rer-themed main label { display: block; margin: 0 0 10px; color: var(--rer-text); font-size: 17px; font-weight: 500; }
 html.rer-themed main input:not([type=checkbox]):not([type=hidden]) { display: block; box-sizing: border-box; width: 100%; min-height: 56px; margin: 0 0 22px; padding: 12px 16px; border: 1px solid var(--rer-border); border-radius: 10px; background: var(--rer-surface); color: var(--rer-text); font: inherit; font-size: 17px; }
-html.rer-themed main button, html.rer-themed main .action { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 56px; padding: 0 24px; border: 0; border-radius: 999px; background: var(--rer-accent); color: var(--rer-accent-text); font: 500 18px/1 var(--rer-font-body); cursor: pointer; text-decoration: none; }
+html.rer-themed main button, html.rer-themed main .action { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 56px; padding: 0 24px; border: 0; border-radius: 14px; background: var(--rer-accent); color: var(--rer-accent-text); font: 600 18px/1 var(--rer-font-body); cursor: pointer; text-decoration: none; }
 html.rer-themed main button:hover, html.rer-themed main .action:hover { box-shadow: none; background: color-mix(in srgb, var(--rer-accent) 88%, #fff); }
 html.rer-themed main button.secondary { background: transparent; color: var(--rer-text); border: 1px solid var(--rer-border); }
 html.rer-themed main :focus-visible { outline: 3px solid var(--rer-focus); outline-offset: 3px; }
-html.rer-themed main .notice { border-left: 3px solid var(--rer-focus); background: #EBF0E7; color: var(--rer-text); border-radius: 0 8px 8px 0; padding: 10px 14px; }
+html.rer-themed main .notice { border-left: 3px solid var(--rer-focus); background: var(--claret-tint); color: var(--rer-text); border-radius: 0 8px 8px 0; padding: 10px 14px; }
 html.rer-themed main .secondary-link a { color: var(--rer-link); }
 /* First-run setup: the owner as a ruled definition list, then the confirmation. */
-html.rer-themed main dl { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 0; margin: 0 0 28px; padding: 20px 0; border-top: 1px solid #DCDDD2; border-bottom: 1px solid #DCDDD2; }
+html.rer-themed main dl { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 0; margin: 0 0 28px; padding: 20px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 html.rer-themed main dt { padding: 8px 0; color: var(--rer-muted); font-size: 16px; }
 html.rer-themed main dd { margin: 0; padding: 8px 0; color: var(--rer-text); font-size: 19px; }
 html.rer-themed main form p { margin: 0 0 24px; }
 html.rer-themed main label:has(input[type=checkbox]) { display: flex; align-items: center; gap: 14px; font-weight: 400; font-size: 18px; }
 html.rer-themed main input[type=checkbox] { flex: none; width: 26px; height: 26px; margin: 0; accent-color: var(--rer-accent); }
 html.rer-themed main:has(dl) { max-width: 760px; }
-html.rer-themed main:has(dl) h1 { font-size: 64px; font-weight: 700; letter-spacing: -.03em; }
+html.rer-themed main:has(dl) h1 { font-size: 64px; font-weight: 860; letter-spacing: -.05em; }
 @media (max-width: 560px) {
   html.rer-themed body, html.rer-themed body:not(:has(main dl)) { padding: 120px 16px 48px; }
-  html.rer-themed main { padding: 26px 16px 30px; border-width: 24px; border-radius: 12px; }
-  html.rer-themed main > .brand, html.rer-themed main > .rer-brand { top: -106px; left: -24px; right: -24px; font-size: 34px; }
-  html.rer-themed main > .brand::before, html.rer-themed main > .rer-brand::before { width: 48px; height: 48px; }
+  html.rer-themed main { padding: 26px 18px 30px; border-radius: 16px; }
+  html.rer-themed main > .brand, html.rer-themed main > .rer-brand { top: -86px; left: 0; right: 0; font-size: 34px; }
+  html.rer-themed main > .brand::before, html.rer-themed main > .rer-brand::before { width: 42px; height: 48px; }
   html.rer-themed main h1 { font-size: 32px; }
   html.rer-themed main:has(dl) h1 { font-size: 40px; }
   html.rer-themed main dl { grid-template-columns: 90px minmax(0, 1fr); }

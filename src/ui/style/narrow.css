@@ -14,7 +14,7 @@
   .lk-app { font-size: 15px; }
   .lk-header { width: calc(100% - 32px); gap: 8px 12px; padding-top: 12px; }
   .lk-brand { font-size: 24px; gap: 10px; }
-  .lk-brand img { width: 34px; height: 34px; }
+  .lk-brand img { width: 30px; height: 34px; }
   .lk-header nav { gap: 22px; height: 44px; }
   .lk-header nav a { font-size: 14px; }
   .lk-account { gap: 12px; }

@@ -4,7 +4,7 @@ import type { Locket } from './app'
 import { Field, Form, Icon, value } from './controls'
 import { can, parse, typeLabel } from './format'
 
-const defaults: Record<string, string[]> = { customer: ['Statement of work or schedule'], supplier: ['Insurance certificate of currency'], amendment: ['Signed parent agreement'], order_form: [], nda: [], other: [] }
+const defaults: Record<string, string[]> = { customer: ['Statement of work or schedule'], supplier: ['Certificate of insurance'], amendment: ['Signed parent agreement'], order_form: [], nda: [], other: [] }
 
 export function TemplateFields({ template }: { template: Row }) {
   const fields = parse<{ name: string; label: string; required: boolean }[]>(template.fields)
@@ -74,7 +74,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
             <Field label="Agreement title *"><input name="title" required /></Field>
             <div className="lk-grid2">
               <Field label="Request type *"><select value={type} onChange={e => setType(e.target.value)}>{Object.entries(typeLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
-              <Field label="Agreement value (AUD)" hint="Total contract value, excluding GST."><input name="value" inputMode="decimal" placeholder="48000" /></Field>
+              <Field label="Agreement value (USD)" hint="Total contract value, excluding sales tax."><input name="value" inputMode="decimal" placeholder="48000" /></Field>
               <Field label="Responsible person *"><select name="ownerId" defaultValue={state.actor.id}>{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
               <Field label="Needed by"><input type="date" name="neededBy" /></Field>
               <Field label="Proposed start date"><input type="date" name="startDate" /></Field>

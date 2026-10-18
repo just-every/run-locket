@@ -1,0 +1,128 @@
+/* 01, the hero, in desk px on the stage (the desk's y minus the 110 px header). */
+.hero-stage { height: 880px; }
+.hero-copy { position: absolute; left: 45px; top: 150px; width: 660px; }
+.hero-title { font: 860 80px/.95 var(--rer-font-heading); letter-spacing: -.055em; word-spacing: .13em; font-variation-settings: 'opsz' 32; }
+.hero-title .hd-1, .hero-title .hd-2 { display: block; }
+.hero-title .hd-2 > span { background: var(--heading-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-box-decoration-break: clone; box-decoration-break: clone; padding: 0 .04em .14em 0; }
+.hero-sub { margin-top: 34px; width: 600px; color: #26292F; font-size: 26px; line-height: 1.27; letter-spacing: -.008em; }
+.hero-alt { margin-top: 30px; width: 610px; color: #26292F; font-size: 25px; line-height: 1.28; letter-spacing: -.008em; }
+.hero-alt b { font-weight: 700; color: var(--ink); }
+.hero-actions { display: flex; align-items: center; gap: 30px; margin-top: 46px; }
+.hero-actions .btn-run { padding: 0 30px; }
+.hero-actions .text-link:first-of-type { margin-left: 0; }
+
+.hero-deal { position: absolute; left: 48px; top: 690px; width: 470px; padding: 16px 20px 16px; rotate: -1.5deg; }
+.hero-deal-head { display: flex; align-items: center; gap: 10px; color: var(--quiet); font-size: 14px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.hero-tile { width: 22px; height: 22px; border-radius: 6px; background: #D9DADF; }
+.hero-deal-title { margin-top: 8px; font-size: 18px; font-weight: 500; }
+.hero-deal-title b { font-weight: 700; }
+.hero-deal-lines { display: flex; flex-wrap: wrap; gap: 4px 22px; margin-top: 6px; color: var(--body); font-size: 16px; }
+
+/* The blown-up MSA page. */
+.hero-doc { position: absolute; left: 740px; top: 70px; width: 500px; min-height: 612px; padding: 34px 40px 22px 44px; background: #fff; border: 1px solid #E4E4E8; border-radius: 6px; box-shadow: 0 2px 4px rgb(17 17 17 / .05), 0 30px 60px -28px rgb(17 17 17 / .32); rotate: 4.8deg; font-family: 'Source Serif 4', Georgia, serif; color: #1D1F24; }
+.doc-file { display: flex; align-items: center; gap: 14px; font: 700 21px/1.2 'Source Serif 4', Georgia, serif; }
+.doc-w { display: grid; place-items: center; width: 24px; height: 26px; border-radius: 4px; background: #1F5FD6; color: #fff; font: 700 15px/1 var(--rer-font-body); }
+.doc-meta { margin-top: 14px; color: #8A8D95; font: 400 14px/1.5 var(--rer-font-body); }
+.doc-h { margin-top: 34px; font: 650 27px/1.2 'Source Serif 4', Georgia, serif; letter-spacing: .005em; }
+.doc-p { width: 300px; margin-top: 14px; font-size: 18px; line-height: 1.42; }
+.doc-p del { color: var(--claret); text-decoration-thickness: 2px; }
+.doc-p ins { padding: 0 3px; border-radius: 4px; background: var(--insert-bg); color: var(--insert); text-decoration: none; }
+.doc-comment { position: absolute; left: 322px; top: 160px; width: 176px; padding: 14px 14px 14px 18px; border: 1px solid #F2C9D1; border-radius: 6px; background: #FDF0F2; color: #2A1A1E; font: 400 14.5px/1.35 var(--rer-font-body); box-shadow: 0 8px 18px -12px rgb(142 15 52 / .4); }
+.doc-comment b { color: var(--claret); font-weight: 650; font-size: 16px; }
+.doc-comment .dot { display: inline-block; width: 11px; height: 11px; margin-right: 9px; border-radius: 50%; background: var(--claret); }
+.doc-comment p + p { margin-top: 4px; padding-left: 20px; }
+.doc-comment-lead { position: absolute; left: 286px; top: 266px; width: 60px; height: 90px; fill: none; stroke: var(--claret); stroke-width: 2; overflow: visible; }
+.doc-comment-lead circle { fill: var(--claret); stroke: none; }
+.doc-sign { display: grid; gap: 2px; margin-top: 34px; font-size: 16px; }
+.doc-sign div { display: grid; grid-template-columns: 58px 210px; align-items: end; }
+.doc-sign dt { color: #2A2C31; }
+.doc-sign dd { padding: 0 4px 1px; border-bottom: 1px solid #C9CBD1; color: #3A3D44; font-family: var(--rer-font-body); font-size: 14px; }
+.doc-sign div:first-child dd { height: 46px; border-bottom-width: 1.5px; border-bottom-color: #555; }
+.doc-sig { width: 150px; height: 44px; fill: none; stroke: #111; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.doc-foot { margin: 22px 70px 0 -26px; padding: 9px 12px; border-radius: 8px; background: #F4F4F6; color: #4B4F58; font: 400 13.5px/1.4 var(--rer-font-body); }
+.doc-foot .ck { color: #2A2C31; }
+
+/* The cards round the page. */
+.hero-approve { position: absolute; left: 1124px; top: 22px; width: 344px; display: flex; gap: 16px; padding: 20px 20px 18px 22px; rotate: -3deg; font-size: 14px; color: #2A2C31; }
+.hero-approve-icon { display: grid; place-items: center; flex: none; width: 34px; height: 34px; margin-top: 8px; border-radius: 50%; background: var(--done-bg); color: var(--done-ink); }
+.hero-approve-icon .ck { width: 18px; height: 18px; stroke-width: 2.6; }
+.hero-approve-title { font-size: 19px; font-weight: 650; color: var(--ink); margin-bottom: 2px; }
+.quiet { color: var(--quiet); }
+.hero-sign { position: absolute; left: 1186px; top: 328px; width: 326px; display: flex; gap: 18px; padding: 20px 20px 18px 22px; rotate: -2deg; font-size: 14px; color: #2A2C31; }
+.hero-sign .glyph { width: 40px; height: 40px; margin-top: 2px; stroke-width: 1.5; }
+.hero-card-title { font-size: 16px; font-weight: 650; color: var(--ink); margin-bottom: 4px; white-space: nowrap; }
+.hero-sign .pill { margin-top: 10px; font-size: 15px; padding: 4px 11px; }
+.hero-filed { position: absolute; left: 667px; top: 763px; width: 437px; display: flex; align-items: center; gap: 18px; padding: 14px 16px; font-size: 13.5px; color: #2A2C31; line-height: 1.5; }
+.hero-filed .glyph { width: 36px; height: 36px; }
+.hero-filed .ck, .hero-renew .ck { color: var(--done); }
+.hero-renew { position: absolute; left: 1127px; top: 492px; width: 382px; padding: 18px 16px 16px; font-size: 14.5px; color: #2A2C31; }
+.hero-renew-head { display: flex; gap: 16px; padding: 0 6px 14px; line-height: 1.45; }
+.hero-renew-head .glyph { width: 32px; height: 32px; margin-top: 2px; }
+.hero-renew-head b { font-weight: 650; color: var(--ink); }
+.hero-steps { display: grid; gap: 22px; }
+.hero-steps li { position: relative; display: flex; align-items: flex-start; gap: 14px; padding: 11px 14px; border-radius: 10px; line-height: 1.4; }
+.hero-steps li + li::before { content: ''; position: absolute; left: 50%; top: -19px; width: 2px; height: 14px; background: #6B7280; }
+.hero-steps li + li::after { content: ''; position: absolute; left: calc(50% - 4px); top: -10px; width: 6px; height: 6px; border-right: 2px solid #6B7280; border-bottom: 2px solid #6B7280; rotate: 45deg; }
+.step-fail { background: var(--fail-bg); color: var(--fail); }
+.step-done { background: var(--done-bg); color: var(--done-ink); }
+.step-next { background: #fff; border: 1px solid var(--line); }
+.step-next b { font-weight: 650; }
+.step-icon { display: grid; place-items: center; flex: none; width: 24px; height: 24px; margin-top: 2px; border-radius: 50%; background: var(--fail); color: #fff; font-weight: 800; font-size: 15px; }
+.hero-steps .ckdot { width: 24px; height: 24px; margin-top: 2px; }
+.hero-steps .ckdot .ck { width: 14px; height: 14px; color: #fff; }
+.hero-steps .step-done .ck { color: var(--done-ink); }
+.hero-steps .step-done .ckdot .ck { color: #fff; }
+.step-next .glyph { width: 26px; height: 26px; }
+.hero-sticky { left: 574px; top: 612px; width: 158px; height: 148px; rotate: -14deg; font-size: 30px; }
+
+.note-cap { rotate: -14deg; }
+.note-cap .hand-arrow { left: 4px; top: 74px; width: 60px; height: 110px; }
+.note-cfo { rotate: -8deg; }
+.note-cfo .hand-arrow { left: -50px; top: 30px; width: 50px; height: 60px; }
+.note-signed { rotate: -14deg; color: #1F4D2A; }
+.note-signed .hand-arrow { left: -34px; top: -26px; width: 30px; height: 34px; }
+.note-filed { rotate: -8deg; color: var(--spark); }
+.note-filed .hand-arrow { left: 60px; top: 10px; width: 64px; height: 40px; }
+.hero-loop { position: absolute; left: 1268px; top: 210px; width: 90px; height: 110px; fill: none; stroke: var(--claret); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 5 7; overflow: visible; }
+
+@media (max-width: 1279px) {
+  .hero-stage { height: auto; display: flex; flex-direction: column; gap: 18px; padding-top: 28px; padding-bottom: 56px; max-width: 720px; }
+  .hero-stage > * { position: relative !important; left: auto !important; top: auto !important; rotate: none !important; width: auto !important; }
+  .hero-copy { order: 1; margin-bottom: 18px; }
+  .hero-title { font-size: 72px; }
+  .hero-sub { width: auto; margin-top: 22px; font-size: 21px; }
+  .hero-alt { width: auto; margin-top: 18px; font-size: 20px; }
+  .hero-actions { flex-wrap: wrap; gap: 14px 24px; margin-top: 28px; }
+  .hero-actions .btn-run { width: auto; }
+  .hero-doc { order: 2; height: auto; padding: 22px 20px 20px; }
+  .doc-file { font-size: 18px; gap: 10px; }
+  .doc-meta { font-size: 13px; }
+  .doc-h { margin-top: 20px; font-size: 23px; }
+  .doc-p { width: auto; font-size: 17px; }
+  .doc-comment { position: relative; left: auto; top: auto; width: auto; margin-top: 14px; font-size: 14px; }
+  .doc-comment-lead { display: none; }
+  .doc-sign { margin-top: 22px; font-size: 15px; }
+  .doc-sign div { grid-template-columns: 58px minmax(0, 220px); }
+  .doc-foot { margin: 18px 0 0; font-size: 13px; }
+  .hero-deal { order: 3; }
+  .hero-approve { order: 4; }
+  .hero-approve .cursor { left: auto !important; right: 96px; top: 66px !important; }
+  .hero-sign { order: 5; }
+  .hero-filed { order: 6; font-size: 14px; }
+  .hero-renew { order: 7; }
+  .hero-sticky { order: 8; align-self: center; width: 180px !important; height: 120px; rotate: -4deg !important; font-size: 24px; }
+  .hand, .hero-loop, .hero-stage > .spark { display: none; }
+  .hero-deal-title { font-size: 16px; }
+  .hero-deal-lines { font-size: 14px; }
+  .hero-approve, .hero-sign, .hero-renew { font-size: 14px; }
+  .hero-approve-title { font-size: 17px; }
+  .hero-card-title { font-size: 16px; white-space: normal; }
+  .hero-sign .pill { font-size: 14px; }
+}
+@media (max-width: 759px) {
+  .hero-stage { padding-top: 20px; }
+  .hero-title { font-size: 42px; line-height: .98; letter-spacing: -.05em; }
+  .hero-sub { font-size: 18px; line-height: 1.4; }
+  .hero-alt { font-size: 17px; }
+  .doc-p { font-size: 16px; }
+}

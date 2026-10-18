@@ -1,16 +1,26 @@
 # Fonts
 
-Brygada 1918 (headings, key dates and numerals) and Libre Franklin (everything
-else) are self-hosted under the SIL Open Font License 1.1, in
-`brygada1918/LICENSE.txt` and `libre-franklin/LICENSE.txt`. Each WOFF2 is the
-Latin subset of the upstream variable font as Google Fonts publishes it, with
-the weight axis kept.
+Self-hosted under the SIL Open Font License 1.1; each folder keeps its licence.
 
-`fonts.css` declares both faces and their local fallbacks. The root document,
-`/setup` and the sign-in pages link it once through `src/base/font-head.ts`,
-which preloads both files. Do not import this CSS from a component.
+- `inter/inter-variable-latin.woff2`: Inter 4.1 variable (weight and optical
+  size axes) from the `inter-ui` 4.1.0 distribution (upstream
+  https://github.com/rsms/inter), subset with fontTools to Latin-1, general
+  punctuation, arrows (U+2190–2199), ✓, ×, ÷, °, ≈, ≤, ≥ and − so the page's
+  arrows and ticks render in Inter. Headings, the wordmark and all text.
+  Licence: `inter/LICENSE.txt`.
+- `kalam/`: Kalam 400 and 700, Latin WOFF2 from Fontsource 5.2.8 (upstream
+  https://github.com/itfoundry/kalam), for the homepage's handwritten notes
+  and stickies. Licence: `kalam/LICENSE.txt`.
+- `source-serif-4/`: Source Serif 4, Latin variable WOFF2 (weight axis) from
+  Fontsource 5.2.8 (upstream https://github.com/adobe-fonts/source-serif), for
+  the contract pages drawn on the homepage. Licence: `source-serif-4/LICENSE.txt`.
+- `jetbrains-mono/`: JetBrains Mono, Latin variable WOFF2 from Fontsource
+  (upstream https://github.com/JetBrains/JetBrainsMono), for commands.
+  Licence: `jetbrains-mono/LICENSE.txt`.
 
-The fallback faces scale Arial (for Libre Franklin) and Georgia (for Brygada)
-to each web font's average advance width over A-Z, a-z and 0-9 at the weights
-used (400/500 and 600/700); ascent and descent are the web font's hhea values
-divided by that scale. Recalculate them when changing a face.
+`/fonts/fonts.css` declares the faces and the size-matched `Inter Fallback`
+(Arial scaled to Inter's advance widths; ascent and descent from Inter's
+1984/-494 per 2048 units, divided by the scale). `/rer-theme.css` names the
+stacks; the app, Base's frames, the run site and /run read them from there.
+The root document, `/setup` and the sign-in pages link `fonts.css` once
+through `src/base/font-head.ts`. Do not import either file from a component.

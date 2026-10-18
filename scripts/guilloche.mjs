@@ -1,11 +1,11 @@
-// Locket's engraving, drawn from parametric curves so it stays crisp at every
-// size: the rosette (medallions and the mark), the engraved border band used as
-// a 9-slice border-image, the hatched ground behind engraved panels, and the
-// faint rosette field under the Lobby and the run site. Bottle green only.
+// The app's engraving, drawn from parametric curves so it stays crisp at every
+// size: the rosette medallions, the engraved border band used as a 9-slice
+// border-image and the hatched ground behind engraved panels. Bottle green only.
+// Locket's mark is the approved logo in public/brand/mark.svg, not drawn here.
 // Run: node scripts/guilloche.mjs (writes public/brand/*.svg).
 import { writeFile } from 'node:fs/promises'
 
-const GREEN = '#2F5A40', INK = '#0E2419', TINT = '#DCE8D8'
+const GREEN = '#2F5A40', TINT = '#DCE8D8'
 const out = new URL('../public/brand/', import.meta.url)
 let precision = 10
 const f = n => (Math.round(n * precision) / precision).toString()
@@ -96,32 +96,10 @@ function ground(w = 160, h = 40) {
   return svg(w, h, `<path d="${d}" fill="none" stroke="${GREEN}" stroke-opacity=".3" stroke-width=".5"/>`)
 }
 
-/** One open guilloché wreath: a few strands of wide loops, so overlapping wreaths read as a lattice, not rings. */
-function wreath(R) {
-  const paths = [], loops = 9
-  for (let k = 0; k < 3; k++) {
-    const phase = (k * TAU) / 3 / loops
-    paths.push(curve(t => { const a = t + phase, b = loops * t; return [R * 0.58 * Math.cos(a) + R * 0.4 * Math.cos(a + b), R * 0.58 * Math.sin(a) + R * 0.4 * Math.sin(a + b)] }, loops * 24))
-  }
-  paths.push(polar(0, 0, t => R * (0.96 + 0.03 * Math.sin(18 * t)), 18 * 12))
-  return paths.map(d => `<path d="${d}"/>`).join('')
-}
-
-/** The wide floor field: a faint lattice of overlapping wreaths, every one whole inside the band's height. */
-function field() {
-  const spots = [[0, 150, 128], [240, 150, 112], [480, 150, 128], [720, 150, 120], [960, 150, 128], [1200, 150, 112], [1440, 150, 128]]
-  return svg(1440, 300, `<defs><g id="w">${wreath(100)}</g></defs><g fill="none" stroke="${GREEN}" opacity=".12">${spots.map(([x, y, r]) => `<use href="#w" transform="translate(${x} ${y}) scale(${r / 100})" stroke-width="${f(80 / r)}"/>`).join('')}</g>`, ' preserveAspectRatio="xMidYMid slice"')
-}
-
-precision = 100
-const mark = svg(28, 28, rosette(14, 14, 27.4, { petals: 20, strands: 4, width: 0.35, eye: false }) + `<circle cx="14" cy="14" r="3.2" fill="${INK}"/>`)
-precision = 10
 const files = {
   'rosette.svg': svg(120, 120, rosette(60, 60, 118, { petals: 48, strands: 5, width: 0.5 })),
-  'mark.svg': mark,
   'guilloche-border.svg': border(),
   'ground.svg': ground(),
-  'band.svg': field(),
 }
 for (const [name, body] of Object.entries(files)) await writeFile(new URL(name, out), body)
 console.log(`Wrote ${Object.keys(files).join(', ')} to public/brand/`)

@@ -56,7 +56,7 @@ export function Register({ state }: { state: LocketState }) {
           ) : (
             <div className="lk-table-wrap">
               <table className="lk-table lk-register-table">
-                <thead><tr><th>Agreement</th><th>Counterparty</th><th>Type</th><th>Owner</th><th>Status</th><th>Current version</th><th>Value (AUD)</th><th>Next notice deadline</th></tr></thead>
+                <thead><tr><th>Agreement</th><th>Counterparty</th><th>Type</th><th>Owner</th><th>Status</th><th>Current version</th><th>Value (USD)</th><th>Next notice deadline</th></tr></thead>
                 <tbody>
                   {rows.map(a => {
                     const v = currentVersion(state, a), notice = nextNotice(state, a), hit = hits?.find(h => h.id === a.id)
@@ -68,7 +68,7 @@ export function Register({ state }: { state: LocketState }) {
                         <td data-label="Owner"><Person name={personName(state, a.owner_id)} /></td>
                         <td data-label="Status"><Badge value={a.status} /></td>
                         <td data-label="Current version">{v ? <span className="lk-version-tag">v{v.number}</span> : '—'}</td>
-                        <td data-label="Value (AUD)">{money(a.value_cents)}</td>
+                        <td data-label="Value (USD)">{money(a.value_cents)}</td>
                         <td data-label="Next notice deadline">{notice ? <>{notice.text.split(',')[0]}<small>{notice.text.split(',')[1]}</small></> : '—'}</td>
                       </tr>
                     )

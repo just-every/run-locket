@@ -2,13 +2,13 @@ Every agreement starts as a request and moves through versions until one is appr
 
 ## Capture a request
 
-Choose **New request** on Agreements and fill in **Agreement title**, **Request type**, the **Counterparty** (an existing one or a new one), **Agreement value (AUD)**, the **Responsible person**, **Needed by** and the **Proposed start date**. Start from an approved **Template version** from the Library, or attach a **Draft (PDF or DOCX)**.
+Choose **New request** on Agreements and fill in **Agreement title**, **Request type**, the **Counterparty** (an existing one or a new one), **Agreement value (USD)**, the **Responsible person**, **Needed by** and the **Proposed start date**. Start from an approved **Template version** from the Library, or attach a **Draft (PDF or DOCX)**.
 
 Each request type carries the attachments it needs before review:
 
 | Request type | Required attachment |
 | --- | --- |
-| Supplier | Insurance certificate of currency |
+| Supplier | Certificate of insurance |
 | Customer | Statement of work or schedule |
 | Amendment | The signed parent agreement, and a link to it |
 | Order form | A link to the agreement it sits under |

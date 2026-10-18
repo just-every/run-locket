@@ -17,7 +17,7 @@ body:has(.lk-app) { margin: 0; background: var(--lk-paper); }
 
 .lk-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 32px; width: min(100% - 128px, 1312px); margin: 0 auto; height: 78px; border-bottom: 1px solid var(--lk-rule); }
 .lk-brand { display: inline-flex; align-items: center; gap: 14px; justify-self: start; font: 600 32px/1 var(--lk-font-serif); letter-spacing: -.02em; text-decoration: none; }
-.lk-brand img { width: 48px; height: 48px; }
+.lk-brand img { width: 42px; height: 48px; }
 .lk-header nav { display: flex; align-items: stretch; gap: 36px; height: 100%; }
 .lk-header nav a { display: flex; align-items: center; font-size: 17px; font-weight: 500; color: var(--lk-ink-2); text-decoration: none; border-bottom: 2px solid transparent; padding-top: 2px; white-space: nowrap; }
 .lk-header nav a:hover { color: var(--lk-ink); }

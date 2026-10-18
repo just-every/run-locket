@@ -77,7 +77,7 @@ export function Renewals({ state, locket }: { state: LocketState; locket: Locket
                     await run('notice.sent', { noticeId: n.id, method: value(data, 'method'), sentAt: new Date(value(data, 'sentAt')).toISOString(), evidence: evidence?.size ? await fileToPayload(evidence) : undefined })
                   }}>
                     <div className="lk-grid2">
-                      <Field label="Sent by"><select name="method"><option value="email">Email</option><option value="post">Post</option><option value="courier">Courier</option><option value="hand">By hand</option><option value="portal">Portal</option></select></Field>
+                      <Field label="Sent by"><select name="method"><option value="email">Email</option><option value="post">Mail</option><option value="courier">Courier</option><option value="hand">By hand</option><option value="portal">Portal</option></select></Field>
                       <Field label="Sent at"><input type="datetime-local" name="sentAt" required /></Field>
                     </div>
                     <Field label="Evidence (sent email, receipt)"><input type="file" name="evidence" /></Field>

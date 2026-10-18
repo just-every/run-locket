@@ -1,19 +1,71 @@
-/* This edition's declared theme: the installer, sign-in, confirmation, /setup,
-   the Lobby and the run site read these --rer-* tokens,
-   and the app's own tokens (src/ui/style/tokens.css) take its colours and faces
-   from them. Fonts: public/fonts/fonts.css. */
+/* Locket's tokens, defined once. The run site, Base's Run, Contract and
+   not-found pages, the installer, sign-in, confirmation, /setup, the Lobby and
+   the app (src/ui/style/tokens.css) all read this file.
+   Locket's look (design desk, 18 Oct 2026, the Chest family in Locket's
+   colours): a crisp white page on a faint square grid, near-black ink, heavy
+   Inter headings whose second line runs claret to copper, white hairline
+   cards, pale green for done, one red for a failure, amber for proposed, pale
+   yellow stickies. Fonts: public/fonts/fonts.css. */
 :root {
-  --rer-font-body: 'Libre Franklin', 'Libre Franklin Fallback', Arial, sans-serif;
-  --rer-font-heading: 'Brygada 1918', 'Brygada 1918 Fallback', Georgia, serif;
-  --rer-page: #FBFAF4;
-  --rer-surface: #FFFFFD;
-  --rer-text: #0E2419;
-  --rer-muted: #56625B;
-  --rer-border: #7C8880;
-  --rer-focus: #2F5A40;
-  --rer-link: #2F5A40;
-  --rer-accent: #0A2C1C;
+  --rer-font-body: Inter, 'Inter Fallback', Arial, sans-serif;
+  --rer-font-heading: Inter, 'Inter Fallback', Arial, sans-serif;
+  --rer-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --rer-page: #FFFFFF;
+  --rer-surface: #FFFFFF;
+  --rer-text: #111111;
+  --rer-muted: #4B5563;
+  --rer-border: #8B8F98;
+  --rer-focus: #8E0F34;
+  --rer-link: #8E0F34;
+  --rer-accent: #111111;
   --rer-accent-text: #FFFFFF;
   --rer-radius: 14px;
+  --rer-button-radius: 14px;
+  --rer-code-background: #14151A;
+  --rer-code-text: #F3F4F6;
+  --rer-wordmark-weight: 800;
+  --rer-wordmark-tracking: -.035em;
   --rer-logo: url('/brand/mark.svg');
+  /* Base's /contract page: done in pale green, partial in copper, missing in quiet grey. */
+  --rer-done: #22A447;
+  --rer-done-ink: #17703A;
+  --rer-on-done: #FFFFFF;
+  --rer-partial: #C66B39;
+  --rer-partial-ink: #9A4A1F;
+  --rer-missing: #8B8F98;
+  --rer-missing-ink: #5B606B;
+
+  /* The site's own tokens. */
+  --ink: var(--rer-text);
+  --body: var(--rer-muted);
+  --quiet: #6B7280;
+  --paper: var(--rer-page);
+  --grid: rgb(17 17 17 / .045);
+  --line: #E6E6EA;
+  --line-2: #F0F0F3;
+  --tint: #F6F6F8;
+  --claret: #8E0F34;
+  --claret-deep: #7B1230;
+  --claret-tint: #FBEFF2;
+  --copper: #C66B39;
+  --spark: #E8622A;
+  --heading-gradient: linear-gradient(90deg, #7D0A26 0%, #A30F2D 34%, #CC2A2B 66%, #E2571A 100%);
+  --done: #22A447;
+  --done-ink: #17703A;
+  --done-bg: #E8F6EC;
+  --fail: #C8102E;
+  --fail-bg: #FDECEE;
+  --amber-ink: #7A4B00;
+  --amber-bg: #FDEBC4;
+  --insert: #1F5FD6;
+  --insert-bg: #E7F0FF;
+  --theirs: #7A2BC2;
+  --theirs-bg: #EFE3FB;
+  --sticky: #FCEE8F;
+  --priya: #8E0F34;
+  --marcus: #F6A85D;
+  --marcus-ink: #3A1A05;
+  --jenna: #12857F;
+  --card-shadow: 0 1px 2px rgb(17 17 17 / .04), 0 14px 34px -14px rgb(17 17 17 / .16);
+  --font-hand: Kalam, 'Comic Sans MS', cursive;
 }

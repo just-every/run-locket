@@ -1,5 +1,7 @@
 # Locket
 
+<img src="public/brand/mark.svg" alt="Locket" width="72">
+
 Locket keeps a small business's commercial agreements from request to renewal: approved templates and a clause playbook, negotiated versions, cited review findings, approvals pinned to the exact version, a signature-ready package for the signing service you already use, executed files reconciled on return, obligations and renewal notice deadlines. Agents you invite prepare work; people approve it. MIT licensed.
 
 - Source code: [just-every/run-locket](https://github.com/just-every/run-locket).
@@ -7,13 +9,19 @@ Locket keeps a small business's commercial agreements from request to renewal: a
 
 # Run it locally
 
-Run one line to clone Locket, install the `rer` command and start it:
+Two lines, the same as [run-locket.com/run](https://run-locket.com/run). Install `rer`, the Run Edit Run command (it brings its own Node if you have no Node 22 or later):
 
 ```sh
-npx -y @runeditrun/rer dev just-every/run-locket
+curl -fsSL https://runeditrun.com/install.sh | sh
 ```
 
-To start it again later, run `cd run-locket && rer dev`.
+Then start Locket. `rer` gets Locket, installs everything, makes you the owner and prints a link that opens Locket signed in:
+
+```sh
+rer dev just-every/run-locket
+```
+
+Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-locket` does both steps in one line. To start it again later, run `cd run-locket && rer dev`.
 This edition is runnable after composition. From the composed edition's
 checkout root, `rer dev` alone launches it for review: it installs pinned
 dependencies, sets up a local owner on a free port, starts the real app and
@@ -104,7 +112,7 @@ DocuSign archive. See [CONTRACT.md](CONTRACT.md) for the first release and its
 boundaries, [ACCEPTANCE.md](ACCEPTANCE.md) for what is proven,
 [API.md](API.md) for the API and [IMPORT.md](IMPORT.md) for moving in.
 
-Locket organises and prepares agreements; it does not give legal advice or
+Locket organizes and prepares agreements; it does not give legal advice or
 decide whether an agreement is valid.
 
 ## Edition notes
