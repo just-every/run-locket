@@ -1,5 +1,5 @@
 import { cloneElement, useId, type FormEvent, type ReactElement, type ReactNode } from 'react'
-import { statusLabel, when, words } from './format'
+import { initials, statusLabel, when, words } from './format'
 
 const tone: Record<string, string> = {
   draft: 'neutral', in_review: 'warn', approved: 'good', out_for_signature: 'info', executed: 'good', imported: 'neutral', cancelled: 'neutral',
@@ -13,6 +13,11 @@ export function Badge({ value, label, tone: given }: { value: string; label?: st
 }
 export function Person({ name }: { name: string }) {
   return <span className="lk-person">{name}</span>
+}
+/** A person's initials disc, or Locket's mark for an agent. */
+export function Avatar({ name, agent = false, large = false }: { name: string; agent?: boolean; large?: boolean }) {
+  const size = large ? ' lk-avatar-large' : ''
+  return agent ? <img className={`lk-avatar lk-avatar-agent${size}`} src="/brand/mark.svg" alt="" /> : <span className={`lk-avatar${size}`} aria-hidden="true">{initials(name)}</span>
 }
 /** A signing service's envelope ID; a long one (DocuSign's are 36 characters) shows its first eight, with the full ID in its title. */
 export function EnvelopeId({ id }: { id: string }) {
@@ -33,11 +38,11 @@ export function Panel({ title, actions, children, className = '' }: { title?: Re
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="lk-empty">{children}</p>
 }
-/** A screen with nothing in it yet: the rosette, a short heading and what to do next. */
+/** A screen with nothing in it yet: the mascot, a short heading and what to do next. */
 export function EmptyState({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="lk-empty-state">
-      <img src="/brand/rosette.svg" alt="" />
+      <img src="/brand/mark.svg" alt="" />
       <h2>{title}</h2>
       <p>{children}</p>
     </div>
@@ -81,6 +86,12 @@ const icons = {
   arrow: 'M6 3l5 5-5 5',
   forward: 'M2 8h11.5M9.5 4l4 4-4 4',
   back: 'M14 8H2.5M6.5 4l-4 4 4 4',
+  book: 'M8 3.5C6.2 2.2 3.9 2 1.5 2.6v10.3c2.4-.6 4.7-.4 6.5.9 1.8-1.3 4.1-1.5 6.5-.9V2.6C12.1 2 9.8 2.2 8 3.5zM8 3.5v10.3',
+  inbox: 'M1.5 9.5l2-6.5h9l2 6.5v4h-13zM1.5 9.5h4l1 1.75h3l1-1.75h4',
+  pulse: 'M1.5 8.5h3l1.75-4.5 3 8.5 1.75-4h3.5',
+  compare: 'M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14M3.5 3.5 2 5l1.5 1.5M12.5 9.5 14 11l-1.5 1.5',
+  restore: 'M5.5 3 2.5 6l3 3M2.5 6H10a3.5 3.5 0 0 1 0 7H8',
+  folder: 'M1.5 3.5h5l1.5 1.5h6.5v8h-13z',
 }
 export type IconName = keyof typeof icons
 export function Icon({ name }: { name: IconName }) {

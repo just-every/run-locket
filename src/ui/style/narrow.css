@@ -1,115 +1,100 @@
-/* Below desktop widths panels stack; at phone width tabs wrap onto rows of their own and tables become labelled record cards. */
+/* Narrower screens. Below 1100 px the margin notes fold under their clauses (open decisions first) and the page takes
+   the full width; below 760 px the rail becomes bottom tabs, the top bar wraps and the command bar joins the flow. */
 @media (max-width: 1280px) {
-  .lk-workspace { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .lk-workspace > .lk-sidecol { grid-column: 1 / -1; }
-  .lk-header nav { gap: 24px; }
+  .lk-doc-head { flex-direction: column; gap: 14px; }
+  .lk-doc-title { flex-basis: auto; }
+  .lk-board { grid-template-columns: repeat(min(var(--lk-columns, 5), 3), minmax(0, 1fr)); }
+  .lk-crumb { font-size: 15px; }
 }
-@media (max-width: 1100px) {
-  .lk-split, .lk-columns, .lk-intake-grid, .lk-workspace, .lk-heading { grid-template-columns: minmax(0, 1fr); }
-  .lk-heading > .lk-engraved { justify-self: start; }
-  .lk-header { grid-template-columns: 1fr auto; height: auto; padding-top: 14px; }
-  .lk-header nav { grid-column: 1 / -1; grid-row: 2; height: 48px; overflow-x: auto; scrollbar-width: none; }
+@media (max-width: 1099px) {
+  .lk-paper, .lk-comments-card { margin-right: 0; }
+  .lk-margin-note { position: static; width: auto; order: 2; margin: -8px 0 18px; }
+  .lk-para-heading .lk-margin-note { margin-top: 0; }
+  .lk-ghost { order: 1; }
+  .lk-links { display: none; }
+  .lk-columns, .lk-library-grid, .lk-intake-grid, .lk-add-grid, .lk-steps { grid-template-columns: minmax(0, 1fr); }
+  .lk-top { gap: 16px; }
+  .lk-seal { display: none; }
+  .lk-people-tools, .lk-invite { grid-template-columns: minmax(0, 1fr); }
 }
-@media (max-width: 640px) {
-  .lk-app { font-size: 15px; }
-  .lk-header { width: calc(100% - 32px); gap: 8px 12px; padding-top: 12px; }
-  .lk-brand { font-size: 24px; gap: 10px; }
-  .lk-brand img { width: 30px; height: 34px; }
-  .lk-header nav { gap: 22px; height: 44px; }
-  .lk-header nav a { font-size: 14px; }
-  .lk-account { gap: 12px; }
-  .lk-account-name { font-size: 15px; padding-right: 12px; }
-  .lk-account-name small { font-size: 12px; }
-  .lk-app .lk-account button { min-height: 34px; padding: 0 14px; font-size: 14px; }
-  .lk-main { width: calc(100% - 32px); padding: 24px 0 48px; }
-  .lk-app h1, .lk-app .lk-agreement h1 { font-size: 34px; line-height: 1.1; }
-  .lk-app h2 { font-size: 20px; }
-  .lk-titlebar { align-items: stretch; flex-direction: column; gap: 16px; }
-  .lk-titlebar p { font-size: 15px; }
-  .lk-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .lk-app .lk-actions .lk-button { padding: 0 12px; font-size: 15px; }
-  .lk-panel { padding: 18px 16px; }
-  .lk-table-panel { padding: 6px 10px; }
-  .lk-table-panel > .lk-panel-head { padding: 12px 6px 0; }
-  .lk-filters { gap: 8px; }
-  .lk-app .lk-filter { min-height: 36px; font-size: 14px; padding: 0 6px 0 14px; }
-  .lk-filter strong { min-width: 24px; height: 24px; font-size: 12px; }
-  /* Record cards: a head with the title and its status chip, then labelled values two to a row. */
+@media (max-width: 900px) {
+  .lk-board { grid-template-columns: repeat(min(var(--lk-columns, 5), 2), minmax(0, 1fr)); }
+  .lk-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lk-stats div:nth-child(3n+1) { border-left: 0; padding-left: 0; }
+  .lk-renewal-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .lk-renewal-row .lk-deadline { grid-column: 1 / -1; }
+}
+@media (max-width: 759px) {
+  :root { --lk-top: auto; }
+  .lk-app { display: block; padding-bottom: 66px; font-size: 14.5px; }
+  .lk-top { position: static; flex-wrap: wrap; gap: 8px 12px; height: auto; padding: 12px 16px; }
+  .lk-brand { font-size: 23px; }
+  .lk-brand img { width: 26px; height: 30px; }
+  .lk-crumb { flex-basis: 100%; order: 3; font-size: 14.5px; white-space: normal; }
+  .lk-top-tools { flex-basis: 100%; order: 4; }
+  .lk-version-bar { width: 100%; flex-wrap: wrap; }
+  .lk-chips { flex: 1 1 100%; flex-wrap: wrap; overflow: visible; }
+  .lk-chips .lk-chip { flex: 1 1 140px; }
+  .lk-chip { min-height: 44px; padding: 6px 11px; }
+  .lk-compare { margin-left: 0; }
+  .lk-app .lk-tool, .lk-version-bar .lk-gradient { min-height: 42px; }
+  .lk-rail { position: fixed; top: auto; bottom: 0; left: 0; right: 0; z-index: 35; flex-direction: row; justify-content: space-around; gap: 0; height: 64px; padding: 4px 2px calc(4px + env(safe-area-inset-bottom)); border-right: 0; border-top: 1px solid var(--lk-rule); background: rgb(255 255 255 / .97); }
+  .lk-rail a { flex: 1; width: auto; min-width: 0; min-height: 54px; gap: 3px; padding: 0; font-size: 11px; letter-spacing: -.015em; border-radius: 8px; }
+  .lk-rail a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lk-rail a .lk-icon { width: 20px; height: 20px; }
+  .lk-rail-me { display: none; }
+  .lk-main { padding: 16px 16px 28px; }
+  .lk-command { position: static; flex-wrap: wrap; padding: 12px 16px 16px; }
+  .lk-ask, .lk-agent-chip, .lk-account { flex: 1 1 100%; }
+  .lk-agent-chip { height: auto; min-height: 46px; padding: 8px 12px; }
+  .lk-agent-chip span { white-space: normal; }
+  .lk-account-menu { left: 0; right: 0; }
+  .lk-app h1 { font-size: 26px; }
+  .lk-app .lk-doc-title h1 { font-size: 19px; gap: 10px; align-items: flex-start; }
+  .lk-counts { font-size: 14px; }
+  .lk-doc-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+  .lk-doc-meta > div, .lk-doc-meta > div:first-child { border-left: 0; padding: 0; }
+  .lk-doc-meta dd { white-space: normal; }
+  .lk-tabs { gap: 16px; flex-wrap: wrap; row-gap: 0; }
+  .lk-paper { padding: 22px 16px 26px; font-size: 17px; line-height: 1.45; border-radius: 12px; }
+  .lk-app .lk-paper h2 { font-size: 21px; }
+  .lk-app .lk-paper .lk-folded h2 { font-size: 17px; }
+  .lk-clause { grid-template-columns: 30px minmax(0, 1fr); gap: 8px; padding-left: 0; margin-bottom: 18px; }
+  .lk-ghost { margin-left: 38px; font-size: 15px; width: auto; }
+  .lk-margin-note { margin-left: 0; }
+  .lk-note-actions { flex-wrap: wrap; }
+  .lk-app .lk-note-actions button { flex: 1 1 100%; }
+  .lk-panel { padding: 16px 14px; border-radius: 12px; }
+  .lk-board { grid-template-columns: minmax(0, 1fr); }
+  .lk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lk-stats div:nth-child(n) { border-left: 1px solid var(--lk-rule); padding-left: 12px; }
+  .lk-stats div:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .lk-band { padding: 12px 12px 22px; }
+  .lk-band-months span { padding-left: 4px; font-size: 11px; overflow: hidden; white-space: nowrap; }
+  .lk-renewal-row { padding: 12px 14px; gap: 10px; }
+  .lk-steps { padding: 0 12px 12px; }
+  .lk-proposal-head { grid-template-columns: 32px minmax(0, 1fr); padding: 12px 14px; }
+  .lk-proposal-head > .lk-badge { grid-column: 2; justify-self: start; }
+  .lk-proposal-body { padding: 0 14px 14px; }
+  .lk-log-item { grid-template-columns: 28px minmax(0, 1fr); }
+  .lk-log-item time { grid-column: 2; padding: 0; }
+  .lk-log-item > .lk-avatar, .lk-log-item > img { grid-row: 1 / span 2; grid-column: 1; }
+  .lk-log-item > div { grid-column: 2; }
+  .lk-activity-log .lk-panel-head .lk-search { width: 100%; }
+  .lk-people { grid-template-columns: minmax(0, 1fr); }
+  .lk-log li { grid-template-columns: 1fr; gap: 2px; }
+  .lk-recipient { grid-template-columns: 22px minmax(0, 1fr); }
+  .lk-recipient > select, .lk-recipient > input[type=email], .lk-recipient > button { grid-column: 2; }
+  .lk-obligation-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Tables become labelled record cards. */
   .lk-table thead { display: none; }
   .lk-table, .lk-table tbody, .lk-table tr { display: block; width: 100%; }
-  .lk-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; gap: 12px 16px; border: 1px solid var(--lk-rule); border-radius: 12px; margin: 10px 0; padding: 14px 16px; background: var(--lk-surface); }
-  .lk-table td { display: block; height: auto; border: 0; padding: 0; min-width: 0; font-size: 15px; overflow-wrap: break-word; }
+  .lk-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; border: 1px solid var(--lk-rule); border-radius: 12px; margin: 10px 0; padding: 12px 14px; }
+  .lk-table td { display: block; border: 0; padding: 0; min-width: 0; overflow-wrap: anywhere; }
   .lk-table td[data-label]::before { content: attr(data-label); display: block; color: var(--lk-ink-2); font-size: 12px; line-height: 1.4; }
-  .lk-table td:first-child { grid-column: 1 / -1; font-size: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--lk-rule-2); }
-  .lk-table td:first-child::before { display: none; }
+  .lk-table td:first-child { grid-column: 1 / -1; }
   .lk-table td:not([data-label]):empty { display: none; }
   .lk-table td:not([data-label]) { grid-column: 1 / -1; }
-  .lk-table tbody tr.lk-selected td { background: transparent; }
-  .lk-table tbody tr.lk-selected { background: var(--lk-selected); }
-  .lk-register-table td:first-child { min-width: 0; }
-  .lk-record-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; }
-  .lk-record-head > a, .lk-record-head > .lk-linklike { min-width: 0; font: 600 19px/1.25 var(--lk-font-serif); }
-  .lk-record-status { display: block; }
-  .lk-register-table td[data-label=Status], .lk-renewals td[data-label=Decision] { display: none; }
-  .lk-deadline { font-size: 16px; white-space: nowrap; }
-  .lk-facts { gap: 10px 0; }
-  .lk-facts dd { font-size: 18px; }
-  .lk-heading .lk-engraved { width: 100%; }
-  .lk-heading .lk-engraved .lk-medallion { display: none; }
-  .lk-engraved .lk-facts { display: grid; grid-template-columns: repeat(var(--lk-fact-columns, 3), minmax(0, 1fr)); }
-  .lk-heading .lk-engraved .lk-facts { --lk-fact-columns: 4; }
-  .lk-engraved .lk-facts > div { padding: 0 8px; }
-  .lk-engraved .lk-facts > div:first-child { padding-left: 0; }
-  .lk-engraved .lk-facts dt { font-size: 11px; }
-  .lk-engraved .lk-facts dd { font-size: 14px; white-space: normal; }
-  .lk-renewal-facts .lk-facts { grid-template-columns: auto minmax(0, 1fr); }
-  .lk-renewal-facts .lk-facts > div { padding: 0 14px; }
-  .lk-renewal-facts .lk-facts > div:first-child, .lk-renewal-facts .lk-facts > .lk-fact-wide { padding-left: 0; }
-  .lk-renewal-facts .lk-facts dd { font-size: 17px; white-space: nowrap; }
-  .lk-engraved .lk-facts dd small { font-size: 11px; overflow-wrap: break-word; }
   .lk-table td.lk-evidence { grid-column: 1 / -1; max-width: none; }
-  .lk-renewals td[data-label="Notice deadline (local)"] { grid-column: 1 / -1; }
-  .lk-activity td[data-label=Details] { grid-column: 1 / -1; }
-  .lk-activity .lk-badge { font-size: 12px; padding: 3px 9px; }
-  .lk-when { font-size: 16px; }
-  .lk-tabs { gap: 22px; margin: 18px 0; }
-  .lk-tabs a { font-size: 14px; }
-  .lk-recipient { grid-template-columns: 22px 1fr; }
-  .lk-recipient > select, .lk-recipient > input[type=email] { grid-column: 2; }
-  .lk-log li { grid-template-columns: 1fr; gap: 2px; }
-  .lk-app .lk-side-head h2 { font-size: 24px; }
-  .lk-big-date { font-size: 22px; }
-  .lk-timeline li { font-size: 10px; }
-  .lk-timeline small { display: none; }
-  .lk-people select, .lk-people li > .lk-badge { width: 136px; }
-  .lk-app .lk-empty-state h2 { font-size: 30px; }
-  .lk-empty-state p { font-size: 15px; }
-  .lk-stats div { padding: 4px 10px; }
-  .lk-stats strong { font-size: 26px; }
-}
-@media (max-width: 480px) {
-  /* Every section and agreement tab stays on screen: the six sections in two rows of three, the tabs wrapping. */
-  .lk-header nav { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 8px 20px; overflow: visible; height: auto; padding-bottom: 4px; }
-  .lk-header nav a { padding: 6px 0 8px; }
-  .lk-tabs { flex-wrap: wrap; row-gap: 10px; overflow: visible; }
-  .lk-tabs a { padding: 6px 0 8px; }
-  .lk-search { padding: 0 12px; gap: 10px; }
-  .lk-app .lk-search input[type=search] { font-size: 15px; }
-  .lk-header nav a:focus-visible::after { inset: 0 -8px 2px; }
-  /* Record lists sit on the page, as the picks draw them, without a card around the cards. */
-  .lk-table-panel, .lk-panel:has(> .lk-table) { border: 0; padding: 0; background: none; box-shadow: none; }
-  .lk-obligation-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .lk-table-panel > .lk-panel-head { padding: 6px 0 0; }
-  .lk-table-panel .lk-table-foot { padding: 18px 0 0; border-top: 0; }
-  .lk-heading .lk-engraved .lk-facts { --lk-fact-columns: 2; row-gap: 12px; }
-  .lk-heading .lk-engraved .lk-facts > div:nth-child(odd) { border-left: 0; padding-left: 0; }
-  .lk-heading .lk-engraved .lk-facts dd { font-size: 16px; }
-  .lk-notice-card .lk-big-date { font-size: 20px; white-space: normal; }
-  .lk-notice-card .lk-medallion { width: 40px; height: 40px; }
-  .lk-notice-card .lk-medallion .lk-icon { width: 18px; height: 18px; }
-  .lk-dry-run .lk-medallion { display: none; }
-  .lk-imports td[data-label=Outcome] { grid-column: 1 / -1; }
-  .lk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .lk-stats div:nth-child(n) { border-left: 1px solid var(--lk-rule); padding-left: 10px; }
-  .lk-stats div:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .lk-app .lk-empty-state h2 { font-size: 24px; }
 }

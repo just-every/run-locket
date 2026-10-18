@@ -64,7 +64,7 @@ for (const width of [1440, 390]) {
     await expand(scope)
     await scope.getByLabel('Name', { exact: true }).fill(`Supply ${tag}`)
     await scope.getByLabel('Type', { exact: true }).selectOption('supplier')
-    await scope.getByLabel('Body', { exact: true }).fill('SUPPLY AGREEMENT\nBetween Olive Pty Ltd and {{counterparty}}.\nGoods: {{goods}}.\n[[clause:liability]]\nThis agreement ends on 30 June 2027.')
+    await scope.getByLabel('Body', { exact: true }).fill('SUPPLY AGREEMENT\nBetween Olive Supply Co. and {{counterparty}}.\nGoods: {{goods}}.\n[[clause:liability]]\nThis agreement ends on June 30, 2027.')
     await scope.getByLabel('Fields', { exact: true }).fill('goods | Goods')
     await scope.getByLabel('Clauses', { exact: true }).fill('liability | Liability\ncap | Capped | Liability is capped at the fees paid in the prior 12 months.')
     await submit(page, scope, 'Save draft v1')
@@ -82,11 +82,11 @@ for (const width of [1440, 390]) {
     await page.goto(`${origin}/app#agreements`)
     await page.getByRole('link', { name: 'New request', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'New agreement request' })).toBeVisible()
-    await page.getByLabel('Agreement title *').fill(`Harbour supply ${tag}`)
+    await page.getByLabel('Agreement title *').fill(`Harbor supply ${tag}`)
     await page.getByLabel('Request type *').selectOption('supplier')
     await page.getByLabel('Agreement value (USD)').fill('48000')
     await page.getByRole('radio', { name: 'New', exact: true }).check()
-    await page.getByLabel('Name', { exact: true }).fill(`Harbour ${tag}`)
+    await page.getByLabel('Name', { exact: true }).fill(`Harbor ${tag}`)
     await page.getByLabel('Template version').selectOption({ label: `Supply ${tag} v1` })
     await page.getByLabel('Goods *').fill('Packaging')
     await noOverflow(page)
@@ -124,7 +124,7 @@ for (const width of [1440, 390]) {
     await page.getByRole('link', { name: 'Signature', exact: true }).click()
     scope = panel(page, 'Send for signature')
     await scope.getByLabel('Recipient 1 name').fill('Hana Park')
-    await scope.getByLabel('Recipient 1 email').fill('hana@harbour.example')
+    await scope.getByLabel('Recipient 1 email').fill('hana@harbor.example')
     await submit(page, scope, 'Prepare signature package')
     await expect(page.getByRole('link', { name: 'Signature-ready PDF' })).toBeVisible()
     const pdfResponse = await page.request.get(origin + (await page.getByRole('link', { name: 'Signature-ready PDF' }).getAttribute('href')))
@@ -148,7 +148,7 @@ for (const width of [1440, 390]) {
 
     // Terms: confirmed against the signed text, which opens a renewal.
     await page.getByRole('link', { name: 'Terms and obligations', exact: true }).click()
-    for (const [key, value, quote] of [['end_date', '2027-06-30', 'This agreement ends on 30 June 2027.'], ['notice_days', '60', 'This agreement ends on 30 June 2027.']]) {
+    for (const [key, value, quote] of [['end_date', '2027-06-30', 'This agreement ends on June 30, 2027.'], ['notice_days', '60', 'This agreement ends on June 30, 2027.']]) {
       scope = page.locator('details').filter({ hasText: 'Propose or correct a term' })
       await expand(scope)
       await scope.getByLabel('Term', { exact: true }).selectOption(key)
@@ -162,11 +162,11 @@ for (const width of [1440, 390]) {
 
     // Renewals: decide, draft, approve, then record sending separately.
     await page.goto(`${origin}/app#renewals`)
-    await page.getByRole('button', { name: `Harbour supply ${tag}` }).click()
+    await page.getByRole('button', { name: `Harbor supply ${tag}` }).click()
     await submit(page, page.locator('main'), 'Record decision')
     scope = page.locator('details').filter({ hasText: 'Draft a notice' })
     await expand(scope)
-    await scope.getByLabel('Recipient').fill('legal@harbour.example')
+    await scope.getByLabel('Recipient').fill('legal@harbor.example')
     await scope.getByLabel('Notice text').fill('We will renew on the existing terms.')
     await submit(page, scope, 'Save draft')
     await submit(page, page.locator('main'), 'Approve for sending')
@@ -181,7 +181,7 @@ for (const width of [1440, 390]) {
     await page.goto(`${origin}/app#proposals`)
     const agreementId = agreementUrl.split('/').pop()
     await page.evaluate(async id => {
-      await fetch('/api/locket/commands', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ commandId: crypto.randomUUID(), type: 'proposal.prepare', payload: { kind: 'terms', payload: { agreementId: id, terms: [{ key: 'governing_law', value: 'New South Wales', citation: { quote: 'SUPPLY AGREEMENT' } }] }, evidence: ['Executed text, heading'], assumptions: 'Governing law is not stated; New South Wales assumed from the parties.' } }) })
+      await fetch('/api/locket/commands', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ commandId: crypto.randomUUID(), type: 'proposal.prepare', payload: { kind: 'terms', payload: { agreementId: id, terms: [{ key: 'governing_law', value: 'Delaware', citation: { quote: 'SUPPLY AGREEMENT' } }] }, evidence: ['Executed text, heading'], assumptions: 'Governing law is not stated; Delaware assumed from the parties.' } }) })
     }, agreementId)
     await page.reload()
     await expect(page.getByText('Terms and obligations').first()).toBeVisible()
@@ -211,17 +211,17 @@ for (const width of [1440, 390]) {
 
     // Register, search and the agreement summary.
     await page.goto(`${origin}/app#agreements`)
-    await page.getByRole('searchbox').fill(`Harbour supply ${tag}`)
-    await expect(page.locator('.lk-register-table tbody tr')).toHaveCount(1)
+    await page.getByRole('searchbox').fill(`Harbor supply ${tag}`)
+    await expect(page.locator('.lk-board-card')).toHaveCount(1)
     await page.getByRole('searchbox').fill('')
-    await expect(page.getByRole('complementary', { name: 'Selected agreement' })).toBeVisible()
+    await expect(page.getByRole('link', { name: `Harbor supply ${tag}`, exact: true })).toBeVisible()
     await noOverflow(page)
     await shot(page, width, 'agreements')
 
     // Activity and people.
     await page.goto(`${origin}/app#activity`)
     await expect(page.getByRole('heading', { name: 'Activity log' })).toBeVisible()
-    await expect(page.locator('.lk-activity table').getByText('Approved', { exact: true }).first()).toBeVisible()
+    await expect(page.locator('.lk-activity-log').getByText('Approved', { exact: true }).first()).toBeVisible()
     await noOverflow(page)
     await shot(page, width, 'activity')
     expect(errors, errors.join('\n')).toEqual([])

@@ -1,15 +1,20 @@
-import type { LocketState } from './api'
+// One agreement: the document workspace (its default), and the review,
+// approval, signature, execution, terms and access tabs under the same head.
+import { useState } from 'react'
+import type { LocketState, Row } from './api'
 import type { Locket } from './app'
-import { Badge, Empty, Field, Form, Icon, Person, value } from './controls'
-import { Engraved } from './engraved'
-import { can, currentVersion, day, money, partyName, personName, roleLabel, typeLabel, when } from './format'
+import { Avatar, Badge, Empty, Field, Form, Icon, Person, value } from './controls'
+import { DocumentPage, useRedline } from './document'
+import { can, currentVersion, longDay, parse, partyName, personName, plural, roleLabel, stamp, typeLabel, versionsOf, when } from './format'
 import { Approvals, Review } from './review'
+import { AgentPlace, TopTools } from './shell'
 import { Execution, Signature } from './signature'
+import { liveApprovals } from './summary'
 import { Terms } from './terms'
-import { Versions } from './versions'
+import { AddVersion, Attachments, Comments, VersionChips } from './versions'
 
 const tabs = [
-  { id: 'versions', title: 'Versions' },
+  { id: 'versions', title: 'Document' },
   { id: 'review', title: 'Review' },
   { id: 'approvals', title: 'Approvals' },
   { id: 'signature', title: 'Signature' },
@@ -17,46 +22,93 @@ const tabs = [
   { id: 'terms', title: 'Terms and obligations' },
   { id: 'details', title: 'Details and access' },
 ]
+const fileLabel: Record<string, string> = { original: 'Original', rendition: 'Signing PDF', package: 'Signature-ready PDF', manifest: 'Routing manifest' }
 
-export function AgreementPage({ state, id, tab, locket }: { state: LocketState; id: string; tab: string; locket: Locket }) {
+export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { state: LocketState; id: string; tab: string; shown: string; locket: Locket }) {
   const a = state.agreements.find(x => x.id === id)
+  const versions = a ? versionsOf(state, a.id) : []
+  const current = a ? currentVersion(state, a) : null
+  const shown = versions.find(v => String(v.number) === shownNumber) ?? current
+  const [baseNumber, setBaseNumber] = useState<number | null | undefined>(undefined)
+  const base = baseNumber === null ? null : versions.find(v => v.number === (baseNumber ?? (shown ? shown.number - 1 : 0))) ?? null
+  const [adding, setAdding] = useState(false)
+  const marked = useRedline(base, shown)
   if (!a) return <Empty>No agreement you can access has this link. <a href="#agreements">Back to agreements</a></Empty>
-  const v = currentVersion(state, a)
-  const current = tabs.some(t => t.id === tab) ? tab : 'versions'
+  const selected = tabs.some(t => t.id === tab) ? tab : 'versions'
   const parent = a.parent_id ? state.agreements.find(x => x.id === a.parent_id) : null
+  const files = shown ? state.artifacts.filter(f => f.version_id === shown.id) : []
+  const original = files.find(f => f.role === 'original') ?? files.find(f => f.role === 'rendition') ?? files[0]
+  const route = state.routes[a.id] ?? []
+  const live = liveApprovals(state, a)
+  const decided = route.filter(step => live.some(x => x.kind === step.kind && (x.deviation_id ?? null) === (step.deviationId ?? null))).length
+  const comments = shown ? state.comments.filter(c => c.version_id === shown.id).length : 0
+  const docx = original?.filename?.toLowerCase().endsWith('.docx')
   return (
     <div className="lk-agreement">
-      <a className="lk-back" href="#agreements"><Icon name="back" />Back to agreements</a>
-      <div className="lk-heading">
-        <div>
-          <h1>{a.title}</h1>
-          <p className="lk-subtitle"><strong>{partyName(state, a.party_id)}</strong> <Badge value={a.status} />{v && <span className="lk-version-tag">v{v.number}</span>}<span className="lk-muted">{typeLabel[a.type]} · {a.reference}{a.restricted ? ' · restricted' : ''}</span></p>
+      <TopTools><VersionChips state={state} a={a} shown={shown} base={base} onBase={n => setBaseNumber(n)} adding={adding} onAdding={setAdding} /></TopTools>
+      {shown && <AgentPlace><AgentReply state={state} a={a} shown={shown} original={original} /></AgentPlace>}
+      <div className="lk-doc-head">
+        <div className="lk-doc-title">
+          <h1><span className={`lk-file-icon${docx ? '' : ' lk-file-pdf'}`} aria-hidden="true">{docx ? 'W' : original ? 'PDF' : ''}</span>{original?.filename ?? (shown ? `v${shown.number} · ${shown.label}` : a.title)}</h1>
+          <p className="lk-counts">
+            {[base && marked ? plural(marked.changes, 'tracked change') + ` from v${base.number}` : shown ? `v${shown.number} · ${shown.label}` : 'No document yet', plural(comments, 'comment'), route.length ? `${decided} of ${route.length} approvals decided` : ''].filter(Boolean).join(' · ')}
+          </p>
+          {route.length > 0 && <div className="lk-progress" role="progressbar" aria-label="Approvals decided" aria-valuemin={0} aria-valuemax={route.length} aria-valuenow={decided}><span style={{ width: `${(decided / route.length) * 100}%` }} /></div>}
           {parent && <p className="lk-muted">{a.relation?.replace('_', ' ')} <a href={`#agreement/${parent.id}`}>{parent.reference} {parent.title}</a></p>}
         </div>
-        <Engraved className="lk-facts-card" medallion="document">
-          <dl className="lk-facts">
-            <div><dt>Owner</dt><dd><Person name={personName(state, a.owner_id)} /></dd></div>
-            <div><dt>Value (USD)</dt><dd>{money(a.value_cents)}</dd></div>
-            <div><dt>Needed by</dt><dd>{day(a.needed_by)}</dd></div>
-            <div><dt>Start date</dt><dd>{day(a.start_date)}</dd></div>
-          </dl>
-        </Engraved>
+        <dl className="lk-doc-meta">
+          <div><dt>Needed by</dt><dd>{longDay(a.needed_by)}</dd></div>
+          <div><dt>Counterparty</dt><dd>{partyName(state, a.party_id)}</dd></div>
+          <div><dt>Owner</dt><dd><Person name={personName(state, a.owner_id)} /></dd></div>
+          <div><dt>Last updated</dt><dd>{stamp(a.updated_at, { zone: a.timezone })}</dd></div>
+        </dl>
       </div>
-      <nav className="lk-tabs" aria-label="Agreement sections">
-        {tabs.map(t => <a key={t.id} href={`#agreement/${a.id}/${t.id}`} className={t.id === current ? 'lk-selected' : undefined} aria-current={t.id === current ? 'page' : undefined}>{t.title}</a>)}
-      </nav>
-      {current === 'versions' && <Versions state={state} a={a} locket={locket} />}
-      {current === 'review' && <Review state={state} a={a} locket={locket} />}
-      {current === 'approvals' && <Approvals state={state} a={a} locket={locket} />}
-      {current === 'signature' && <Signature state={state} a={a} locket={locket} />}
-      {current === 'execution' && <Execution state={state} a={a} locket={locket} />}
-      {current === 'terms' && <Terms state={state} a={a} locket={locket} />}
-      {current === 'details' && <Details state={state} a={a} locket={locket} />}
+      <div className="lk-doc-bar">
+        <nav className="lk-tabs" aria-label="Agreement sections">
+          {tabs.map(t => <a key={t.id} href={`#agreement/${a.id}/${t.id}`} className={t.id === selected ? 'lk-selected' : undefined} aria-current={t.id === selected ? 'page' : undefined}>{t.title}</a>)}
+        </nav>
+        <p className="lk-subtitle"><Badge value={a.status} /><span>{typeLabel[a.type]} · {a.reference}{a.restricted ? ' · restricted' : ''}</span>{files.map(f => <a key={f.id} className="lk-file-link" href={`/api/locket/files/${f.id}`} title={`${f.filename} · sha256 ${f.sha256}`} download><Icon name="file" />{fileLabel[f.role] ?? f.filename}</a>)}</p>
+      </div>
+      {selected === 'versions' && (
+        <>
+          {(adding || versions.length === 0) && <AddVersion state={state} a={a} locket={locket} onDone={() => setAdding(false)} />}
+          {(a.status === 'draft' || state.requirements.some(r => r.agreement_id === a.id && !r.artifact_id && !r.waived_reason)) && <Attachments state={state} a={a} locket={locket} />}
+          {shown ? <DocumentPage state={state} a={a} base={base} shown={shown} locket={locket} /> : <Empty>Add a version to see its text.</Empty>}
+          {shown && <Comments state={state} a={a} shown={shown} locket={locket} />}
+          {a.status !== 'draft' && !state.requirements.some(r => r.agreement_id === a.id && !r.artifact_id && !r.waived_reason) && state.requirements.some(r => r.agreement_id === a.id) && <Attachments state={state} a={a} locket={locket} />}
+        </>
+      )}
+      {selected === 'review' && <Review state={state} a={a} locket={locket} />}
+      {selected === 'approvals' && <Approvals state={state} a={a} locket={locket} />}
+      {selected === 'signature' && <Signature state={state} a={a} locket={locket} />}
+      {selected === 'execution' && <Execution state={state} a={a} locket={locket} />}
+      {selected === 'terms' && <Terms state={state} a={a} locket={locket} />}
+      {selected === 'details' && <Details state={state} a={a} locket={locket} />}
     </div>
   )
 }
 
-function Details({ state, a, locket }: { state: LocketState; a: any; locket: Locket }) {
+/** The agent's place in the command bar: how the shown version reads against the playbook, and its file's seal. */
+function AgentReply({ state, a, shown, original }: { state: LocketState; a: Row; shown: Row; original: Row | undefined }) {
+  const findings = state.deviations.filter(d => d.version_id === shown.id)
+  const playbook = state.playbooks.find(p => p.id === findings[0]?.playbook_version_id) ?? state.playbooks.find(p => p.status === 'active')
+  const rules = playbook ? parse<any[]>(playbook.rules).length : 0
+  const met = new Set(findings.filter(d => d.result === 'met').map(d => d.clause_key)).size
+  const clause = (d: Row) => shown.text?.slice(0, d.start_offset).split('\n').at(-1)?.match(/^(\d+\.\d+)\s/)?.[1]
+  const breached = findings.filter(d => d.result === 'breached').map(d => (clause(d) ? `§${clause(d)}` : d.clause_key))
+  return (
+    <>
+      <a className="lk-agent-chip" href={`#agreement/${a.id}/review`}>
+        <img src="/brand/mark.svg" alt="" />
+        <span>{findings.length && playbook ? `v${shown.number} vs playbook v${playbook.number}: ${met} of ${rules} met${breached.length ? ` · ${breached.join(', ')} breached` : ''}` : `v${shown.number} has no playbook review yet`}</span>
+        <Icon name="arrow" />
+      </a>
+      {original && <p className="lk-seal" title={`sha256 ${original.sha256}`}>v{shown.number} · {shown.label} · sha256 {original.sha256.slice(0, 4)}…{original.sha256.slice(-4)} · original kept <Icon name="check" /></p>}
+    </>
+  )
+}
+
+function Details({ state, a, locket }: { state: LocketState; a: Row; locket: Locket }) {
   const { run, busy } = locket
   const grants = state.access.filter(x => x.agreement_id === a.id)
   const people = state.operators.filter(o => o.status === 'active')
@@ -80,7 +132,7 @@ function Details({ state, a, locket }: { state: LocketState; a: any; locket: Loc
         <div className="lk-panel-head"><h2>Access</h2></div>
         {a.restricted ? (
           <>
-            <ul className="lk-list">{grants.length ? grants.map(g => <li key={g.operator_id}><Person name={personName(state, g.operator_id)} />{can(state, 'owner', 'counsel') && <button type="button" disabled={busy} onClick={() => void run('access.set', { agreementId: a.id, operatorId: g.operator_id, grant: 'revoke' })}>Remove</button>}</li>) : <li className="lk-muted">No one beyond the default people.</li>}</ul>
+            <ul className="lk-list">{grants.length ? grants.map(g => <li key={g.operator_id}><Avatar name={personName(state, g.operator_id)} /><Person name={personName(state, g.operator_id)} />{can(state, 'owner', 'counsel') && <button type="button" className="lk-small" disabled={busy} onClick={() => void run('access.set', { agreementId: a.id, operatorId: g.operator_id, grant: 'revoke' })}>Remove</button>}</li>) : <li className="lk-muted">No one beyond the default people.</li>}</ul>
             {can(state, 'owner', 'counsel') && (
               <Form busy={busy} submit="Grant access" onSubmit={data => void run('access.set', { agreementId: a.id, operatorId: value(data, 'operatorId'), grant: 'grant' })}>
                 <Field label="Person"><select name="operatorId">{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>

@@ -1,25 +1,34 @@
-/* Buttons, fields, chips, people and small icons (SPEC §2.5). */
-.lk-app button, .lk-app .lk-button { font: 500 16px/1 var(--lk-font); color: var(--lk-ink); background: transparent; border: 1px solid color-mix(in srgb, var(--lk-ink) 70%, transparent); border-radius: 999px; padding: 0 22px; min-height: 44px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
-.lk-app button:hover, .lk-app .lk-button:hover { background: color-mix(in srgb, var(--lk-ink) 5%, transparent); }
+/* Buttons, fields, pills, avatars and small icons. Ink buttons by default; the gradient only on "Add vN". */
+.lk-app button, .lk-app .lk-button { font: 600 14.5px/1 var(--lk-font); color: var(--lk-ink); background: var(--lk-surface); border: 1px solid #D3D5DB; border-radius: 12px; padding: 0 18px; min-height: 42px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+.lk-app button:hover, .lk-app .lk-button:hover { border-color: var(--lk-ink-2); }
 .lk-app button:disabled { opacity: .55; cursor: progress; }
-.lk-app .lk-primary { background: var(--lk-pill); border-color: var(--lk-pill); color: #fff; }
-.lk-app .lk-primary:hover { background: color-mix(in srgb, var(--lk-pill) 88%, #fff); }
-.lk-app .lk-large-action { min-height: 48px; padding: 0 30px; font-size: 18px; }
-.lk-app .lk-small { min-height: 36px; padding: 0 18px; font-size: 14px; }
+.lk-app .lk-primary { background: var(--lk-ink); border-color: var(--lk-ink); color: #fff; }
+.lk-app .lk-primary:hover { background: #2A2B30; border-color: #2A2B30; }
+.lk-app .lk-gradient { background: var(--lk-gradient); border: 0; color: #fff; padding: 0 24px; min-height: 48px; font-weight: 700; }
+.lk-app .lk-gradient:hover { filter: brightness(1.06); }
+.lk-app .lk-small { min-height: 34px; padding: 0 14px; font-size: 13.5px; border-radius: 10px; }
+.lk-app .lk-tool { min-height: 48px; padding: 0 16px; }
 .lk-wide { width: 100%; margin: 12px 0; }
-.lk-app .lk-linklike { border: 0; background: none; padding: 0; min-height: 0; border-radius: 0; font: inherit; text-align: left; white-space: normal; justify-content: flex-start; }
+.lk-app .lk-linklike { border: 0; background: none; padding: 0; min-height: 0; border-radius: 0; font: inherit; font-weight: 650; text-align: left; white-space: normal; justify-content: flex-start; }
 .lk-app .lk-linklike:hover { background: none; text-decoration: underline; }
-.lk-app a.lk-text-link { color: var(--lk-green); text-decoration: underline; text-underline-offset: 3px; }
+.lk-app a.lk-text-link { color: var(--lk-claret); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; font-size: 14px; }
 
-.lk-form { display: grid; gap: 14px; }
+.lk-form { display: grid; gap: 12px; }
 .lk-form.lk-inline { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.lk-form.lk-inline > .lk-field { flex: 1 1 200px; }
 .lk-form.lk-inline .lk-form-actions { margin: 0; }
-.lk-form-actions { display: flex; gap: 12px; }
-.lk-field { display: grid; gap: 6px; font-size: 14px; }
-.lk-field > label { font-weight: 500; }
-.lk-app input:not([type=checkbox]):not([type=radio]), .lk-app select, .lk-app textarea { font: inherit; font-size: 15px; color: var(--lk-ink); background: var(--lk-surface); border: 1px solid var(--lk-rule); border-radius: 10px; padding: 9px 12px; min-height: 44px; width: 100%; }
-.lk-app input::placeholder, .lk-app textarea::placeholder { color: color-mix(in srgb, var(--lk-ink-2) 80%, transparent); }
-/* Single-choice chevron; native list boxes keep their own appearance. */
+.lk-form-actions { display: flex; gap: 10px; }
+.lk-field { display: grid; gap: 6px; font-size: 13.5px; min-width: 0; }
+.lk-field > label { font-weight: 600; color: var(--lk-ink); }
+.lk-field > small { font-size: 12.5px; }
+/* Thin, quiet fields: one 1px rule at 3:1, a claret ring when focused. */
+.lk-app input:not([type=checkbox]):not([type=radio]), .lk-app select, .lk-app textarea { font: inherit; font-size: 15px; color: var(--lk-ink); background: var(--lk-surface); border: 1px solid var(--lk-field); border-radius: 10px; padding: 9px 12px; min-height: 42px; width: 100%; transition: border-color .12s, box-shadow .12s; }
+.lk-app input:not([type=checkbox]):not([type=radio]):hover, .lk-app select:hover, .lk-app textarea:hover { border-color: var(--lk-ink-2); }
+.lk-app input:not([type=checkbox]):not([type=radio]):focus-visible, .lk-app select:focus-visible, .lk-app textarea:focus-visible { outline: none; border-color: var(--lk-claret); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lk-claret) 18%, transparent); }
+.lk-app input::placeholder, .lk-app textarea::placeholder { color: var(--lk-quiet); }
+.lk-app input[type=file] { padding: 7px 8px; font-size: 14px; }
+.lk-app input[type=file]::file-selector-button { margin-right: 10px; padding: 6px 12px; border: 1px solid #D3D5DB; border-radius: 8px; background: var(--lk-tint); color: var(--lk-ink); font: 600 13px/1.2 var(--lk-font); cursor: pointer; }
+/* Single-choice chevron (Base #247): two gradient strokes 14 px in from the right edge, 40 px end padding; native list boxes keep their own appearance. */
 .lk-app select:not([multiple],[size]:not([size="1"])) {
   --rer-select-ink: var(--rer-muted);
   -webkit-appearance: none;
@@ -35,29 +44,43 @@
 }
 .lk-app select:not([multiple],[size]:not([size="1"])):focus-visible { --rer-select-ink: var(--rer-text); }
 .lk-app select:not([multiple],[size]:not([size="1"])):disabled { --rer-select-ink: color-mix(in srgb, var(--rer-muted) 55%, transparent); }
-.lk-app textarea { resize: vertical; }
-.lk-app input[type=file] { padding: 8px; }
-.lk-check { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; }
-.lk-check input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--lk-pill); }
-.lk-fieldset { border: 1px solid var(--lk-rule); border-radius: 10px; padding: 12px 14px; display: grid; gap: 10px; margin: 0; }
-.lk-fieldset legend { font-size: 14px; font-weight: 500; padding: 0 4px; }
+.lk-app textarea { resize: vertical; line-height: 1.45; }
+.lk-check { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; }
+.lk-check input { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--lk-claret); flex: none; }
+.lk-fieldset { border: 1px solid var(--lk-rule); border-radius: 12px; padding: 12px 14px; display: grid; gap: 10px; margin: 0; }
+.lk-fieldset legend { font-size: 13.5px; font-weight: 600; padding: 0 4px; }
 .lk-segmented { display: flex; gap: 8px; flex-wrap: wrap; }
-.lk-segmented label { display: flex; align-items: center; gap: 8px; border: 1px solid color-mix(in srgb, var(--lk-ink) 35%, transparent); border-radius: 999px; padding: 8px 16px; font-size: 15px; background: transparent; cursor: pointer; }
-.lk-segmented label:has(input:checked) { border-color: color-mix(in srgb, var(--lk-green-ink) 40%, transparent); background: var(--lk-green-tint); color: var(--lk-green-ink); }
-.lk-segmented input { accent-color: var(--lk-pill); margin: 0; }
-.lk-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; align-items: start; }
-.lk-disclosure { border-top: 1px solid var(--lk-rule-2); margin-top: 16px; padding-top: 12px; }
-.lk-disclosure > summary { cursor: pointer; font-weight: 500; font-size: 15px; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.lk-segmented label { display: flex; align-items: center; gap: 8px; border: 1px solid #D3D5DB; border-radius: 999px; padding: 7px 14px; font-size: 14px; background: var(--lk-surface); cursor: pointer; }
+.lk-segmented label:has(input:checked) { border-color: var(--lk-ink); background: var(--lk-ink); color: #fff; }
+.lk-segmented label:has(input:focus-visible) { outline: 2px solid var(--lk-claret); outline-offset: 2px; }
+.lk-segmented input { accent-color: var(--lk-claret); margin: 0; }
+.lk-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; align-items: start; }
+.lk-disclosure { border-top: 1px solid var(--lk-rule-2); margin-top: 14px; padding-top: 12px; }
+.lk-disclosure > summary { cursor: pointer; font-weight: 600; font-size: 14.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
 
-.lk-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 13px; font-size: 13px; font-weight: 500; line-height: 18px; white-space: nowrap; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
-.lk-good { background: var(--lk-green-tint); color: var(--lk-green-ink); }
-.lk-info { background: var(--lk-info-bg); color: var(--lk-info-ink); }
+.lk-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 11px; font-size: 12.5px; font-weight: 600; line-height: 18px; white-space: nowrap; }
+.lk-good { background: var(--lk-good-bg); color: var(--lk-good-ink); }
+.lk-info { background: var(--lk-insert-bg); color: var(--lk-insert); }
 .lk-warn { background: var(--lk-warn-bg); color: var(--lk-warn-ink); }
-.lk-bad { background: var(--lk-bad-bg); color: var(--lk-bad-ink); }
-.lk-neutral { background: var(--lk-neutral-bg); color: var(--lk-neutral-ink); }
-.lk-version-tag { display: inline-flex; align-items: center; color: var(--lk-ink); font-size: 15px; }
+.lk-bad { background: var(--lk-bad-bg); color: var(--lk-bad); }
+.lk-neutral { background: var(--lk-tint); color: var(--lk-ink-2); }
+.lk-version-tag { display: inline-flex; align-items: center; padding: 1px 8px; border: 1px solid var(--lk-rule); border-radius: 7px; background: var(--lk-tint); font-size: 12.5px; font-weight: 650; }
 .lk-person { display: inline; }
-.lk-icon { width: 16px; height: 16px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
-.lk-icon-link { display: inline-flex; padding: 6px; border-radius: 999px; color: var(--lk-ink-2); }
-.lk-icon-link:hover { color: var(--lk-ink); background: var(--lk-selected); }
+.lk-avatar { display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(#FBE3E6, #F7D2CF); color: #6B1A2A; font: 700 11.5px/1 var(--lk-font); letter-spacing: .02em; }
+.lk-avatar-large { width: 40px; height: 40px; font-size: 14px; }
+img.lk-avatar-agent { width: 18px; height: 21px; border-radius: 0; background: none; }
+img.lk-avatar-agent.lk-avatar-large { width: 30px; height: 35px; }
+.lk-icon { width: 16px; height: 16px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
 .lk-warning { margin: 12px 0; border: 1px solid color-mix(in srgb, var(--lk-warn-ink) 25%, transparent); background: var(--lk-warn-bg); color: var(--lk-warn-ink); border-radius: 10px; padding: 10px 12px; font-size: 14px; display: flex; gap: 8px; align-items: center; }
+.lk-filters { display: flex; align-items: center; gap: 8px; margin: 0 0 18px; flex-wrap: wrap; }
+.lk-app .lk-filter { min-height: 36px; padding: 0 6px 0 14px; font-size: 14px; font-weight: 500; gap: 10px; border-radius: 999px; }
+.lk-filter strong { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--lk-tint); font-size: 12.5px; font-weight: 650; }
+.lk-app .lk-filter.lk-selected { background: var(--lk-ink); border-color: var(--lk-ink); color: #fff; }
+.lk-filter.lk-selected strong { background: rgb(255 255 255 / .18); }
+.lk-search { display: flex; align-items: center; gap: 10px; height: 42px; border: 1px solid var(--lk-field); border-radius: 10px; padding: 0 12px; background: var(--lk-surface); }
+.lk-app .lk-search input[type=search] { border: 0; min-height: 0; padding: 0; background: transparent; font-size: 14.5px; }
+.lk-app .lk-search input[type=search]:focus-visible { outline: none; box-shadow: none; }
+.lk-search:focus-within { border-color: var(--lk-claret); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lk-claret) 18%, transparent); }
+.lk-count { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: var(--lk-tint); color: var(--lk-ink-2); font: 650 12.5px/1 var(--lk-font); }
+.lk-app .lk-ask input[type=search] { flex: 1; min-width: 0; min-height: 0; height: 40px; padding: 0; border: 0; background: transparent; font-size: 15px; }
+.lk-app .lk-ask input[type=search]:focus-visible { outline: none; box-shadow: none; }

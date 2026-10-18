@@ -12,7 +12,8 @@ export function Review({ state, a, locket }: { state: LocketState; a: Row; locke
   const playbook = state.playbooks.find(p => p.status === 'active')
   const rules: any[] = playbook ? parse(playbook.rules) : []
   const versions = versionsOf(state, a.id)
-  const findings = state.deviations.filter(d => d.agreement_id === a.id).sort((x, y) => y.created_at - x.created_at)
+  // Newest version first; on each, what needs a decision before what is met, then in the order of the text.
+  const findings = state.deviations.filter(d => d.agreement_id === a.id).sort((x, y) => y.created_at - x.created_at || Number(x.result === 'met') - Number(y.result === 'met') || x.start_offset - y.start_offset)
   const canReview = can(state, 'owner', 'counsel', 'approver', 'requester') && ['draft', 'in_review', 'approved'].includes(a.status)
   return (
     <div className="lk-columns">

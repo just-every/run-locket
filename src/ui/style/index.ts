@@ -1,9 +1,8 @@
-// Locket's styles, in cascade order: tokens and shell, controls, the engraving,
-// tables and panels, then the agreement workspace and the narrow-screen layout.
+// Locket's app styles, in cascade order: tokens, the shell (top bar, rail, command bar), controls, the document
+// workspace, the other screens, then the narrow-screen layout.
 import './tokens.css'
 import './shell.css'
 import './controls.css'
-import './engraved.css'
-import './panels.css'
-import './workspace.css'
+import './document.css'
+import './screens.css'
 import './narrow.css'

@@ -1,24 +1,35 @@
-/* Locket's tokens, shared by the app and the run site (SPEC §2, the 12ui picks).
-   Paper, ink, the pill, the green and both faces come from the edition theme
-   (public/rer-theme.css), so each value is written once. */
+/* The app's tokens. Every colour and face is the edition theme's (public/rer-theme.css, shared with the run site);
+   the app adds only its own gradient pair (claret #8A1538 to copper #E8622A, the picked workspace's), sizes and roles. */
 :root {
   --lk-font: var(--rer-font-body);
-  --lk-font-serif: var(--rer-font-heading);
+  --lk-font-heading: var(--rer-font-heading);
+  --lk-font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
   --lk-paper: var(--rer-page);
   --lk-surface: var(--rer-surface);
   --lk-ink: var(--rer-text);
   --lk-ink-2: var(--rer-muted);
-  --lk-pill: var(--rer-accent);
-  --lk-green: var(--rer-focus);
-  --lk-rule: #DCDDD2;
-  --lk-rule-2: #ECEDE5;
-  --lk-green-tint: #DCE8D8;
-  --lk-green-ink: #1E4D33;
-  --lk-selected: #EBF0E7;
-  --lk-warn-bg: #F6EED5; --lk-warn-ink: #7A5A12;
-  --lk-info-bg: #E4EEF2; --lk-info-ink: #2A4E60;
-  --lk-neutral-bg: #E6E7DF; --lk-neutral-ink: #3D4A43;
-  --lk-bad-bg: #F6E3DE; --lk-bad-ink: #9A2F1E;
-  --lk-radius: 14px;
-  --lk-shadow: 0 1px 2px rgb(14 36 25 / .05), 0 8px 24px rgb(14 36 25 / .06);
+  --lk-quiet: var(--quiet);
+  --lk-field: var(--rer-border);
+  --lk-rule: var(--line);
+  --lk-rule-2: var(--line-2);
+  --lk-tint: var(--tint);
+  --lk-grid: var(--grid);
+  --lk-claret: var(--claret);
+  --lk-claret-tint: var(--claret-tint);
+  --lk-gradient: linear-gradient(100deg, #8A1538 0%, #B32A36 45%, #E8622A 100%);
+  --lk-good: var(--done);
+  --lk-good-ink: var(--done-ink);
+  --lk-good-bg: var(--done-bg);
+  --lk-bad: var(--fail);
+  --lk-bad-bg: var(--fail-bg);
+  --lk-warn: var(--copper);
+  --lk-warn-ink: var(--amber-ink);
+  --lk-warn-bg: var(--amber-bg);
+  --lk-insert: var(--insert);
+  --lk-insert-bg: var(--insert-bg);
+  --lk-internal: var(--marcus);
+  --lk-radius: 12px;
+  --lk-shadow: var(--card-shadow);
+  --lk-top: 72px;
+  --lk-rail: 96px;
 }

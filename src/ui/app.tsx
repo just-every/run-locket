@@ -8,28 +8,24 @@ import { Library } from './library'
 import { Proposals } from './proposals'
 import { Register } from './register'
 import { Renewals } from './renewals'
-import { roleLabel } from './format'
+import { money, partyName } from './format'
+import { sections, Shell } from './shell'
 import './style'
 
-const tabs = [
-  { id: 'agreements', title: 'Agreements' },
-  { id: 'library', title: 'Library' },
-  { id: 'renewals', title: 'Renewals' },
-  { id: 'proposals', title: 'Proposals' },
-  { id: 'imports', title: 'Imports' },
-  { id: 'activity', title: 'Activity' },
-]
 const section = (view: string) => (['agreement', 'new', 'import-signed'].includes(view) ? 'agreements' : view)
+const pageTitle: Record<string, string> = { new: 'New request', 'import-signed': 'Import a signed file' }
 
+/** #view/id/tab/version: a section, or one agreement with its tab and the version shown. */
 function readHash() {
-  const [view = 'agreements', id = '', tab = ''] = window.location.hash.slice(1).split('/')
-  return { view: view || 'agreements', id, tab }
+  const [view = 'agreements', id = '', tab = '', shown = ''] = window.location.hash.slice(1).split('/')
+  return { view: view || 'agreements', id, tab, shown }
 }
 
 export function LocketApp() {
   const locket = useLocket()
   const { state, error, setError, notice, setNotice, busy } = locket
-  const [route, setRoute] = useState({ view: 'agreements', id: '', tab: '' })
+  const [route, setRoute] = useState({ view: 'agreements', id: '', tab: '', shown: '' })
+  const [query, setQuery] = useState('')
   useEffect(() => {
     const update = () => { setRoute(readHash()); setError(''); setNotice(''); window.scrollTo(0, 0) }
     update()
@@ -42,25 +38,20 @@ export function LocketApp() {
     else setError('Sign out could not be confirmed. Reload and try again.')
   }
   const active = section(route.view)
+  const agreement = route.view === 'agreement' ? state?.agreements.find(a => a.id === route.id) : null
+  const title = sections.find(s => s.id === active)?.title ?? 'Agreements'
+  const crumb = agreement && state ? (
+    <><a href="#agreements"><strong>Agreements</strong></a><span> / {partyName(state, agreement.party_id)} / </span><span>{agreement.title}{agreement.value_cents !== null ? ` · ${money(agreement.value_cents)}` : ''}</span></>
+  ) : pageTitle[route.view] ? <><a href="#agreements"><strong>Agreements</strong></a><span> / {pageTitle[route.view]}</span></> : <strong>{title}</strong>
   return (
-    <div className="lk-app">
-      <header className="lk-header">
-        <a className="lk-brand" href="#agreements"><img src="/brand/mark.svg" alt="" /><span data-rer-name>Locket</span></a>
-        <nav aria-label="Locket">
-          {tabs.map(t => <a key={t.id} href={`#${t.id}`} className={t.id === active ? 'lk-active' : undefined} aria-current={t.id === active ? 'page' : undefined}>{t.title}</a>)}
-        </nav>
-        <div className="lk-account">
-          <span className="lk-account-name">{state?.actor.name ?? 'Signed in'}<small>{state ? roleLabel[state.actor.role] : ''}</small></span>
-          <button type="button" onClick={() => void signOut()}>Sign out</button>
-        </div>
-      </header>
+    <Shell active={active} crumb={crumb} state={state} query={query} onQuery={setQuery} onSignOut={() => void signOut()}>
       <main className="lk-main" aria-busy={busy}>
         {error && <div className="lk-alert" role="alert"><strong>That did not go through.</strong> {error} <button type="button" onClick={() => void locket.refresh()}>Reload records</button></div>}
         {notice && <div className="lk-note" role="status">{notice}</div>}
         {!state ? <p className="lk-empty">{error ? 'Locket could not load your agreements. Sign in again if your session ended.' : 'Loading agreements…'}</p> : (
           <>
-            {route.view === 'agreements' && <Register state={state} />}
-            {route.view === 'agreement' && <AgreementPage key={route.id} state={state} id={route.id} tab={route.tab} locket={locket} />}
+            {route.view === 'agreements' && <Register state={state} query={query} />}
+            {route.view === 'agreement' && <AgreementPage key={route.id} state={state} id={route.id} tab={route.tab} shown={route.shown} locket={locket} />}
             {route.view === 'new' && <Intake state={state} locket={locket} />}
             {route.view === 'import-signed' && <LegacyImport state={state} locket={locket} />}
             {route.view === 'library' && <Library state={state} locket={locket} />}
@@ -71,7 +62,7 @@ export function LocketApp() {
           </>
         )}
       </main>
-    </div>
+    </Shell>
   )
 }
 export type Locket = ReturnType<typeof useLocket>

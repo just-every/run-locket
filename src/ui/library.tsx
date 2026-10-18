@@ -2,7 +2,6 @@ import { useState } from 'react'
 import type { LocketState } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, Field, Form, value } from './controls'
-import { Engraved } from './engraved'
 import { can, parse, personName, typeLabel, when } from './format'
 
 /** "name | Label" per line; a trailing "| optional" makes a field optional. */
@@ -42,13 +41,14 @@ export function Library({ state, locket }: { state: LocketState; locket: Locket 
   return (
     <div className="lk-library">
       <div className="lk-titlebar"><div><h1>Library</h1><p className="lk-muted">Owner- and counsel-approved templates and the clause playbook reviews are measured against.</p></div></div>
-      <div className="lk-workspace">
+      <div className="lk-library-grid">
+        <div className="lk-stack">
         <section className="lk-panel">
           <div className="lk-panel-head"><h2>Agreement templates</h2></div>
           {state.templates.length === 0 ? <Empty>No templates yet.</Empty> : (
-            <ul className="lk-pick-list">{state.templates.map(t => {
+            <ul className="lk-shelf">{state.templates.map(t => {
               const latest = state.templateVersions.filter(v => v.template_id === t.id).sort((a, b) => b.number - a.number)[0]
-              return <li key={t.id}><button type="button" className={t.id === selected ? 'lk-selected' : undefined} onClick={() => setSelected(t.id)}><strong>{t.name}</strong><small>{typeLabel[t.type]} · v{latest?.number}</small>{latest && <Badge value={latest.status} />}</button></li>
+              return <li key={t.id}><button type="button" className={t.id === selected ? 'lk-selected' : undefined} aria-pressed={t.id === selected} onClick={() => setSelected(t.id)}><span className="lk-shelf-page" aria-hidden="true">{(latest?.body ?? '').split('\n').slice(0, 6).map((l: string, i: number) => <span key={i} style={{ width: `${Math.min(100, 28 + l.length)}%` }} />)}</span><strong>{t.name}</strong><small>{typeLabel[t.type]} · v{latest?.number}</small>{latest && <Badge value={latest.status} />}</button></li>
             })}</ul>
           )}
           {editor && (
@@ -89,9 +89,10 @@ export function Library({ state, locket }: { state: LocketState; locket: Locket 
             </>
           )}
         </section>
-        <section className="lk-panel">
+        </div>
+        <section className="lk-panel lk-playbook-page">
           <div className="lk-panel-head"><h2>Clause playbook</h2>{active && <Badge value="approved" label={`v${active.number} active`} />}</div>
-          {active ? <Engraved className="lk-playbook"><ul className="lk-rules">{parse<any[]>(active.rules).map(r => <li key={r.key}><strong>{r.title}</strong><p>{r.preferred}</p>{r.alternatives.length > 0 && <small>Alternatives: {r.alternatives.join(' / ')}</small>}<small>Review authority: {r.authority}</small></li>)}</ul></Engraved> : <Empty>No active playbook. Reviews need one.</Empty>}
+          {active ? <ol className="lk-rules lk-playbook">{parse<any[]>(active.rules).map(r => <li key={r.key}><span className="lk-rule-key">{r.key}</span><div><strong>{r.title}</strong><p>{r.preferred}</p>{r.alternatives.length > 0 && <small>Alternatives: {r.alternatives.join(' / ')}</small>}<small>Review authority: {r.authority}</small></div></li>)}</ol> : <Empty>No active playbook. Reviews need one.</Empty>}
           {playbooks.filter(p => p.status === 'draft').map(p => (
             <article key={p.id} className="lk-card"><div className="lk-finding-head"><strong>Draft v{p.number}</strong><Badge value="draft" /></div><p className="lk-muted">{parse<any[]>(p.rules).map(r => r.title).join(', ')}</p>{editor && <button type="button" className="lk-primary lk-small" disabled={busy} onClick={() => void run('playbook.activate', { id: p.id })}>Activate v{p.number}</button>}</article>
           ))}
