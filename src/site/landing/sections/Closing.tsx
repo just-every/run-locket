@@ -1,6 +1,6 @@
 import { links } from '../../shell/links'
 import { hero } from '../copy'
-import { Check, CheckDot, Connector, Cursor, Heading, Nw, Spark, dot } from '../parts'
+import { AT, Check, CheckDot, Connector, Cursor, Heading, Nw, Spark, dot } from '../parts'
 import { MascotWithDate } from './Mascot'
 
 const Arrow = () => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" /></svg>
@@ -21,8 +21,7 @@ export function Closing() {
 
         <div className="card fwd fwd-bluebird">
           <p className="fwd-title">Tomorrow{dot}<Nw>Sat Nov 14</Nw></p>
-          <p>Bluebird Facilities{dot}renewal brief to Kevin Walsh</p>
-          <Cursor who="priya" style={{ left: 196, top: 92 }} />
+          <p>Bluebird Facilities{dot}renewal brief to <span className="nw cursor-at">Kevin Walsh<Cursor who="priya" style={AT} /></span></p>
         </div>
         <div className="card fwd fwd-cobalt">
           <div><p className="fwd-title">Mon Feb 1, 2027</p><p>Cobalt Security{dot}new term begins{dot}renewed by Kevin Walsh</p></div>

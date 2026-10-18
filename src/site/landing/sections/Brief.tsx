@@ -1,4 +1,4 @@
-import { Check, Chip, Connector, Cursor, Eyebrow, Glyph, Heading, Nw, Spark, Sticky, dot } from '../parts'
+import { AT, Check, Chip, Connector, Cursor, Eyebrow, Glyph, Heading, Nw, Spark, Sticky, dot } from '../parts'
 
 const Box = ({ on }: { on?: boolean }) => <span className={`box${on ? ' box-on' : ''}`} aria-hidden="true">{on ? <Check /> : null}</span>
 
@@ -26,7 +26,7 @@ export function Brief() {
           <p className="brief-options-title">Options by <Nw>Fri Nov 13</Nw></p>
           <ul className="brief-options">
             <li><Box />Renew</li>
-            <li><Box on />Renegotiate<Cursor who="priya" flip style={{ left: 154, top: 2 }} /></li>
+            <li><Box on /><span className="cursor-at">Renegotiate<Cursor who="priya" style={AT} /></span></li>
             <li><Box />Terminate</li>
           </ul>
           <p className="brief-decision"><Check /><span><b>Decision: renegotiate</b>{dot}Priya Raman{dot}<Nw>Thu Oct 15, 10:05 am</Nw></span></p>

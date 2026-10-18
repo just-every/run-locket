@@ -16,17 +16,16 @@ import { bindTokens } from './text'
  * at `/run`; the docs at `/docs` and `/docs/<slug>`, rendered from docs/site.json and docs/*.md; /contract from
  * CONTRACT.md; and the not-found page. Every page is static, works without script and links to no instance-only route.
  */
-const ICONS = '<link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" type="image/svg+xml" href="/favicon-32.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">'
 const SHARE_IMAGE = `${identity.runSite}/site/share.jpg`
 // Code cards get their Copy button only when script runs; without it the command is still there to select.
 const COPY = "document.querySelectorAll('.docs-copy').forEach(b=>{b.hidden=false;b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(b.closest('.docs-code').querySelector('code').textContent);b.textContent='Copied';setTimeout(()=>{b.textContent='Copy'},1600)}catch{}})})"
 
-/** Base's shared pages (Run, Contract, not found): the small-size icons instead of the full mark as the tab icon,
- * Locket's site header, and US spelling ("license") in Base's licence line. */
+/** Base's shared pages (Run, Contract, not found): Locket's site header, US spelling ("license") in Base's licence line,
+ * and a piped command's last step kept on one line with what it pipes from (".../install.sh | sh", never "sh" alone). */
 const asLocket = (html: string) => bindTokens(html)
-  .replace(`<link rel="icon" href="${identity.mark}">`, ICONS)
   .replace(/<\/head\s*>/i, '<link rel="stylesheet" href="/brand/run.css"></head>')
   .replaceAll(`${run.licence} licence<`, `${run.licence} license<`)
+  .replace(/(<pre[^>]*><code>[^<]*?)(\S+ \| \S+)(<\/code>)/g, '$1<span class="cmd-pipe">$2</span>$3')
 
 export function sitePages({ styles, contract }: SiteContext): SiteBuild {
   const document = (title: string, description: string, body: ReactElement, script = '') => '<!doctype html>' + bindTokens(renderToStaticMarkup(

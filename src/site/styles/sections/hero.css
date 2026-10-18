@@ -106,7 +106,6 @@
   .doc-foot { margin: 18px 0 0; font-size: 13px; }
   .hero-deal { order: 3; }
   .hero-approve { order: 4; }
-  .hero-approve .cursor { left: auto !important; right: 96px; top: 66px !important; }
   .hero-sign { order: 5; }
   .hero-filed { order: 6; font-size: 14px; }
   .hero-renew { order: 7; }

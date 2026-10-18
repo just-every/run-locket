@@ -53,10 +53,12 @@ export function Avatar({ initials, tone = 'blue' }: { initials: string; tone?: '
 type Who = 'priya' | 'marcus' | 'jenna'
 const names: Record<Who, string> = { priya: 'Priya', marcus: 'Marcus', jenna: 'Jenna' }
 
-/** A collaborator's cursor: the filled arrow and the name pill. `flip` points the arrow the other way. */
-export function Cursor({ who, style, flip = false, pill = 'right' }: { who: Who; style?: CSSProperties; flip?: boolean; pill?: 'right' | 'left' }) {
+/** A collaborator's cursor: the filled arrow and the name pill. Inside a `.cursor-at` span, AT places the arrow's tip
+ * just past the span's last character, so it rests beside the words it points at however they wrap. */
+export const AT: CSSProperties = { left: 'calc(100% + 5px)', top: '45%' }
+export function Cursor({ who, style, pill = 'right' }: { who: Who; style?: CSSProperties; pill?: 'right' | 'left' }) {
   return (
-    <span className={`cursor cursor-${who}${flip ? ' cursor-flip' : ''} cursor-pill-${pill}`} style={style} aria-hidden="true">
+    <span className={`cursor cursor-${who} cursor-pill-${pill}`} style={style} aria-hidden="true">
       <svg viewBox="0 0 24 26"><path d="M3 2.5 21 12.2l-7.6 2.3-3.9 7.6Z" /></svg>
       <span>{names[who]}</span>
     </span>

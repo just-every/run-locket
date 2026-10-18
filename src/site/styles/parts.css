@@ -37,13 +37,14 @@
 .cursor svg { position: absolute; left: 0; top: 0; width: 30px; height: 32px; stroke: #fff; stroke-width: 1.6; stroke-linejoin: round; filter: drop-shadow(0 2px 3px rgb(17 17 17 / .25)); }
 .cursor > span { position: absolute; left: 20px; top: 26px; padding: 4px 13px 5px; border-radius: 10px; font: 600 19px/1.2 var(--rer-font-body); white-space: nowrap; box-shadow: 0 6px 14px -8px rgb(17 17 17 / .5); }
 .cursor-pill-left > span { left: auto; right: 6px; }
-.cursor-flip svg { scale: -1 1; left: -30px; }
+.cursor-at { position: relative; }
+/* .cursor doubles the pill rules' weight so a host's own text colour (a tile's grey, a pill's ink) never paints the name. */
 .cursor-priya svg { fill: var(--priya); }
-.cursor-priya > span { background: var(--priya); color: #fff; }
+.cursor.cursor-priya > span { background: var(--priya); color: #fff; }
 .cursor-marcus svg { fill: #1B1B1F; }
-.cursor-marcus > span { background: var(--marcus); color: var(--marcus-ink); }
+.cursor.cursor-marcus > span { background: var(--marcus); color: var(--marcus-ink); }
 .cursor-jenna svg { fill: var(--jenna); }
-.cursor-jenna > span { background: var(--jenna); color: #fff; }
+.cursor.cursor-jenna > span { background: var(--jenna); color: #fff; }
 
 .sticky { position: absolute; z-index: 4; display: grid; place-content: center; padding: 18px 20px; background: var(--sticky); color: #1B1B1F; font: 400 31px/1.12 var(--font-hand); text-align: center; box-shadow: 0 2px 3px rgb(17 17 17 / .08), 0 18px 28px -16px rgb(17 17 17 / .35); }
 .sticky .ul { display: block; height: 6px; margin: 4px auto 0; width: 70%; border-bottom: 2.5px solid #1B1B1F; border-radius: 50%; rotate: -4deg; }
@@ -74,7 +75,7 @@
   .ckdot .ck { width: 15px; height: 15px; }
   .cursor svg { width: 22px; height: 24px; }
   .cursor > span { left: 15px; top: 19px; font-size: 14px; padding: 3px 10px 4px; border-radius: 8px; }
-  .cursor-flip svg { left: -22px; }
+  .cursor-pill-left > span { left: auto; right: 4px; }
   .sticky { font-size: 22px; padding: 12px 14px; }
   .spark { width: 26px; height: 26px; }
   .hand { font-size: 22px; }

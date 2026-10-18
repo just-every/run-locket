@@ -1,4 +1,4 @@
-import { Avatar, Check, CheckDot, Cursor, Eyebrow, Glyph, Heading, Nw, Pill, Spark, dot } from '../parts'
+import { AT, Avatar, Check, CheckDot, Cursor, Eyebrow, Glyph, Heading, Nw, Pill, Spark, dot } from '../parts'
 
 // The mandate scale runs $91,200 to $96,000; each marker sits at its true share of that range.
 const LOW = 91200, HIGH = 96000
@@ -50,14 +50,13 @@ export function Renegotiate() {
         </div>
 
         <div className="card amendment">
-          <p className="amend-title"><Glyph name="doc" /><span><b>Amendment 3</b><span className="quiet">from template Supplier amendment v2</span></span></p>
+          <p className="amend-title"><Glyph name="doc" /><span><b>Amendment 3</b><span className="quiet">from template Supplier <span className="nw cursor-at">amendment v2<Cursor who="marcus" style={AT} /></span></span></span></p>
           <p className="amend-terms">Term 5{dot}<Nw>Jan 13, 2027</Nw>&nbsp;– <Nw>Jan 12, 2029</Nw><br />$92,160/yr{dot}total $184,320</p>
           <ul className="amend-steps">
             <li><CheckDot /><span>Approved by Marcus Lee, CFO{dot}Slack{dot}<span className="nw">Wed Oct 28, 10:05 am <Check /></span></span></li>
             <li><CheckDot /><span>Inkwell{dot}Laura Chen signed 1:20 pm{dot}Marcus Lee signed 2:05 pm{dot}<span className="nw">Fri Oct 30 <Check /></span></span></li>
             <li><CheckDot /><span>Filed to Drive / Suppliers / Northwind Hosting <Check /></span></li>
           </ul>
-          <Cursor who="marcus" style={{ left: 590, top: 54 }} />
         </div>
 
         <p className="reneg-pill"><CheckDot tone="done" /><span>Governing price $92,160/yr from Amendment 3{dot}next notice deadline <Nw>Mon Nov 13, 2028</Nw>{dot}<span className="nw">calendar moved <Check /></span>{dot}saved $7,680 over 2 years&nbsp;+ $3,360 credits = $11,040</span></p>

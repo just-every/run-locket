@@ -69,6 +69,9 @@
 .signers .av { width: 44px; height: 44px; }
 .signer-down { padding: 0 0 0 26px !important; color: #3E7BD6; font-size: 20px; line-height: 1; }
 .signer-swap { border-radius: 10px; background: #FDF5D3; }
+/* On the wide stage Priya's cursor rests at the row's end; stacked, past "no void" wherever the row wraps. */
+.signer-swap .cursor-at { position: static; }
+.signer-swap .cursor { left: 640px; top: 22px; }
 .ck.big { width: 24px; height: 24px; color: var(--done); stroke-width: 2.6; }
 .sign-fields { margin-top: 10px; font-size: 16px; }
 .sign-toast { position: absolute; left: 62px; top: 716px; width: 1412px; display: flex; align-items: center; gap: 18px; padding: 12px 22px; font-size: 16.5px; color: #26292F; }
@@ -129,6 +132,11 @@
 .renewal-link { left: 838px; top: 478px; width: 70px; height: 160px; }
 
 @media (max-width: 1279px) {
+  /* Priya's cursor rests past "no void"; its name pill needs the room under the row once the row wraps. */
+  .signer-swap { margin-bottom: 24px; }
+  .signer-swap .cursor-at { position: relative; }
+  .signer-swap .cursor { left: calc(100% + 5px); top: 45%; }
+  .signer-swap .cursor > span { left: auto; right: 4px; }
   .negotiate-stage, .sign-stage, .renewal-stage { --hd-size: 64px; }
   .negotiate-head .lede, .sign-head .lede, .renewal-head .lede { width: auto; font-size: 19px; color: var(--body); }
   .sign-head, .renewal-head { width: auto !important; }
@@ -163,7 +171,6 @@
   .sign-envelope > .quiet, .sign-fields { font-size: 14px; }
   .signers li { gap: 12px; font-size: 15px; padding: 8px 6px; }
   .signers .av { width: 34px; height: 34px; }
-  .signer-swap .cursor { left: auto !important; right: 70px; top: 50px !important; }
   .ob { font-size: 15px; padding: 14px; gap: 12px; }
   .ob-who { font-size: 14px; }
   .ob .chip { font-size: 13px; }

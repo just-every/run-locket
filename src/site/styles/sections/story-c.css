@@ -39,7 +39,6 @@
 .box { display: grid; place-items: center; width: 24px; height: 24px; border: 2px solid #9CA0A8; border-radius: 5px; }
 .box-on { border-color: var(--claret); background: var(--claret); color: #fff; }
 .box .ck { width: 16px; height: 16px; stroke-width: 3; }
-.brief-options .cursor { top: 2px; }
 .brief-decision { display: flex; align-items: center; gap: 14px; margin-top: 12px; padding: 12px 18px; border-radius: 10px; background: var(--claret-tint); color: var(--claret); font-size: 16px; }
 .brief-decision b { font-weight: 650; }
 .brief-decision .ck { width: 24px; height: 24px; stroke-width: 2.8; }
@@ -145,7 +144,6 @@
   .brief-terms { line-height: 1.6; }
   .brief-terms li + li { margin-top: 6px; }
   .brief-decision { font-size: 14px; padding: 10px 12px; gap: 10px; }
-  .brief-options .cursor { left: 136px !important; }
   .finding-card { padding: 18px 16px; font-size: 15px; }
   .fc-title { font-size: 20px; }
   .fc-sum { font-size: 18px; }
@@ -180,7 +178,10 @@
   .amend-title .quiet { font-size: 14px; }
   .amend-terms { margin-left: 0; font-size: 15px; line-height: 1.6; }
   .amend-steps li { gap: 12px; font-size: 14px; align-items: flex-start; }
-  .amendment .cursor { left: auto !important; right: 80px; top: 14px !important; }
+  /* Stacked, the title wraps to the card's edge: Marcus's cursor hangs off the card's foot instead, as on the claim card. */
+  .amendment .cursor-at { position: static; }
+  .amendment .cursor { left: auto !important; right: 132px; top: auto !important; bottom: -14px; }
+  .amendment { margin-bottom: 40px; }
 }
 @media (max-width: 759px) {
   .ask-stage, .brief-stage, .reneg-stage { --hd-size: 44px; }
