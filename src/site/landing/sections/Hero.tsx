@@ -1,6 +1,6 @@
 import { hero } from '../copy'
 import { links } from '../../shell/links'
-import { Check, Cursor, Glyph, HandNote, Nw, Spark, Sticky, arrow, dot } from '../parts'
+import { AT, Check, Cursor, Glyph, HandNote, Nw, Spark, Sticky, arrow, dot } from '../parts'
 
 const Arrow = () => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" /></svg>
 
@@ -57,9 +57,8 @@ export function Hero() {
           <div>
             <p className="hero-approve-title">v4 approved</p>
             <p>Marcus Lee, CFO{dot}over $100,000</p>
-            <p className="quiet">from Slack{dot}<span className="nw">Tue Oct 13, 4:02 pm <Check /></span></p>
+            <p className="quiet">from Slack{dot}<span className="nw cursor-at">Tue Oct 13, 4:02 pm <Check /><Cursor who="marcus" pill="left" style={AT} /></span></p>
           </div>
-          <Cursor who="marcus" style={{ left: 268, top: 92 }} />
         </div>
 
         <div className="card hero-sign">

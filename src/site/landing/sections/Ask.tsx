@@ -34,7 +34,7 @@ export function Ask() {
                 <span role="cell"><span className="ask-k">Auto-renews{dot}</span><Nw>{row.renews}</Nw></span>
                 <span role="cell" className="ask-notice">
                   <span><span className="ask-k">Notice{dot}</span>{row.notice}</span> <Chip>{row.cite}</Chip>
-                  {row.proposed ? <><Pill tone="amber">proposed, not confirmed</Pill><Pill className="ask-confirmed">Confirmed by Priya{dot}<span className="nw">9:12 am <Check /></span>{dot}deadline now tracked<Cursor who="priya" style={{ left: 104, top: 26 }} /></Pill></> : null}
+                  {row.proposed ? <><Pill tone="amber">proposed, not confirmed</Pill><Pill className="ask-confirmed">Confirmed by Priya{dot}<span className="nw">9:12 am <Check /></span>{dot}deadline now tracked<Cursor who="priya" style={{ left: 104, top: 'calc(100% - 4px)' }} /></Pill></> : null}
                 </span>
                 <span role="cell"><span className="ask-k">Deadline{dot}</span><Nw>{row.deadline}</Nw></span>
                 <span role="cell"><span className="ask-k">Owner{dot}</span>{row.owner}</span>

@@ -10,7 +10,7 @@ On the **Terms and obligations** tab, **Propose or correct a term**: end date, e
 
 ## Notice deadlines
 
-With a confirmed end date and notice period, the agreement appears under **Renewals**. Its notice deadline is the end date minus the notice period, at 11:59 pm in the agreement's time zone (America/New_York, unless the agreement was created through the API with another zone), daylight saving time included. The queue is sorted by deadline, shows how many days are left, and marks **Decide soon** within 30 days.
+With a confirmed end date and notice period, the agreement appears under **Renewals**. Its notice deadline is the end date minus the notice period, at 11:59 pm in the agreement's time zone (Eastern time, ET, unless the agreement was created through the API with another zone), daylight saving time included. The queue is sorted by deadline, shows how many days are left, and marks **Decide soon** within 30 days.
 
 ## Decide and give notice
 

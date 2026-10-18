@@ -143,7 +143,7 @@
   .fwd .ckdot { width: 34px; height: 34px; }
   .fwd .ckdot .ck { width: 18px; height: 18px; }
   .fwd-bluebird { order: 2; }
-  .fwd-bluebird .cursor { left: auto !important; right: 80px; top: 56px !important; }
+  .fwd-bluebird .cursor > span { left: auto; right: 4px; }
   .fwd-cobalt { order: 3; }
   .fwd-northwind { order: 4; }
   .sec .stage > .mascot-date { order: 5; align-self: center; zoom: .62; width: 400px !important; height: 400px; margin: 20px 0 0 -60px; }

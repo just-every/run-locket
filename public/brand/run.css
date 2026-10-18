@@ -9,12 +9,18 @@ body > .bar .brand img { width: 52px; height: 60px; }
 body > .bar nav { gap: 42px; font-size: 19px; }
 body > .bar nav a:hover { text-decoration-thickness: 2px; text-underline-offset: 6px; }
 .intro h1, .hero h1 { font-weight: 860; letter-spacing: -.05em; word-spacing: .12em; font-variation-settings: 'opsz' 32; }
+main > h1 { word-spacing: .12em; }
+main section h2 { word-spacing: .08em; }
 .intro h1::after, .hero h1::after { content: ''; display: block; width: 96px; height: 6px; margin: 22px auto 0; border-radius: 3px; background: var(--heading-gradient); }
 .step { border: 1px solid var(--line); border-radius: 18px; background: #fff; box-shadow: var(--card-shadow); backdrop-filter: none; }
 .step h2 { font-weight: 800; letter-spacing: -.03em; word-spacing: .11em; }
 .num { font-weight: 800; }
 .btn { border-radius: 16px; background: var(--ink); box-shadow: 0 10px 24px -14px rgb(17 17 17 / .7); }
 .code { border-radius: 12px; }
+.cmd-pipe { white-space: nowrap; }
+/* In the narrowest command card (Base's 480 px container step, 14 px side padding) the mono type shrinks just enough for
+   "https://runeditrun.com/install.sh | sh" (38 characters, 22.8 em) to fit its line, never under 11 px. */
+@container (max-width: 480px) { .code pre { font-size: max(11px, min(13px, calc((100cqi - 30px) / 22.8))); } }
 .facts a, .go a { color: var(--claret); }
 @media (max-width: 900px) {
   .code pre { padding: 46px 14px 14px; white-space: pre-wrap; overflow-wrap: normal; }

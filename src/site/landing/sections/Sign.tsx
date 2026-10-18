@@ -37,7 +37,7 @@ export function Sign() {
           <ol className="signers">
             <li><Avatar initials="RK" tone="blue" /><span>Rachel Kim, CFO, Brightline</span></li>
             <li className="signer-down" aria-hidden="true">↓</li>
-            <li className="signer-swap"><Avatar initials="TB" tone="blue" /><span><b>Tom Brooks, VP Finance</b>{dot}reassigned by Priya{dot}<Nw>Wed Oct 14, 10:20 am</Nw>{dot}no void</span><Cursor who="priya" style={{ left: 640, top: 22 }} /></li>
+            <li className="signer-swap"><Avatar initials="TB" tone="blue" /><span><b>Tom Brooks, VP Finance</b>{dot}reassigned by Priya{dot}<Nw>Wed Oct 14, 10:20 am</Nw>{dot}<span className="nw cursor-at">no void<Cursor who="priya" /></span></span></li>
             <li><Avatar initials="TB" tone="blue" /><span><b>Tom Brooks</b>{dot}signed <Nw>Thu Oct 15, 9:36 am CT</Nw></span><Check className="ck big" /></li>
             <li><Avatar initials="ML" tone="blue" /><span><b>Marcus Lee, CFO, Fieldstone</b>{dot}signed 11:48 am</span><Check className="ck big" /></li>
           </ol>
