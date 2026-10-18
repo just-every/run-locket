@@ -3,6 +3,7 @@
 @media (max-width: 1280px) {
   .lk-doc-head { flex-direction: column; gap: 14px; }
   .lk-doc-title { flex-basis: auto; }
+  .lk-doc-meta { flex-basis: auto; }
   .lk-board { grid-template-columns: repeat(min(var(--lk-columns, 5), 3), minmax(0, 1fr)); }
   .lk-crumb { font-size: 15px; }
 }
@@ -97,4 +98,21 @@
   .lk-table td:not([data-label]) { grid-column: 1 / -1; }
   .lk-table td.lk-evidence { grid-column: 1 / -1; max-width: none; }
   .lk-app .lk-empty-state h2 { font-size: 24px; }
+}
+
+@media (min-width: 760px) and (max-width: 1099px) {
+  .lk-top:has(.lk-version-bar) { flex-wrap: wrap; height: auto; padding-top: 12px; padding-bottom: 12px; }
+  .lk-top:has(.lk-version-bar) .lk-top-tools { max-width: 100%; flex-basis: 100%; }
+}
+@media (max-width: 759px) {
+  .lk-top:has(.lk-version-bar) { gap: 8px 12px; }
+  .lk-top:has(.lk-version-bar) .lk-top-tools { max-width: 100%; }
+  .lk-note-head { flex-wrap: wrap; gap: 8px; }
+  .lk-note-head h3 { flex-basis: calc(100% - 24px); }
+  .lk-note-pill { margin-left: 21px; }
+  .lk-note-context { gap: 10px; margin: 10px 0 0; }
+  .lk-note-by { flex-wrap: wrap; }
+  .lk-note-by time { margin-left: 46px; }
+  .lk-command:has(.lk-seal) .lk-agent-chip, .lk-command:has(.lk-seal) .lk-account { flex-basis: 100%; }
+  .lk-paper { overflow-wrap: anywhere; }
 }

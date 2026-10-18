@@ -35,12 +35,12 @@ body:has(.lk-app) { margin: 0; padding: 0; background: var(--lk-paper); }
 .lk-rail-me { margin-top: auto; }
 
 /* The work area on its faint square grid. */
-.lk-body { display: flex; flex-direction: column; min-width: 0; background-color: var(--lk-paper); background-image: linear-gradient(to right, var(--lk-grid) 1px, transparent 1px), linear-gradient(to bottom, var(--lk-grid) 1px, transparent 1px); background-size: 30px 30px; }
-.lk-main { flex: 1; padding: 20px 36px 40px 52px; min-width: 0; }
+.lk-body { display: flex; flex-direction: column; min-width: 0; background-color: var(--lk-paper); background-image: linear-gradient(to right, color-mix(in srgb, var(--lk-grid) 55%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--lk-grid) 55%, transparent) 1px, transparent 1px); background-size: 30px 30px; }
+.lk-main { flex: 1; padding: 20px 36px 40px 60px; min-width: 0; }
 
 /* Command bar: search, the agent's chip, the file's seal and who is signed in. */
 .lk-command { position: sticky; bottom: 0; z-index: 25; display: flex; align-items: center; gap: 10px; min-height: 74px; padding: 10px 16px; background: rgb(255 255 255 / .94); backdrop-filter: blur(6px); border-top: 1px solid var(--lk-rule); }
-.lk-ask { display: flex; align-items: center; gap: 10px; flex: 0 1 260px; height: 50px; padding: 0 10px 0 14px; border: 1px solid var(--lk-rule); border-radius: 12px; background: var(--lk-surface); box-shadow: 0 2px 8px rgb(17 17 17 / .03); }
+.lk-ask { display: flex; align-items: center; gap: 10px; flex: 0 1 262px; height: 50px; padding: 0 10px 0 14px; border: 1px solid var(--lk-rule); border-radius: 12px; background: var(--lk-surface); box-shadow: 0 2px 8px rgb(17 17 17 / .03); }
 .lk-ask img, .lk-agent-chip img { width: 19px; height: 22px; flex: none; }
 .lk-ask:focus-within { border-color: var(--lk-claret); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lk-claret) 16%, transparent); }
 .lk-ask kbd { flex: none; padding: 3px 7px; border-radius: 6px; background: var(--lk-tint); color: var(--lk-ink-2); font: 500 12px/1.2 var(--lk-font); }
@@ -74,3 +74,12 @@ body:has(.lk-app) { margin: 0; padding: 0; background: var(--lk-paper); }
 .lk-empty-state img { width: 72px; height: 83px; }
 .lk-app .lk-empty-state h2 { font-size: 30px; font-weight: 800; letter-spacing: -.03em; text-wrap: balance; }
 .lk-empty-state p { margin: 0; max-width: 560px; font-size: 16px; color: var(--lk-ink-2); text-wrap: balance; }
+
+/* Workspace tools share the header without squeezing the breadcrumb away. */
+.lk-top:has(.lk-version-bar) { gap: 22px; }
+.lk-top:has(.lk-version-bar) .lk-top-tools { max-width: 56%; }
+.lk-top:has(.lk-version-bar) .lk-brand { font-size: 25px; }
+.lk-command:has(.lk-seal) .lk-agent-chip { flex: 0 1 440px; }
+.lk-command:has(.lk-seal) .lk-account { flex: 1 1 220px; }
+.lk-command:has(.lk-seal) .lk-account small { overflow-wrap: anywhere; }
+.lk-command:has(.lk-seal) .lk-seal { font-size: 11px; padding-left: 16px; }

@@ -36,7 +36,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { 
   if (!a) return <Empty>No agreement you can access has this link. <a href="#agreements">Back to agreements</a></Empty>
   const selected = tabs.some(t => t.id === tab) ? tab : 'versions'
   const parent = a.parent_id ? state.agreements.find(x => x.id === a.parent_id) : null
-  const files = shown ? state.artifacts.filter(f => f.version_id === shown.id) : []
+  const files = shown ? state.artifacts.filter(f => f.version_id === shown.id && ['original', 'rendition'].includes(f.role)) : []
   const original = files.find(f => f.role === 'original') ?? files.find(f => f.role === 'rendition') ?? files[0]
   const route = state.routes[a.id] ?? []
   const live = liveApprovals(state, a)
@@ -95,7 +95,9 @@ function AgentReply({ state, a, shown, original }: { state: LocketState; a: Row;
   const rules = playbook ? parse<any[]>(playbook.rules).length : 0
   const met = new Set(findings.filter(d => d.result === 'met').map(d => d.clause_key)).size
   const clause = (d: Row) => shown.text?.slice(0, d.start_offset).split('\n').at(-1)?.match(/^(\d+\.\d+)\s/)?.[1]
-  const breached = findings.filter(d => d.result === 'breached').map(d => (clause(d) ? `§${clause(d)}` : d.clause_key))
+  // Still-open breaches first: the one waiting on a decision leads.
+  const decided = (d: Row) => liveApprovals(state, a).some(x => x.kind === 'exception' && x.deviation_id === d.id)
+  const breached = findings.filter(d => d.result === 'breached').sort((x, y) => Number(decided(x)) - Number(decided(y))).map(d => (clause(d) ? `§${clause(d)}` : d.clause_key))
   return (
     <>
       <a className="lk-agent-chip" href={`#agreement/${a.id}/review`}>

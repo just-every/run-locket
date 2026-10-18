@@ -59,7 +59,7 @@ export function DocumentPage({ state, a, base, shown, locket }: { state: LocketS
       const drawn: { d: string; tone: string }[] = []
       for (const card of cards) {
         const id = card.dataset.note!, para = card.parentElement!
-        const top = Math.max(para.getBoundingClientRect().top - box.top - 6, floor)
+        const top = Math.max(para.getBoundingClientRect().top - box.top - 56, floor)
         card.style.top = `${top}px`
         floor = top + card.offsetHeight + 14
         const words = [...page.querySelectorAll<HTMLElement>(`[data-notes~="${id}"]`)]
@@ -136,7 +136,10 @@ export function DocumentPage({ state, a, base, shown, locket }: { state: LocketS
   }
   return (
     <div className="lk-paper" ref={paper}>
-      <svg className="lk-links" aria-hidden="true">{links.map((l, i) => <path key={i} d={l.d} stroke={color[l.tone]} />)}</svg>
+      <svg className="lk-links" aria-hidden="true">
+        <defs><marker id="lk-note-endpoint" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="4" markerHeight="4"><circle cx="3" cy="3" r="2" fill="context-stroke" /></marker></defs>
+        {links.map((l, i) => <path key={i} d={l.d} stroke={color[l.tone]} markerStart="url(#lk-note-endpoint)" markerEnd="url(#lk-note-endpoint)" />)}
+      </svg>
       {runs.map(({ sections, index }) => {
         if (!quiet(sections[0]) || opened.has(index)) return <section key={index} className="lk-section">{shownSection(sections[0], index)}</section>
         const numbered = sections.filter(s => s.number)

@@ -3,7 +3,7 @@
 // open, the decision; and an internal comment on the passage it quotes.
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
-import { Avatar } from './controls'
+import { Avatar, Icon } from './controls'
 import { can, currentVersion, isAgent, personName, roleLabel, stamp } from './format'
 import { liveApprovals } from './summary'
 
@@ -43,8 +43,10 @@ function FindingCard({ note, clause, state, a, locket }: { note: Note; clause: s
         <h3>{clause && <span>§{clause} </span>}{rule?.title ?? d.clause_key}</h3>
         <span className="lk-note-pill">{pill[tone]}{tone === 'met' ? ' ✓' : ''}</span>
       </div>
+      <div className="lk-note-context"><Icon name="book" /><div>
       <p className="lk-note-rule"><strong>{d.result === 'met' ? 'Playbook' : 'Breaches'} {d.clause_key}</strong>{rule?.preferred ? ` · ${rule.preferred}` : ''}</p>
       <p className="lk-note-why">{d.explanation}</p>
+      </div></div>
       {d.proposed_wording && d.result !== 'met' && (
         <div className="lk-note-edit"><span>Suggested edit</span><mark>{d.proposed_wording}</mark></div>
       )}

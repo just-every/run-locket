@@ -4,10 +4,10 @@
 .lk-app button:disabled { opacity: .55; cursor: progress; }
 .lk-app .lk-primary { background: var(--lk-ink); border-color: var(--lk-ink); color: #fff; }
 .lk-app .lk-primary:hover { background: #2A2B30; border-color: #2A2B30; }
-.lk-app .lk-gradient { background: var(--lk-gradient); border: 0; color: #fff; padding: 0 24px; min-height: 48px; font-weight: 700; }
+.lk-app .lk-gradient { background: var(--lk-gradient); border: 0; color: #fff; padding: 0 22px; min-height: 42px; font-weight: 700; }
 .lk-app .lk-gradient:hover { filter: brightness(1.06); }
 .lk-app .lk-small { min-height: 34px; padding: 0 14px; font-size: 13.5px; border-radius: 10px; }
-.lk-app .lk-tool { min-height: 48px; padding: 0 16px; }
+.lk-app .lk-tool { min-height: 42px; padding: 0 16px; }
 .lk-wide { width: 100%; margin: 12px 0; }
 .lk-app .lk-linklike { border: 0; background: none; padding: 0; min-height: 0; border-radius: 0; font: inherit; font-weight: 650; text-align: left; white-space: normal; justify-content: flex-start; }
 .lk-app .lk-linklike:hover { background: none; text-decoration: underline; }
