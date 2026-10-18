@@ -202,6 +202,8 @@ for (const width of [1440, 390]) {
     await scope.getByLabel('Batch name').fill(`Archive ${tag}`)
     await scope.getByLabel('Envelope report (CSV)').setInputFiles({ name: 'envelopes.csv', mimeType: 'text/csv', buffer: await readFile('tests/fixtures/docusign-archive/envelopes.csv') })
     await scope.getByLabel('Downloaded envelopes folder').setInputFiles(folder)
+    // The fixture report is from an account that writes dates day first.
+    await scope.getByLabel('Dates in the report are').selectOption('dmy')
     await submit(page, scope, 'Run dry run')
     await expect(page.getByText('To import', { exact: true })).toBeVisible()
     await submit(page, page.locator('main'), 'Apply this dry run (1 agreement)')

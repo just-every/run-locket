@@ -61,7 +61,9 @@ function parseDate(value: string, format: 'iso' | 'dmy' | 'mdy'): string | null 
     y = Number(parts[3])
   }
   const out = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-  return new Date(out + 'T00:00:00Z').toISOString().slice(0, 10) === out ? out : null
+  // A date read in the wrong order (a 14th month) is no date, not a failed request.
+  const at = Date.parse(out + 'T00:00:00Z')
+  return !Number.isNaN(at) && new Date(at).toISOString().slice(0, 10) === out ? out : null
 }
 
 function recipients(value: string) {
