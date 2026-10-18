@@ -67,6 +67,7 @@
 /* Renewals: the calendar band and the dated list. */
 .lk-band { padding: 16px 22px 22px; margin-bottom: 16px; border: 1px solid var(--lk-rule); border-radius: 14px; background: var(--lk-surface); box-shadow: var(--lk-shadow); }
 .lk-band-months { display: flex; }
+.lk-band-range { display: none; }
 .lk-band-months span { flex: 1; padding: 0 0 8px 8px; border-left: 1px solid var(--lk-rule); font-size: 12.5px; font-weight: 600; color: var(--lk-ink-2); }
 .lk-band-track { position: relative; height: 46px; border-radius: 10px; background: repeating-linear-gradient(90deg, var(--lk-tint) 0 1px, transparent 1px 12px), var(--lk-tint); }
 .lk-band-today { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--lk-ink); }

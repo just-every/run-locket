@@ -55,7 +55,8 @@ function Band({ state, renewals, selected }: { state: LocketState; renewals: Row
   const at = (ms: number) => `${Math.min(100, Math.max(0, ((ms - first) / (end - first)) * 100))}%`
   return (
     <section className="lk-band" aria-label="Notice deadlines by month">
-      <div className="lk-band-months">{months.map(m => <span key={m}>{new Date(m).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })}</span>)}</div>
+      <p className="lk-band-range">{[months[0], months.at(-1)!].map(m => new Date(m).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })).join(' – ')}</p>
+      <div className="lk-band-months">{months.map(m => <span key={m}>{new Date(m).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })}<span className="lk-band-year"> {new Date(m).getUTCFullYear()}</span></span>)}</div>
       <div className="lk-band-track">
         <span className="lk-band-today" style={{ left: at(state.now) }}><small>Today</small></span>
         {renewals.filter(r => r.deadline_at < end).map(r => {
