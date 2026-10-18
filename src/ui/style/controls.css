@@ -19,7 +19,22 @@
 .lk-field > label { font-weight: 500; }
 .lk-app input:not([type=checkbox]):not([type=radio]), .lk-app select, .lk-app textarea { font: inherit; font-size: 15px; color: var(--lk-ink); background: var(--lk-surface); border: 1px solid var(--lk-rule); border-radius: 10px; padding: 9px 12px; min-height: 44px; width: 100%; }
 .lk-app input::placeholder, .lk-app textarea::placeholder { color: color-mix(in srgb, var(--lk-ink-2) 80%, transparent); }
-.lk-app select { appearance: none; padding-right: 36px; background: var(--lk-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%230E2419' stroke-width='1.5'/%3E%3C/svg%3E") right 12px center / 14px no-repeat; }
+/* Single-choice chevron; native list boxes keep their own appearance. */
+.lk-app select:not([multiple],[size]:not([size="1"])) {
+  --rer-select-ink: var(--rer-muted);
+  -webkit-appearance: none;
+  appearance: none;
+  padding-inline-end: 36px;
+  text-overflow: ellipsis;
+  background-image:
+    linear-gradient(to top right, transparent calc(50% - 1.1px), var(--rer-select-ink) calc(50% - .55px), var(--rer-select-ink) calc(50% + .55px), transparent calc(50% + 1.1px)),
+    linear-gradient(to top left, transparent calc(50% - 1.1px), var(--rer-select-ink) calc(50% - .55px), var(--rer-select-ink) calc(50% + .55px), transparent calc(50% + 1.1px));
+  background-repeat: no-repeat;
+  background-position: right 20px center, right 14px center;
+  background-size: 6px 6px;
+}
+.lk-app select:not([multiple],[size]:not([size="1"])):focus-visible { --rer-select-ink: var(--rer-text); }
+.lk-app select:not([multiple],[size]:not([size="1"])):disabled { --rer-select-ink: color-mix(in srgb, var(--rer-muted) 55%, transparent); }
 .lk-app textarea { resize: vertical; }
 .lk-app input[type=file] { padding: 8px; }
 .lk-check { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; }
