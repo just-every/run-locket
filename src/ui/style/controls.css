@@ -24,7 +24,7 @@
   --rer-select-ink: var(--rer-muted);
   -webkit-appearance: none;
   appearance: none;
-  padding-inline-end: 36px;
+  padding-inline-end: 40px;
   text-overflow: ellipsis;
   background-image:
     linear-gradient(to top right, transparent calc(50% - 1.1px), var(--rer-select-ink) calc(50% - .55px), var(--rer-select-ink) calc(50% + .55px), transparent calc(50% + 1.1px)),
