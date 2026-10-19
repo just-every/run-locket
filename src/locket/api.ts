@@ -115,7 +115,10 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     if (request.method === 'GET' && path.startsWith('/reports/')) {
       const out = await previewReport(env, actor, decodeURIComponent(path.slice('/reports/'.length)))
       const format = url.searchParams.get('format')
-      if (format === 'csv' || format === 'pdf') return new Response((format === 'csv' ? reportCsv(out) : reportPdf(out)) as BodyInit, { headers: { ...headers, 'content-type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/pdf', 'content-disposition': `attachment; filename="locket-report.${format}"` } })
+      if (format === 'csv' || format === 'pdf') {
+        await recordReads(env, actor, [{ action: 'report.export', summary: `Exported a personal report as ${format.toUpperCase()}.` }])
+        return new Response((format === 'csv' ? reportCsv(out) : reportPdf(out)) as BodyInit, { headers: { ...headers, 'content-type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/pdf', 'content-disposition': `attachment; filename="locket-report.${format}"` } })
+      }
       return reply(out)
     }
     if (request.method === 'GET' && path === '/portfolio') return reply(portfolio(await state(env, actor), url.searchParams.get('entityId')))

@@ -27,6 +27,7 @@ test('REPORT-002 ENTITY-001 groups a saved view, emails weekly/monthly scoped CS
   const pdfResponse=await h.owner.request('/api/locket/reports/'+r.id+'?format=pdf')
   assert.equal(pdfResponse.headers.get('content-type'),'application/pdf');assert.match(await pdfResponse.text(),/^%PDF-/)
   await h.owner.command('view.save',{id:view.id,version:2,name:'Renewals',definition:reportView,sharedRoles:[]})
+  assert.equal((await h.owner.state()).audit.filter(a=>a.action==='report.export').length,2)
   const before=h.mails.length
   await h.setTime(Date.parse('2026-10-21T12:00:00Z'));await h.scheduled(Date.parse('2026-10-21T12:00:00Z'))
   const sent=h.mails.slice(before);assert.equal(sent.length,2,JSON.stringify((await h.owner.state()).reportDeliveries))
