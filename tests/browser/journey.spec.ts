@@ -31,7 +31,7 @@ async function noOverflow(page: Page) {
 }
 
 for (const width of [1440, 390]) {
-  test(`owner runs an agreement from request to renewal notice at ${width}px`, async ({ page }) => {
+  test(`MOBILE-001 owner runs an agreement from request to renewal notice at ${width}px`, async ({ page }) => {
     const entry = process.env.LOCKET_OPEN
     if (!entry) throw new Error('Set LOCKET_OPEN privately to rer dev’s owner entry URL; this journey needs a real local installation.')
     const errors: string[] = []
@@ -193,14 +193,16 @@ for (const width of [1440, 390]) {
     // Imports: a DocuSign archive dry run, applied.
     await page.goto(`${origin}/app#imports`)
     const folder = await mkdtemp(join(tmpdir(), 'locket-archive-'))
-    // Each width moves in a different envelope from the same report.
-    const envelope = width === 1440 ? '3F2A9C10-5B7E-4D21-9A6B-1C2D3E4F5A60' : '7C1B2D3E-8F90-4A1B-BC2D-3E4F5A6B7C80'
+    // Keep the documented report shape but use a fresh envelope identity so
+    // rerunning this journey in its owned installation still imports one item.
+    const sourceEnvelope = width === 1440 ? '3F2A9C10-5B7E-4D21-9A6B-1C2D3E4F5A60' : '7C1B2D3E-8F90-4A1B-BC2D-3E4F5A6B7C80'
+    const envelope = crypto.randomUUID().toUpperCase()
     await mkdir(join(folder, envelope), { recursive: true })
     await writeFile(join(folder, envelope, 'Signed agreement.pdf'), pdf(`Archive agreement ${tag}`, 2))
     if (width === 1440) await writeFile(join(folder, envelope, 'Summary.pdf'), pdf(`Archive certificate ${tag}`))
     scope = panel(page, 'New DocuSign archive dry run')
     await scope.getByLabel('Batch name').fill(`Archive ${tag}`)
-    await scope.getByLabel('Envelope report (CSV)').setInputFiles({ name: 'envelopes.csv', mimeType: 'text/csv', buffer: await readFile('tests/fixtures/docusign-archive/envelopes.csv') })
+    await scope.getByLabel('Envelope report (CSV)').setInputFiles({ name: 'envelopes.csv', mimeType: 'text/csv', buffer: Buffer.from((await readFile('tests/fixtures/docusign-archive/envelopes.csv', 'utf8')).replaceAll(sourceEnvelope, envelope)) })
     await scope.getByLabel('Downloaded envelopes folder').setInputFiles(folder)
     // The fixture report is from an account that writes dates day first.
     await scope.getByLabel('Dates in the report are').selectOption('dmy')
@@ -223,7 +225,12 @@ for (const width of [1440, 390]) {
     // Activity and people.
     await page.goto(`${origin}/app#activity`)
     await expect(page.getByRole('heading', { name: 'Activity log' })).toBeVisible()
-    await expect(page.locator('.lk-activity-log').getByText('Approved', { exact: true }).first()).toBeVisible()
+    const activity = page.locator('.lk-activity-log')
+    await activity.getByLabel('Agreement', { exact: true }).selectOption(agreementId!)
+    await activity.getByLabel('Action', { exact: true }).selectOption('approval.approved')
+    await activity.getByRole('button', { name: 'Apply filters', exact: true }).click()
+    await expect(activity).toHaveAttribute('aria-busy', 'false')
+    await expect(activity.locator('[data-audit-id]').getByText('Approved', { exact: true }).first()).toBeVisible()
     await noOverflow(page)
     await shot(page, width, 'activity')
     expect(errors, errors.join('\n')).toEqual([])

@@ -1,5 +1,6 @@
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
+import { ApprovalMail } from './approval-mail'
 import { Badge, Empty, Field, Form, value } from './controls'
 import { can, currentVersion, parse, personName, roleLabel, versionsOf, when } from './format'
 import { decisionLine } from './notes'
@@ -20,6 +21,7 @@ export function Review({ state, a, locket }: { state: LocketState; a: Row; locke
   const decisionOn = (d: Row) => liveApprovals(state, a).find(x => x.kind === 'exception' && x.deviation_id === d.id)
   return (
     <div className="lk-tab-page">
+      <ApprovalMail state={state} a={a} locket={locket} />
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Review findings</h2>{playbook && <span className="lk-muted">Playbook v{playbook.number}</span>}</div>
         {findings.length === 0 ? <Empty>No findings recorded. Each finding cites the exact passage it is about.</Empty> : (
@@ -75,6 +77,7 @@ export function Approvals({ state, a, locket }: { state: LocketState; a: Row; lo
   const versions = versionsOf(state, a.id)
   return (
     <div className="lk-tab-page">
+      <ApprovalMail state={state} a={a} locket={locket} />
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Approval route for v{v?.number ?? '–'}</h2></div>
         {a.status === 'draft' && <p className="lk-muted">Submit the request for review to open its approvals.</p>}

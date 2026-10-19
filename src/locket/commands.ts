@@ -3,6 +3,7 @@
 // Retrying the same commandId with the same payload returns the first outcome.
 import type { Bindings } from '../auth.server'
 import { authority } from './access'
+import { dispatchApprovalMail } from './approval-mail'
 import { canonical, fail, json, object, Problem, sha256, sql, type Actor, type Role, type Sql } from './model'
 
 export interface Ctx {
@@ -64,13 +65,14 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   if (typeof commandId !== 'string' || !uuid.test(commandId)) fail('INVALID', 'commandId must be a UUID.')
   if (typeof type !== 'string' || !handlers[type]) fail('UNKNOWN_COMMAND', `Unknown command ${String(type)}.`)
   const payload = object(input.payload)
+  const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
+  const completed = (result: unknown) => type === 'approval.email' ? dispatchApprovalMail(c) : Promise.resolve(result)
   const digest = await sha256(canonical({ type, payload }))
   const prior = await env.DB.prepare('SELECT digest, actor_id, result FROM lk_commands WHERE id=?').bind(commandId).first<{ digest: string; actor_id: string; result: string }>()
   if (prior) {
     if (prior.digest !== digest || prior.actor_id !== actor.id) fail('IDEMPOTENCY', 'This command identity was already used for different content.', 409)
-    return JSON.parse(prior.result)
+    return completed(JSON.parse(prior.result))
   }
-  const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const out = await handlers[type](c, payload)
   try {
     await commit(c, out.allowed, out.checks ?? [], [
@@ -81,12 +83,12 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   } catch (error) {
     // A concurrent retry of the same command may have won the race.
     if (!(error instanceof Problem) && String((error as Error)?.message).includes('lk_commands.id')) {
-      const won = await env.DB.prepare('SELECT digest, result FROM lk_commands WHERE id=?').bind(commandId).first<{ digest: string; result: string }>()
-      if (won?.digest === digest) return JSON.parse(won.result)
+      const won = await env.DB.prepare('SELECT digest, actor_id, result FROM lk_commands WHERE id=?').bind(commandId).first<{ digest: string; actor_id: string; result: string }>()
+      if (won?.digest === digest && won.actor_id === actor.id) return completed(JSON.parse(won.result))
     }
     throw error
   }
-  return out.result
+  return completed(out.result)
 }
 
 /** A signed customer-site assertion is a separate principal, never a Base role.

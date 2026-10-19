@@ -24,7 +24,7 @@ async function freePort() {
   return port
 }
 
-export async function installation({ bindings = {} } = {}) {
+export async function installation({ bindings = {}, mailResponse } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'locket-api-'))
   const setup = randomBytes(32).toString('hex')
   // Production-shaped: local runtimes suppress mail, so invitation links leave
@@ -38,7 +38,7 @@ export async function installation({ bindings = {} } = {}) {
       outboundService: async request => {
         if (request.url !== 'https://api.resend.com/emails') throw new Error('Unexpected test network destination')
         mails.push(await request.json())
-        return Response.json({ id: `test-receipt-${mails.length}` })
+        return mailResponse ? mailResponse(mails.at(-1)) : Response.json({ id: `test-receipt-${mails.length}` })
       },
     }),
     resourcePersistencePath: root,

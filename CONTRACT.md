@@ -358,7 +358,7 @@ Owner-configured rules add approvers by agreement type, USD value thresholds, de
 *Status:* partial. Commercial approval plus exception decisions routed to the playbook rule's authority ship (`src/locket/review.ts`, `tests/api/flows.test.mjs`); configurable value, department and condition rules, ordering and delegates do not exist.
 
 #### APPROVE-003 — Approve where people work.
-Approvers are asked by email, Slack, Teams or Nook, in the Word add-in or on a phone (`MOBILE-001`). Every approval, wherever it is given, passes through the same server checks and pins the exact version digest the approver saw; an approval of a version that has since changed is refused and the approver is shown the new version.
+The explicit generic approval-email link and phone approval under MOBILE-001 ship today; every channel added here must preserve its authenticated review, permission/version checks, no title/figures/digest in notification, audited outcomes and honest delivery labels. Automatic requests and broader channels remain this clause's work. Approvers are asked by email, Slack, Teams or Nook, in the Word add-in or on a phone (`MOBILE-001`). Every approval, wherever it is given, passes through the same server checks and pins the exact version digest the approver saw; an approval of a version that has since changed is refused and the approver is shown the new version.
 
 *Acceptance:* a journey sends an approval request by email (Postmark fake) and Slack (fake); approving from the Slack action records the approver and version digest; a second approver acting from an email link after a new version was added is refused and shown the new version.
 
@@ -542,7 +542,7 @@ Every connection (CRM, signing, storage, calendar, chat, accounting, procurement
 *Status:* missing. No connections exist yet.
 
 #### NOTIFY-001 — Notifications and preferences.
-People receive in-app and email notifications (and chat under `INTAKE-005`) for assignments, mentions, approval requests, signature events, overdue obligations and deadlines, with per-person preferences for channel and a daily digest. Notifications never disclose an agreement the recipient may not see.
+MOBILE-001's explicit approval-email action ships today, passing only a recipient address, generic text and authenticated record link to the configured mail provider; its guarded outbox keeps the requester/recipient, version, time and honest provider outcome. Every new channel, automatic request and preference in this clause must preserve the same phone layout, current access/authority/version checks, generic-link privacy and honest delivery labels. People receive in-app and email notifications (and chat under `INTAKE-005`) for assignments, mentions, approval requests, signature events, overdue obligations and deadlines, with per-person preferences for channel and a daily digest. Notifications never disclose an agreement the recipient may not see.
 
 *Acceptance:* a journey mentions a counsel in a comment, assigns a request and completes a signature; counsel receives the in-app and email notifications under their preferences, switching to a daily digest batches the next day's notifications, and a viewer without access receives none for a restricted agreement.
 
@@ -612,11 +612,11 @@ A home dashboard shows total contracted value in USD by type and by lifecycle st
 ### Mobile
 
 #### MOBILE-001 — Phone-width web app.
-Every screen works at 390 pixels wide: a person can submit a request, read a review summary, approve or decline from a notification link, search, see deadlines and upload a signed copy from the phone's camera or files, without horizontal scrolling.
+Every screen works at 390 pixels wide: a person can submit a request, read a review summary, approve or decline from a notification link, search, see deadlines and upload a signed copy from the phone's camera or files, without horizontal scrolling. The current approval notification is an explicit Email approval link action by owner, counsel, approver or requester on an in-review version. Its named recipient must be an active owner/approver able to read the agreement and make its commercial decision. The email contains only a generic request and a signed-in review link, never title, figures or digest; the recipient reviews the current version and uses the same authenticated approval command. A guarded outbox records requester, recipient, time and provider receipt with an audit entry; retries never send the same request twice. Provider acceptance is not mailbox delivery, local/demo suppression means no email was sent, and interrupted/failed outcomes never claim acceptance or retry automatically. `APPROVE-003` and `NOTIFY-001` retain broader channels, automatic requests and preferences; they must preserve the same phone layout, authority, version checks, generic-link privacy and honest delivery labels before shipping. Signed-copy upload uses the phone's files picker; native scanning remains `MOBILE-002`.
 
-*Acceptance:* the browser journey at 390 pixels runs request to renewal notice, and an approval opened from an emailed link is completed on the phone layout.
+*Acceptance:* `MOBILE-001` in `tests/browser/journey.spec.ts` runs request to renewal notice and search/deadlines at 390 pixels; `tests/browser/mobile-approval.spec.ts` uses the actual product component and real Worker API at 1440/390, sends the explicit approval request through a mail-provider fake, follows its captured link as the named approver, refuses a replaced version, approves the current digest and uploads/downloads byte-identical signed PDF evidence from the files picker without horizontal scrolling. `tests/api/approval-mail.test.mjs` asserts generic email contents, current authority/access/recipient/version/self-approval refusals, attributed audit, concurrent and serial retry deduplication, and honest local suppression. The browser provider fake captures Resend acceptance; no live delivery or full APPROVE-003 is claimed. Future APPROVE-003/NOTIFY-001 channels must assert the inherited phone flow.
 
-*Status:* partial. The whole released journey runs at 1440 and 390 pixels (`tests/browser/journey.spec.ts`); approval from notification links and camera upload are not exercised.
+*Status:* done. The released phone flow, real captured approval-email link, current-version approval and files upload are proven (`tests/browser/journey.spec.ts`, `tests/browser/mobile-approval.spec.ts`, `tests/api/approval-mail.test.mjs`).
 
 #### MOBILE-002 — iOS and Android apps.
 Native iOS and Android apps (App Store and Google Play) sign in with the installation, receive push notifications for approvals, mentions and deadlines, approve the exact version, search the repository and view documents, and capture a signed paper copy with the camera as a PDF.
@@ -850,8 +850,8 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 4 | 36 | 40 | 80 |
-| All | 23 | 36 | 40 | 99 |
+| Target and push further | 5 | 35 | 40 | 80 |
+| All | 24 | 35 | 40 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -937,7 +937,7 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | `REPORT-001` | Cycle time, throughput and bottlenecks | target | missing |  | No analytics exist |
 | `REPORT-002` | Custom and scheduled reports | target | missing |  | No reports or schedules exist |
 | `REPORT-003` | Portfolio dashboard | target | done | `src/locket/portfolio.ts`; `src/locket/lifecycle.ts`; `tests/api/portfolio.test.mjs`; `tests/browser/portfolio.spec.ts` |  |
-| `MOBILE-001` | Phone-width web app | target | partial | `tests/browser/journey.spec.ts` | Approval from notification links and camera upload are not exercised |
+| `MOBILE-001` | Phone-width web app | target | done | `tests/browser/journey.spec.ts`; `tests/browser/mobile-approval.spec.ts`; `tests/api/approval-mail.test.mjs`; `src/locket/approval-mail.ts` |  |
 | `MOBILE-002` | iOS and Android apps | target | missing |  | No native apps exist |
 | `MOVE-002` | Ironclad move-in | target | missing |  | Only the DocuSign kit exists |
 | `MOVE-003` | Icertis and Agiloft move-in | target | missing |  | No Icertis or Agiloft kit exists |

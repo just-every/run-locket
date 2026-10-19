@@ -1,6 +1,7 @@
 // Locket's HTTP surface under /api/locket. The same commands serve the
 // interface, an agent working through an invited `agent` operator, and tests.
 import type { Bindings } from '../auth.server'
+import { emailApproval } from './approval-mail'
 import { portfolio } from './portfolio'
 import { publicClickwrapResponse } from './clickwrap/http'
 import { acceptanceCsv, acceptanceRecords, clickwrapHandlers } from './clickwrap/records'
@@ -22,6 +23,7 @@ import { compare, download, exportArchive, search, state } from './views'
 
 export const handlers: Record<string, Handler> = {
   ...agreementHandlers,
+  'approval.email': emailApproval,
   ...clickwrapHandlers,
   ...libraryHandlers,
   'clause.insert': insertClause,
