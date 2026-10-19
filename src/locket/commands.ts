@@ -66,7 +66,10 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   if (typeof type !== 'string' || !handlers[type]) fail('UNKNOWN_COMMAND', `Unknown command ${String(type)}.`)
   const payload = object(input.payload)
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
-  const completed = (result: unknown) => type === 'approval.email' ? dispatchApprovalMail(c) : Promise.resolve(result)
+  const completed = async (result: unknown) => {
+    if (type === 'approval.email') await dispatchApprovalMail(c)
+    return result
+  }
   const digest = await sha256(canonical({ type, payload }))
   const prior = await env.DB.prepare('SELECT digest, actor_id, result FROM lk_commands WHERE id=?').bind(commandId).first<{ digest: string; actor_id: string; result: string }>()
   if (prior) {

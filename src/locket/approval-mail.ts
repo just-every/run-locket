@@ -1,7 +1,8 @@
+import type { Bindings } from '../auth.server'
 import { operatorMail } from '../mail.server.mjs'
 import { may, requireRole, roleSql, visibleSql } from './access'
 import { auditSql, commit, type Ctx, type Handler } from './commands'
-import { fail, json, Problem, sql, text, type Sql } from './model'
+import { fail, Problem, sql, text, type Sql } from './model'
 import { agreementGuards, currentVersion, requireStatus, visibleAgreement } from './records'
 import { decisionContext } from './review'
 
@@ -61,13 +62,11 @@ export async function dispatchApprovalMail(c: Ctx): Promise<unknown> {
   if (row.status !== 'queued') return receipt(row)
   const attempt = crypto.randomUUID()
   const finish = async (status: string, provider: string | null, providerMessageId: string | null, code: string | null) => {
-    const result = { ...receipt(row!), status, provider, providerMessageId, code }
     const cancelled = status === 'cancelled'
     const token = cancelled ? null : attempt
     const audit = auditSql(c, { action: `approval.email.${status}`, agreementId: row!.agreement_id, summary: status === 'accepted' ? 'Mail provider accepted the approval email; mailbox delivery is unconfirmed.' : status === 'suppressed' ? 'Approval email suppressed in local development or demo; no email was sent.' : `Approval email outcome: ${status}.` })
     await c.db.batch([
       c.db.prepare('UPDATE lk_approval_mail SET status=?,provider=?,provider_message_id=?,code=? WHERE id=? AND status=? AND attempt_id IS ?').bind(status, provider, providerMessageId, code, c.commandId, cancelled ? 'queued' : 'sending', token),
-      c.db.prepare('UPDATE lk_commands SET result=? WHERE id=? AND EXISTS(SELECT 1 FROM lk_approval_mail WHERE id=? AND status=? AND attempt_id IS ?)').bind(json(result), c.commandId, c.commandId, status, token),
       c.db.prepare(`INSERT INTO lk_audit SELECT ${audit.params.map(() => '?').join(',')} WHERE EXISTS(SELECT 1 FROM lk_approval_mail WHERE id=? AND status=? AND attempt_id IS ?)`).bind(...audit.params, c.commandId, status, token),
     ])
     return receipt((await c.db.prepare('SELECT * FROM lk_approval_mail WHERE id=?').bind(c.commandId).first<MailRow>())!)
@@ -93,4 +92,12 @@ export async function dispatchApprovalMail(c: Ctx): Promise<unknown> {
   } catch {
     return finish('uncertain', c.env.MAIL_PROVIDER ?? null, null, 'provider_outcome_unknown')
   }
+}
+
+/** Delivery state is a separate snapshot; the command acknowledgement never changes.
+ * Called only after runCommand has checked this command identity and principal. */
+export async function approvalMailReceipt(env: Bindings, commandId: string) {
+  const row = await env.DB.prepare('SELECT * FROM lk_approval_mail WHERE id=?').bind(commandId).first<MailRow>()
+  if (!row) fail('NOT_FOUND', 'No approval email request has that identity.', 404)
+  return receipt(row)
 }

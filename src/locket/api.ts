@@ -1,7 +1,7 @@
 // Locket's HTTP surface under /api/locket. The same commands serve the
 // interface, an agent working through an invited `agent` operator, and tests.
 import type { Bindings } from '../auth.server'
-import { emailApproval } from './approval-mail'
+import { approvalMailReceipt, emailApproval } from './approval-mail'
 import { portfolio } from './portfolio'
 import { publicClickwrapResponse } from './clickwrap/http'
 import { acceptanceCsv, acceptanceRecords, clickwrapHandlers } from './clickwrap/records'
@@ -85,7 +85,9 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
       } catch {
         return reply({ ok: false, error: { code: 'INVALID', message: 'The request body is not JSON.' } }, 400)
       }
-      return reply({ ok: true, result: await runCommand(env, actor, body, handlers, request) })
+      const result = await runCommand(env, actor, body, handlers, request)
+      const input = body as { type: string; commandId: string }
+      return reply({ ok: true, result, ...(input.type === 'approval.email' ? { mailReceipt: await approvalMailReceipt(env, input.commandId) } : {}) })
     }
     return reply({ ok: false, error: { code: 'NOT_FOUND', message: 'No such Locket endpoint.' } }, 404)
   } catch (error) {

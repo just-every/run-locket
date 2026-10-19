@@ -71,7 +71,7 @@ export function useLocket() {
       pending.current = null
       await refresh()
       setNotice('Saved.')
-      return body.result
+      return body.mailReceipt ? { ...body.result, mailReceipt: body.mailReceipt } : body.result
     } catch (cause) {
       const failure = cause as Failure
       if (failure.code !== 'HTTP') pending.current = null
