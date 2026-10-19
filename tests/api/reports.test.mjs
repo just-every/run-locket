@@ -12,6 +12,8 @@ test('REPORT-002 ENTITY-001 groups a saved view, emails weekly/monthly scoped CS
   const own=(await h.owner.state()).actor.id
   const view=await h.owner.command('view.save',{name:'Renewals',definition:reportView,sharedRoles:[]})
   const payload={name:'Renewals by month',viewId:view.id,groupField:'notice_deadline',frequency:'weekly',format:'csv',firstAt:'2026-10-21T08:00',recipients:[own,viewer.id]}
+  await h.owner.command('report.create',{...payload,recipients:['unknown-person']},{error:'INVALID'})
+  await h.owner.command('report.create',{...payload,recipients:[own,own]},{error:'INVALID'})
   const r=await h.owner.command('report.create',payload)
   await agent.command('report.create',payload,{error:'FORBIDDEN'})
   await agent.command('report.stop',{id:r.id,version:1},{error:'FORBIDDEN'})

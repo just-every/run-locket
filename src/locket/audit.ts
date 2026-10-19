@@ -1,14 +1,20 @@
 // Attributed read events and the owner/counsel audit door.
 import type { Bindings } from '../auth.server'
-import { fullReaders, may, requireRole, visibleSql } from './access'
+import { fullReaders, may, requireRole, visibleSetSql } from './access'
 import { auditSql, commit, type AuditEntry, type Ctx } from './commands'
-import { fail, type Actor, type Role } from './model'
+import { fail, sql, type Actor, type Role } from './model'
+
+export function auditInsert(c: Ctx, entries: AuditEntry[], principalRole: string = c.actor.role) {
+  const rows = entries.map(entry => auditSql(c, entry, principalRole).params)
+  return sql(`INSERT INTO lk_audit(id,at,actor_id,actor_name,actor_role,action,agreement_id,summary,command_id)
+    SELECT ${Array.from({length:9},(_,i)=>`json_extract(value,'$[${i}]')`).join(',')} FROM json_each(?)`, JSON.stringify(rows))
+}
 
 export async function recordReads(env: Bindings, actor: Actor, entries: AuditEntry[], allowed: readonly Role[] = may.read) {
   if (!entries.length) return
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId: crypto.randomUUID() }
   const ids = [...new Set(entries.flatMap(e => e.agreementId ? [e.agreementId] : []))]
-  await commit(c, allowed, ids.map(id => visibleSql(actor, id)), entries.map(e => auditSql(c, e)))
+  await commit(c, allowed, [visibleSetSql(actor, ids)], [auditInsert(c, entries)])
 }
 
 function dateBound(value: string, end: boolean) {

@@ -1,9 +1,11 @@
+import { auditInsert } from './audit'
+import { reportSnapshot } from './report-snapshot'
 // Internal scheduled reads have no browser session. Their authority is the
 // enabled report and selected active person, checked in the same batch as the
 // attributed read audit. No HTTP request can select this context.
 import type { Bindings } from '../auth.server'
-import { roleSql, visibleSql } from './access'
-import { auditSql, guardSql } from './commands'
+import { roleSql } from './access'
+import { guardSql } from './commands'
 import { sql, type Actor } from './model'
 
 export interface ScheduledReportRead { deliveryId:string; reportId:string; reportVersion:number; now:number }
@@ -14,9 +16,10 @@ export async function recordReportReads(env:Bindings,actor:Actor,agreements:{id:
     AND (CASE WHEN owner.role='owner' THEN 'owner' ELSE COALESCE((SELECT role FROM lk_roles WHERE operator_id=owner.id),'viewer') END) IN ('owner','counsel','approver','requester','viewer'))`,source.reportId,source.reportVersion,source.deliveryId,actor.id,actor.id)
   const checks=[sourceCheck,sql("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND status='active')",actor.id,actor.operatorVersion),sql(`${roleSql}=?`,actor.id,actor.role)]
   const restricted=agreements.filter(a=>a.restricted)
-  for(const a of restricted)checks.push(visibleSql(actor,a.id),sql('(SELECT version FROM lk_agreements WHERE id=?)=?',a.id,a.version))
+  checks.push(reportSnapshot(actor,restricted))
   const c={env,db:env.DB,actor,now:source.now,commandId:source.deliveryId}
   const entries=[{action:'report.read',summary:'Read the currently permitted workspace for an authorized scheduled report.'},...restricted.map(a=>({action:'report.read',agreementId:a.id,summary:'Read a restricted agreement for an authorized scheduled report.'}))]
   const guard=crypto.randomUUID()
-  await env.DB.batch([guardSql(guard,checks),...entries.map(e=>auditSql(c,e,'scheduler')),sql('DELETE FROM lk_guard WHERE id=?',guard)].map(s=>env.DB.prepare(s.sql).bind(...s.params)))
+  const insertAudits=auditInsert(c,entries,'scheduler')
+  await env.DB.batch([guardSql(guard,checks),insertAudits,sql('DELETE FROM lk_guard WHERE id=?',guard)].map(s=>env.DB.prepare(s.sql).bind(...s.params)))
 }

@@ -1,8 +1,9 @@
+import { reportSnapshot } from './report-snapshot'
 import { nextReport } from './report-schedule'
 import type { Bindings } from '../auth.server'
 import { operatorMail } from '../mail.server.mjs'
 import { auditSql, guardSql } from './commands'
-import { roleSql, visibleSql } from './access'
+import { roleSql } from './access'
 import { sql, type Actor } from './model'
 import { reportDefinition, reportHumans, type ReportRow } from './reports'
 import { reportCsv, reportOutput, reportPdf } from './report-output'
@@ -33,7 +34,7 @@ export async function runReports(env:Bindings,now:number){
         const versions=(await db.prepare('SELECT id,version FROM lk_agreements').all<{id:string;version:number}>()).results
         const out=await reportOutput(env,actor,reportDefinition(r),{deliveryId:id,reportId:r.id,reportVersion:r.version,now})
         const checks=[sql("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND version=?)",creator.id,creator.operatorVersion),sql(`${roleSql}=?`,creator.id,creator.role),sql("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND version=? AND email=?)",actor.id,actor.operatorVersion,actor.email),sql(`${roleSql}=?`,actor.id,actor.role),sql('EXISTS(SELECT 1 FROM lk_reports WHERE id=? AND version=? AND enabled=1)',r.id,r.version)]
-        for(const row of out.result.rows)checks.push(visibleSql(actor,row.id),sql('(SELECT version FROM lk_agreements WHERE id=?)=?',row.id,versions.find(a=>a.id===row.id)!.version))
+        checks.push(reportSnapshot(actor,out.result.rows.map(row=>({id:row.id,version:versions.find(a=>a.id===row.id)!.version}))))
         const guard=crypto.randomUUID()
         await db.batch([guardSql(guard,checks),sql("UPDATE lk_report_deliveries SET status='sending' WHERE id=? AND status='preparing'",id),sql('DELETE FROM lk_guard WHERE id=?',guard)].map(s=>db.prepare(s.sql).bind(...s.params)))
         const sender=operatorMail(env)

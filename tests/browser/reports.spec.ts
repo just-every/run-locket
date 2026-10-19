@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { productPage } from './product-harness.mjs'
@@ -56,9 +56,13 @@ for(const width of [1440,390])test(`REPORT-002 builds scoped renewal totals and 
     await expect(preview.getByRole('table')).toContainText('$9,300.75')
     await expect(preview).toContainText('3 agreements')
     const [download]=await Promise.all([page.waitForEvent('download'),card.getByRole('link',{name:'Download CSV',exact:true}).click()])
-    expect(download.suggestedFilename()).toBe('locket-report.csv')
+    const csv=await readFile((await download.path())!,'utf8')
+    expect(csv).toContain('$9,300.75')
+    expect(csv).toContain('Reporting public A')
     const [pdf]=await Promise.all([page.waitForEvent('download'),card.getByRole('link',{name:'Download PDF',exact:true}).click()])
-    expect(pdf.suggestedFilename()).toBe('locket-report.pdf')
+    const pdfBytes=await readFile((await pdf.path())!)
+    expect(pdfBytes.toString('latin1')).toMatch(/^%PDF-/)
+    expect(pdfBytes.toString('latin1')).toContain('$9,300.75')
     expect(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
     const dir=process.env.LOCKET_SCREENSHOTS
     if(dir){await mkdir(dir,{recursive:true});await panel.screenshot({path:join(dir,`${width}-REPORT-002-preview.png`)})}

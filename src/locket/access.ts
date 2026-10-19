@@ -61,6 +61,12 @@ export function visibleSql(actor: Actor, agreementId: string): Sql {
     actor.id,
   )
 }
+/** The same current-role visibility check for a set, with a fixed parameter count. */
+export function visibleSetSql(actor: Actor, ids: string[]): Sql {
+  return sql(`NOT EXISTS(SELECT 1 FROM json_each(?) selected LEFT JOIN lk_agreements a ON a.id=selected.value
+    WHERE a.id IS NULL OR NOT(a.restricted=0 OR ${roleSql} IN ('owner','counsel') OR a.requester_id=? OR a.owner_id=?
+      OR EXISTS(SELECT 1 FROM lk_access g WHERE g.agreement_id=a.id AND g.operator_id=?)))`, JSON.stringify(ids), actor.id, actor.id, actor.id, actor.id)
+}
 export async function grantsFor(env: Bindings, actor: Actor): Promise<Set<string>> {
   const rows = await env.DB.prepare('SELECT agreement_id FROM lk_access WHERE operator_id=?').bind(actor.id).all<{ agreement_id: string }>()
   return new Set(rows.results.map(r => r.agreement_id))

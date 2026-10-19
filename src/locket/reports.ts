@@ -28,12 +28,9 @@ export const reportHandlers:Record<string,Handler>={
     if(!repositoryFields.some(f=>f.id===group))fail('INVALID','Choose a grouping field.')
     const recipients=list(p,'recipients',Number.MAX_SAFE_INTEGER).map(x=>text({id:x},'id',100))
     if(!recipients.length||new Set(recipients).size!==recipients.length)fail('INVALID','Choose distinct recipients.')
-    const checks=[]
-    for(const id of recipients){
-      const check=sql("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active')",id)
-      if(!(await c.db.prepare(`SELECT ${check.sql} AS ok`).bind(...check.params).first<{ok:number}>())?.ok)fail('INVALID','Choose active recipients.')
-      checks.push(check)
-    }
+    const active=sql("NOT EXISTS(SELECT 1 FROM json_each(?) selected LEFT JOIN oa_operators o ON o.id=selected.value WHERE o.id IS NULL OR o.status<>'active')",json(recipients))
+    if(!(await c.db.prepare(`SELECT ${active.sql} AS ok`).bind(...active.params).first<{ok:number}>())?.ok)fail('INVALID','Choose active recipients.')
+    const checks=[active]
     const name=text(p,'name',160), frequency=oneOf(p,'frequency',['weekly','monthly'] as const), format=oneOf(p,'format',['csv','pdf'] as const)
     const firstLocal=text(p,'firstAt',16), settings=await installationSettings(c.db)
     if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(firstLocal)||!Number.isFinite(Date.parse(firstLocal+'Z'))||new Date(firstLocal+'Z').toISOString().slice(0,16)!==firstLocal)fail('INVALID','Choose a valid calendar date and time.')
