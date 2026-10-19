@@ -77,7 +77,11 @@ test('REPORT-002 ENTITY-001 groups a saved view, emails weekly/monthly scoped CS
   assert.deepEqual(entityOutput.groups,[{group:'Harbor Operations LLC',count:2,value:910025,missing:0}])
   assert.deepEqual(entityOutput.result.rows.map(r=>r.id).sort(),selected.map(a=>a.id).sort())
   await h.owner.command('report.stop',{id:entityReport.id,version:1})
-  const archive=await (await h.owner.request('/api/locket/export')).json();assert.equal(archive.records.lk_reports.length,7);assert.equal(archive.records.lk_report_deliveries.length,8)
+  const moneyReport=await h.owner.command('report.create',{...payload,name:'Values',groupField:'value',firstAt:'2028-01-01T08:00'})
+  const moneyOutput=await (await h.owner.request('/api/locket/reports/'+moneyReport.id)).json()
+  assert.equal(moneyOutput.groups.find(g=>g.group==='$100.25').value,10025)
+  await h.owner.command('report.stop',{id:moneyReport.id,version:1})
+  const archive=await (await h.owner.request('/api/locket/export')).json();assert.equal(archive.records.lk_reports.length,8);assert.equal(archive.records.lk_report_deliveries.length,8)
 })
 
 test('REPORT-002 retains rejected and locally suppressed outcomes without claiming delivery or resending',async()=>{

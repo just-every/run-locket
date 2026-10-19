@@ -15,7 +15,7 @@ export async function reportOutput(env: Bindings, actor: Actor, spec: ReportSpec
   const groups = new Map<string, { group: string; count: number; value: number; missing: number }>()
   for (const row of result.rows) {
     const value = row.values[spec.group_field]
-    const group = value === null ? 'Not recorded' : field.kind === 'date' ? String(value).slice(0, 7) : String(value)
+    const group = value === null ? 'Not recorded' : field.kind === 'date' ? String(value).slice(0, 7) : field.kind === 'money' && typeof value === 'number' ? new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'}).format(value/100) : String(value)
     const total = groups.get(group) ?? { group, count: 0, value: 0, missing: 0 }
     total.count++; if (typeof row.values.value === 'number') total.value += row.values.value; else total.missing++
     groups.set(group, total)
