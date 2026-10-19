@@ -64,6 +64,15 @@
       "required": false,
       "help": "Optional Auth install. Leave empty to use email links.",
       "default": ""
+    },
+    {
+      "name": "CLICKWRAP_SIGNING_KEY",
+      "label": "Clickwrap signing key",
+      "help": "Optional server-only key of at least 32 characters, shared with your customer website server to sign expiring user identity assertions. Leave empty to use Base-session acceptance only.",
+      "kind": "secret",
+      "required": false,
+      "ownerVisible": false,
+      "group": "owner"
     }
   ],
   "steps": [

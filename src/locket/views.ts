@@ -57,6 +57,8 @@ export async function state(env: Bindings, actor: Actor) {
     approvals: mine(await all(db, 'SELECT * FROM lk_approvals ORDER BY at'), ids),
     packages: mine(await all(db, 'SELECT * FROM lk_packages ORDER BY created_at'), ids),
     executions: mine(await all(db, 'SELECT * FROM lk_executions ORDER BY recorded_at'), ids),
+    clickwrapTerms: await all(db, 'SELECT * FROM lk_clickwrap_terms ORDER BY name'),
+    clickwrapVersions: await all(db, 'SELECT * FROM lk_clickwrap_versions ORDER BY terms_id, number DESC'),
     terms: mine(await all(db, 'SELECT * FROM lk_terms ORDER BY created_at'), ids),
     obligations: mine(await all(db, 'SELECT * FROM lk_obligations ORDER BY due_date'), ids),
     renewals,
@@ -64,7 +66,7 @@ export async function state(env: Bindings, actor: Actor) {
     proposals,
     imports: actor.role === 'owner' ? await all(db, 'SELECT id, kit, status, source_label, preview, fingerprint, created_by, created_at, applied_by, applied_at, undone_by, undone_at, undo_reason, version FROM lk_import_batches ORDER BY created_at DESC') : [],
     access: mine(await all(db, 'SELECT * FROM lk_access'), ids),
-    audit: mine(await all(db, 'SELECT * FROM lk_audit ORDER BY at DESC, id'), ids),
+    audit: mine(await all(db, 'SELECT * FROM lk_audit ORDER BY at DESC, id'), ids).filter(a => !a.action.startsWith('clickwrap.') || fullReaders.includes(actor.role) || a.actor_id === actor.id),
   }
 }
 
@@ -123,7 +125,7 @@ export async function download(env: Bindings, actor: Actor, id: string): Promise
 export async function exportArchive(env: Bindings, actor: Actor) {
   requireRole(actor, may.export, 'export the complete archive')
   const db = env.DB
-  const tables = ['lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit']
+  const tables = ['lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances']
   const records: Record<string, unknown[]> = {}
   for (const t of tables) records[t] = await all(db, `SELECT * FROM ${t}`)
   const files = []

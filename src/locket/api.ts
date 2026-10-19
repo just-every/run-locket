@@ -1,6 +1,8 @@
 // Locket's HTTP surface under /api/locket. The same commands serve the
 // interface, an agent working through an invited `agent` operator, and tests.
 import type { Bindings } from '../auth.server'
+import { publicClickwrapResponse } from './clickwrap/http'
+import { acceptanceCsv, acceptanceRecords, clickwrapHandlers } from './clickwrap/records'
 import { currentActor, fullReaders } from './access'
 import { auditCsv, auditTrail, recordReads } from './audit'
 import { insertClause } from './clause-insertion'
@@ -19,6 +21,7 @@ import { compare, download, exportArchive, search, state } from './views'
 
 export const handlers: Record<string, Handler> = {
   ...agreementHandlers,
+  ...clickwrapHandlers,
   ...libraryHandlers,
   'clause.insert': insertClause,
   ...reviewHandlers,
@@ -43,7 +46,17 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
       if (!origin || origin !== url.origin) return reply({ ok: false, error: { code: 'ORIGIN', message: 'Commands must come from this installation.' } }, 403)
       if (!(request.headers.get('content-type') ?? '').includes('application/json')) return reply({ ok: false, error: { code: 'INVALID', message: 'Send JSON.' } }, 415)
     }
+    const clickwrap = await publicClickwrapResponse(request, env)
+    if (clickwrap) return clickwrap
     const actor = await currentActor(request, env)
+    if (request.method === 'GET' && path === '/clickwrap/acceptances') {
+      const rows = await acceptanceRecords(env, actor, url.searchParams)
+      if (url.searchParams.get('format') === 'csv') {
+        await recordReads(env, actor, [{ action: 'clickwrap.export', summary: `Exported ${rows.length} clickwrap acceptances as CSV.` }])
+        return new Response(acceptanceCsv(rows), { headers: { ...headers, 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="locket-clickwrap.csv"' } })
+      }
+      return reply({rows})
+    }
     if (request.method === 'GET' && path === '/audit') {
       const { rows } = await auditTrail(env, actor, url.searchParams)
       if (url.searchParams.get('format') === 'csv') {
@@ -68,7 +81,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
       } catch {
         return reply({ ok: false, error: { code: 'INVALID', message: 'The request body is not JSON.' } }, 400)
       }
-      return reply({ ok: true, result: await runCommand(env, actor, body, handlers) })
+      return reply({ ok: true, result: await runCommand(env, actor, body, handlers, request) })
     }
     return reply({ ok: false, error: { code: 'NOT_FOUND', message: 'No such Locket endpoint.' } }, 404)
   } catch (error) {

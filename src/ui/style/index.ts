@@ -6,3 +6,5 @@ import './controls.css'
 import './document.css'
 import './screens.css'
 import './narrow.css'
+
+import './clickwrap.css'

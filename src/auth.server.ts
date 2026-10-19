@@ -11,6 +11,8 @@ import branding from './branding.json'
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ /** Server-only HMAC key for customer-site clickwrap identity assertions. */
+ CLICKWRAP_SIGNING_KEY?: string
  DB: D1Database
  /** Built browser files; hosted deploys run the Worker first (staticAssetResponse). */
  ASSETS?: Fetcher

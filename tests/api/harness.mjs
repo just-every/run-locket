@@ -24,7 +24,7 @@ async function freePort() {
   return port
 }
 
-export async function installation() {
+export async function installation({ bindings = {} } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'locket-api-'))
   const setup = randomBytes(32).toString('hex')
   // Production-shaped: local runtimes suppress mail, so invitation links leave
@@ -34,7 +34,7 @@ export async function installation() {
   const mf = new Miniflare({
     ...convertV4MiniflareOptions({
       host: '127.0.0.1', port: Number(new URL(origin).port), https: true, modules: true, script, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: ['DB'],
-      bindings: { AUTH_LOCAL: 'false', AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: randomBytes(32).toString('hex'), SETUP_TOKEN: setup, MAIL_PROVIDER: 'resend', MAIL_FROM: 'auth@example.test', MAIL_API_KEY: 'test-only-key' },
+      bindings: { AUTH_LOCAL: 'false', AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: randomBytes(32).toString('hex'), SETUP_TOKEN: setup, MAIL_PROVIDER: 'resend', MAIL_FROM: 'auth@example.test', MAIL_API_KEY: 'test-only-key', ...bindings },
       outboundService: async request => {
         if (request.url !== 'https://api.resend.com/emails') throw new Error('Unexpected test network destination')
         mails.push(await request.json())

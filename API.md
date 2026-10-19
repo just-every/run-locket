@@ -54,4 +54,35 @@ The screens and any agent use the same HTTP API. Authenticate with a Base native
 
 Invite people and agents with Base's `POST /auth/invite` `{email, displayName, role:"member"}` as the owner, then `role.set`.
 
-An approved template version is the library version; each insertion pins that immutable version identity. Clause variant identities may be `preferred`, `fallback1`, `fallback2`, and `walk-away`. `ruleKey` defaults to the clause key. Template authoring supports `Notes:`, `Rule:`, and `Notes[variantId]:` lines. Explicit insertion provenance survives later uploaded/generated versions only while their text retains the exact inserted wording; it participates in the version digest. Acceptance requires a reconciled/accepted execution whose document check passed and whose package pins the current version and digest. Counts respect agreement visibility.
+An approved template version is the library version; each insertion pins that immutable version identity. Clause variant identities may be `preferred`, `fallback1`, `fallback2`, and `walk-away`. `ruleKey` defaults to the clause key. Template authoring supports `Notes:`, `Rule:`, and `Notes[variantId]:` lines. Recorded template-selection and negotiation-insertion provenance survives later uploaded/generated versions only while their text retains the exact inserted wording; it participates in the version digest. Acceptance requires a reconciled/accepted execution whose document check passed and whose package pins the current version and digest. Counts respect agreement visibility.
+
+## Published terms and clickwrap (`SIGN-004`)
+
+Owner/counsel use `clickwrap.publish` with `{name,kind:"tos"|"dpa"|"partner",siteOrigin,body}` for version 1, then `{termsId,version,body,requireReacceptance:true|false}`. `version` is the terms record's current revision from state. Publishing trims outer whitespace and appends immutable UTF-8 text and its SHA-256; it never rewrites an earlier version. A required version prompts every account again; an optional revision preserves acceptance of the most recent required version.
+
+The hosted review is `GET /api/locket/clickwrap/terms/TERMS_ID`. It refuses framing, displays the exact text, version, digest and identity, and requires an unchecked checkbox followed by **Accept**. A Base current-session user accepts as that account and email; agent-role accounts are refused. A missing Base session returns through sign-in; an invalid external assertion is never replaced with Base authentication. The same request through the API is `POST /api/locket/clickwrap/accept` with `{commandId,termsId,versionId,digest,accepted:true}`. Origin must be this installation and content type JSON. `POST /api/locket/clickwrap/show` `{termsId}` returns `{terms,identity,required}`. A changed current version is refused; reload and review before accepting.
+
+For the customer's own website users, configure the optional server-only `CLICKWRAP_SIGNING_KEY` secret (32 or more characters) through private setup answers or the declared deployment secret. Share it only with the website's server; never ship it to its browser, log it or place it in a URL. No Locket account is needed for these users. The website server reads `GET /api/locket/clickwrap/published/TERMS_ID` and signs the following JSON as `base64url(UTF8(JSON)).base64url(HMAC-SHA256(key, firstSegment))`:
+
+```json
+{
+  "installationOrigin": "https://contracts.example.com",
+  "siteOrigin": "https://customer.example.com",
+  "termsId": "published-terms-id",
+  "versionId": "exact-published-version-id",
+  "digest": "exact-published-sha256",
+  "signerId": "website-account-id",
+  "email": "person@example.com",
+  "nonce": "fresh-random-value-at-least-16-characters",
+  "issuedAt": 1792396800000,
+  "expiresAt": 1792397100000
+}
+```
+
+Times are Unix milliseconds, with a maximum ten-minute lifetime and no future issuance. `siteOrigin` must exactly match the terms' configured HTTPS origin (localhost may use HTTP). The site's server must derive signer ID and email from its authenticated user. Each nonce is consumed atomically once. Retrying the same command UUID and payload returns its first outcome without another acceptance; a new command cannot reuse that nonce. Site actor identities encode the site origin and signer ID as an unambiguous pair. Tokens pin installation origin, site, terms and version, so a new version requires a fresh assertion. These identities are recorded and shown as **site-asserted identity (not identity-proofed)**. The key never grants authoring, linking, search or export access.
+
+Load `<script src="https://contracts.example.com/api/locket/clickwrap/embed.js"></script>` on the website, then call `LocketClickwrap.mount(element,{termsId,identity:signedAssertionFromYourServer})`. This adds a review link opening the hosted page in its own window. The assertion travels in a URL fragment, is removed from the address immediately, and is sent only in `Authorization: Bearer ASSERTION` on same-origin JSON show/accept calls. It is never a query parameter. The embed never accepts silently or in a frame. To use the HTTP API instead, send that Authorization header on show and accept with the same explicit consent fields and installation Origin. External requests use no Base cookies.
+
+Every acceptance keeps account, email, identity kind, exact version/digest, server time, transport IP (empty when the transport supplies none), user agent, hosted page shown, and originating site. Caller-supplied evidence fields cannot override them. `GET /api/locket/clickwrap/acceptances?q=TEXT&terms=TERMS_ID&party=PARTY_ID` searches them; add `format=csv` to export matching evidence. Owner/counsel see all; other Base users see only their own Base-session acceptances. External assertions grant no acceptance-record reads. Owner/counsel link an acceptance to an existing visible counterparty through `clickwrap.link` `{acceptanceId,currentPartyId:null|PARTY_ID,partyId}`. Linking is audited separately from immutable acceptance evidence. Publishing, accepting, linking and exporting are audited. The complete owner archive includes all three clickwrap tables; `rer export`/`import` also includes the product tables through its existing portability policy.
+
+For local configuration, keep the owner-only answers JSON inside the checkout (for example `.rer/local/clickwrap-answers.json`, mode 0600), with `CLICKWRAP_SIGNING_KEY` set to a server-only random key. Run `rer setup --answers .rer/local/clickwrap-answers.json --non-interactive`; this explicitly updates that optional setting while preserving existing owner and other private settings. Omit the field to preserve it; an explicit empty value disables the external door. Hosted operators provide the declared optional secret through the deployment environment or private environment file. The key is never included in product archives or rendered pages.

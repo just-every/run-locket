@@ -6,11 +6,13 @@ import { commandAdapter as createCommandAdapter } from '@runeditrun/rer/adapter'
 import { ownerDeploy } from '@runeditrun/rer/deploy';
 import { localPortability } from '@runeditrun/rer/portability';
 import * as model from './ui/seed.mjs';
+import { saveClickwrapSettings } from './clickwrap-settings.mjs';
 
 export { selectLocalState };
 const lifecycle = operatorInstaller({
  database: 'contracts-locket', features: model.features,
  async prepare({ root, input, store }) {
+  await saveClickwrapSettings({ root, input, store });
   // export and import run prepare without answers; the saved branding stays.
   if (input.APP_NAME === undefined && input.PRIMARY_COLOR === undefined) return;
   await store.step('Saving application branding');

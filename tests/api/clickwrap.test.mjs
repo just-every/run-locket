@@ -1,0 +1,85 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto'
+import { installation } from './harness.mjs'
+
+const digest = text => createHash('sha256').update(text).digest('hex')
+const sign = (key, payload) => {const body=Buffer.from(JSON.stringify(payload)).toString('base64url');return body+'.'+createHmac('sha256',key).update(body).digest('base64url')}
+const site = 'https://customer.example.test'
+
+test('SIGN-004 / SEC-002 publishes immutable terms, Base and external website acceptance, reacceptance, counterparty search and export', async () => {
+  const key = randomBytes(32).toString('hex')
+  const h = await installation({bindings:{CLICKWRAP_SIGNING_KEY:key}})
+  try {
+    const counsel = await h.invite('legal@example.test','counsel'), person = await h.invite('buyer@example.test','requester'), other = await h.invite('other@example.test','viewer')
+    const publish = async (body, prior) => counsel.command('clickwrap.publish', prior ? {termsId:prior.id,version:prior.number,body,requireReacceptance:true} : {name:'Customer service terms',kind:'tos',siteOrigin:site,body})
+    const v1 = await publish('Service terms v1: payment is due within 30 days.')
+    assert.equal(v1.digest,digest('Service terms v1: payment is due within 30 days.'))
+    await other.command('clickwrap.publish',{name:'Unauthorized',kind:'dpa',siteOrigin:site,body:'No'}, {error:'FORBIDDEN'})
+    const hosted = await h.request('/api/locket/clickwrap/terms/'+v1.id)
+    assert.equal(hosted.status,200); assert.equal(hosted.headers.get('x-frame-options'),'DENY')
+    const shown = await (await person.request('/api/locket/clickwrap/show',{method:'POST',body:{termsId:v1.id}})).json()
+    assert.equal(shown.required,true);assert.equal(shown.identity.email,'buyer@example.test')
+    const acceptBody = version => ({commandId:randomUUID(),termsId:version.id,versionId:version.versionId,digest:version.digest,accepted:true})
+    const agent = await h.invite('agent@example.test','agent')
+    assert.equal((await agent.request('/api/locket/clickwrap/accept',{method:'POST',body:acceptBody(v1)})).status,403)
+    assert.equal((await person.request('/api/locket/clickwrap/show',{method:'POST',headers:{authorization:'Bearer invalid'},body:{termsId:v1.id}})).status,401)
+    assert.equal((await person.request('/api/locket/clickwrap/show',{method:'POST',headers:{authorization:'Basic invalid'},body:{termsId:v1.id}})).status,401)
+    let result = await person.request('/api/locket/clickwrap/accept',{method:'POST',headers:{'CF-Connecting-IP':'192.0.2.40','user-agent':'Contract buyer browser'},body:{...acceptBody(v1),ip:'spoofed',email:'spoofed@example.test',acceptedAt:1,pageShown:'spoofed'}})
+    assert.equal(result.status,200)
+    assert.equal((await (await person.request('/api/locket/clickwrap/show',{method:'POST',body:{termsId:v1.id}})).json()).required,false)
+    const assertion = (version, override={}) => sign(key,{installationOrigin:h.origin,siteOrigin:site,termsId:version.id,versionId:version.versionId,digest:version.digest,signerId:'customer-account-42',email:'customer@example.test',nonce:randomUUID(),issuedAt:Date.now()-1000,expiresAt:Date.now()+120000,...override})
+    const external = (action, version, token=assertion(version), override={}) => h.request('/api/locket/clickwrap/'+action,{method:'POST',headers:{authorization:'Bearer '+token,'CF-Connecting-IP':'198.51.100.42','user-agent':'Website customer browser'},body:{...acceptBody(version),...override}})
+    assert.equal((await external('accept',v1,assertion(v1),{accepted:false})).status,400)
+    const token1 = assertion(v1)
+    assert.equal((await (await external('show',v1,token1)).json()).required,true)
+    const commandId = randomUUID()
+    const first = await external('accept',v1,token1,{commandId})
+    assert.equal(first.status,200)
+    const outcome = await first.json()
+    assert.deepEqual(await (await external('accept',v1,token1,{commandId})).json(),outcome)
+    assert.equal((await external('accept',v1,token1,{commandId,accepted:false})).status,409)
+    assert.equal((await external('accept',v1,token1)).status,409)
+    assert.equal((await external('show',v1,sign(randomBytes(32).toString('hex'),{installationOrigin:h.origin,siteOrigin:site,termsId:v1.id,versionId:v1.versionId,digest:v1.digest,signerId:'forged-account',email:'forged@example.test',nonce:randomUUID(),issuedAt:Date.now()-1000,expiresAt:Date.now()+120000}))).status,401)
+    assert.equal((await external('show',v1,assertion(v1,{installationOrigin:'https://wrong.example.test'}))).status,401)
+    assert.equal((await external('show',v1,assertion(v1,{expiresAt:Date.now()-1}))).status,401)
+    assert.equal((await external('show',v1,assertion(v1,{siteOrigin:'https://wrong.example.test'}))).status,409)
+    assert.equal((await h.request('/api/locket/clickwrap/show',{method:'POST',body:{termsId:v1.id}})).status,401)
+    const v2 = await publish('Service terms v2: payment is due within 45 days.',v1)
+    assert.equal((await person.request('/api/locket/clickwrap/accept',{method:'POST',body:acceptBody(v1)})).status,409)
+    assert.equal((await (await person.request('/api/locket/clickwrap/show',{method:'POST',body:{termsId:v1.id}})).json()).required,true)
+    assert.equal((await external('show',v1,assertion(v1))).status,409)
+    assert.equal((await (await external('show',v2)).json()).required,true)
+    assert.equal((await external('accept',v2)).status,200)
+    assert.equal((await person.request('/api/locket/clickwrap/accept',{method:'POST',body:acceptBody(v2)})).status,200)
+    const party = await counsel.command('party.save',{name:'Customer Acme Inc.',kind:'customer'})
+    const all = (await (await counsel.request('/api/locket/clickwrap/acceptances')).json()).rows
+    assert.equal(all.length,4)
+    const siteRows = all.filter(r=>r.identity_kind==='site_asserted')
+    assert.equal(siteRows.length,2)
+    for (const r of siteRows) {assert.equal(r.account_id,'customer-account-42');assert.equal(r.email,'customer@example.test');assert.equal(r.ip,'198.51.100.42');assert.equal(r.user_agent,'Website customer browser');assert.equal(r.page_shown,h.origin+'/api/locket/clickwrap/terms/'+v1.id);assert.ok(r.accepted_at>1);assert.equal(r.imported,0)}
+    const base = all.filter(r=>r.identity_kind==='base_session')
+    assert.equal(base.length,2);assert.equal(base.find(r=>r.version_id===v1.versionId).email,'buyer@example.test');assert.equal(base.find(r=>r.version_id===v1.versionId).ip,'192.0.2.40')
+    for (const r of siteRows) await counsel.command('clickwrap.link',{acceptanceId:r.id,currentPartyId:null,partyId:party.id})
+    const filtered = (await (await counsel.request('/api/locket/clickwrap/acceptances?'+new URLSearchParams({q:'customer@example.test',party:party.id}))).json()).rows
+    assert.deepEqual(filtered.map(r=>r.id).sort(),siteRows.map(r=>r.id).sort())
+    const csv = await (await counsel.request('/api/locket/clickwrap/acceptances?'+new URLSearchParams({party:party.id,format:'csv'}))).text()
+    for(const version of [v1,v2]) assert.ok(csv.includes(version.digest))
+    for(const r of filtered) {assert.ok(csv.includes(r.id));assert.ok(csv.includes(String(r.accepted_at)));assert.ok(csv.includes(r.ip))}
+    assert.equal((await (await person.request('/api/locket/clickwrap/acceptances')).json()).rows.length,2)
+    assert.equal((await (await other.request('/api/locket/clickwrap/acceptances')).json()).rows.length,0)
+    assert.equal((await h.request('/api/locket/clickwrap/acceptances',{headers:{authorization:'Bearer '+assertion(v2)}})).status,401)
+    const ownerState = await h.owner.state(), otherState = await other.state()
+    assert.equal(ownerState.clickwrapVersions.find(v=>v.id===v1.versionId).body,'Service terms v1: payment is due within 30 days.')
+    assert.equal(otherState.audit.some(a=>a.action==='clickwrap.accept'),false)
+    const archive = await (await h.owner.request('/api/locket/export')).json()
+    assert.equal(archive.records.lk_clickwrap_acceptances.length,4)
+    assert.equal(archive.records.lk_clickwrap_versions.length,2)
+    const audit = (await (await counsel.request('/api/locket/audit?q=clickwrap')).json()).rows
+    for(const action of ['clickwrap.publish','clickwrap.accept','clickwrap.link','clickwrap.export']) assert.ok(audit.some(a=>a.action===action))
+    assert.ok(audit.some(a=>a.action==='clickwrap.accept' && a.actor_role==='site_asserted' && a.actor_id.startsWith('site:')))
+    const optional = await counsel.command('clickwrap.publish',{termsId:v2.id,version:2,body:'Optional wording clarification.',requireReacceptance:false})
+    assert.equal((await (await external('show',optional)).json()).required,false)
+    await counsel.command('clickwrap.publish',{termsId:v2.id,version:2,body:'Stale publish'}, {error:'STALE'})
+  } finally {await h.close()}
+})

@@ -11,6 +11,7 @@ export interface Ctx {
   actor: Actor
   now: number
   commandId: string
+  request?: Request
 }
 export interface AuditEntry {
   action: string
@@ -28,8 +29,8 @@ export type Handler = (c: Ctx, payload: Record<string, unknown>) => Promise<Outc
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export const auditSql = (c: Ctx, entry: AuditEntry): Sql =>
-  sql('INSERT INTO lk_audit VALUES(?,?,?,?,?,?,?,?,?)', crypto.randomUUID(), c.now, c.actor.id, c.actor.name, c.actor.role, entry.action, entry.agreementId ?? null, entry.summary, c.commandId)
+export const auditSql = (c: Ctx, entry: AuditEntry, principalRole: string = c.actor.role): Sql =>
+  sql('INSERT INTO lk_audit VALUES(?,?,?,?,?,?,?,?,?)', crypto.randomUUID(), c.now, c.actor.id, c.actor.name, principalRole, entry.action, entry.agreementId ?? null, entry.summary, c.commandId)
 
 export function guardSql(id: string, conditions: Sql[]): Sql {
   return sql(
@@ -57,7 +58,7 @@ export async function commit(c: Ctx, allowed: readonly Role[], checks: Sql[], st
   }
 }
 
-export async function runCommand(env: Bindings, actor: Actor, body: unknown, handlers: Record<string, Handler>): Promise<unknown> {
+export async function runCommand(env: Bindings, actor: Actor, body: unknown, handlers: Record<string, Handler>, request?: Request): Promise<unknown> {
   const input = object(body, 'request')
   const commandId = input.commandId, type = input.type
   if (typeof commandId !== 'string' || !uuid.test(commandId)) fail('INVALID', 'commandId must be a UUID.')
@@ -69,7 +70,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     if (prior.digest !== digest || prior.actor_id !== actor.id) fail('IDEMPOTENCY', 'This command identity was already used for different content.', 409)
     return JSON.parse(prior.result)
   }
-  const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId }
+  const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const out = await handlers[type](c, payload)
   try {
     await commit(c, out.allowed, out.checks ?? [], [
@@ -83,6 +84,27 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
       const won = await env.DB.prepare('SELECT digest, result FROM lk_commands WHERE id=?').bind(commandId).first<{ digest: string; result: string }>()
       if (won?.digest === digest) return JSON.parse(won.result)
     }
+    throw error
+  }
+  return out.result
+}
+
+/** A signed customer-site assertion is a separate principal, never a Base role.
+ * Its handler supplies current-version, expiration and one-use nonce checks. */
+export async function runSiteCommand(c: Ctx, out: Outcome, digest: string): Promise<unknown> {
+  if (!out.checks?.length) fail('AUTH', 'A site acceptance requires guarded evidence.', 403)
+  const guardId = crypto.randomUUID()
+  const batch = [guardSql(guardId, out.checks), ...out.writes,
+    sql('INSERT INTO lk_commands VALUES(?,?,?,?,?,?)', c.commandId, 'clickwrap.accept', c.actor.id, digest, json(out.result), c.now),
+    ...out.audit.map(entry => auditSql(c, entry, 'site_asserted')), sql('DELETE FROM lk_guard WHERE id=?', guardId)]
+  try { await c.db.batch(batch.map(s => bind(c.db, s))) }
+  catch (error) {
+    const prior = await c.db.prepare('SELECT actor_id,digest,result FROM lk_commands WHERE id=?').bind(c.commandId).first<{ actor_id: string; digest: string; result: string }>()
+    if (prior) {
+      if (prior.actor_id === c.actor.id && prior.digest === digest) return JSON.parse(prior.result)
+      fail('IDEMPOTENCY', 'This command identity was already used for different content.', 409)
+    }
+    if (String(error).includes('LOCKET_GUARD') || String(error).includes('CHECK constraint') || String(error).includes('lk_clickwrap_acceptances.nonce')) fail('STALE', 'This link expired, was already accepted, or the terms changed. Return to the website for a new link.', 409)
     throw error
   }
   return out.result

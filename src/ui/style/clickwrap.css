@@ -1,0 +1,4 @@
+.lk-clickwrap { max-width: 1400px; margin: 0 auto; }
+.lk-clickwrap .lk-card, .lk-clickwrap-digest { overflow-wrap: anywhere; min-width: 0; }
+.lk-clickwrap .lk-document { white-space: pre-wrap; overflow-wrap: anywhere; }
+.lk-clickwrap .lk-card { margin: 14px 0; }

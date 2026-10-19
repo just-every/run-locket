@@ -395,11 +395,11 @@ When a connected provider reports completion, Locket downloads the signed PDF an
 *Status:* partial. Signed files and certificates are stored and reconciled after a person uploads them (`src/locket/execution.ts`); automatic retrieval, filing and notification do not exist.
 
 #### SIGN-004 — Clickwrap acceptance of published terms.
-Counsel publishes versioned standard terms (terms of service, data processing addendum, partner terms) for acceptance on the buyer's website or app through an embeddable script or the API. Each acceptance records who accepted (account, email), the exact terms version and digest, time, IP address, user agent and the page shown; a new version can require re-acceptance. Acceptance records are searchable, exportable and linked to the counterparty.
+Counsel or the owner publishes immutable versioned standard terms (terms of service, data processing addendum, partner terms) for acceptance on the buyer's website or app through an embeddable script or the API. Publishing trims outer whitespace, stores the resulting UTF-8 text and its SHA-256, and never rewrites an earlier version. The embed opens a top-level hosted review; acceptance requires a fresh unchecked checkbox and an explicit Accept action, never silent acceptance or acceptance in a frame. The Base-session door uses the current account and email, with a missing session returning through sign-in to the review; Locket agent-role accounts cannot accept (`PROPOSE-001`). The customer-site door needs no Locket membership: the customer's server signs its own signer ID and email with the installation's optional server-only signing key. The assertion binds installation, site, terms and exact version/digest, has a one-use nonce and at most ten minutes of validity, and is labelled site-asserted identity (not identity-proofed). Invalid assertions are refused, never replaced by Base authentication. Site identities are scoped by site origin and signer ID. Each acceptance records account, email, identity kind, exact terms version/digest, server time, transport IP, user agent and the hosted page shown; caller-supplied evidence cannot replace these values. Both doors preserve `SEC-002` command retry outcomes; reusing a nonce for a new command is refused. A new version can require reacceptance; an optional revision keeps the most recent required version's acceptance sufficient. Owner/counsel search, export and link evidence to counterparties; other Base users read/export only their own evidence. Links are audited annotations beside immutable acceptance evidence. The complete archive retains the terms and acceptances. No identity-proofing, signatory-authority or legal-validity claim is made.
 
-*Acceptance:* a journey publishes terms version 1, accepts it through the embed on a test page, publishes version 2 requiring re-acceptance, and sees the same user prompted again; the export lists both acceptances with digests, time and IP.
+*Acceptance:* the `SIGN-004` API and browser journeys publish version 1, accept it through the real embed on a fixture website as a customer with no Locket session, publish version 2 requiring reacceptance and see the same account prompted with an unchecked checkbox. At 1440/390 the exact terms/digest, site-asserted identity and accepted receipt are visible, a counterparty is linked and the searchable CSV contains both versions, digests, times, IP and page evidence. API proof also covers Base acceptance, immutable prior text, optional revisions, same-command retries, refused nonce replay, wrong signatures/origins/expiry/versions and agent-role acceptance, no invalid-assertion fallback, private read scope, attributed audit events and the complete archive. The missing-Base-session browser path returns through sign-in.
 
-*Status:* missing. No clickwrap capability exists.
+*Status:* done. Immutable publication, Base-session and customer-site acceptance, explicit consent, reacceptance, evidence, counterparty links, scoped search/CSV and archives are proven (`src/locket/clickwrap/`, `tests/api/clickwrap.test.mjs`, `tests/browser/clickwrap.spec.ts`).
 
 #### SIGN-005 — Signer rules, signature fields and multi-document packets.
 Locket decides who signs, where they sign and what they sign before an envelope leaves, so nothing needs tagging by hand in the provider.
@@ -848,8 +848,8 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 2 | 36 | 42 | 80 |
-| All | 21 | 36 | 42 | 99 |
+| Target and push further | 3 | 36 | 41 | 80 |
+| All | 22 | 36 | 41 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -909,7 +909,7 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | `SIGN-002` | Live Docusign, Adobe Acrobat Sign and Dropbox Sign | target | partial | `src/locket/execution.ts`; `tests/api/flows.test.mjs` | Live sending, webhooks, reminders and voiding do not exist |
 | `SIGN-003` | Inkwell signing | target | missing |  | No Inkwell connection exists |
 | `EXEC-002` | Automatic retrieval and filing of executed agreements | target | partial | `src/locket/execution.ts` | Automatic retrieval, filing and notification do not exist |
-| `SIGN-004` | Clickwrap acceptance of published terms | target | missing |  | No clickwrap capability exists |
+| `SIGN-004` | Clickwrap acceptance of published terms | target | done | `src/locket/clickwrap/records.ts`; `src/locket/clickwrap/http.ts`; `tests/api/clickwrap.test.mjs`; `tests/browser/clickwrap.spec.ts` |  |
 | `SIGN-005` | Signer rules, signature fields and multi-document packets | target | partial | `src/locket/execution.ts`; `tests/api/flows.test.mjs` | Signer rules, the fallback signer, template signature blocks, field placement and multi-document packets do not exist |
 | `OBL-001` | Obligation extraction, owners and status | target | partial | `src/locket/obligations.ts`; `tests/api/flows.test.mjs` | Built-in extraction, status values beyond done and owner lists do not exist |
 | `OBL-002` | Fulfilment evidence and escalation | target | partial | `src/locket/obligations.ts` | Evidence requirements, overdue escalation and risk ratings do not exist |

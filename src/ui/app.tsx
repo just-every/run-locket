@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocket } from './api'
+import { Clickwrap } from './clickwrap'
 import { Activity } from './activity'
 import { AgreementPage } from './agreement'
 import { Imports } from './imports'
@@ -12,7 +13,7 @@ import { money, partyName } from './format'
 import { sections, Shell } from './shell'
 import './style'
 
-const section = (view: string) => (['agreement', 'new', 'import-signed'].includes(view) ? 'agreements' : view)
+const section = (view: string) => (['agreement', 'new', 'import-signed'].includes(view) ? 'agreements' : view === 'clickwrap' ? 'library' : view)
 const pageTitle: Record<string, string> = { new: 'New request', 'import-signed': 'Import a signed file' }
 
 /** #view/id/tab/version: a section, or one agreement with its tab and the version shown. */
@@ -54,6 +55,7 @@ export function LocketApp() {
             {route.view === 'agreement' && <AgreementPage key={route.id} state={state} id={route.id} tab={route.tab} shown={route.shown} locket={locket} />}
             {route.view === 'new' && <Intake state={state} locket={locket} />}
             {route.view === 'import-signed' && <LegacyImport state={state} locket={locket} />}
+            {route.view === 'clickwrap' && <Clickwrap state={state} locket={locket} />}
             {route.view === 'library' && <Library state={state} locket={locket} />}
             {route.view === 'renewals' && <Renewals state={state} locket={locket} />}
             {route.view === 'proposals' && <Proposals state={state} locket={locket} />}

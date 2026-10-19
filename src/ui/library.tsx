@@ -43,7 +43,7 @@ export function Library({ state, locket }: { state: LocketState; locket: Locket 
   const save = (data: FormData, extra: object) => ({ body: value(data, 'body'), fields: fieldsFrom(value(data, 'fields')), clauses: clausesFrom(value(data, 'clauses')), ...extra })
   return (
     <div className="lk-library">
-      <div className="lk-titlebar"><div><h1>Library</h1><p className="lk-muted">Owner- and counsel-approved templates and the clause playbook reviews are measured against.</p></div></div>
+      <div className="lk-titlebar"><div><h1>Library</h1><p><a href="#clickwrap">Published terms and clickwrap acceptance</a></p><p className="lk-muted">Owner- and counsel-approved templates and the clause playbook reviews are measured against.</p></div></div>
       <ClauseLibrary state={state} />
       <div className="lk-library-grid">
         <div className="lk-stack">
