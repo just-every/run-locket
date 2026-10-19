@@ -1,3 +1,4 @@
+import type { ScheduledReportRead } from './report-read-authority'
 // Both screen and export use this executor over the freshly scoped workspace.
 import type { Bindings } from '../auth.server'
 import { lifecycle } from './lifecycle'
@@ -9,7 +10,7 @@ import { state } from './views'
 export interface RepositoryRow { id: string; values: Record<string, string | number | null> }
 export interface RepositoryResult { definition: ViewDefinition; columns: RepositoryField[]; rows: RepositoryRow[]; evaluatedAt: number; name?: string }
 const compare = (a: string | number, b: string | number): number => typeof a === 'number' && typeof b === 'number' ? a - b : String(a).toLocaleLowerCase().localeCompare(String(b).toLocaleLowerCase(), 'en-US')
-export async function repositoryResult(env: Bindings, actor: Actor, params: URLSearchParams): Promise<RepositoryResult> {
+export async function repositoryResult(env: Bindings, actor: Actor, params: URLSearchParams, scheduledReport?: ScheduledReportRead): Promise<RepositoryResult> {
   let definition: ViewDefinition = defaultViewDefinition, name: string | undefined
   if (params.has('viewId') && params.has('definition')) fail('INVALID', 'Choose a saved view or an ad hoc definition.')
   if (params.has('viewId')) {
@@ -21,7 +22,7 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
     try { parsed = JSON.parse(params.get('definition')!) } catch { fail('INVALID', 'definition must be valid JSON.') }
     definition = parseViewDefinition(parsed)
   }
-  const s = await state(env, actor), evaluatedAt = s.now
+  const s = await state(env, actor, scheduledReport), evaluatedAt = s.now
   const people = new Map(s.operators.map(o => [o.id, o.name]))
   const parties = new Map(s.parties.map(p => [p.id, p.name]))
   const entities = new Map(s.entities.map(e => [e.id, e.legal_name]))

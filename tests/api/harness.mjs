@@ -92,7 +92,15 @@ export async function installation({ bindings = {}, mailResponse } = {}) {
       if (role) await owner.command('role.set', { operatorId: person.id, role })
       return person
     }
-    return { mf, db, origin, request, owner, invite, mails, async setTime(at) { workerBindings.TEST_NOW = String(at); await mf.setOptions(runtimeOptions()) }, async scheduled(at) { await (await mf.getWorker()).scheduled({ scheduledTime: new Date(at), cron: '0 * * * *' }) }, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
+    async function signIn(email) {
+      const sent = await request('/auth/magic-link', { method: 'POST', body: { email } })
+      assert.equal(sent.status, 202)
+      const link = new URL(mails.at(-1).text.match(/https?:\/\/[^\s]+/)[0])
+      const confirmed = await request('/auth/confirm', { method: 'POST', body: { token: link.searchParams.get('token') } })
+      assert.equal(confirmed.status, 303)
+      return client(confirmed.headers.getSetCookie().map(v => v.split(';')[0]).join('; '))
+    }
+    return { mf, db, origin, request, owner, invite, signIn, mails, async setTime(at) { workerBindings.TEST_NOW = String(at); await mf.setOptions(runtimeOptions()) }, async scheduled(at) { await (await mf.getWorker()).scheduled({ scheduledTime: new Date(at), cron: '0 * * * *' }) }, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
   } catch (error) {
     await mf.dispose().catch(() => {})
     await rm(root, { recursive: true, force: true }).catch(() => {})

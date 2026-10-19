@@ -1,3 +1,4 @@
+import { runReports } from './locket/report-dispatch'
 import { withDemo } from './modules/demo/index.mjs'
 import { seedDemo } from './demo'
 import start from '@tanstack/react-start/server-entry'
@@ -45,5 +46,6 @@ export default withDemo({
   async scheduled(controller, env) {
     await runApprovalReminders(runtimeBindings(env), controller.scheduledTime)
     await runDeadlineReminders(runtimeBindings(env), controller.scheduledTime)
+    await runReports(runtimeBindings(env), controller.scheduledTime)
   },
 } satisfies ExportedHandler<Bindings>, { seed: seedDemo })

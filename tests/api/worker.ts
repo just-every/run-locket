@@ -1,3 +1,4 @@
+import { runReports } from '../../src/locket/report-dispatch'
 import { locketResponse } from '../../src/locket/api'
 import { authResponse } from '../../src/auth.server'
 import { runApprovalReminders } from '../../src/locket/approval-reminder-dispatch'
@@ -12,5 +13,6 @@ export default {
   async scheduled(controller: ScheduledController, env: any) {
     await runApprovalReminders(env, controller.scheduledTime)
     await runDeadlineReminders(env, controller.scheduledTime)
+    await runReports(env, controller.scheduledTime)
   },
 }

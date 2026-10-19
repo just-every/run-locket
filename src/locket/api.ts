@@ -1,3 +1,5 @@
+import { reportHandlers, previewReport } from './reports'
+import { reportCsv, reportPdf } from './report-output'
 // Locket's HTTP surface under /api/locket. The same commands serve the
 // interface, an agent working through an invited `agent` operator, and tests.
 import type { Bindings } from '../auth.server'
@@ -39,7 +41,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, search, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...savedViewHandlers,
+  ...savedViewHandlers, ...reportHandlers,
   ...entityHandlers,
   ...installationHandlers,
   ...counterpartyHandlers,
@@ -109,6 +111,12 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
         return new Response(repositoryCsv(result), { headers: { ...headers, 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="locket-view.csv"' } })
       }
       return reply(result)
+    }
+    if (request.method === 'GET' && path.startsWith('/reports/')) {
+      const out = await previewReport(env, actor, decodeURIComponent(path.slice('/reports/'.length)))
+      const format = url.searchParams.get('format')
+      if (format === 'csv' || format === 'pdf') return new Response((format === 'csv' ? reportCsv(out) : reportPdf(out)) as BodyInit, { headers: { ...headers, 'content-type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/pdf', 'content-disposition': `attachment; filename="locket-report.${format}"` } })
+      return reply(out)
     }
     if (request.method === 'GET' && path === '/portfolio') return reply(portfolio(await state(env, actor), url.searchParams.get('entityId')))
     if (request.method === 'GET' && path === '/state') { const workspace = await state(env, actor); return reply({ ...workspace, portfolio: portfolio(workspace) }) }

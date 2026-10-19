@@ -33,6 +33,8 @@ export interface LocketState {
   executions: Row[]
   clickwrapTerms: Row[]
   clickwrapVersions: Row[]
+  reports: Row[]
+  reportDeliveries: Row[]
   savedViews: Row[]
   familyTerms: Row[]
   terms: Row[]

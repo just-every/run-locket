@@ -1,3 +1,5 @@
+import { recordReportReads, type ScheduledReportRead } from './report-read-authority'
+import { reports } from './reports'
 // Read endpoints. Every read starts from the current session and filters
 // restricted agreements (and everything hanging off them) before returning.
 import type { Bindings } from '../auth.server'
@@ -35,7 +37,7 @@ export function seesIntake(actor: Actor, p: { kind: string; payload: string; pre
 }
 
 /** Everything the workspace shows, already narrowed to this person. */
-export async function state(env: Bindings, actor: Actor) {
+export async function state(env: Bindings, actor: Actor, scheduledReport?: ScheduledReportRead) {
   requireRole(actor, may.read, 'read agreements')
   const db = env.DB
   const { agreements, ids, hiddenParties } = await visibleIds(env, actor)
@@ -50,8 +52,11 @@ export async function state(env: Bindings, actor: Actor) {
   const obligations = mine(await all(db, 'SELECT * FROM lk_obligations ORDER BY due_date'), ids), now = Date.now()
   const settings = await installationSettings(db), notices = mine(await all(db, 'SELECT * FROM lk_notices ORDER BY created_at'), ids)
   const parties = (await all(db, 'SELECT * FROM lk_parties ORDER BY name')).filter(p => !hiddenParties.has(p.id))
-  await recordReads(env, actor, agreements.filter(a => a.restricted).map(a => ({ action: 'agreement.view', agreementId: a.id, summary: 'Read restricted agreement in workspace state.' })))
+  if (scheduledReport) await recordReportReads(env, actor, agreements, scheduledReport)
+  else await recordReads(env, actor, agreements.filter(a => a.restricted).map(a => ({ action: 'agreement.view', agreementId: a.id, summary: 'Read restricted agreement in workspace state.' })))
   return {
+    reports: await reports(env, actor),
+    reportDeliveries: await all(db, 'SELECT d.* FROM lk_report_deliveries d JOIN lk_reports r ON r.id=d.report_id WHERE r.created_by=? ORDER BY d.created_at DESC', actor.id),
     savedViews: await savedViews(env, actor),
     actor: { id: actor.id, name: actor.name, role: actor.role },
     now,
@@ -92,7 +97,7 @@ export async function state(env: Bindings, actor: Actor) {
     proposals,
     imports: actor.role === 'owner' ? await all(db, 'SELECT id, kit, status, source_label, preview, fingerprint, created_by, created_at, applied_by, applied_at, undone_by, undone_at, undo_reason, version FROM lk_import_batches ORDER BY created_at DESC') : [],
     access: mine(await all(db, 'SELECT * FROM lk_access'), ids),
-    audit: mine(await all(db, 'SELECT * FROM lk_audit ORDER BY at DESC, id'), ids).filter(a => !a.action.startsWith('view.') || a.actor_id === actor.id).filter(a => !a.action.startsWith('clickwrap.') || fullReaders.includes(actor.role) || a.actor_id === actor.id),
+    audit: mine(await all(db, 'SELECT * FROM lk_audit ORDER BY at DESC, id'), ids).filter(a => !a.action.startsWith('view.') || a.actor_id === actor.id).filter(a => !a.action.startsWith('report.') || a.actor_id === actor.id).filter(a => !a.action.startsWith('clickwrap.') || fullReaders.includes(actor.role) || a.actor_id === actor.id),
   }
 }
 
@@ -151,7 +156,7 @@ export async function download(env: Bindings, actor: Actor, id: string): Promise
 export async function exportArchive(env: Bindings, actor: Actor) {
   requireRole(actor, may.export, 'export the complete archive')
   const db = env.DB
-  const tables = ['lk_entities', 'lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations', 'lk_notice_letters', 'lk_notice_dispatches', 'lk_notice_events', 'lk_notice_tracking', 'lk_saved_views', 'lk_view_pins', 'lk_approval_reminder_settings', 'lk_person_preferences', 'lk_deadline_reminder_settings', 'lk_deadline_reminders', 'lk_deadline_reminder_events', 'lk_approval_reminders', 'lk_installation_settings']
+  const tables = ['lk_entities', 'lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations', 'lk_notice_letters', 'lk_notice_dispatches', 'lk_notice_events', 'lk_notice_tracking', 'lk_saved_views', 'lk_view_pins', 'lk_approval_reminder_settings', 'lk_person_preferences', 'lk_deadline_reminder_settings', 'lk_deadline_reminders', 'lk_deadline_reminder_events', 'lk_approval_reminders', 'lk_installation_settings', 'lk_reports', 'lk_report_deliveries']
   const records: Record<string, unknown[]> = {}
   for (const t of tables) records[t] = await all(db, `SELECT * FROM ${t}`)
   const files = []

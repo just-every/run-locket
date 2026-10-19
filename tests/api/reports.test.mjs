@@ -1,0 +1,98 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { installation } from './harness.mjs'
+import { file, pdf } from './files.mjs'
+
+const clock=Date.parse('2026-10-20T12:00:00Z')
+import { reportView, reportFixture } from './report-fixture.mjs'
+test('REPORT-002 ENTITY-001 groups a saved view, emails weekly/monthly scoped CSV/PDF, claims once, preserves privacy and stops schedules',async t=>{
+  const h=await installation({bindings:{TEST_NOW:String(clock)}});t.after(()=>h.close())
+  const viewer=await h.invite('reports-reader@example.test','viewer'), agent=await h.invite('reports-agent@example.test','agent')
+  await reportFixture(h.owner)
+  const own=(await h.owner.state()).actor.id
+  const view=await h.owner.command('view.save',{name:'Renewals',definition:reportView,sharedRoles:[]})
+  const payload={name:'Renewals by month',viewId:view.id,groupField:'notice_deadline',frequency:'weekly',format:'csv',firstAt:'2026-10-21T08:00',recipients:[own,viewer.id]}
+  const r=await h.owner.command('report.create',payload)
+  await agent.command('report.create',payload,{error:'FORBIDDEN'})
+  await agent.command('report.stop',{id:r.id,version:1},{error:'FORBIDDEN'})
+  assert.equal((await h.request('/api/locket/reports/'+r.id)).status,401)
+  await h.owner.command('view.save',{id:view.id,version:1,name:'Changed view',definition:{...reportView,query:'No matching agreement'},sharedRoles:[]})
+  const out=await (await h.owner.request('/api/locket/reports/'+r.id)).json()
+  assert.deepEqual(out.groups,[{group:'2026-12',count:3,value:930075,missing:0}])
+  assert.equal((await viewer.request('/api/locket/reports/'+r.id)).status,404)
+  const csv=await (await h.owner.request('/api/locket/reports/'+r.id+'?format=csv')).text()
+  assert.match(csv,/\$9,300.75/);assert.match(csv,/Reporting confidential/)
+  const pdfResponse=await h.owner.request('/api/locket/reports/'+r.id+'?format=pdf')
+  assert.equal(pdfResponse.headers.get('content-type'),'application/pdf');assert.match(await pdfResponse.text(),/^%PDF-/)
+  await h.owner.command('view.save',{id:view.id,version:2,name:'Renewals',definition:reportView,sharedRoles:[]})
+  const before=h.mails.length
+  await h.setTime(Date.parse('2026-10-21T12:00:00Z'));await h.scheduled(Date.parse('2026-10-21T12:00:00Z'))
+  const sent=h.mails.slice(before);assert.equal(sent.length,2,JSON.stringify((await h.owner.state()).reportDeliveries))
+  const ownerCsv=Buffer.from(sent.find(m=>m.to.includes('owner@example.test')).attachments[0].content,'base64').toString()
+  const viewerCsv=Buffer.from(sent.find(m=>m.to.includes('reports-reader@example.test')).attachments[0].content,'base64').toString()
+  assert.equal(ownerCsv,csv);assert.match(viewerCsv,/\$300.75/);assert.doesNotMatch(viewerCsv,/confidential|9000|9,000/)
+  assert.equal(viewerCsv.split('\r\n').filter(line=>line.startsWith('"Reporting public')).length,2)
+  await h.scheduled(Date.parse('2026-10-21T12:00:00Z'));assert.equal(h.mails.length,before+2)
+  let state=await h.owner.state();assert.ok(state.audit.some(e=>e.action==='report.read'&&e.actor_role==='scheduler'&&e.agreement_id));assert.equal(state.reportDeliveries.filter(d=>d.report_id===r.id&&d.status==='accepted').length,2)
+  assert.equal(state.reports.find(x=>x.id===r.id).next_at,Date.parse('2026-10-28T12:00:00Z'))
+  await viewer.command('report.stop',{id:r.id,version:1},{error:'NOT_FOUND'})
+  await h.owner.command('report.stop',{id:r.id,version:1})
+  await h.owner.command('report.stop',{id:r.id,version:1},{error:'STALE'})
+  await h.owner.command('legacy.import',{title:'Reporting unvalued agreement',type:'supplier',party:{name:'Unvalued supplier',kind:'supplier'},restricted:false,sourceSystem:'Archive',sourceId:'unvalued-report',file:file('unvalued.pdf',pdf('No value recorded')),signed:true})
+  const missing=await (await h.owner.request('/api/locket/reports/'+r.id)).json()
+  assert.deepEqual(missing.groups.find(g=>g.group==='Not recorded'),{group:'Not recorded',count:1,value:0,missing:1})
+  const counterparty=await h.owner.command('report.create',{...payload,name:'Value by counterparty',groupField:'counterparty',firstAt:'2026-10-31T08:00'})
+  const byParty=await (await h.owner.request('/api/locket/reports/'+counterparty.id)).json()
+  assert.equal(byParty.groups.find(g=>g.group==='Reporting public A vendor').value,10025)
+  await h.owner.command('report.stop',{id:counterparty.id,version:1})
+  const dst=await h.owner.command('report.create',{...payload,name:'Weekly DST',firstAt:'2026-10-31T08:00',recipients:[viewer.id]})
+  const monthly=await h.owner.command('report.create',{...payload,name:'Month end PDF',frequency:'monthly',format:'pdf',firstAt:'2026-10-31T08:00',recipients:[viewer.id]})
+  await h.setTime(Date.parse('2026-10-31T12:00:00Z'));h.owner=await h.signIn('owner@example.test');await h.scheduled(Date.parse('2026-10-31T12:00:00Z'))
+  assert.equal((await h.owner.state()).reports.find(x=>x.id===dst.id).next_at,Date.parse('2026-11-07T13:00:00Z'))
+  await h.owner.command('report.stop',{id:dst.id,version:1})
+  assert.match(Buffer.from(h.mails.findLast(m=>m.attachments?.[0]?.content_type==='application/pdf').attachments[0].content,'base64').toString(),/^%PDF-/)
+  assert.equal((await h.owner.state()).reports.find(x=>x.id===monthly.id).next_at,Date.parse('2026-11-30T13:00:00Z'))
+  await h.setTime(Date.parse('2026-11-30T13:00:00Z'));h.owner=await h.signIn('owner@example.test');await h.scheduled(Date.parse('2026-11-30T13:00:00Z'))
+  assert.equal((await h.owner.state()).reports.find(x=>x.id===monthly.id).next_at,Date.parse('2026-12-31T13:00:00Z'))
+  await h.owner.command('report.stop',{id:monthly.id,version:1})
+  await h.owner.command('report.create',{...payload,firstAt:'2027-03-14T02:30'},{error:'INVALID'})
+  const gap=await h.owner.command('report.create',{...payload,name:'Weekly clock-forward',firstAt:'2027-03-07T02:30',recipients:[viewer.id]})
+  await h.setTime(Date.parse('2027-03-07T07:30:00Z'));h.owner=await h.signIn('owner@example.test');await h.scheduled(Date.parse('2027-03-07T07:30:00Z'))
+  assert.equal((await h.owner.state()).reports.find(x=>x.id===gap.id).next_at,Date.parse('2027-03-14T07:30:00Z'))
+  await h.owner.command('report.stop',{id:gap.id,version:1})
+  const repeated=await h.owner.command('report.create',{...payload,name:'Weekly clock-back',firstAt:'2027-10-31T01:30',recipients:[viewer.id]})
+  await h.setTime(Date.parse('2027-10-31T05:30:00Z'));h.owner=await h.signIn('owner@example.test');await h.scheduled(Date.parse('2027-10-31T05:30:00Z'))
+  assert.equal((await h.owner.state()).reports.find(x=>x.id===repeated.id).next_at,Date.parse('2027-11-07T05:30:00Z'))
+  await h.setTime(Date.parse('2027-11-22T12:00:00Z'));h.owner=await h.signIn('owner@example.test')
+  const beforeDowntime=h.mails.length
+  await h.scheduled(Date.parse('2027-11-22T12:00:00Z'))
+  assert.equal(h.mails.length,beforeDowntime+1)
+  assert.equal((await h.owner.state()).reports.find(x=>x.id===repeated.id).next_at,Date.parse('2027-11-28T06:30:00Z'))
+  const entity=await h.owner.command('entity.save',{legalName:'Harbor Operations LLC',entityType:'LLC',formation:'Delaware',registeredAddress:'100 Market St, Wilmington, DE',noticeAddress:'100 Market St, Wilmington, DE',currency:'USD',timezone:'America/New_York',signatories:[]})
+  const selected=(await h.owner.state()).agreements.filter(a=>['Reporting public A','Reporting confidential'].includes(a.title))
+  for(const a of selected)await h.owner.command('agreement.entity',{agreementId:a.id,version:a.version,entityId:entity.id})
+  const entityView=await h.owner.command('view.save',{name:'Our entity report',definition:{...reportView,filters:[{field:'entity',operator:'eq',value:'Harbor Operations LLC'}]},sharedRoles:[]})
+  const entityReport=await h.owner.command('report.create',{...payload,name:'Value by our entity',viewId:entityView.id,groupField:'entity',firstAt:'2028-01-01T08:00'})
+  const entityOutput=await (await h.owner.request('/api/locket/reports/'+entityReport.id)).json()
+  assert.deepEqual(entityOutput.groups,[{group:'Harbor Operations LLC',count:2,value:910025,missing:0}])
+  assert.deepEqual(entityOutput.result.rows.map(r=>r.id).sort(),selected.map(a=>a.id).sort())
+  await h.owner.command('report.stop',{id:entityReport.id,version:1})
+  const archive=await (await h.owner.request('/api/locket/export')).json();assert.equal(archive.records.lk_reports.length,7);assert.equal(archive.records.lk_report_deliveries.length,8)
+})
+
+test('REPORT-002 retains rejected and locally suppressed outcomes without claiming delivery or resending',async()=>{
+  for(const local of [false,true]){
+    const h=await installation({bindings:{TEST_NOW:String(clock),...(local?{AUTH_LOCAL:'true'}:{})},mailResponse:()=>Response.json({message:'Rejected'},{status:422})})
+    try{
+      const own=(await h.owner.state()).actor.id
+      const v=await h.owner.command('view.save',{name:'Empty report',definition:reportView,sharedRoles:[]})
+      const r=await h.owner.command('report.create',{name:'Empty report',viewId:v.id,groupField:'counterparty',frequency:'weekly',format:'csv',firstAt:'2026-10-21T08:00',recipients:[own]})
+      const before=h.mails.length
+      await h.setTime(Date.parse('2026-10-21T12:00:00Z'));await h.scheduled(Date.parse('2026-10-21T12:00:00Z'))
+      const delivery=(await h.owner.state()).reportDeliveries.find(d=>d.report_id===r.id)
+      assert.equal(delivery.status,local?'suppressed':'rejected');assert.equal(delivery.provider_message_id,null)
+      assert.equal(h.mails.length,before+(local?0:1))
+      await h.scheduled(Date.parse('2026-10-21T12:00:00Z'));assert.equal(h.mails.length,before+(local?0:1))
+    }finally{await h.close()}
+  }
+})
