@@ -4,8 +4,8 @@ import type { Locket } from './app'
 import { Field, Form, Icon, value } from './controls'
 import { can, parse, typeLabel } from './format'
 import { EntitySelect } from './entities'
-
-const defaults: Record<string, string[]> = { customer: ['Statement of work or schedule'], supplier: ['Certificate of insurance'], amendment: ['Signed parent agreement'], order_form: [], nda: [], other: [] }
+import { zones } from './preferences'
+import { defaultRequirements as defaults } from '../locket/us-defaults'
 
 export function TemplateFields({ template, entityId = null }: { template: Row; entityId?: string | null }) {
   const fields = parse<{ name: string; label: string; required: boolean }[]>(template.fields)
@@ -33,18 +33,25 @@ function PartyField({ state }: { state: LocketState }) {
         <div className="lk-grid2">
           <Field label="Name"><input name="partyName" required /></Field>
           <Field label="Kind"><select name="partyKind"><option value="customer">Customer</option><option value="supplier">Supplier</option><option value="partner">Partner</option><option value="other">Other</option></select></Field>
+          <Field label="EIN" hint="Nine digits written 12-3456789; leave blank if not supplied."><input name="partyEin" inputMode="numeric" pattern="\d{2}-\d{7}" /></Field>
         </div>
       )}
     </fieldset>
   )
 }
-const party = (data: FormData) => (value(data, 'partyMode') === 'existing' ? { partyId: value(data, 'partyId') } : { party: { name: value(data, 'partyName'), kind: value(data, 'partyKind') } })
+const party = (data: FormData) => (value(data, 'partyMode') === 'existing' ? { partyId: value(data, 'partyId') } : { party: { name: value(data, 'partyName'), kind: value(data, 'partyKind'), ...(value(data, 'partyEin') ? { taxIdKind: 'ein', taxId: value(data, 'partyEin') } : {}) } })
 
 export function Intake({ state, locket }: { state: LocketState; locket: Locket }) {
   const { run, busy } = locket
   const [type, setType] = useState('customer')
   const [source, setSource] = useState('template')
   const [entityId, setEntityId] = useState(state.entities[0]?.id ?? '')
+  const [currency, setCurrency] = useState('USD')
+  // US-001: the entity's zone, else the installation's; the request may name another.
+  const inherited = state.entities.find(e => e.id === entityId)?.timezone ?? state.settings.timezone
+  const [chosenZone, setZone] = useState<string | null>(null)
+  const zone = chosenZone ?? inherited
+  const zoneOptions = zones.some(z => z[0] === inherited) ? zones : [...zones, [inherited, inherited] as [string, string]]
   // Templates limited to another of our entities are not offered (ENTITY-001).
   const approved = state.templateVersions.filter(t => t.status === 'approved' && [null, undefined, entityId].includes(state.templates.find(x => x.id === t.template_id)?.entity_id))
   const [chosenTemplate, setTemplateId] = useState(approved[0]?.id ?? '')
@@ -64,7 +71,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
           if (k.startsWith('clause.')) clauseChoices[k.slice(7)] = String(v)
         }
         const result = await run('request.create', {
-          title: value(data, 'title'), type, ...party(data), ...(entityId ? { entityId } : {}), value: value(data, 'value') || undefined, ownerId: value(data, 'ownerId'),
+          title: value(data, 'title'), type, ...party(data), ...(entityId ? { entityId } : {}), value: value(data, 'value') || undefined, currency, ...(currency !== 'USD' ? { usdRate: value(data, 'usdRate') } : {}), timezone: zone, ownerId: value(data, 'ownerId'),
           neededBy: value(data, 'neededBy') || undefined, startDate: value(data, 'startDate') || undefined, restricted: data.get('restricted') === 'on',
           parentId: value(data, 'parentId') || undefined, requirements: value(data, 'requirements').split('\n').map(s => s.trim()).filter(Boolean),
           ...(source === 'template' && template ? { templateVersionId: template.id, fields, clauseChoices } : {}),
@@ -78,13 +85,16 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
             <Field label="Agreement title *"><input name="title" required /></Field>
             <div className="lk-grid2">
               <Field label="Request type *"><select value={type} onChange={e => setType(e.target.value)}>{Object.entries(typeLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
-              <Field label="Agreement value (USD)" hint="Total contract value, excluding sales tax."><input name="value" inputMode="decimal" placeholder="48000" /></Field>
+              <Field label="Currency" hint="Values are in US dollars unless the agreement is in another currency."><input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} pattern="[A-Za-z]{3}" required /></Field>
+              <Field label={`Agreement value (${currency})`} hint="Total contract value, excluding sales tax."><input name="value" inputMode="decimal" placeholder="48000" /></Field>
+              {currency !== 'USD' && currency.length === 3 && <Field label={`US dollars per 1 ${currency} *`} hint="The rate you record; Locket shows the USD equivalent at this rate and fetches none."><input name="usdRate" inputMode="decimal" placeholder="1.27" required /></Field>}
+              <Field label="Time zone" hint="Notice deadlines fall at 11:59 pm in this zone."><select value={zone} onChange={e => setZone(e.target.value)}>{zoneOptions.map(([id, label]) => <option key={id} value={id}>{label} ({id})</option>)}</select></Field>
               <Field label="Responsible person *"><select name="ownerId" defaultValue={state.actor.id}>{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
               <Field label="Needed by"><input type="date" name="neededBy" /></Field>
               <Field label="Proposed start date"><input type="date" name="startDate" /></Field>
               {['amendment', 'order_form'].includes(type) && <Field label="Belongs to agreement *"><select name="parentId" required>{state.agreements.map(x => <option key={x.id} value={x.id}>{x.reference} {x.title}</option>)}</select></Field>}
             </div>
-            {state.entities.length > 0 && <EntitySelect state={state} value={entityId} onChange={setEntityId} />}
+            {state.entities.length > 0 && <EntitySelect state={state} value={entityId} onChange={id => { setEntityId(id); setZone(null) }} />}
             <PartyField state={state} />
             <label className="lk-check"><input type="checkbox" name="restricted" /> Restricted agreement (visible to owner, counsel, you, the responsible person and people granted access)</label>
           </section>

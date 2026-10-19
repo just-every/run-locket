@@ -99,6 +99,8 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole('heading', { name: 'Required attachments' })).toBeVisible()
     await page.locator('li').filter({ hasText: 'Certificate of insurance' }).locator('input[type=file]').setInputFiles({ name: 'coi.pdf', mimeType: 'application/pdf', buffer: pdf('Certificate of insurance') })
     await expect(page.getByText('Attached', { exact: true })).toBeVisible()
+    await page.locator('li').filter({ hasText: 'Form W-9' }).locator('input[type=file]').setInputFiles({ name: 'w9.pdf', mimeType: 'application/pdf', buffer: pdf('Form W-9') })
+    await expect(page.getByText('Attached', { exact: true })).toHaveCount(2)
     await submit(page, page.locator('main'), 'Submit for review')
     await expect(page.locator('.lk-subtitle').getByText('In review')).toBeVisible()
     await noOverflow(page)

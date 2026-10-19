@@ -28,6 +28,7 @@ import { trackNotice } from './notice-tracking'
 import { noticeEventResponse } from './notice-events'
 import { savedViewHandlers } from './saved-views'
 import { entityHandlers } from './entities'
+import { installationHandlers } from './installation'
 import { repositoryResult, repositoryCsv } from './repository'
 import { Problem } from './model'
 import { obligationHandlers } from './obligations'
@@ -39,6 +40,7 @@ import { compare, download, exportArchive, search, state } from './views'
 export const handlers: Record<string, Handler> = {
   ...savedViewHandlers,
   ...entityHandlers,
+  ...installationHandlers,
   'notice.email': emailNotice,
   'notice.letter': prepareLetter,
   'notice.tracking': trackNotice,

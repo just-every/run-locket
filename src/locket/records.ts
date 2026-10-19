@@ -11,6 +11,10 @@ export interface AgreementRow {
   party_id: string
   value_cents: number | null
   currency: string
+  original_cents: number | null
+  usd_rate: string | null
+  rate_recorded_by: string | null
+  rate_recorded_at: number | null
   owner_id: string
   requester_id: string
   status: string

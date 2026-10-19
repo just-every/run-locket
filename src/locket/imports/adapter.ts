@@ -10,7 +10,7 @@ const q = (sql: string, ...params: unknown[]): D1Sql => ({ sql, params })
 const CHUNK = 512 * 1024
 
 export const columns = {
-  lk_parties: ['id', 'name', 'kind', 'abn', 'email', 'created_by', 'created_at', 'version'],
+  lk_parties: ['id', 'name', 'kind', 'tax_id', 'tax_id_kind', 'email', 'created_by', 'created_at', 'version'],
   lk_agreements: ['id', 'reference', 'title', 'type', 'party_id', 'value_cents', 'currency', 'owner_id', 'requester_id', 'status', 'restricted', 'needed_by', 'start_date', 'timezone', 'parent_id', 'relation', 'origin', 'current_version_id', 'created_at', 'updated_at', 'version', 'entity_id'],
   lk_versions: ['id', 'agreement_id', 'number', 'kind', 'label', 'template_version_id', 'fields', 'text', 'text_source', 'digest', 'created_by', 'created_at'],
   lk_executions: ['id', 'agreement_id', 'package_id', 'provider', 'envelope_id', 'signed_artifact_id', 'certificate_artifact_id', 'signers', 'executed_on', 'imported', 'checks', 'status', 'resolution', 'resolved_by', 'recorded_by', 'recorded_at'],

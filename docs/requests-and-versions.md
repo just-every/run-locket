@@ -8,8 +8,8 @@ Each request type carries the attachments it needs before review:
 
 | Request type | Required attachment |
 | --- | --- |
-| Supplier | Certificate of insurance |
-| Customer | Statement of work or schedule |
+| Supplier | Certificate of insurance and Form W-9 |
+| Customer | Statement of work or order form |
 | Amendment | The signed parent agreement, and a link to it |
 | Order form | A link to the agreement it sits under |
 | NDA and other | None |

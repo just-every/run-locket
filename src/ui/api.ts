@@ -8,6 +8,7 @@ export interface LocketState {
   operators: Row[]
   parties: Row[]
   entities: Row[]
+  settings: { timezone: string; rollNoticeDeadlines: boolean; version: number }
   agreements: Row[]
   routes: Record<string, { kind: string; deviationId: string | null; label: string; roles: string[] }[]>
   requirements: Row[]

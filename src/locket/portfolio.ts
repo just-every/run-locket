@@ -5,11 +5,11 @@ import { fail } from './model'
 type Row = { id: string; [key: string]: any }
 export interface PortfolioTile { id: string; label: string; count: number; valueCents: number; unvalued: number; agreementIds: string[]; obligationCount?: number }
 export interface Portfolio { tiles: PortfolioTile[]; lifecycle: Record<string, Lifecycle>; now: number }
-export function portfolio(workspace: { now: number; agreements: Row[]; entities: Row[]; terms: Row[]; renewals: Row[]; notices: Row[]; obligations: Row[]; approvals: Row[]; deviations: Row[] }, entityId: string | null = null): Portfolio {
+export function portfolio(workspace: { now: number; agreements: Row[]; entities: Row[]; terms: Row[]; renewals: Row[]; notices: Row[]; obligations: Row[]; approvals: Row[]; deviations: Row[]; settings: { rollNoticeDeadlines: boolean } }, entityId: string | null = null): Portfolio {
   // ENTITY-001: one entity's figures, or every entity with a tile per entity ("none" = not recorded).
   if (entityId !== null && entityId !== 'none' && !workspace.entities.some(e => e.id === entityId)) fail('NOT_FOUND', 'No such entity of ours.', 404)
   const s = entityId === null ? workspace : { ...workspace, agreements: workspace.agreements.filter(a => (a.entity_id ?? 'none') === entityId) }
-  const states = Object.fromEntries(s.agreements.map(a => [a.id, lifecycle(a, s.terms, s.renewals, s.notices, s.now)]))
+  const states = Object.fromEntries(s.agreements.map(a => [a.id, lifecycle(a, s.terms, s.renewals, s.notices, s.now, s.settings.rollNoticeDeadlines)]))
   const contracted = s.agreements.filter(a => ['executed', 'imported'].includes(a.status))
   const tiles: PortfolioTile[] = []
   const tile = (id: string, label: string, rows: Row[], extra = {}) => tiles.push({ id, label, count: rows.length, valueCents: rows.reduce((sum, a) => sum + (a.value_cents ?? 0), 0), unvalued: rows.filter(a => a.value_cents === null).length, agreementIds: rows.map(a => a.id), ...extra })

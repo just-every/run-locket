@@ -3,6 +3,7 @@ import type { Locket } from './app'
 import { Badge, Empty, Field, Form, Person, value, When } from './controls'
 import { DeadlineReminderLog } from './deadline-reminders'
 import { can, day, deadline, parse, personName, renewalOf, termLabel, termValue, words } from './format'
+import { usJurisdictions } from '../locket/us-defaults'
 
 const keys = ['effective_date', 'end_date', 'auto_renew', 'renewal_term_months', 'notice_days', 'governing_law', 'payment_terms']
 const cite = (c: any) => (c.source === 'import-manifest' ? `Import manifest row ${c.row} (not yet checked against the signed PDF)` : c.source === 'signed-pdf-page' ? `Signed PDF page ${c.page}: “${c.quote}”` : `Executed text: “${c.quote}”${c.page ? ` (page ${c.page})` : ''}`)
@@ -43,7 +44,8 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
               if (await run('term.propose', { agreementId: a.id, key: value(data, 'key'), value: value(data, 'value'), reason: value(data, 'reason') || undefined, citation: { quote: value(data, 'quote'), page: page ? Number(page) : undefined } })) form.reset()
             }}>
               <Field label="Term"><select name="key">{keys.map(k => <option key={k} value={k}>{termLabel[k]}</option>)}</select></Field>
-              <Field label="Value" hint="Dates as YYYY-MM-DD; auto renew as yes or no; days and months as whole numbers."><input name="value" required /></Field>
+              <Field label="Value" hint="Dates as YYYY-MM-DD; auto renew as yes or no; days and months as whole numbers; governing law from the US states and DC, or type another jurisdiction."><input name="value" list="lk-governing-law" required /></Field>
+              <datalist id="lk-governing-law">{usJurisdictions.map(j => <option key={j} value={j} />)}</datalist>
               <Field label="Words from the signed clause"><textarea name="quote" rows={2} required /></Field>
               <Field label="Signed PDF page (needed when there is no text)"><input name="page" inputMode="numeric" /></Field>
               <Field label="Why (for corrections)"><input name="reason" /></Field>

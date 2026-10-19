@@ -39,7 +39,7 @@ function plannedEntities(c: Ctx, r: PreviewRow, files: Map<string, Uint8Array>, 
   if (!partyId) {
     partyId = crypto.randomUUID()
     parties.set(r.counterparty.toLowerCase(), partyId)
-    effects.push({ targetKind: 'party', targetId: partyId, value: { id: partyId, name: r.counterparty, kind: 'other', abn: null, email: null, created_by: c.actor.id, created_at: at, version: 1 } })
+    effects.push({ targetKind: 'party', targetId: partyId, value: { id: partyId, name: r.counterparty, kind: 'other', tax_id: null, tax_id_kind: null, email: null, created_by: c.actor.id, created_at: at, version: 1 } })
   }
   const provenance = (path: string) => json({ kit: KIT, batch: batchId, envelopeId: r.envelopeId, path, manifestRow: r.row, imported: true })
   const artifact = (role: string, f: { path: string; sha256: string; size: number }, version: string | null) => {

@@ -32,7 +32,7 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
   })
   const rows: RepositoryRow[] = []
   for (const a of s.agreements) {
-    const current = lifecycle(a, s.terms, s.renewals, s.notices, evaluatedAt)
+    const current = lifecycle(a, s.terms, s.renewals, s.notices, evaluatedAt, s.settings.rollNoticeDeadlines)
     const terms = Object.fromEntries(s.terms.filter(t => t.agreement_id === a.id && t.status === 'confirmed').map(t => [t.key, t.value]))
     const values: RepositoryRow['values'] = {
       reference: a.reference, title: a.title, type: a.type, status: a.status,

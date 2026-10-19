@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ClauseLibrary } from './clause-library'
 import { entityName, OurEntities } from './entities'
+import { InstallationDefaults } from './installation'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, Field, Form, value } from './controls'
@@ -47,6 +48,7 @@ export function Library({ state, locket }: { state: LocketState; locket: Locket 
   return (
     <div className="lk-library">
       <div className="lk-titlebar"><div><h1>Library</h1><p><a href="#clickwrap">Published terms and clickwrap acceptance</a></p><p className="lk-muted">Owner- and counsel-approved templates and the clause playbook reviews are measured against.</p></div></div>
+      <InstallationDefaults state={state} locket={locket} />
       <OurEntities state={state} locket={locket} />
       <ClauseLibrary state={state} />
       <div className="lk-library-grid">

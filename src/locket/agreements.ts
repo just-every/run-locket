@@ -13,15 +13,8 @@ export const partyKinds = ['customer', 'supplier', 'partner', 'other'] as const
 import { relations } from './family-relations'
 import { entityById, entityForNewAgreement, entityValues, requireEntityScope, type EntityRow } from './entities'
 
-/** Decided default: attachments each request type must carry before review. */
-export const defaultRequirements: Record<string, string[]> = {
-  customer: ['Statement of work or schedule'],
-  supplier: ['Certificate of insurance'],
-  amendment: ['Signed parent agreement'],
-  order_form: [],
-  nda: [],
-  other: [],
-}
+import { installationSettings } from './installation'
+import { defaultRequirements, ratePattern, usdCents } from './us-defaults'
 const needsParent = new Set(['amendment', 'order_form'])
 
 async function operatorExists(c: Ctx, id: string): Promise<void> {
@@ -40,8 +33,42 @@ async function partyFor(c: Ctx, p: Record<string, unknown>): Promise<{ id: strin
   const existing = await c.db.prepare('SELECT id, name FROM lk_parties WHERE lower(name)=lower(?)').bind(name).first<{ id: string; name: string }>()
   if (existing) return { ...existing, writes: [] }
   const id = crypto.randomUUID()
-  return { id, name, writes: [sql('INSERT INTO lk_parties VALUES(?,?,?,?,?,?,?,1)', id, name, oneOf(input, 'kind', partyKinds), optionalText(input, 'abn', 20), optionalText(input, 'email', 200), c.actor.id, c.now)] }
+  return { id, name, writes: [partyInsert(id, name, oneOf(input, 'kind', partyKinds), input, c)] }
 }
+
+const ein = /^\d{2}-\d{7}$/
+/** US-001: a counterparty's EIN (12-3456789), or a foreign tax ID recorded as given. */
+function taxId(p: Record<string, unknown>) {
+  const kind = p.taxIdKind === undefined || p.taxIdKind === null || p.taxIdKind === '' ? null : oneOf(p, 'taxIdKind', ['ein', 'foreign'] as const)
+  const id = kind ? text(p, 'taxId', 40) : null
+  if (kind === 'ein' && !ein.test(id!)) fail('INVALID', 'An EIN is nine digits written 12-3456789.', 400, { field: 'taxId' })
+  return { kind, id }
+}
+function partyInsert(id: string, name: string, kind: string, p: Record<string, unknown>, c: Ctx): Sql {
+  const tax = taxId(p)
+  return sql('INSERT INTO lk_parties(id,name,kind,tax_id,tax_id_kind,email,created_by,created_at,version) VALUES(?,?,?,?,?,?,?,?,1)', id, name, kind, tax.id, tax.kind, optionalText(p, 'email', 200), c.actor.id, c.now)
+}
+
+/** US-001: a value in USD, or in another currency with the USD-per-unit rate a person records (never fetched). */
+function amount(c: Ctx, p: Record<string, unknown>, prior?: AgreementRow) {
+  const given = p.currency === undefined || p.currency === null || p.currency === '' ? prior?.currency ?? 'USD' : text(p, 'currency', 3).toUpperCase()
+  if (!/^[A-Z]{3}$/.test(given)) fail('INVALID', 'Currency is a three-letter ISO code such as USD or GBP.', 400, { field: 'currency' })
+  const cents = money(p, 'value')
+  if (given === 'USD') return { currency: 'USD', valueCents: cents, originalCents: null, rate: null, rateBy: null, rateAt: null }
+  if (cents === null) fail('INVALID', `Enter the amount in ${given}.`, 400, { field: 'value' })
+  const rate = p.usdRate === undefined && prior?.currency === given ? prior.usd_rate : text(p, 'usdRate', 13)
+  if (!rate || !ratePattern.test(rate) || /^0*(\.0*)?$/.test(rate)) fail('INVALID', `Record the rate as US dollars per 1 ${given}, such as 1.27.`, 400, { field: 'usdRate' })
+  const kept = prior?.currency === given && prior.usd_rate === rate
+  return { currency: given, valueCents: usdCents(cents, rate), originalCents: cents, rate, rateBy: kept ? prior.rate_recorded_by : c.actor.id, rateAt: kept ? prior.rate_recorded_at : c.now }
+}
+type Amount = ReturnType<typeof amount>
+const amountWords = (m: Amount) => (m.valueCents === null ? 'no value' : m.originalCents === null ? `$${(m.valueCents / 100).toFixed(2)} USD` : `${(m.originalCents / 100).toFixed(2)} ${m.currency} = $${(m.valueCents / 100).toFixed(2)} USD at ${m.rate} USD per ${m.currency}`)
+
+/** The zone a new agreement takes: the one given, else the contracting entity's, else the installation's. */
+async function zoneFor(c: Ctx, p: Record<string, unknown>, entity: EntityRow | null) {
+  return p.timezone ? timezone(p, 'timezone') : (entity?.timezone ?? (await installationSettings(c.db)).timezone)
+}
+const agreementInsert = 'INSERT INTO lk_agreements VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?,?,?)'
 
 /** Fills a template version's fields and chosen clause variants. */
 export function populate(template: { body: string; fields: string; clauses: string }, values: Record<string, unknown>, choices: Record<string, unknown>, entityId: string | null = null) {
@@ -128,7 +155,7 @@ const createRequest: Handler = async (c, p) => {
   const party = await partyFor(c, p)
   const ownerId = typeof p.ownerId === 'string' && p.ownerId ? p.ownerId : c.actor.id
   await operatorExists(c, ownerId)
-  const valueCents = money(p, 'value')
+  const value = amount(c, p)
   const parentId = typeof p.parentId === 'string' && p.parentId ? p.parentId : null
   if (needsParent.has(type) && !parentId) fail('PARENT_REQUIRED', 'An amendment or order form must name the agreement it belongs to.', 400, { field: 'parentId' })
   const checks: Sql[] = []
@@ -138,7 +165,7 @@ const createRequest: Handler = async (c, p) => {
   }
   const entity = await entityForNewAgreement(c, p)
   const id = crypto.randomUUID(), reference = agreementReference(id)
-  const zone = p.timezone ? timezone(p, 'timezone') : (entity?.timezone ?? 'America/New_York')
+  const zone = await zoneFor(c, p, entity)
   const relation = parentId ? (type === 'amendment' ? 'amends' : type === 'order_form' ? 'order_under' : oneOf(p, 'relation', relations)) : null
   const writes: Sql[] = [...party.writes]
   let version: NewVersion | null = null
@@ -146,9 +173,10 @@ const createRequest: Handler = async (c, p) => {
   else if (p.file) version = await uploadedVersion(c, id, 1, 'upload', 'Initial draft', fileInput(p.file), optionalText(p, 'text', 400_000))
   writes.push(
     sql(
-      'INSERT INTO lk_agreements VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)',
-      id, reference, title, type, party.id, valueCents, 'USD', ownerId, c.actor.id, 'draft', bool(p, 'restricted') ? 1 : 0,
+      agreementInsert,
+      id, reference, title, type, party.id, value.valueCents, value.currency, ownerId, c.actor.id, 'draft', bool(p, 'restricted') ? 1 : 0,
       optionalDate(p, 'neededBy'), optionalDate(p, 'startDate'), zone, parentId, relation, 'intake', version?.id ?? null, c.now, c.now, entity?.id ?? null,
+      value.originalCents, value.rate, value.rateBy, value.rateAt,
     ),
   )
   if (version) writes.push(...version.writes)
@@ -159,7 +187,7 @@ const createRequest: Handler = async (c, p) => {
     result: { id, reference, versionId: version?.id ?? null },
     writes,
     checks: entity ? [...checks, sql('EXISTS(SELECT 1 FROM lk_entities WHERE id=?)', entity.id)] : [...checks, sql('NOT EXISTS(SELECT 1 FROM lk_entities)')],
-    audit: [{ action: 'request.create', agreementId: id, summary: `Requested ${title} with ${party.name}${entity ? ` for ${entity.legal_name}` : ''}` }],
+    audit: [{ action: 'request.create', agreementId: id, summary: `Requested ${title} with ${party.name}${entity ? ` for ${entity.legal_name}` : ''}; ${amountWords(value)}; ${zone}` }],
   }
 }
 
@@ -168,15 +196,16 @@ const updateRequest: Handler = async (c, p) => {
   const a = await visibleAgreement(c, p.agreementId)
   requireStatus(a, ['draft', 'in_review', 'approved'], 'change its request details')
   const title = p.title === undefined ? a.title : text(p, 'title', 200)
-  const value = p.value === undefined ? a.value_cents : money(p, 'value')
+  const value = p.value === undefined && p.currency === undefined && p.usdRate === undefined ? null : amount(c, p, a)
   const ownerId = typeof p.ownerId === 'string' && p.ownerId ? p.ownerId : a.owner_id
   if (ownerId !== a.owner_id) await operatorExists(c, ownerId)
   const neededBy = p.neededBy === undefined ? a.needed_by : optionalDate(p, 'neededBy')
   const restricted = p.restricted === undefined ? a.restricted : bool(p, 'restricted') ? 1 : 0
-  const contextChanged = value !== a.value_cents
-  const writes = [bump(c, a, 'title=?, value_cents=?, owner_id=?, needed_by=?, restricted=?, status=?', title, value, ownerId, neededBy, restricted, contextChanged ? statusAfterChange(a) : a.status)]
+  const m = value ?? { currency: a.currency, valueCents: a.value_cents, originalCents: a.original_cents, rate: a.usd_rate, rateBy: a.rate_recorded_by, rateAt: a.rate_recorded_at }
+  const contextChanged = m.valueCents !== a.value_cents || m.currency !== a.currency || m.originalCents !== a.original_cents || m.rate !== a.usd_rate
+  const writes = [bump(c, a, 'title=?, value_cents=?, currency=?, original_cents=?, usd_rate=?, rate_recorded_by=?, rate_recorded_at=?, owner_id=?, needed_by=?, restricted=?, status=?', title, m.valueCents, m.currency, m.originalCents, m.rate, m.rateBy, m.rateAt, ownerId, neededBy, restricted, contextChanged ? statusAfterChange(a) : a.status)]
   if (contextChanged) writes.push(invalidateApprovals(c, a.id, 'Contract value changed'))
-  return { allowed: may.intake, result: { id: a.id }, writes, checks: agreementGuards(c, a, p), audit: [{ action: 'request.update', agreementId: a.id, summary: contextChanged ? 'Changed request details and value; earlier approvals no longer count' : 'Changed request details' }] }
+  return { allowed: may.intake, result: { id: a.id }, writes, checks: agreementGuards(c, a, p), audit: [{ action: 'request.update', agreementId: a.id, summary: contextChanged ? `Changed request details and value to ${amountWords(m as Amount)}; earlier approvals no longer count` : 'Changed request details' }] }
 }
 
 const addRequirement: Handler = async (c, p) => {
@@ -330,7 +359,7 @@ const importLegacy: Handler = async (c, p) => {
   const ownerId = typeof p.ownerId === 'string' && p.ownerId ? p.ownerId : c.actor.id
   await operatorExists(c, ownerId)
   const id = crypto.randomUUID(), versionId = crypto.randomUUID(), reference = agreementReference(id)
-  const title = text(p, 'title', 200), type = oneOf(p, 'type', agreementTypes)
+  const title = text(p, 'title', 200), type = oneOf(p, 'type', agreementTypes), value = amount(c, p)
   let body = optionalText(p, 'text', 400_000), source = body ? 'person' : 'none'
   if (!body && isDocx(file)) { body = await docxText(file.bytes); source = 'docx' }
   const provenance = { sourceSystem, sourceId, originalFilename: file.filename, importedBy: c.actor.id, importedAt: new Date(c.now).toISOString(), signedStatus: bool(p, 'signed') ? 'stated signed by importer' : 'not stated' }
@@ -341,7 +370,7 @@ const importLegacy: Handler = async (c, p) => {
     result: { id, reference, versionId, sha256: artifact.sha256 },
     writes: [
       ...party.writes,
-      sql('INSERT INTO lk_agreements VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)', id, reference, title, type, party.id, money(p, 'value'), 'USD', ownerId, c.actor.id, 'imported', bool(p, 'restricted') ? 1 : 0, null, optionalDate(p, 'startDate'), p.timezone ? timezone(p, 'timezone') : (entity?.timezone ?? 'America/New_York'), null, null, 'legacy', versionId, c.now, c.now, entity?.id ?? null),
+      sql(agreementInsert, id, reference, title, type, party.id, value.valueCents, value.currency, ownerId, c.actor.id, 'imported', bool(p, 'restricted') ? 1 : 0, null, optionalDate(p, 'startDate'), await zoneFor(c, p, entity), null, null, 'legacy', versionId, c.now, c.now, entity?.id ?? null, value.originalCents, value.rate, value.rateBy, value.rateAt),
       ...artifact.writes,
       sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', versionId, id, 1, 'legacy', `Imported from ${sourceSystem}`, null, null, body, source, vdigest, c.actor.id, c.now),
     ],
@@ -356,10 +385,11 @@ const saveParty: Handler = async (c, p) => {
   if (typeof p.id === 'string') {
     const row = await c.db.prepare('SELECT version FROM lk_parties WHERE id=?').bind(p.id).first<{ version: number }>()
     if (!row) fail('NOT_FOUND', 'No such counterparty.', 404)
-    return { allowed: may.intake, result: { id: p.id }, writes: [sql('UPDATE lk_parties SET name=?, kind=?, abn=?, email=?, version=version+1 WHERE id=?', name, kind, optionalText(p, 'abn', 20), optionalText(p, 'email', 200), p.id)], checks: [sql('(SELECT version FROM lk_parties WHERE id=?)=?', p.id, row.version)], audit: [{ action: 'party.save', summary: `Updated counterparty ${name}` }] }
+    const tax = taxId(p)
+    return { allowed: may.intake, result: { id: p.id }, writes: [sql('UPDATE lk_parties SET name=?, kind=?, tax_id=?, tax_id_kind=?, email=?, version=version+1 WHERE id=?', name, kind, tax.id, tax.kind, optionalText(p, 'email', 200), p.id)], checks: [sql('(SELECT version FROM lk_parties WHERE id=?)=?', p.id, row.version)], audit: [{ action: 'party.save', summary: `Updated counterparty ${name}` }] }
   }
   const id = crypto.randomUUID()
-  return { allowed: may.intake, result: { id }, writes: [sql('INSERT INTO lk_parties VALUES(?,?,?,?,?,?,?,1)', id, name, kind, optionalText(p, 'abn', 20), optionalText(p, 'email', 200), c.actor.id, c.now)], audit: [{ action: 'party.save', summary: `Added counterparty ${name}` }] }
+  return { allowed: may.intake, result: { id }, writes: [partyInsert(id, name, kind, p, c)], audit: [{ action: 'party.save', summary: `Added counterparty ${name}` }] }
 }
 
 export const agreementHandlers: Record<string, Handler> = {

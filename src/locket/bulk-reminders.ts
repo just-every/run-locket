@@ -1,5 +1,6 @@
 // Bulk schedules track the existing lifecycle projection. RENEW-002 delivers from a
 // schedule whose deadline matches the current one; its messages are the delivery record.
+import { installationSettings } from './installation'
 import type { Bindings } from '../auth.server'
 import { canSee, grantsFor, may, requireRole, roleSql } from './access'
 import { recordReads } from './audit'
@@ -38,8 +39,9 @@ function offsets(p: Record<string, unknown>) {
 async function projection(c: Ctx, ids: string[], days: number[]) {
   const agreements = await Promise.all(ids.map(id => visibleAgreement(c, id)))
   const [terms, renewals, notices] = await Promise.all(['lk_terms', 'lk_renewals', 'lk_notices'].map(table => all(c.db, table, ids)))
+  const { rollNoticeDeadlines } = await installationSettings(c.db)
   const rows = agreements.map(a => {
-    const current = lifecycle(a, terms, renewals, notices, c.now)
+    const current = lifecycle(a, terms, renewals, notices, c.now, rollNoticeDeadlines)
     const reason = a.status !== 'imported' ? 'Not an imported agreement' : ['expired', 'terminated'].includes(current.status) ? current.status === 'expired' ? 'Expired' : 'Terminated' : current.missing.length ? `Missing confirmed terms: ${current.missing.join(', ')}` : !current.deadline ? 'No current notice deadline' : current.terminationUnsent ? 'Termination notice not recorded as sent' : null
     return {
       agreementId: a.id, version: a.version, reference: a.reference, title: a.title, timezone: a.timezone,
@@ -121,9 +123,10 @@ export async function bulkReminderSchedules(env: Bindings, actor: Actor) {
   const rows = (await env.DB.prepare('SELECT * FROM lk_reminder_schedules ORDER BY deadline_at, agreement_id').all<Row>()).results.filter(r => byId.has(r.agreement_id))
   const ids = rows.map(r => r.agreement_id)
   const [terms, renewals, notices] = await Promise.all(['lk_terms', 'lk_renewals', 'lk_notices'].map(table => all(env.DB, table, ids)))
+  const { rollNoticeDeadlines } = await installationSettings(env.DB)
   await recordReads(env, actor, rows.filter(r => byId.get(r.agreement_id)!.restricted).map(r => ({ action: 'agreement.view', agreementId: r.agreement_id, summary: 'Read restricted reminder schedule.' })))
   return rows.map(r => {
-    const a = byId.get(r.agreement_id)!, current = lifecycle(a, terms, renewals, notices, Date.now())
+    const a = byId.get(r.agreement_id)!, current = lifecycle(a, terms, renewals, notices, Date.now(), rollNoticeDeadlines)
     const matches = a.version === r.agreement_version && current.deadline?.at === r.deadline_at && !current.missing.length && !current.terminationUnsent
     return { ...r, offsets: JSON.parse(r.offsets), reminders: JSON.parse(r.reminders), schedule_status: matches ? 'scheduled' : 'needs_review' }
   })

@@ -18,6 +18,9 @@ export function money(cents: number | null | undefined): string {
   return '$' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })
 }
 
+/** US-001: an amount in its own currency, with the code: £40,000.00 GBP. */
+export const inCurrency = (cents: number, currency: string) => (cents / 100).toLocaleString('en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }) + ' ' + currency
+
 export const personName = (state: LocketState, id: string | null | undefined) => (id ? state.operators.find(o => o.id === id)?.name ?? 'Former member' : '—')
 export const partyName = (state: LocketState, id: string) => state.parties.find(p => p.id === id)?.name ?? '—'
 export const versionsOf = (state: LocketState, agreementId: string) => state.versions.filter(v => v.agreement_id === agreementId).sort((a, b) => a.number - b.number)

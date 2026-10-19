@@ -1,7 +1,7 @@
 // US business days (APPROVE-004): Monday to Friday in a person's US time zone,
 // skipping the observed US federal holidays. A holiday on a Saturday is observed
 // on the Friday before and one on a Sunday on the Monday after.
-import { addDays, zonedInstant } from './dates'
+import { addDays, noticeDeadline, zonedInstant } from './dates'
 
 export const usZones = ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Phoenix', 'America/Los_Angeles', 'America/Anchorage', 'Pacific/Honolulu'] as const
 export type UsZone = (typeof usZones)[number]
@@ -55,4 +55,17 @@ export function addBusinessDays(at: number, days: number, zone: string): number 
     if (isBusinessDay(date)) counted++
   }
   return zonedInstant(date, start.time, zone) + (at % 1000)
+}
+
+/** US-001: the date itself when it is a business day, else the closest business day before it. */
+export function previousBusinessDay(date: string): string {
+  while (!isBusinessDay(date)) date = addDays(date, -1)
+  return date
+}
+/** A notice deadline, rolled back to the previous US business day when the installation's option is on. */
+export function noticeDeadlineFor(endDate: string, noticeDays: number, timeZone: string, roll: boolean): { date: string; at: number } {
+  const plain = noticeDeadline(endDate, noticeDays, timeZone)
+  if (!roll) return plain
+  const date = previousBusinessDay(plain.date)
+  return { date, at: zonedInstant(date, '23:59:59', timeZone) }
 }

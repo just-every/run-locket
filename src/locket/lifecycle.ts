@@ -1,5 +1,6 @@
 // Read-only projection. Durable history and new renewal types are RENEW-007.
-import { addDays, noticeDeadline, zonedInstant } from './dates'
+import { noticeDeadlineFor } from './business-days'
+import { addDays, zonedInstant } from './dates'
 import { daysUntil } from './display'
 type Row = { id: string; [key: string]: any }
 export interface Lifecycle {
@@ -18,7 +19,8 @@ function addMonths(date: string, months: number): string {
   first.setUTCDate(Math.min(d, last))
   return first.toISOString().slice(0, 10)
 }
-export function lifecycle(a: Row, terms: Row[], renewals: Row[], notices: Row[], now: number): Lifecycle {
+/** `roll` is the installation's US-001 business-day option for notice deadlines. */
+export function lifecycle(a: Row, terms: Row[], renewals: Row[], notices: Row[], now: number, roll = false): Lifecycle {
   const confirmed = new Map(terms.filter(t => t.agreement_id === a.id && t.status === 'confirmed').map(t => [t.key, t.value as string]))
   const needed = ['effective_date', 'end_date', 'auto_renew', 'notice_days', 'governing_law', 'payment_terms']
   if (confirmed.get('auto_renew') === 'yes') needed.push('renewal_term_months')
@@ -30,14 +32,14 @@ export function lifecycle(a: Row, terms: Row[], renewals: Row[], notices: Row[],
   if (!end || !auto || (auto === 'yes' && (!Number.isInteger(months) || months < 1 || days === undefined))) return result
   const zone = a.timezone, today = localDate(now, zone)
   const renewal = renewals.find(r => r.agreement_id === a.id)
-  let deadline = days === undefined ? null : noticeDeadline(end, Number(days), zone)
+  let deadline = days === undefined ? null : noticeDeadlineFor(end, Number(days), zone, roll)
   const renewalStart = addDays(end, 1)
   while (auto === 'yes' && deadline && deadline.at < now) {
     if (renewal?.decision === 'terminate' && renewal.decided_at <= deadline.at) break
     start = addMonths(renewalStart, (term - 1) * months)
     end = addDays(addMonths(renewalStart, term * months), -1)
     term++
-    deadline = noticeDeadline(end, Number(days), zone)
+    deadline = noticeDeadlineFor(end, Number(days), zone, roll)
   }
   const termination = renewal?.decision === 'terminate' && (!deadline || renewal.decided_at <= deadline.at)
   const sent = termination && notices.some(n => n.renewal_id === renewal.id && n.status === 'sent' && n.sent_at <= (deadline?.at ?? Infinity))

@@ -7,7 +7,7 @@ import type { Locket } from './app'
 import { Avatar, Badge, Empty, Field, Form, Icon, Person, value } from './controls'
 import { DocumentPage, useRedline } from './document'
 import { AssignEntity, entityName } from './entities'
-import { brief, can, currentVersion, day, parse, partyName, personName, plural, roleLabel, stamp, typeLabel, versionName, versionsOf, when } from './format'
+import { brief, can, currentVersion, day, dayOf, inCurrency, money, parse, partyName, personName, plural, roleLabel, stamp, typeLabel, versionName, versionsOf, when } from './format'
 import { Approvals, Review } from './review'
 import { AgentPlace, TopTools } from './shell'
 import { Execution, Signature } from './signature'
@@ -64,6 +64,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { 
         <dl className="lk-doc-meta">
           <div><dt>Needed by</dt><dd>{day(a.needed_by)}</dd></div>
           <div><dt>Counterparty</dt><dd>{partyName(state, a.party_id)}</dd></div>
+          <div><dt>Value</dt><dd><AgreementValue state={state} a={a} /></dd></div>
           {state.entities.length > 0 && <div><dt>Our entity</dt><dd>{entityName(state, a.entity_id)}<AssignEntity state={state} a={a} locket={locket} /></dd></div>}
           <div><dt>Owner</dt><dd><Person name={personName(state, a.owner_id)} /></dd></div>
           <div><dt>Last updated</dt><dd>{stamp(a.updated_at, { zone: a.timezone })}</dd></div>
@@ -129,9 +130,11 @@ function Details({ state, a, locket }: { state: LocketState; a: Row; locket: Loc
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Request details</h2></div>
         {editable ? (
-          <Form busy={busy} submit="Save details" onSubmit={data => void run('request.update', { agreementId: a.id, version: a.version, title: value(data, 'title'), value: value(data, 'value'), ownerId: value(data, 'ownerId'), neededBy: value(data, 'neededBy'), restricted: data.get('restricted') === 'on' })}>
+          <Form busy={busy} submit="Save details" onSubmit={data => void run('request.update', { agreementId: a.id, version: a.version, title: value(data, 'title'), value: value(data, 'value'), currency: value(data, 'currency').toUpperCase() || 'USD', ...(value(data, 'usdRate') ? { usdRate: value(data, 'usdRate') } : {}), ownerId: value(data, 'ownerId'), neededBy: value(data, 'neededBy'), restricted: data.get('restricted') === 'on' })}>
             <Field label="Title"><input name="title" defaultValue={a.title} required /></Field>
-            <Field label="Value (USD)" hint="Changing the value withdraws earlier approvals."><input name="value" inputMode="decimal" defaultValue={a.value_cents === null ? '' : String(a.value_cents / 100)} /></Field>
+            <Field label="Currency"><input name="currency" defaultValue={a.currency} maxLength={3} pattern="[A-Za-z]{3}" required /></Field>
+            <Field label={`Value (${a.currency})`} hint="Changing the value, currency or rate withdraws earlier approvals."><input name="value" inputMode="decimal" defaultValue={(a.original_cents ?? a.value_cents) === null ? '' : String((a.original_cents ?? a.value_cents) / 100)} /></Field>
+            <Field label="US dollars per 1 unit" hint="Only for a value in another currency."><input name="usdRate" inputMode="decimal" defaultValue={a.usd_rate ?? ''} /></Field>
             <Field label="Responsible person"><select name="ownerId" defaultValue={a.owner_id}>{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
             <Field label="Needed by"><input name="neededBy" type="date" defaultValue={a.needed_by ?? ''} /></Field>
             <label className="lk-check"><input type="checkbox" name="restricted" defaultChecked={!!a.restricted} /> Restricted: only owner, counsel, requester, responsible person and people granted access can see it</label>
@@ -155,4 +158,11 @@ function Details({ state, a, locket }: { state: LocketState; a: Row; locket: Loc
       </section>
     </div>
   )
+}
+
+/** US-001: the USD value, and for another currency its original amount and the recorded rate. */
+export function AgreementValue({ state, a }: { state: LocketState; a: Row }) {
+  if (a.value_cents === null) return <>—</>
+  if (a.original_cents === null) return <>{money(a.value_cents)} USD</>
+  return <span className="lk-value">{inCurrency(a.original_cents, a.currency)}<small>{money(a.value_cents)} USD at {a.usd_rate} USD per {a.currency}, rate recorded by {personName(state, a.rate_recorded_by)} on {dayOf(a.rate_recorded_at, a.timezone)}</small></span>
 }

@@ -5,7 +5,8 @@
 import { may, requireRole } from './access'
 import { fileInput, storeArtifact } from './artifacts'
 import type { Ctx, Handler } from './commands'
-import { noticeDeadline } from './dates'
+import { noticeDeadlineFor } from './business-days'
+import { installationSettings } from './installation'
 import { frozenLetter } from './notice-letters'
 import { initialTracking } from './notice-tracking'
 import { day, deadline as zoned, termLabel, termValue as termText } from './display'
@@ -60,7 +61,7 @@ const proposeTerm: Handler = async (c, p) => {
 export async function renewalWrites(c: Ctx, a: AgreementRow, confirmed: Map<string, string>): Promise<{ writes: Sql[]; summary: string | null }> {
   const end = confirmed.get('end_date'), days = confirmed.get('notice_days')
   if (!end || days === undefined) return { writes: [sql('DELETE FROM lk_renewals WHERE agreement_id=? AND decision IS NULL AND NOT EXISTS(SELECT 1 FROM lk_notices n WHERE n.agreement_id=lk_renewals.agreement_id)', a.id)], summary: null }
-  const deadline = noticeDeadline(end, Number(days), a.timezone)
+  const deadline = noticeDeadlineFor(end, Number(days), a.timezone, (await installationSettings(c.db)).rollNoticeDeadlines)
   const autoRenew = confirmed.get('auto_renew') === 'yes' ? 1 : 0
   return {
     writes: [
