@@ -29,6 +29,7 @@ import { noticeEventResponse } from './notice-events'
 import { savedViewHandlers } from './saved-views'
 import { entityHandlers } from './entities'
 import { installationHandlers } from './installation'
+import { counterpartyHandlers } from './counterparties'
 import { repositoryResult, repositoryCsv } from './repository'
 import { Problem } from './model'
 import { obligationHandlers } from './obligations'
@@ -41,6 +42,7 @@ export const handlers: Record<string, Handler> = {
   ...savedViewHandlers,
   ...entityHandlers,
   ...installationHandlers,
+  ...counterpartyHandlers,
   'notice.email': emailNotice,
   'notice.letter': prepareLetter,
   'notice.tracking': trackNotice,

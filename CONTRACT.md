@@ -109,7 +109,7 @@ Each installation has an intake address (Postmark inbound, or a forwarding rule 
 #### INTAKE-004 — CRM intake and status writeback: Salesforce, HubSpot and Orbit.
 The owner connects Salesforce, HubSpot or Orbit with OAuth. A seller starts a contract request from an opportunity or deal (a Salesforce Lightning action, a HubSpot CRM card, an Orbit deal action); account, contacts, amount in USD and close date populate the request. The deal's products (Salesforce opportunity products, HubSpot line items, Orbit deal lines) come across with product, quantity, unit price, discount and term, and fill the pricing table of the generated order form (`DRAFT-002`). Locket writes the agreement's status, current version link and, on execution, the executed PDF link and key dates back to the deal. Field mappings are visible and editable; a failed writeback is shown on the agreement and the connection (`INT-004`).
 
-*Acceptance:* a Workers journey with a HubSpot API fake and an Orbit fake starts a request from a deal, sees the mapped fields, drives the agreement to executed and reads the deal's status, link and end date written back; a forced 500 on writeback shows a retryable failure on both the agreement and the connection. A deal with three line items produces an order form whose pricing table lists them and totals the deal amount in USD. The same journey runs against a Salesforce fake. Live runs against a Salesforce Developer Edition org and a HubSpot developer test account are recorded before the clause is accepted.
+*Acceptance:* a Workers journey with a HubSpot API fake and an Orbit fake starts a request from a deal, sees the mapped fields, drives the agreement to executed and reads the deal's status, link and end date written back; a forced 500 on writeback shows a retryable failure on both the agreement and the connection. A deal with three line items produces an order form whose pricing table lists them and totals the deal amount in USD. The same journey runs against a Salesforce fake. Live runs against a Salesforce Developer Edition org and a HubSpot developer test account are recorded before the clause is accepted. The deal's HubSpot company is linked to the counterparty and shown on its `REPO-010` page.
 
 *Status:* missing. No CRM connector exists.
 
@@ -201,9 +201,11 @@ Beyond restricted agreements, the owner defines departments and groups (Sales, P
 #### REPO-010 — Counterparty records.
 Each counterparty has its legal entity name, entity type and state of formation, EIN where supplied, addresses, notice address and method, contacts and authorized signatories, every agreement in its families, total and annual contracted value in USD, and open obligations and deadlines. Duplicates are merged with history; CRM, accounting and procurement records (`INTAKE-004`, `LINK-001`, `LINK-002`) link to the same counterparty.
 
-*Acceptance:* a journey adds a counterparty with a notice address, links three agreements, merges a duplicate created by intake, and sees the combined value, open deadlines and linked HubSpot company on the counterparty page.
+Exactly: anyone who takes requests (owner, counsel, approver, requester) records a counterparty's legal name, kind, entity type, state or country of formation, EIN or foreign tax ID (`US-001`), email, registered address, notice address and method (email, post, courier or by hand), contacts and authorized signatories (name, email and title); Locket records signatories and never validates signing authority. The page shows only the agreements the reader may see (`ACCESS-001`), grouped by family (`REPO-008`), with their open obligations and `OBL-002` risk. Total contracted value is the USD value (`US-001`) of its executed and imported agreements; annual value is each one's value over its confirmed effective date to confirmed end date (both inclusive) scaled to 365 days and rounded half up to the cent, and an agreement without a value or without both dates is listed as not counted. The next notice deadline is the earliest current one (`RENEW-007`, with `US-001` rolling). Owner or counsel merge a duplicate into the record they keep, giving a reason: in one guarded write its agreements and clickwrap acceptances move to the kept record, approvals of agreements still in negotiation stop counting (the counterparty in their decision context changed), and the duplicate stays as history marked merged into the kept record with who, when and why; intake by the duplicate's name or identity lands on the kept record, and a merged record cannot be edited or merged again. CRM, accounting and procurement links (`INTAKE-004`, `LINK-001`, `LINK-002`) each attach their external record to this same counterparty and show it on this page before they ship.
 
-*Status:* partial. Counterparties with a name, kind, EIN or foreign tax ID (`US-001`) and email are created and reused by intake (`src/locket/agreements.ts`), and a counterparty page lists the agreements the reader may see with their open obligations and `OBL-002` risk (`src/ui/counterparty.tsx`); entity details, addresses, notice address and method, contacts, signatories, contracted values, deadlines, merging and linked records do not exist.
+*Acceptance:* a journey adds a counterparty with a notice address, links three agreements, merges a duplicate created by intake, and sees the combined value and open deadlines on the counterparty page; the linked HubSpot company is asserted by `INTAKE-004`'s journey.
+
+*Status:* done. Counterparty details, notice address and method, contacts and signatories, family-grouped visible agreements, contracted and annual USD, the next notice deadline, obligation risk and guarded merging ship (`src/locket/counterparties.ts`, `src/locket/counterparty-summary.ts`, `src/ui/counterparty.tsx`, `tests/api/counterparties.test.mjs`, `tests/browser/counterparties.spec.ts`).
 
 #### REPO-011 — Bulk repository actions.
 From any search, filter or saved view (`REPO-006`, `REPO-007`), a person selects up to 5,000 agreements and acts on all of them at once:
@@ -892,8 +894,8 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 14 | 32 | 34 | 80 |
-| All | 33 | 32 | 34 | 99 |
+| Target and push further | 15 | 31 | 34 | 80 |
+| All | 34 | 31 | 34 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -930,7 +932,7 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | `REPO-007` | Saved views and columns | target | done | `src/locket/saved-views.ts`; `src/locket/repository.ts`; `tests/api/saved-views.test.mjs`; `tests/browser/saved-views.spec.ts` |  |
 | `REPO-008` | Agreement families | target | done | `src/locket/families.ts`; `src/locket/family-projection.ts`; `src/ui/family.tsx`; `tests/api/families.test.mjs`; `tests/browser/families.spec.ts` | |
 | `REPO-009` | Groups, departments and field-level access | target | partial | `src/locket/access.ts`; `tests/api/security.test.mjs` | Groups, departments and field-level hiding do not exist |
-| `REPO-010` | Counterparty records | target | partial | `src/locket/agreements.ts`; `src/ui/counterparty.tsx` | A counterparty page with its tax ID, visible agreements, open obligations and OBL-002 risk ships; entity details, addresses, notice address and method, contacts, signatories, contracted values, deadlines, merging and linked CRM/accounting/procurement records do not exist |
+| `REPO-010` | Counterparty records | target | done | `src/locket/counterparties.ts`; `src/locket/counterparty-summary.ts`; `tests/api/counterparties.test.mjs`; `tests/browser/counterparties.spec.ts` |  |
 | `REPO-011` | Bulk repository actions | target | missing |  | The register has no selection or bulk actions |
 | `DRAFT-002` | Word documents from templates | target | partial | `src/locket/library.ts`; `src/locket/pdf.ts` | DOCX output with preserved formatting and answer-driven conditional clauses do not exist |
 | `DRAFT-003` | Clause library in negotiation | target | done | `src/locket/clause-insertion.ts`; `src/locket/clause-provenance.ts`; `tests/api/clause-library.test.mjs`; `tests/browser/clause-library.spec.ts` |  |

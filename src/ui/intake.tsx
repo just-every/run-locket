@@ -28,7 +28,7 @@ function PartyField({ state }: { state: LocketState }) {
         <label><input type="radio" name="partyMode" value="new" checked={mode === 'new'} onChange={() => setMode('new')} /> New</label>
       </div>
       {mode === 'existing' ? (
-        <Field label="Counterparty"><select name="partyId">{state.parties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+        <Field label="Counterparty"><select name="partyId">{state.parties.filter(p => !p.merged_into).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
       ) : (
         <div className="lk-grid2">
           <Field label="Name"><input name="partyName" required /></Field>

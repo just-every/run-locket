@@ -21,7 +21,8 @@ The screens and any agent use the same HTTP API. Authenticate with a Base native
 
 | Type | Who | Payload |
 | --- | --- | --- |
-| `party.save` | owner, counsel, approver, requester | `{id?, name, kind:"customer"|"supplier"|"partner"|"other", taxIdKind?:"ein"|"foreign", taxId?, email?}` (an EIN is written 12-3456789) |
+| `party.save` | owner, counsel, approver, requester | `{id?, version?, name, entityType?, formation?, registeredAddress?, noticeAddress?, noticeMethod?:"email"|"post"|"courier"|"hand", contacts?:[{name,email,title?}], signatories?:[{name,email,title}], kind:"customer"|"supplier"|"partner"|"other", taxIdKind?:"ein"|"foreign", taxId?, email?}` (an EIN is written 12-3456789) |
+| `party.merge` | owner, counsel | `{keepId, keepVersion, duplicateId, duplicateVersion, reason}` — REPO-010: moves the duplicate's agreements and clickwrap acceptances to the kept record in one guarded write, withdraws approvals of agreements still in negotiation, and keeps the duplicate as merged history (`MERGED` on any later edit or merge) |
 | `request.create` | same | `{title, type:"customer"|"supplier"|"nda"|"amendment"|"order_form"|"other", partyId? or party:{name,kind,taxIdKind?,taxId?}, value?, currency?, usdRate?, ownerId?, neededBy?, startDate?, timezone?, restricted?, parentId?, relation?, requirements?:[label], templateVersionId?, fields?, clauseChoices?, file?, text?}` → `{id, reference, versionId}` |
 | `request.update` | same | `{agreementId, version, title?, value?, currency?, usdRate?, ownerId?, neededBy?, restricted?}` — a value in another currency needs `usdRate` (US dollars per 1 unit, up to six places); `value_cents` stores the USD equivalent rounded half up, `original_cents` the amount as entered |
 | `requirement.add` / `requirement.attach` | same | `{agreementId, label}` / `{agreementId, requirementId, file}` |

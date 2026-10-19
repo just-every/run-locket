@@ -9,8 +9,8 @@ import { agreementReference, bool, fail, json, list, money, object, oneOf, optio
 import { agreementGuards, bump, invalidateApprovals, requireStatus, statusAfterChange, versionDigest, versionsOf, visibleAgreement, type AgreementRow } from './records'
 
 export const agreementTypes = ['customer', 'supplier', 'nda', 'amendment', 'order_form', 'other'] as const
-export const partyKinds = ['customer', 'supplier', 'partner', 'other'] as const
 import { relations } from './family-relations'
+import { livePartyId, partyInsert } from './counterparties'
 import { entityById, entityForNewAgreement, entityValues, requireEntityScope, type EntityRow } from './entities'
 
 import { installationSettings } from './installation'
@@ -24,29 +24,17 @@ async function operatorExists(c: Ctx, id: string): Promise<void> {
 
 async function partyFor(c: Ctx, p: Record<string, unknown>): Promise<{ id: string; name: string; writes: Sql[] }> {
   if (typeof p.partyId === 'string' && p.partyId) {
-    const party = await c.db.prepare('SELECT id, name FROM lk_parties WHERE id=?').bind(p.partyId).first<{ id: string; name: string }>()
+    const party = await c.db.prepare('SELECT id, name FROM lk_parties WHERE id=?').bind(await livePartyId(c, p.partyId)).first<{ id: string; name: string }>()
     if (!party) fail('INVALID', 'Choose an existing counterparty or enter a new one.', 400, { field: 'partyId' })
     return { ...party, writes: [] }
   }
   const input = object(p.party, 'party')
   const name = text(input, 'name', 200)
-  const existing = await c.db.prepare('SELECT id, name FROM lk_parties WHERE lower(name)=lower(?)').bind(name).first<{ id: string; name: string }>()
-  if (existing) return { ...existing, writes: [] }
+  const existing = await c.db.prepare('SELECT id, name, merged_into FROM lk_parties WHERE lower(name)=lower(?)').bind(name).first<{ id: string; name: string; merged_into: string | null }>()
+  if (existing?.merged_into) return { ...(await c.db.prepare('SELECT id, name FROM lk_parties WHERE id=?').bind(existing.merged_into).first<{ id: string; name: string }>())!, writes: [] }
+  if (existing) return { id: existing.id, name: existing.name, writes: [] }
   const id = crypto.randomUUID()
-  return { id, name, writes: [partyInsert(id, name, oneOf(input, 'kind', partyKinds), input, c)] }
-}
-
-const ein = /^\d{2}-\d{7}$/
-/** US-001: a counterparty's EIN (12-3456789), or a foreign tax ID recorded as given. */
-function taxId(p: Record<string, unknown>) {
-  const kind = p.taxIdKind === undefined || p.taxIdKind === null || p.taxIdKind === '' ? null : oneOf(p, 'taxIdKind', ['ein', 'foreign'] as const)
-  const id = kind ? text(p, 'taxId', 40) : null
-  if (kind === 'ein' && !ein.test(id!)) fail('INVALID', 'An EIN is nine digits written 12-3456789.', 400, { field: 'taxId' })
-  return { kind, id }
-}
-function partyInsert(id: string, name: string, kind: string, p: Record<string, unknown>, c: Ctx): Sql {
-  const tax = taxId(p)
-  return sql('INSERT INTO lk_parties(id,name,kind,tax_id,tax_id_kind,email,created_by,created_at,version) VALUES(?,?,?,?,?,?,?,?,1)', id, name, kind, tax.id, tax.kind, optionalText(p, 'email', 200), c.actor.id, c.now)
+  return { id, name, writes: [partyInsert(id, name, input, c)] }
 }
 
 /** US-001: a value in USD, or in another currency with the USD-per-unit rate a person records (never fetched). */
@@ -379,21 +367,7 @@ const importLegacy: Handler = async (c, p) => {
   }
 }
 
-const saveParty: Handler = async (c, p) => {
-  requireRole(c.actor, may.intake, 'maintain counterparties')
-  const name = text(p, 'name', 200), kind = oneOf(p, 'kind', partyKinds)
-  if (typeof p.id === 'string') {
-    const row = await c.db.prepare('SELECT version FROM lk_parties WHERE id=?').bind(p.id).first<{ version: number }>()
-    if (!row) fail('NOT_FOUND', 'No such counterparty.', 404)
-    const tax = taxId(p)
-    return { allowed: may.intake, result: { id: p.id }, writes: [sql('UPDATE lk_parties SET name=?, kind=?, tax_id=?, tax_id_kind=?, email=?, version=version+1 WHERE id=?', name, kind, tax.id, tax.kind, optionalText(p, 'email', 200), p.id)], checks: [sql('(SELECT version FROM lk_parties WHERE id=?)=?', p.id, row.version)], audit: [{ action: 'party.save', summary: `Updated counterparty ${name}` }] }
-  }
-  const id = crypto.randomUUID()
-  return { allowed: may.intake, result: { id }, writes: [partyInsert(id, name, kind, p, c)], audit: [{ action: 'party.save', summary: `Added counterparty ${name}` }] }
-}
-
 export const agreementHandlers: Record<string, Handler> = {
-  'party.save': saveParty,
   'request.create': createRequest,
   'request.update': updateRequest,
   'requirement.add': addRequirement,

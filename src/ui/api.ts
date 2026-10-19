@@ -28,6 +28,7 @@ export interface LocketState {
   }
   deadlineReminders: { offsets: number[]; overdueEscalationDays: number; sent: Row[]; events: Row[] }
   risk: import('../locket/obligation-risk').RiskView
+  counterparties: Record<string, import('../locket/counterparty-summary').CounterpartySummary>
   packages: Row[]
   executions: Row[]
   clickwrapTerms: Row[]

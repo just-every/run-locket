@@ -14,6 +14,7 @@ import { approvalReminderState } from './approval-reminders'
 import { deadlineReminderState } from './deadline-reminders'
 import { installationSettings } from './installation'
 import { risks } from './obligation-risk'
+import { counterpartySummaries } from './counterparty-summary'
 
 const all = async <T = any>(db: D1Database, query: string, ...params: unknown[]) => (await db.prepare(query).bind(...params).all<T>()).results
 
@@ -47,14 +48,17 @@ export async function state(env: Bindings, actor: Actor) {
   const terms = mine(await all(db, 'SELECT * FROM lk_terms ORDER BY created_at'), ids)
   const proposals = mine(await all(db, 'SELECT * FROM lk_proposals ORDER BY prepared_at DESC'), ids).filter(p => seesIntake(actor, p))
   const obligations = mine(await all(db, 'SELECT * FROM lk_obligations ORDER BY due_date'), ids), now = Date.now()
+  const settings = await installationSettings(db), notices = mine(await all(db, 'SELECT * FROM lk_notices ORDER BY created_at'), ids)
+  const parties = (await all(db, 'SELECT * FROM lk_parties ORDER BY name')).filter(p => !hiddenParties.has(p.id))
   await recordReads(env, actor, agreements.filter(a => a.restricted).map(a => ({ action: 'agreement.view', agreementId: a.id, summary: 'Read restricted agreement in workspace state.' })))
   return {
     savedViews: await savedViews(env, actor),
     actor: { id: actor.id, name: actor.name, role: actor.role },
     now,
-    settings: await installationSettings(db),
+    settings,
     operators: operators.map(o => (actor.role === 'owner' ? o : { id: o.id, name: o.name, role: o.role, status: o.status })),
-    parties: (await all(db, 'SELECT * FROM lk_parties ORDER BY name')).filter(p => !hiddenParties.has(p.id)),
+    parties,
+    counterparties: counterpartySummaries({ agreements, terms, renewals, notices, parties }, now, settings.rollNoticeDeadlines),
     entities: await all(db, 'SELECT * FROM lk_entities ORDER BY legal_name'),
     agreements,
     routes,
@@ -84,7 +88,7 @@ export async function state(env: Bindings, actor: Actor) {
     noticeDispatches: mine(await all(db, 'SELECT * FROM lk_notice_dispatches'), ids),
     noticeEvents: mine(await all(db, 'SELECT * FROM lk_notice_events'), ids),
     noticeTracking: mine(await all(db, 'SELECT * FROM lk_notice_tracking'), ids),
-    notices: mine(await all(db, 'SELECT * FROM lk_notices ORDER BY created_at'), ids),
+    notices,
     proposals,
     imports: actor.role === 'owner' ? await all(db, 'SELECT id, kit, status, source_label, preview, fingerprint, created_by, created_at, applied_by, applied_at, undone_by, undone_at, undo_reason, version FROM lk_import_batches ORDER BY created_at DESC') : [],
     access: mine(await all(db, 'SELECT * FROM lk_access'), ids),
