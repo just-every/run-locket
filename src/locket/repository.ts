@@ -24,6 +24,7 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
   const s = await state(env, actor), evaluatedAt = s.now
   const people = new Map(s.operators.map(o => [o.id, o.name]))
   const parties = new Map(s.parties.map(p => [p.id, p.name]))
+  const entities = new Map(s.entities.map(e => [e.id, e.legal_name]))
   const query = definition.query.toLocaleLowerCase()
   const filters = definition.filters.map(f => {
     const kind = repositoryFields.find(c => c.id === f.field)!.kind
@@ -35,7 +36,7 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
     const terms = Object.fromEntries(s.terms.filter(t => t.agreement_id === a.id && t.status === 'confirmed').map(t => [t.key, t.value]))
     const values: RepositoryRow['values'] = {
       reference: a.reference, title: a.title, type: a.type, status: a.status,
-      counterparty: parties.get(a.party_id) ?? null, value: a.value_cents, currency: a.currency,
+      counterparty: parties.get(a.party_id) ?? null, entity: entities.get(a.entity_id) ?? null, value: a.value_cents, currency: a.currency,
       owner: people.get(a.owner_id) ?? null, requester: people.get(a.requester_id) ?? null,
       restricted: a.restricted ? 'yes' : 'no', needed_by: a.needed_by, start_date: a.start_date,
       timezone: a.timezone, origin: a.origin,

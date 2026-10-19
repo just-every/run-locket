@@ -584,9 +584,13 @@ On a verified request (for example under the California Consumer Privacy Act), t
 #### ENTITY-001 — Our contracting entities.
 The owner records each of the business's own legal entities: legal name, entity type, state or country of formation, EIN or foreign tax ID, registered and notice addresses, default currency and time zone, and authorized signatories. Every agreement names the entity that contracts. Templates, clause wordings, playbooks and signer rules (`SIGN-005`) can be limited to an entity. The entity's legal name, notice address and signatory fill templates and outgoing notices (`RENEW-006`). Search, saved views and reports filter and group by entity, and extraction proposes our entity from the document (`INTAKE-007`, `REPO-004`).
 
+Exactly: only the owner records or edits an entity, and everyone who reads agreements sees the recorded entities. Legal names are unique ignoring case; an EIN is nine digits written 12-3456789, and a foreign tax ID is recorded as given. Once any entity is recorded, every new request, single legacy import and move-in batch must name one; a batch names one entity for all its agreements. A new agreement takes its entity's time zone unless one is given. Agreement values stay in USD until `US-001` adds original currency, so an entity's default currency is recorded and shown but does not convert anything. Agreements recorded before the first entity show "Not recorded" (a register value and a portfolio tile) until the owner or counsel names the entity. That change is audited and refused while out for signature or after cancellation; before signature it makes earlier approvals stop counting. A template, a single clause wording or a playbook rule with no entity serves every entity. One limited to an entity is not offered to, and is refused for, any other entity's agreement. Templates fill `{{our_entity}}`, `{{our_notice_address}}` and `{{our_signatory}}` (the first recorded signatory, as "Name, Title") and are refused when the agreement names no entity. A signature package adds the chosen signatory of the agreement's entity (by default the first recorded) as our signer "for" the entity's legal name. It refuses anyone else presented as signing for that entity; Locket records the owner's list and never verifies signing authority. A notice letter is headed with the entity's legal name and notice address and closes with its first signatory "for and on behalf of" the entity. The register's "Our entity" field filters, sorts and exports by legal name. The portfolio dashboard shows a tile per entity and takes one entity as a filter.
+
+This clause is done for every capability that exists today. Each later clause that adds one of the following names our entity before it ships: `SIGN-005` signer rules limited to an entity, `REPORT-001` and `REPORT-002` reports grouped and filtered by entity, extraction proposing our entity under `INTAKE-007` and `REPO-004`, `REPO-011` bulk entity changes, and the `MOVE-002` to `MOVE-007` move-in kits.
+
 *Acceptance:* a journey adds a Delaware parent company and a UK subsidiary. An agreement for the UK entity offers only that entity's template and routes to its signatory. Its termination notice carries the UK entity's notice address, and the register filters agreements by entity.
 
-*Status:* missing. Agreements have no record of our contracting entity.
+*Status:* done. Owner-recorded entities, entity-limited templates, wordings and rules, signatory routing, filled notices, register filter and portfolio grouping are proven through HTTP (`tests/api/entities.test.mjs`) and at 1440 and 390 pixels (`tests/browser/entities.spec.ts`).
 
 #### OPS-001 — Self-hosted install, updates and security answers.
 Locket runs in the buyer's own Cloudflare account. `rer setup` and `rer deploy` create the Worker, D1 database and R2 storage there, so contract data stays in the buyer's account.
@@ -857,13 +861,13 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 
 Judged from the code and tests at commit `60d8141678e03c5186ab053e58f0ed92e8c1074e` (17 October 2026).
 
-Target rows updated through 19 October 2026, with clause-named public-door evidence below.
+Target rows updated through 20 October 2026, with clause-named public-door evidence below.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 9 | 35 | 36 | 80 |
-| All | 28 | 35 | 36 | 99 |
+| Target and push further | 10 | 35 | 35 | 80 |
+| All | 29 | 35 | 35 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -944,7 +948,7 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | `US-001` | US defaults | target | partial | `src/locket/model.ts`; `src/locket/dates.ts` | Values are stored and shown in USD and the default zone is America/New_York; counterparties still carry an ABN, and installation time-zone selection, business-day rolling and multi-currency do not exist |
 | `AUDIT-001` | Filterable activity audit trail | target | done | `src/locket/audit.ts`; `src/locket/views.ts`; `tests/api/flows.test.mjs`; `tests/browser/audit.spec.ts` |  |
 | `ERASE-001` | Personal-data erasure with legal hold | target | missing |  | No erasure, hold or retention capability exists |
-| `ENTITY-001` | Our contracting entities | target | missing |  | Agreements have no record of our contracting entity |
+| `ENTITY-001` | Our contracting entities | target | done | `src/locket/entities.ts`; `tests/api/entities.test.mjs`; `tests/browser/entities.spec.ts` |  |
 | `OPS-001` | Self-hosted install, updates and security answers | target | partial | `OPERATIONS.md`; `deploy.json`; `tests/portable.mjs` | The release cadence, the one-command update with an automatic export and the security questionnaire do not exist |
 | `REPORT-001` | Cycle time, throughput and bottlenecks | target | missing |  | No analytics exist |
 | `REPORT-002` | Custom and scheduled reports | target | missing |  | No reports or schedules exist |

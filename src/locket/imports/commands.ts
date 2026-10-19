@@ -7,6 +7,7 @@ import type { Ctx, Handler } from '../commands'
 import { agreementReference, fail, integer, json, oneOf, parse, sql, text, type Actor } from '../model'
 import { plural } from '../display'
 import { locketTargets } from './adapter'
+import { entityForNewAgreement, type EntityRow } from '../entities'
 import { KIT, MAPPING_VERSION, preview, readKitInput, type PreviewRow } from './docusign'
 
 const DESTINATION = 'locket'
@@ -31,7 +32,7 @@ export function importContext(c: Ctx, batchId: string): D1ImportContext {
 }
 
 /** Native rows each importable envelope becomes, with identities fixed at preview. */
-function plannedEntities(c: Ctx, r: PreviewRow, files: Map<string, Uint8Array>, parties: Map<string, string>, batchId: string, at: number): TargetEffect[] {
+function plannedEntities(c: Ctx, r: PreviewRow, files: Map<string, Uint8Array>, parties: Map<string, string>, batchId: string, at: number, entity: EntityRow | null): TargetEffect[] {
   const agreementId = crypto.randomUUID(), versionId = crypto.randomUUID(), executionId = crypto.randomUUID()
   const effects: TargetEffect[] = []
   let partyId = parties.get(r.counterparty.toLowerCase())
@@ -73,7 +74,7 @@ function plannedEntities(c: Ctx, r: PreviewRow, files: Map<string, Uint8Array>, 
     targetKind: 'agreement',
     targetId: agreementId,
     value: {
-      agreement: { id: agreementId, reference, title: agreementTitle(r.subject) || `DocuSign envelope ${r.envelopeId}`, type: r.type, party_id: partyId, value_cents: null, currency: 'USD', owner_id: c.actor.id, requester_id: c.actor.id, status: 'imported', restricted: 0, needed_by: null, start_date: null, timezone: 'America/New_York', parent_id: null, relation: null, origin: KIT, current_version_id: versionId, created_at: at, updated_at: at, version: 1 },
+      agreement: { id: agreementId, reference, title: agreementTitle(r.subject) || `DocuSign envelope ${r.envelopeId}`, type: r.type, party_id: partyId, value_cents: null, currency: 'USD', owner_id: c.actor.id, requester_id: c.actor.id, status: 'imported', restricted: 0, needed_by: null, start_date: null, timezone: entity?.timezone ?? 'America/New_York', entity_id: entity?.id ?? null, parent_id: null, relation: null, origin: KIT, current_version_id: versionId, created_at: at, updated_at: at, version: 1 },
       version: { id: versionId, agreement_id: agreementId, number: 1, kind: 'imported', label: `Signed in DocuSign, envelope ${r.envelopeId}`, template_version_id: null, fields: null, text: null, text_source: 'none', digest: r.document!.sha256, created_by: c.actor.id, created_at: at },
       execution: { id: executionId, agreement_id: agreementId, package_id: null, provider: 'docusign', envelope_id: r.envelopeId, signed_artifact_id: signed.id, certificate_artifact_id: certificate?.id ?? null, signers: json(signerList), executed_on: r.completedOn, imported: 1, checks: json(checks), status: r.certificate && signerList.length ? 'reconciled' : 'needs_review', resolution: null, resolved_by: null, recorded_by: c.actor.id, recorded_at: at },
       terms,
@@ -87,6 +88,8 @@ const previewImport: Handler = async (c, p) => {
   requireRole(c.actor, may.imports, 'move archives in')
   oneOf(p, 'kit', [KIT] as const)
   const input = await readKitInput(p)
+  // ENTITY-001: one batch moves in for one of our entities once any is recorded.
+  const entity = await entityForNewAgreement(c, p)
   const result = await preview(c.db, input)
   const batchId = crypto.randomUUID()
   const files = new Map(input.files.map(f => [f.path, f.bytes]))
@@ -110,7 +113,7 @@ const previewImport: Handler = async (c, p) => {
     identities.add(sourceId)
     const payload = { row: r.row, envelopeId: r.envelopeId, outcome: r.outcome, notes: r.notes, document: r.document, certificate: r.certificate }
     source.records.push({ namespace: KIT, kind: 'envelope', sourceId, payload, payloadHash: kitSha256(canonicalJson(payload)), artifactHash: input.manifest.sha256, location: { artifact: input.manifest.filename, row: r.row } })
-    if (r.outcome === 'import') planned.set(sourceId, plannedEntities(c, r, files, parties, batchId, c.now))
+    if (r.outcome === 'import') planned.set(sourceId, plannedEntities(c, r, files, parties, batchId, c.now, entity))
   }
   const context = importContext(c, batchId)
   const plan = await planD1Import(source, { version: MAPPING_VERSION, map: record => {

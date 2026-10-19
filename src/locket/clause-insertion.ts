@@ -5,6 +5,7 @@ import { retainedClauseUses, type ClauseUse } from './clause-provenance'
 import type { Handler } from './commands'
 import { fail, integer, json, parse, sql, text } from './model'
 import { textPdf } from './pdf'
+import { requireEntityScope } from './entities'
 import { agreementGuards, bump, currentVersion, invalidateApprovals, requireStatus, statusAfterChange, versionDigest, visibleAgreement } from './records'
 
 export const insertClause: Handler = async (c, p) => {
@@ -15,11 +16,13 @@ export const insertClause: Handler = async (c, p) => {
   if (base.id !== p.versionId) fail('NOT_CURRENT', 'Insert into the current document version. Reload before editing.', 409)
   if (base.text === null) fail('NO_TEXT', 'This version needs text before a clause can be inserted.', 409)
   const libraryVersionId = text(p, 'libraryVersionId', 100)
-  const library = await c.db.prepare('SELECT v.*, t.name FROM lk_template_versions v JOIN lk_templates t ON t.id=v.template_id WHERE v.id=?').bind(libraryVersionId).first<any>()
+  const library = await c.db.prepare('SELECT v.*, t.name, t.entity_id AS template_entity_id FROM lk_template_versions v JOIN lk_templates t ON t.id=v.template_id WHERE v.id=?').bind(libraryVersionId).first<any>()
   if (!library || library.status !== 'approved') fail('TEMPLATE_NOT_APPROVED', 'Choose a clause from an approved library version.', 409)
   const clause = parse<any[]>(library.clauses).find(x => x.key === text(p, 'clauseKey', 40))
   const variant = clause?.variants.find((x: any) => x.id === text(p, 'variantId', 40))
   if (!clause || !variant) fail('INVALID', 'That wording is not in this library version.')
+  requireEntityScope(library.template_entity_id, a, `${library.name} v${library.number}`)
+  requireEntityScope(variant.entityId, a, `The ${clause.title} wording ${variant.label}`)
   const start = integer(p, 'start', 0, base.text.length), end = integer(p, 'end', start, base.text.length)
   if (typeof p.quote !== 'string' || base.text.slice(start, end) !== p.quote) fail('CITATION', 'The selected passage changed. Select it again.', 409)
   const insertedText = start === end && start === base.text.length && start > 0 && !base.text.endsWith('\n') ? '\n' + variant.text : variant.text

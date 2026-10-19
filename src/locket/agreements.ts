@@ -11,6 +11,7 @@ import { agreementGuards, bump, invalidateApprovals, requireStatus, statusAfterC
 export const agreementTypes = ['customer', 'supplier', 'nda', 'amendment', 'order_form', 'other'] as const
 export const partyKinds = ['customer', 'supplier', 'partner', 'other'] as const
 import { relations } from './family-relations'
+import { entityById, entityForNewAgreement, entityValues, requireEntityScope, type EntityRow } from './entities'
 
 /** Decided default: attachments each request type must carry before review. */
 export const defaultRequirements: Record<string, string[]> = {
@@ -43,17 +44,21 @@ async function partyFor(c: Ctx, p: Record<string, unknown>): Promise<{ id: strin
 }
 
 /** Fills a template version's fields and chosen clause variants. */
-export function populate(template: { body: string; fields: string; clauses: string }, values: Record<string, unknown>, choices: Record<string, unknown>) {
+export function populate(template: { body: string; fields: string; clauses: string }, values: Record<string, unknown>, choices: Record<string, unknown>, entityId: string | null = null) {
   const fields = parse<{ name: string; label: string; required: boolean }[]>(template.fields)
-  const clauses = parse<{ key: string; title: string; variants: { id: string; label: string; text: string }[] }[]>(template.clauses)
+  const clauses = parse<{ key: string; title: string; variants: { id: string; label: string; text: string; entityId?: string | null }[] }[]>(template.clauses)
   const missing = fields.filter(f => f.required && (typeof values[f.name] !== 'string' || !(values[f.name] as string).trim())).map(f => f.label)
   if (missing.length) fail('FIELDS', `Fill in: ${missing.join(', ')}.`, 400, { missing })
   const chosen: Record<string, string> = {}
   let body = template.body.replace(/\[\[clause:([a-z0-9_-]+)\]\]/g, (_, key: string) => {
     const clause = clauses.find(x => x.key === key)
     if (!clause) fail('TEMPLATE', `The template refers to an undefined clause ${key}.`)
-    const variant = clause.variants.find(v => v.id === choices[key]) ?? clause.variants[0]
+    // A wording limited to one of our entities serves only that entity's agreements.
+    const offered = clause.variants.filter(v => !v.entityId || v.entityId === entityId)
+    const variant = clause.variants.find(v => v.id === choices[key]) ?? offered[0]
+    if (!variant) fail('ENTITY_SCOPE', `Clause ${clause.title} has no wording for this entity.`, 409)
     if (choices[key] !== undefined && variant.id !== choices[key]) fail('INVALID', `Clause ${clause.title} has no variant ${String(choices[key])}.`)
+    requireEntityScope(variant.entityId, { entity_id: entityId }, `The ${clause.title} wording ${variant.label}`)
     chosen[key] = variant.id
     return variant.text
   })
@@ -64,7 +69,7 @@ export function populate(template: { body: string; fields: string; clauses: stri
 
 async function approvedTemplate(c: Ctx, id: unknown) {
   if (typeof id !== 'string') fail('INVALID', 'templateVersionId is required.')
-  const t = await c.db.prepare('SELECT v.*, t.name FROM lk_template_versions v JOIN lk_templates t ON t.id=v.template_id WHERE v.id=?').bind(id).first<any>()
+  const t = await c.db.prepare('SELECT v.*, t.name, t.entity_id AS template_entity_id FROM lk_template_versions v JOIN lk_templates t ON t.id=v.template_id WHERE v.id=?').bind(id).first<any>()
   if (!t) fail('INVALID', 'That template version does not exist.')
   if (t.status !== 'approved') fail('TEMPLATE_NOT_APPROVED', `${t.name} v${t.number} is ${t.status}; only an approved template version can be used.`, 409)
   return t
@@ -96,10 +101,11 @@ async function uploadedVersion(c: Ctx, agreementId: string, number: number, kind
     writes: [...artifact.writes, sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, kind, label, null, fields ? json(fields) : null, body, source, digest, c.actor.id, c.now)],
   }
 }
-async function templateVersion(c: Ctx, agreementId: string, number: number, p: Record<string, unknown>, extra: Record<string, string>, priorFields: string | null = null): Promise<NewVersion> {
+async function templateVersion(c: Ctx, agreementId: string, number: number, p: Record<string, unknown>, extra: Record<string, string>, entity: EntityRow | null, priorFields: string | null = null): Promise<NewVersion> {
   const template = await approvedTemplate(c, p.templateVersionId)
-  const values = { ...extra, ...object(p.fields ?? {}, 'fields') }
-  const filled = populate(template, values, object(p.clauseChoices ?? {}, 'clauseChoices'))
+  requireEntityScope(template.template_entity_id, { entity_id: entity?.id ?? null }, `${template.name} v${template.number}`)
+  const values = { ...extra, ...object(p.fields ?? {}, 'fields'), ...entityValues(entity, template.body) }
+  const filled = populate(template, values, object(p.clauseChoices ?? {}, 'clauseChoices'), entity?.id ?? null)
   const id = crypto.randomUUID()
   const uses = retainedClauseUses(priorFields, filled.text)
   const selectedFields = { template: template.id, ...filled.fields }
@@ -130,18 +136,19 @@ const createRequest: Handler = async (c, p) => {
     await visibleAgreement(c, parentId)
     checks.push(sql('EXISTS(SELECT 1 FROM lk_agreements WHERE id=?)', parentId))
   }
+  const entity = await entityForNewAgreement(c, p)
   const id = crypto.randomUUID(), reference = agreementReference(id)
-  const zone = p.timezone ? timezone(p, 'timezone') : 'America/New_York'
+  const zone = p.timezone ? timezone(p, 'timezone') : (entity?.timezone ?? 'America/New_York')
   const relation = parentId ? (type === 'amendment' ? 'amends' : type === 'order_form' ? 'order_under' : oneOf(p, 'relation', relations)) : null
   const writes: Sql[] = [...party.writes]
   let version: NewVersion | null = null
-  if (p.templateVersionId) version = await templateVersion(c, id, 1, p, { counterparty: party.name, title })
+  if (p.templateVersionId) version = await templateVersion(c, id, 1, p, { counterparty: party.name, title }, entity)
   else if (p.file) version = await uploadedVersion(c, id, 1, 'upload', 'Initial draft', fileInput(p.file), optionalText(p, 'text', 400_000))
   writes.push(
     sql(
-      'INSERT INTO lk_agreements VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)',
+      'INSERT INTO lk_agreements VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)',
       id, reference, title, type, party.id, valueCents, 'USD', ownerId, c.actor.id, 'draft', bool(p, 'restricted') ? 1 : 0,
-      optionalDate(p, 'neededBy'), optionalDate(p, 'startDate'), zone, parentId, relation, 'intake', version?.id ?? null, c.now, c.now,
+      optionalDate(p, 'neededBy'), optionalDate(p, 'startDate'), zone, parentId, relation, 'intake', version?.id ?? null, c.now, c.now, entity?.id ?? null,
     ),
   )
   if (version) writes.push(...version.writes)
@@ -151,8 +158,8 @@ const createRequest: Handler = async (c, p) => {
     allowed: may.intake,
     result: { id, reference, versionId: version?.id ?? null },
     writes,
-    checks,
-    audit: [{ action: 'request.create', agreementId: id, summary: `Requested ${title} with ${party.name}` }],
+    checks: entity ? [...checks, sql('EXISTS(SELECT 1 FROM lk_entities WHERE id=?)', entity.id)] : [...checks, sql('NOT EXISTS(SELECT 1 FROM lk_entities)')],
+    audit: [{ action: 'request.create', agreementId: id, summary: `Requested ${title} with ${party.name}${entity ? ` for ${entity.legal_name}` : ''}` }],
   }
 }
 
@@ -246,7 +253,7 @@ const generateVersion: Handler = async (c, p) => {
   const party = await c.db.prepare('SELECT name FROM lk_parties WHERE id=?').bind(a.party_id).first<{ name: string }>()
   const number = await nextVersion(c, a)
   const prior = await c.db.prepare('SELECT fields FROM lk_versions WHERE id=?').bind(a.current_version_id).first<{ fields: string | null }>()
-  const v = await templateVersion(c, a.id, number, p, { counterparty: party?.name ?? '', title: a.title }, prior?.fields ?? null)
+  const v = await templateVersion(c, a.id, number, p, { counterparty: party?.name ?? '', title: a.title }, await entityById(c, a.entity_id), prior?.fields ?? null)
   return versionOutcome(c, a, p, v, `Generated version ${number} from an approved template`)
 }
 /** Attaches the PDF a DOCX or template version will be signed as; it becomes part of the version's identity. */
@@ -319,6 +326,7 @@ const importLegacy: Handler = async (c, p) => {
   const sameSource = await c.db.prepare('SELECT a.reference FROM lk_artifacts f JOIN lk_agreements a ON a.id=f.agreement_id WHERE f.source_system=? AND f.source_id=? LIMIT 1').bind(sourceSystem, sourceId).first<{ reference: string }>()
   if (sameSource) fail('DUPLICATE_SOURCE', `${sourceSystem} ${sourceId} was already imported as ${sameSource.reference}.`, 409, { reference: sameSource.reference })
   const party = await partyFor(c, p)
+  const entity = await entityForNewAgreement(c, p)
   const ownerId = typeof p.ownerId === 'string' && p.ownerId ? p.ownerId : c.actor.id
   await operatorExists(c, ownerId)
   const id = crypto.randomUUID(), versionId = crypto.randomUUID(), reference = agreementReference(id)
@@ -333,11 +341,11 @@ const importLegacy: Handler = async (c, p) => {
     result: { id, reference, versionId, sha256: artifact.sha256 },
     writes: [
       ...party.writes,
-      sql('INSERT INTO lk_agreements VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)', id, reference, title, type, party.id, money(p, 'value'), 'USD', ownerId, c.actor.id, 'imported', bool(p, 'restricted') ? 1 : 0, null, optionalDate(p, 'startDate'), p.timezone ? timezone(p, 'timezone') : 'America/New_York', null, null, 'legacy', versionId, c.now, c.now),
+      sql('INSERT INTO lk_agreements VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)', id, reference, title, type, party.id, money(p, 'value'), 'USD', ownerId, c.actor.id, 'imported', bool(p, 'restricted') ? 1 : 0, null, optionalDate(p, 'startDate'), p.timezone ? timezone(p, 'timezone') : (entity?.timezone ?? 'America/New_York'), null, null, 'legacy', versionId, c.now, c.now, entity?.id ?? null),
       ...artifact.writes,
       sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', versionId, id, 1, 'legacy', `Imported from ${sourceSystem}`, null, null, body, source, vdigest, c.actor.id, c.now),
     ],
-    checks: [sql('NOT EXISTS(SELECT 1 FROM lk_artifacts WHERE sha256=? AND role IN (\'original\',\'signed\'))', digest)],
+    checks: [sql('NOT EXISTS(SELECT 1 FROM lk_artifacts WHERE sha256=? AND role IN (\'original\',\'signed\'))', digest), entity ? sql('EXISTS(SELECT 1 FROM lk_entities WHERE id=?)', entity.id) : sql('NOT EXISTS(SELECT 1 FROM lk_entities)')],
     audit: [{ action: 'legacy.import', agreementId: id, summary: `Imported ${file.filename} from ${sourceSystem} ${sourceId}` }],
   }
 }

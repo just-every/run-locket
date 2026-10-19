@@ -2,6 +2,7 @@
 import { may, requireRole } from './access'
 import type { Ctx, Handler } from './commands'
 import { canonical, fail, integer, json, list, oneOf, optionalText, parse, sha256, sql, text, type Role, type Sql } from './model'
+import { requireEntityScope } from './entities'
 import { agreementGuards, bump, currentVersion, invalidateApprovals, requireStatus, visibleAgreement, type AgreementRow, type VersionRow } from './records'
 
 export interface Requirement {
@@ -50,6 +51,7 @@ export async function deviationOutcome(c: Ctx, a: AgreementRow, p: Record<string
   const clauseKey = text(p, 'clauseKey', 40)
   const rule = parse<any[]>(playbook.rules).find(r => r.key === clauseKey)
   if (!rule) fail('INVALID', `Playbook v${playbook.number} has no rule for ${clauseKey}.`, 400, { field: 'clauseKey' })
+  requireEntityScope(rule.entityId, a, `Playbook rule ${clauseKey}`)
   const result = oneOf(p, 'result', ['met', 'breached', 'undetermined'] as const)
   const start = integer(p, 'start', 0, v.text.length), end = integer(p, 'end', start + 1, v.text.length)
   const quote = text(p, 'quote', 20_000)

@@ -6,6 +6,7 @@ import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Avatar, Badge, Empty, Field, Form, Icon, Person, value } from './controls'
 import { DocumentPage, useRedline } from './document'
+import { AssignEntity, entityName } from './entities'
 import { brief, can, currentVersion, day, parse, partyName, personName, plural, roleLabel, stamp, typeLabel, versionName, versionsOf, when } from './format'
 import { Approvals, Review } from './review'
 import { AgentPlace, TopTools } from './shell'
@@ -63,6 +64,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { 
         <dl className="lk-doc-meta">
           <div><dt>Needed by</dt><dd>{day(a.needed_by)}</dd></div>
           <div><dt>Counterparty</dt><dd>{partyName(state, a.party_id)}</dd></div>
+          {state.entities.length > 0 && <div><dt>Our entity</dt><dd>{entityName(state, a.entity_id)}<AssignEntity state={state} a={a} locket={locket} /></dd></div>}
           <div><dt>Owner</dt><dd><Person name={personName(state, a.owner_id)} /></dd></div>
           <div><dt>Last updated</dt><dd>{stamp(a.updated_at, { zone: a.timezone })}</dd></div>
         </dl>

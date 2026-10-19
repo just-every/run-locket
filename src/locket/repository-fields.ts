@@ -6,6 +6,7 @@ export const repositoryFields: RepositoryField[] = [
   { id: 'type', label: 'Type', kind: 'text' },
   { id: 'status', label: 'Status', kind: 'text' },
   { id: 'counterparty', label: 'Counterparty', kind: 'text' },
+  { id: 'entity', label: 'Our entity', kind: 'text' },
   { id: 'value', label: 'Value (USD)', kind: 'money' },
   { id: 'currency', label: 'Currency', kind: 'text' },
   { id: 'owner', label: 'Owner', kind: 'text' },

@@ -3,10 +3,18 @@ import { PDF, storeArtifact } from './artifacts'
 import type { Ctx, Handler } from './commands'
 import { fail, sql } from './model'
 import { textPdf } from './pdf'
+import { entityById, signatoriesOf } from './entities'
 import { agreementGuards, bump, visibleAgreement } from './records'
 
+/** The letter carries our contracting entity's legal name, notice address and first signatory (ENTITY-001). */
 export async function frozenLetter(c: Ctx, n: { id: string; agreement_id: string; recipient: string; body: string }) {
-  const stored = await storeArtifact({ filename: 'notice.pdf', mediaType: PDF, bytes: textPdf('Notice', `To: ${n.recipient}\n\n${n.body}`, 'Locket notice letter') }, { agreementId: n.agreement_id, role: 'rendition', provenance: { kind: 'notice_letter', noticeId: n.id }, actorId: c.actor.id, at: c.now })
+  const agreement = await c.db.prepare('SELECT entity_id FROM lk_agreements WHERE id=?').bind(n.agreement_id).first<{ entity_id: string | null }>()
+  const entity = await entityById(c, agreement?.entity_id ?? null)
+  const signatory = entity ? signatoriesOf(entity)[0] : undefined
+  const letter = entity
+    ? `From: ${entity.legal_name}\n${entity.notice_address}\n\nTo: ${n.recipient}\n\n${n.body}\n\n${signatory ? `${signatory.name}, ${signatory.title}\n` : ''}For and on behalf of ${entity.legal_name}`
+    : `To: ${n.recipient}\n\n${n.body}`
+  const stored = await storeArtifact({ filename: 'notice.pdf', mediaType: PDF, bytes: textPdf('Notice', letter, 'Locket notice letter') }, { agreementId: n.agreement_id, role: 'rendition', provenance: { kind: 'notice_letter', noticeId: n.id }, actorId: c.actor.id, at: c.now })
   return { digest: stored.sha256, writes: [...stored.writes, sql('INSERT INTO lk_notice_letters VALUES(?,?,?,?,?)', n.id, n.agreement_id, stored.id, stored.sha256, n.recipient)] }
 }
 

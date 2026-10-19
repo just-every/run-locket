@@ -3,12 +3,13 @@ import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
 import { Field, Form, Icon, value } from './controls'
 import { can, parse, typeLabel } from './format'
+import { EntitySelect } from './entities'
 
 const defaults: Record<string, string[]> = { customer: ['Statement of work or schedule'], supplier: ['Certificate of insurance'], amendment: ['Signed parent agreement'], order_form: [], nda: [], other: [] }
 
-export function TemplateFields({ template }: { template: Row }) {
+export function TemplateFields({ template, entityId = null }: { template: Row; entityId?: string | null }) {
   const fields = parse<{ name: string; label: string; required: boolean }[]>(template.fields)
-  const clauses = parse<{ key: string; title: string; variants: { id: string; label: string }[] }[]>(template.clauses)
+  const clauses = parse<{ key: string; title: string; variants: { id: string; label: string; entityId?: string | null }[] }[]>(template.clauses).map(c => ({ ...c, variants: c.variants.filter(v => !v.entityId || v.entityId === entityId) }))
   return (
     <>
       {fields.map(f => <Field key={f.name} label={`${f.label}${f.required ? ' *' : ''}`}><input name={`field.${f.name}`} required={f.required} /></Field>)}
@@ -43,8 +44,11 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
   const { run, busy } = locket
   const [type, setType] = useState('customer')
   const [source, setSource] = useState('template')
-  const approved = state.templateVersions.filter(t => t.status === 'approved')
-  const [templateId, setTemplateId] = useState(approved[0]?.id ?? '')
+  const [entityId, setEntityId] = useState(state.entities[0]?.id ?? '')
+  // Templates limited to another of our entities are not offered (ENTITY-001).
+  const approved = state.templateVersions.filter(t => t.status === 'approved' && [null, undefined, entityId].includes(state.templates.find(x => x.id === t.template_id)?.entity_id))
+  const [chosenTemplate, setTemplateId] = useState(approved[0]?.id ?? '')
+  const templateId = approved.some(t => t.id === chosenTemplate) ? chosenTemplate : approved[0]?.id ?? ''
   const template = approved.find(t => t.id === templateId)
   const people = state.operators.filter(o => o.status === 'active')
   if (!can(state, 'owner', 'counsel', 'approver', 'requester')) return <p className="lk-empty">Your role cannot create requests.</p>
@@ -60,7 +64,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
           if (k.startsWith('clause.')) clauseChoices[k.slice(7)] = String(v)
         }
         const result = await run('request.create', {
-          title: value(data, 'title'), type, ...party(data), value: value(data, 'value') || undefined, ownerId: value(data, 'ownerId'),
+          title: value(data, 'title'), type, ...party(data), ...(entityId ? { entityId } : {}), value: value(data, 'value') || undefined, ownerId: value(data, 'ownerId'),
           neededBy: value(data, 'neededBy') || undefined, startDate: value(data, 'startDate') || undefined, restricted: data.get('restricted') === 'on',
           parentId: value(data, 'parentId') || undefined, requirements: value(data, 'requirements').split('\n').map(s => s.trim()).filter(Boolean),
           ...(source === 'template' && template ? { templateVersionId: template.id, fields, clauseChoices } : {}),
@@ -80,6 +84,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
               <Field label="Proposed start date"><input type="date" name="startDate" /></Field>
               {['amendment', 'order_form'].includes(type) && <Field label="Belongs to agreement *"><select name="parentId" required>{state.agreements.map(x => <option key={x.id} value={x.id}>{x.reference} {x.title}</option>)}</select></Field>}
             </div>
+            {state.entities.length > 0 && <EntitySelect state={state} value={entityId} onChange={setEntityId} />}
             <PartyField state={state} />
             <label className="lk-check"><input type="checkbox" name="restricted" /> Restricted agreement (visible to owner, counsel, you, the responsible person and people granted access)</label>
           </section>
@@ -93,7 +98,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
             {source === 'template' && (approved.length ? (
               <>
                 <Field label="Template version"><select value={templateId} onChange={e => setTemplateId(e.target.value)}>{approved.map(t => <option key={t.id} value={t.id}>{state.templates.find(x => x.id === t.template_id)?.name} v{t.number}</option>)}</select></Field>
-                {template && <TemplateFields key={template.id} template={template} />}
+                {template && <TemplateFields key={template.id + entityId} template={template} entityId={entityId || null} />}
               </>
             ) : <p className="lk-muted">No approved template yet. Owner or counsel approve templates in the Library.</p>)}
             {source === 'file' && (
@@ -122,7 +127,7 @@ export function LegacyImport({ state, locket }: { state: LocketState; locket: Lo
       <Form busy={busy} submit="Import file" onSubmit={async data => {
         const file = data.get('file') as File | null
         if (!file?.size) return locket.setError('Choose the PDF or DOCX to import.')
-        const result = await run('legacy.import', { title: value(data, 'title'), type: value(data, 'type'), ...party(data), ownerId: value(data, 'ownerId'), sourceSystem: value(data, 'sourceSystem'), sourceId: value(data, 'sourceId'), signed: data.get('signed') === 'on', text: value(data, 'text') || undefined, restricted: data.get('restricted') === 'on', file: await fileToPayload(file) })
+        const result = await run('legacy.import', { title: value(data, 'title'), type: value(data, 'type'), ...party(data), ...(state.entities.length ? { entityId: value(data, 'entityId') } : {}), ownerId: value(data, 'ownerId'), sourceSystem: value(data, 'sourceSystem'), sourceId: value(data, 'sourceId'), signed: data.get('signed') === 'on', text: value(data, 'text') || undefined, restricted: data.get('restricted') === 'on', file: await fileToPayload(file) })
         if (result) window.location.hash = `agreement/${result.id}`
       }}>
         <div className="lk-intake-grid">
@@ -131,6 +136,7 @@ export function LegacyImport({ state, locket }: { state: LocketState; locket: Lo
             <Field label="Agreement title *"><input name="title" required /></Field>
             <Field label="Type"><select name="type">{Object.entries(typeLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
             <Field label="Responsible person"><select name="ownerId" defaultValue={state.actor.id}>{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+            {state.entities.length > 0 && <EntitySelect state={state} />}
             <PartyField state={state} />
           </section>
           <section className="lk-panel">

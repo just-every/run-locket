@@ -4,6 +4,7 @@
 import { may, requireRole } from './access'
 import type { Handler } from './commands'
 import { agreementTypes } from './agreements'
+import { entityFields, requireEntitiesExist } from './entities'
 import { fail, json, list, object, oneOf, optionalText, sql, text } from './model'
 
 const fieldName = /^[a-z][a-z0-9_]{0,39}$/
@@ -23,28 +24,32 @@ function templateContent(p: Record<string, unknown>) {
     if (!clauseKey.test(key)) fail('INVALID', `Clause keys use lower case letters, digits, dashes and underscores (${key}).`)
     const variants = list(c, 'variants', 10).map((v, j) => {
       const variant = object(v, `clauses[${i}].variants[${j}]`)
-      return { id: text(variant, 'id', 40), label: text(variant, 'label', 120), text: text(variant, 'text', 20_000), notes: optionalText(variant, 'notes', 4000) ?? '' }
+      return { id: text(variant, 'id', 40), label: text(variant, 'label', 120), text: text(variant, 'text', 20_000), notes: optionalText(variant, 'notes', 4000) ?? '', entityId: optionalText(variant, 'entityId', 100) }
     })
     if (!variants.length) fail('INVALID', `Clause ${key} needs at least one wording.`)
     if (new Set(variants.map(v => v.id)).size !== variants.length) fail('INVALID', `Clause ${key} has duplicate variant identities.`)
     return { key, title: text(c, 'title', 120), notes: optionalText(c, 'notes', 4000) ?? '', ruleKey: optionalText(c, 'ruleKey', 40) ?? key, variants }
   })
   if (new Set(clauses.map(c => c.key)).size !== clauses.length) fail('INVALID', 'Each clause key must be unique.')
-  for (const m of body.matchAll(/\{\{([a-z0-9_]+)\}\}/gi)) if (!fields.some(f => f.name === m[1]) && !['counterparty', 'title'].includes(m[1])) fail('INVALID', `The body uses {{${m[1]}}} but no field defines it.`)
+  for (const m of body.matchAll(/\{\{([a-z0-9_]+)\}\}/gi)) if (!fields.some(f => f.name === m[1]) && !['counterparty', 'title', ...entityFields].includes(m[1])) fail('INVALID', `The body uses {{${m[1]}}} but no field defines it.`)
   for (const m of body.matchAll(/\[\[clause:([a-z0-9_-]+)\]\]/g)) if (!clauses.some(c => c.key === m[1])) fail('INVALID', `The body places clause ${m[1]} but no clause defines it.`)
   return { body, fields, clauses }
 }
+
+const variantEntities = (content: { clauses: { variants: { entityId: string | null }[] }[] }) => content.clauses.flatMap(c => c.variants.map(v => v.entityId))
 
 const createTemplate: Handler = async (c, p) => {
   requireRole(c.actor, may.library, 'maintain templates')
   const id = crypto.randomUUID(), versionId = crypto.randomUUID()
   const name = text(p, 'name', 120), type = oneOf(p, 'type', agreementTypes)
   const content = templateContent(p)
+  const entityId = optionalText(p, 'entityId', 100)
+  await requireEntitiesExist(c, [entityId, ...variantEntities(content)])
   return {
     allowed: may.library,
     result: { id, versionId },
     writes: [
-      sql('INSERT INTO lk_templates VALUES(?,?,?,?,?)', id, name, type, c.actor.id, c.now),
+      sql('INSERT INTO lk_templates VALUES(?,?,?,?,?,?)', id, name, type, c.actor.id, c.now, entityId),
       sql('INSERT INTO lk_template_versions VALUES(?,?,?,?,?,?,?,?,?,?,?)', versionId, id, 1, content.body, json(content.fields), json(content.clauses), 'draft', c.actor.id, c.now, null, null),
     ],
     audit: [{ action: 'template.create', summary: `Drafted template ${name} v1` }],
@@ -58,6 +63,7 @@ const reviseTemplate: Handler = async (c, p) => {
   const last = await c.db.prepare('SELECT MAX(number) AS n FROM lk_template_versions WHERE template_id=?').bind(template.id).first<{ n: number }>()
   const number = (last?.n ?? 0) + 1, versionId = crypto.randomUUID()
   const content = templateContent(p)
+  await requireEntitiesExist(c, variantEntities(content))
   return {
     allowed: may.library,
     result: { versionId, number },
@@ -97,6 +103,7 @@ function playbookRules(p: Record<string, unknown>) {
       alternatives: list(r, 'alternatives', 10).map(a => (typeof a === 'string' && a.trim() ? a.trim() : fail('INVALID', `Alternatives for ${key} must be text.`))),
       authority: oneOf(r, 'authority', authorities),
       guidance: typeof r.guidance === 'string' ? r.guidance.slice(0, 4000) : '',
+      entityId: optionalText(r, 'entityId', 100),
     }
   })
   if (!rules.length) fail('INVALID', 'A playbook version needs at least one clause rule.')
@@ -107,6 +114,7 @@ function playbookRules(p: Record<string, unknown>) {
 const draftPlaybook: Handler = async (c, p) => {
   requireRole(c.actor, may.library, 'maintain the clause playbook')
   const rules = playbookRules(p)
+  await requireEntitiesExist(c, rules.map(r => r.entityId))
   const last = await c.db.prepare('SELECT MAX(number) AS n FROM lk_playbook_versions').first<{ n: number | null }>()
   const number = (last?.n ?? 0) + 1, id = crypto.randomUUID()
   return {

@@ -23,6 +23,7 @@ import { prepareLetter } from './notice-letters'
 import { trackNotice } from './notice-tracking'
 import { noticeEventResponse } from './notice-events'
 import { savedViewHandlers } from './saved-views'
+import { entityHandlers } from './entities'
 import { repositoryResult, repositoryCsv } from './repository'
 import { Problem } from './model'
 import { obligationHandlers } from './obligations'
@@ -33,6 +34,7 @@ import { compare, download, exportArchive, search, state } from './views'
 
 export const handlers: Record<string, Handler> = {
   ...savedViewHandlers,
+  ...entityHandlers,
   'notice.email': emailNotice,
   'notice.letter': prepareLetter,
   'notice.tracking': trackNotice,
@@ -97,7 +99,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
       }
       return reply(result)
     }
-    if (request.method === 'GET' && path === '/portfolio') return reply(portfolio(await state(env, actor)))
+    if (request.method === 'GET' && path === '/portfolio') return reply(portfolio(await state(env, actor), url.searchParams.get('entityId')))
     if (request.method === 'GET' && path === '/state') { const workspace = await state(env, actor); return reply({ ...workspace, portfolio: portfolio(workspace) }) }
     if (request.method === 'GET' && path === '/search') return reply(await search(env, actor, url.searchParams.get('q') ?? ''))
     if (request.method === 'GET' && path === '/compare') return reply(await compare(env, actor, url.searchParams.get('from') ?? '', url.searchParams.get('to') ?? ''))

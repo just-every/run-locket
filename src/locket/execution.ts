@@ -9,6 +9,7 @@ import { pdfPageCount, textPdf } from './pdf'
 import { day, plural, providerName } from './display'
 import { agreementGuards, bump, currentVersion, requireStatus, visibleAgreement, type AgreementRow } from './records'
 import { decisionContext, routing } from './review'
+import { entityById, signatoriesOf } from './entities'
 
 export const providers = ['docusign', 'adobe-acrobat-sign', 'dropbox-sign', 'pandadoc', 'documenso', 'docuseal', 'paper', 'other'] as const
 const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -36,6 +37,20 @@ const preparePackage: Handler = async (c, p) => {
     if (!email.test(address)) fail('INVALID', `${address} is not an email address.`)
     return { order: i + 1, name: text(r, 'name', 200), email: address.toLowerCase(), action: oneOf(r, 'action', ['sign', 'copy'] as const), signingFor: optionalText(r, 'signingFor', 200) }
   })
+  // ENTITY-001: our side signs through one of the contracting entity's recorded signatories.
+  const entity = await entityById(c, a.entity_id)
+  let ourSignatory: { name: string; email: string; title: string } | null = null
+  if (entity) {
+    const listed = signatoriesOf(entity)
+    if (!listed.length) fail('NO_SIGNATORY', `${entity.legal_name} has no authorized signatory recorded. The owner records one with the entity.`, 409)
+    const chosen = optionalText(p, 'signatoryEmail', 200)?.toLowerCase()
+    ourSignatory = chosen ? listed.find(s => s.email === chosen) ?? fail('SIGNATORY', `${chosen} is not a recorded signatory of ${entity.legal_name}.`, 400, { field: 'signatoryEmail' }) : listed[0]
+    for (const r of recipients)
+      if (r.signingFor?.toLowerCase() === entity.legal_name.toLowerCase() && !listed.some(s => s.email === r.email)) fail('SIGNATORY', `${r.email} is not a recorded signatory of ${entity.legal_name}.`, 400, { field: 'recipients' })
+    const present = recipients.find(r => r.email === ourSignatory!.email)
+    if (present) Object.assign(present, { action: 'sign', signingFor: entity.legal_name })
+    else recipients.push({ order: recipients.length + 1, name: ourSignatory.name, email: ourSignatory.email, action: 'sign', signingFor: entity.legal_name })
+  }
   if (!recipients.some(r => r.action === 'sign')) fail('INVALID', 'Name at least one signer.')
   // The exact approved PDF: the version's own PDF or its attached signing PDF;
   // only text Locket generated from a template is rendered here.
@@ -54,6 +69,7 @@ const preparePackage: Handler = async (c, p) => {
   const manifest = {
     format: 'locket-signature-manifest/1',
     agreement: { id: a.id, reference: a.reference, title: a.title },
+    ...(entity ? { entity: { id: entity.id, legalName: entity.legal_name, signatory: ourSignatory } } : {}),
     version: { id: v.id, number: v.number, digest: v.digest },
     document: { filename: pdf.filename, sha256: pdf.sha256 },
     approvals,
@@ -68,7 +84,7 @@ const preparePackage: Handler = async (c, p) => {
   writes.push(sql("UPDATE lk_packages SET status='voided', void_reason='Replaced by a newer package' WHERE agreement_id=? AND status='prepared'", a.id))
   writes.push(sql('INSERT INTO lk_packages VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', packageId, a.id, v.id, v.digest, pdf.id, stored.id, json(manifest), provider, 'prepared', null, null, null, null, c.actor.id, c.now))
   writes.push(bump(c, a))
-  return { allowed: may.signature, result: { packageId, pdfArtifactId: pdf.id, manifestArtifactId: stored.id, documentSha256: pdf.sha256 }, writes, checks: [...agreementGuards(c, a, p), sql('(SELECT digest FROM lk_versions WHERE id=?)=?', v.id, v.digest)], audit: [{ action: 'package.prepare', agreementId: a.id, summary: `Prepared v${v.number} for ${providerName(provider)} with ${plural(recipients.length, 'recipient')}` }] }
+  return { allowed: may.signature, result: { packageId, pdfArtifactId: pdf.id, manifestArtifactId: stored.id, documentSha256: pdf.sha256, recipients }, writes, checks: [...agreementGuards(c, a, p), sql('(SELECT digest FROM lk_versions WHERE id=?)=?', v.id, v.digest), ...(entity ? [sql('(SELECT version FROM lk_entities WHERE id=?)=?', entity.id, entity.version)] : [])], audit: [{ action: 'package.prepare', agreementId: a.id, summary: `Prepared v${v.number} for ${providerName(provider)} with ${plural(recipients.length, 'recipient')}` }] }
 }
 
 async function packageOf(c: Ctx, a: AgreementRow, id: unknown) {

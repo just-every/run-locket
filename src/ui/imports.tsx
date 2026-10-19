@@ -3,6 +3,7 @@ import { fileToPayload, type LocketState } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, EnvelopeId, Field, Form, value } from './controls'
 import { can, day, parse, personName, plural, when } from './format'
+import { EntitySelect } from './entities'
 
 /** Paths relative to the chosen archive folder: ENVELOPE_ID/file.pdf. */
 function relativePath(file: File) {
@@ -28,9 +29,10 @@ export function Imports({ state, locket }: { state: LocketState; locket: Locket 
               const files = (data.getAll('files') as File[]).filter(f => f.size && /\.pdf$/i.test(f.name))
               if (!manifest?.size) return locket.setError('Choose the envelope report CSV.')
               const payloadFiles = await Promise.all(files.map(async f => ({ path: relativePath(f), base64: (await fileToPayload(f)).base64 })))
-              const result = await run('import.preview', { kit: 'docusign-archive', label: value(data, 'label'), dateFormat: value(data, 'dateFormat'), manifest: await fileToPayload(manifest), files: payloadFiles })
+              const result = await run('import.preview', { kit: 'docusign-archive', label: value(data, 'label'), ...(state.entities.length ? { entityId: value(data, 'entityId') } : {}), dateFormat: value(data, 'dateFormat'), manifest: await fileToPayload(manifest), files: payloadFiles })
               if (result) { setSelected(result.batchId); form.reset() }
             }}>
+              {state.entities.length > 0 && <EntitySelect state={state} />}
               <Field label="Batch name"><input name="label" required placeholder="DocuSign archive to Sep 30, 2026" /></Field>
               <Field label="Envelope report (CSV)" hint="Reports → Envelope Report → Download CSV, with Envelope ID, Subject, Status, Completed On, Recipient Name and Recipient Email columns."><input type="file" name="manifest" accept=".csv" required /></Field>
               <Field label="Downloaded envelopes folder" hint="One folder per envelope ID holding its signed PDFs and Summary.pdf (Certificate of Completion)."><input type="file" name="files" multiple {...{ webkitdirectory: '' }} /></Field>

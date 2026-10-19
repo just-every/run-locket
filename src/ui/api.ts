@@ -7,6 +7,7 @@ export interface LocketState {
   now: number
   operators: Row[]
   parties: Row[]
+  entities: Row[]
   agreements: Row[]
   routes: Record<string, { kind: string; deviationId: string | null; label: string; roles: string[] }[]>
   requirements: Row[]

@@ -22,6 +22,7 @@ export interface AgreementRow {
   relation: string | null
   origin: string
   current_version_id: string | null
+  entity_id: string | null
   created_at: number
   updated_at: number
   version: number

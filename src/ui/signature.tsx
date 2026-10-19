@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, EnvelopeId, Field, Form, Icon, value } from './controls'
+import { signatories } from './entities'
 import { can, currentVersion, day, parse, personName, providerName, providers, versionsOf, when } from './format'
 
 
@@ -12,13 +13,15 @@ export function Signature({ state, a, locket }: { state: LocketState; a: Row; lo
   const packages = state.packages.filter(p => p.agreement_id === a.id).sort((x, y) => y.created_at - x.created_at)
   const versions = versionsOf(state, a.id)
   const may = can(state, 'owner', 'approver', 'requester')
+  const entity = state.entities.find(e => e.id === a.entity_id)
   return (
     <div className="lk-tab-page">
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Send for signature</h2></div>
         {a.status !== 'approved' ? <p className="lk-muted">{a.status === 'out_for_signature' ? 'Out for signature. Record the signed file under Execution when it comes back.' : 'Only an approved version can be packaged for signature.'}</p> : may ? (
-          <Form busy={busy} submit="Prepare signature package" onSubmit={data => void run('package.prepare', { agreementId: a.id, version: a.version, provider: value(data, 'provider'), recipients: recipients.map(r => ({ ...r, signingFor: r.signingFor || undefined })) })}>
+          <Form busy={busy} submit="Prepare signature package" onSubmit={data => void run('package.prepare', { agreementId: a.id, version: a.version, provider: value(data, 'provider'), recipients: recipients.map(r => ({ ...r, signingFor: r.signingFor || undefined })), ...(entity ? { signatoryEmail: value(data, 'signatoryEmail') } : {}) })}>
             <p className="lk-muted">Locket packages the exact approved v{v?.number} PDF and a routing manifest. You send it through your existing signing service; Locket does not sign.</p>
+            {entity && <Field label={`Signs for ${entity.legal_name} *`} hint="Added to the routing as our signer."><select name="signatoryEmail">{signatories(entity).map(s => <option key={s.email} value={s.email}>{s.name}, {s.title}</option>)}</select></Field>}
             <Field label="Signing service"><select name="provider">{providers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></Field>
             <fieldset className="lk-recipients">
               <legend>Recipients, in signing order</legend>
@@ -44,7 +47,7 @@ export function Signature({ state, a, locket }: { state: LocketState; a: Row; lo
             <article key={p.id} className="lk-card">
               <div className="lk-finding-head"><strong>v{versions.find(x => x.id === p.version_id)?.number} via {providerName(p.provider)}</strong><Badge value={p.status} /></div>
               <p className="lk-file-links"><a href={`/api/locket/files/${p.pdf_artifact_id}`} download><Icon name="file" /> Signature-ready PDF</a><a href={`/api/locket/files/${p.manifest_artifact_id}`} download><Icon name="file" /> Routing manifest</a></p>
-              <ol className="lk-recipient-list">{manifest.recipients.map((r: any) => <li key={r.order}>{r.name} &lt;{r.email}&gt; · {r.action === 'sign' ? 'signer' : 'copy'}</li>)}</ol>
+              <ol className="lk-recipient-list">{manifest.recipients.map((r: any) => <li key={r.order}>{r.name} &lt;{r.email}&gt; · {r.action === 'sign' ? 'signer' : 'copy'}{r.signingFor ? ` for ${r.signingFor}` : ''}</li>)}</ol>
               <small title={`PDF sha256 ${manifest.document.sha256}`}>Prepared {when(p.created_at)} by {personName(state, p.created_by)}</small>
               {p.envelope_id && <p>Envelope <EnvelopeId id={p.envelope_id} />, handed off {when(p.sent_at)} by {personName(state, p.sent_by)}</p>}
               {p.void_reason && <p className="lk-muted">Voided: {p.void_reason}</p>}
