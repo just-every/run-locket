@@ -5,7 +5,7 @@
 import type { Bindings } from '../auth.server'
 import { handlers } from '../locket/api'
 import { runCommand } from '../locket/commands'
-import { day } from '../locket/display'
+import { day, writtenDay } from '../locket/display'
 import type { Actor, Role } from '../locket/model'
 import { textPdf } from '../locket/pdf'
 import { team } from './examples'
@@ -58,10 +58,10 @@ export async function seedJourneys(env: Bindings, ownerId: string, now: Date) {
       await run(jenna, 'execution.record', {
         agreementId: 'demo-summit', version: a.version, envelopeId: envelope, executedOn: date(0), documentConfirmed: true,
         signers: people.map(({ name, email }) => ({ name, email })),
-        signed: sample('Platform subscription MSA - signed.pdf', 'Platform subscription MSA', `SAMPLE ONLY - fictional executed copy\nBetween Fieldstone Software, Inc. and Summit Ridge Health.\nTerm ends on ${end}. Give 30 days notice before the end date.\nSigned for both parties through the demo's fictional envelope ${envelope}.`, note),
+        signed: sample('Platform subscription MSA - signed.pdf', 'Platform subscription MSA', `SAMPLE ONLY - fictional executed copy\nBetween Fieldstone Software, Inc. and Summit Ridge Health.\nTerm ends on ${writtenDay(end)}. Give 30 days notice before the end date.\nSigned for both parties through the demo's fictional envelope ${envelope}.`, note),
         certificate: sample('Summary.pdf', 'Certificate of Completion (fictional)', `SAMPLE ONLY - fictional completion summary for envelope ${envelope}.\nSigners: ${people.map(p => p.name).join(', ')}.`, note),
       })
-      for (const [key, value, quote] of [['end_date', end, `Term ends on ${end}.`], ['notice_days', '30', 'Give 30 days notice before the end date.']]) {
+      for (const [key, value, quote] of [['end_date', end, `Term ends on ${writtenDay(end)}.`], ['notice_days', '30', 'Give 30 days notice before the end date.']]) {
         const term = await run(owner, 'term.propose', { agreementId: 'demo-summit', key, value, citation: { quote } })
         await run(marcus, 'term.decide', { agreementId: 'demo-summit', termId: term.id, decision: 'confirm' })
       }

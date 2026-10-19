@@ -16,9 +16,9 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
   const people = state.operators.filter(o => o.status === 'active')
   if (!effective) return <Empty>Terms and obligations are confirmed against the executed agreement. This one is not executed yet.</Empty>
   return (
-    <div className="lk-columns">
+    <div className="lk-tab-page">
       <section className="lk-panel">
-        <div className="lk-panel-head"><h2>Terms</h2>{renewal && <span className="lk-muted">Notice deadline <span className="lk-nowrap">{deadline(renewal.deadline_at, renewal.timezone)}</span> ({renewal.timezone})</span>}</div>
+        <div className="lk-panel-head"><h2>Terms</h2>{renewal && <span className="lk-muted">Notice deadline <span className="lk-nowrap">{deadline(renewal.deadline_at, renewal.timezone)}</span></span>}</div>
         <table className="lk-table">
           <thead><tr><th>Term</th><th>Value</th><th>Evidence</th><th>Status</th><th><span className="lk-visually-hidden">Actions</span></th></tr></thead>
           <tbody>

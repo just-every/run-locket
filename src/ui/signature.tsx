@@ -13,7 +13,7 @@ export function Signature({ state, a, locket }: { state: LocketState; a: Row; lo
   const versions = versionsOf(state, a.id)
   const may = can(state, 'owner', 'approver', 'requester')
   return (
-    <div className="lk-columns">
+    <div className="lk-tab-page">
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Send for signature</h2></div>
         {a.status !== 'approved' ? <p className="lk-muted">{a.status === 'out_for_signature' ? 'Out for signature. Record the signed file under Execution when it comes back.' : 'Only an approved version can be packaged for signature.'}</p> : may ? (
@@ -69,7 +69,7 @@ export function Execution({ state, a, locket }: { state: LocketState; a: Row; lo
   const executions = state.executions.filter(e => e.agreement_id === a.id)
   const file = (id: string | null) => state.artifacts.find(f => f.id === id)
   return (
-    <div className="lk-columns">
+    <div className="lk-tab-page">
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Record the signed agreement</h2></div>
         {a.status !== 'out_for_signature' || !sent ? <p className="lk-muted">{a.status === 'executed' || a.status === 'imported' ? 'Executed evidence is recorded under Execution evidence.' : 'Record the signature handoff first.'}</p> : can(state, 'owner', 'approver', 'requester') ? (

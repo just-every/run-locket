@@ -5,7 +5,7 @@ import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Avatar, Badge, Empty, Field, Form, Icon, Person, value } from './controls'
 import { DocumentPage, useRedline } from './document'
-import { can, currentVersion, longDay, parse, partyName, personName, plural, roleLabel, stamp, typeLabel, versionsOf, when } from './format'
+import { brief, can, currentVersion, day, parse, partyName, personName, plural, roleLabel, stamp, typeLabel, versionsOf, when } from './format'
 import { Approvals, Review } from './review'
 import { AgentPlace, TopTools } from './shell'
 import { Execution, Signature } from './signature'
@@ -22,7 +22,7 @@ const tabs = [
   { id: 'terms', title: 'Terms and obligations' },
   { id: 'details', title: 'Details and access' },
 ]
-const fileLabel: Record<string, string> = { original: 'Original', rendition: 'Signing PDF', package: 'Signature-ready PDF', manifest: 'Routing manifest' }
+const fileLabel: Record<string, string> = { original: 'Original', rendition: 'Signing PDF', signed: 'Signed PDF', package: 'Signature-ready PDF', manifest: 'Routing manifest' }
 
 export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { state: LocketState; id: string; tab: string; shown: string; locket: Locket }) {
   const a = state.agreements.find(x => x.id === id)
@@ -36,8 +36,9 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { 
   if (!a) return <Empty>No agreement you can access has this link. <a href="#agreements">Back to agreements</a></Empty>
   const selected = tabs.some(t => t.id === tab) ? tab : 'versions'
   const parent = a.parent_id ? state.agreements.find(x => x.id === a.parent_id) : null
-  const files = shown ? state.artifacts.filter(f => f.version_id === shown.id && ['original', 'rendition'].includes(f.role)) : []
-  const original = files.find(f => f.role === 'original') ?? files.find(f => f.role === 'rendition') ?? files[0]
+  // The shown version's own file: the original upload, the signing PDF, or the signed PDF an import kept.
+  const files = shown ? state.artifacts.filter(f => f.version_id === shown.id && ['original', 'rendition', 'signed'].includes(f.role)) : []
+  const original = files.find(f => f.role === 'original') ?? files.find(f => f.role === 'signed') ?? files.find(f => f.role === 'rendition')
   const route = state.routes[a.id] ?? []
   const live = liveApprovals(state, a)
   const decided = route.filter(step => live.some(x => x.kind === step.kind && (x.deviation_id ?? null) === (step.deviationId ?? null))).length
@@ -49,7 +50,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { 
       {shown && <AgentPlace><AgentReply state={state} a={a} shown={shown} original={original} /></AgentPlace>}
       <div className="lk-doc-head">
         <div className="lk-doc-title">
-          <h1><span className={`lk-file-icon${docx ? '' : ' lk-file-pdf'}`} aria-hidden="true">{docx ? 'W' : original ? 'PDF' : ''}</span>{original?.filename ?? (shown ? `v${shown.number} · ${shown.label}` : a.title)}</h1>
+          <h1>{original && <span className={`lk-file-icon${docx ? '' : ' lk-file-pdf'}`} aria-hidden="true">{docx ? 'W' : 'PDF'}</span>}{original?.filename ?? a.title}</h1>
           <p className="lk-counts">
             {[base && marked ? plural(marked.changes, 'tracked change') + ` from v${base.number}` : shown ? `v${shown.number} · ${shown.label}` : 'No document yet', plural(comments, 'comment'), route.length ? `${decided} of ${route.length} approvals decided` : ''].filter(Boolean).join(' · ')}
           </p>
@@ -57,7 +58,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { 
           {parent && <p className="lk-muted">{a.relation?.replace('_', ' ')} <a href={`#agreement/${parent.id}`}>{parent.reference} {parent.title}</a></p>}
         </div>
         <dl className="lk-doc-meta">
-          <div><dt>Needed by</dt><dd>{longDay(a.needed_by)}</dd></div>
+          <div><dt>Needed by</dt><dd>{day(a.needed_by)}</dd></div>
           <div><dt>Counterparty</dt><dd>{partyName(state, a.party_id)}</dd></div>
           <div><dt>Owner</dt><dd><Person name={personName(state, a.owner_id)} /></dd></div>
           <div><dt>Last updated</dt><dd>{stamp(a.updated_at, { zone: a.timezone })}</dd></div>
@@ -105,7 +106,7 @@ function AgentReply({ state, a, shown, original }: { state: LocketState; a: Row;
         <span>{findings.length && playbook ? `v${shown.number} vs playbook v${playbook.number}: ${met} of ${rules} met${breached.length ? ` · ${breached.join(', ')} breached` : ''}` : `v${shown.number} has no playbook review yet`}</span>
         <Icon name="arrow" />
       </a>
-      {original && <p className="lk-seal" title={`sha256 ${original.sha256}`}>v{shown.number} · {shown.label} · sha256 {original.sha256.slice(0, 4)}…{original.sha256.slice(-4)} · original kept <Icon name="check" /></p>}
+      {original && <p className="lk-seal" title={`v${shown.number} · ${shown.label} · ${original.filename} · sha256 ${original.sha256}`}><span>v{shown.number} · {brief(shown.label)}</span><span>· sha256 {original.sha256.slice(0, 4)}…{original.sha256.slice(-4)} · original kept</span><Icon name="check" /></p>}
     </>
   )
 }
@@ -117,7 +118,7 @@ function Details({ state, a, locket }: { state: LocketState; a: Row; locket: Loc
   const audit = state.audit.filter(x => x.agreement_id === a.id)
   const editable = can(state, 'owner', 'counsel', 'approver', 'requester') && ['draft', 'in_review', 'approved'].includes(a.status)
   return (
-    <div className="lk-columns">
+    <div className="lk-tab-page">
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Request details</h2></div>
         {editable ? (

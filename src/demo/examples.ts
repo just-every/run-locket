@@ -8,7 +8,8 @@ export const team = [
   ['demo-onboarding', 'Dev Patel', 'dev@fieldstone.example', 'viewer'],
   ['demo-agent', 'Locket', 'agent@fieldstone.example', 'agent'],
 ] as const
-/** key, counterparty, title, type, status, value in cents, days to the needed-by date (or the notice deadline), notice days. */
+/** key, counterparty, title, type, status, value in cents, days to the needed-by date from today (for an imported
+ * agreement, to its notice deadline from the Monday after the story week: Northwind's Fri Nov 13 on the page's week), notice days. */
 export const examples = [
   ['ridgeline', 'Ridgeline Payroll', 'Payroll services agreement', 'supplier', 'in_review', 1800000, 7, 30],
   ['pinecrest', 'Pinecrest Clinics', 'Platform subscription', 'customer', 'approved', 6400000, 10, 30],

@@ -6,6 +6,9 @@
 .lk-panel-head > .lk-muted { font-size: 13.5px; }
 .lk-panel > * + .lk-panel-head { margin-top: 24px; }
 .lk-columns { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+/* An agreement's other tabs: one column at the document page's width under the same head, no right panel. */
+.lk-tab-page { display: grid; gap: 18px; align-content: start; margin-right: calc(var(--lk-note-w) + var(--lk-gap)); }
+.lk-tab-page > .lk-panel { padding: 24px 30px; }
 .lk-stack { display: grid; gap: 18px; align-content: start; }
 .lk-card { border: 1px solid var(--lk-rule); border-radius: var(--lk-radius); padding: 14px 16px; margin-bottom: 12px; background: var(--lk-surface); display: grid; gap: 8px; }
 .lk-card p { margin: 0; }
@@ -17,7 +20,7 @@
 .lk-document { border: 1px solid var(--lk-rule-2); border-radius: 10px; background: #FCFCFD; padding: 12px 14px; font: 15px/1.5 var(--lk-font-serif); max-height: 60vh; overflow: auto; white-space: pre-wrap; margin: 0; }
 .lk-list, .lk-people, .lk-log, .lk-changes, .lk-rules, .lk-findings, .lk-obligations, .lk-route, .lk-checks, .lk-pick-list, .lk-inbox, .lk-shelf, .lk-renewal-list, .lk-log-items { list-style: none; margin: 0; padding: 0; }
 .lk-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 0; border-bottom: 1px solid var(--lk-rule-2); }
-.lk-log li { display: grid; grid-template-columns: 160px 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--lk-rule-2); font-size: 14px; }
+.lk-log li { display: grid; grid-template-columns: 200px 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--lk-rule-2); font-size: 14px; }
 .lk-log time { color: var(--lk-ink-2); font-size: 12.5px; }
 .lk-changes li { padding: 7px 0; border-bottom: 1px solid var(--lk-rule-2); font-size: 14px; }
 .lk-pick-list li button { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; text-align: left; border-color: transparent; border-radius: 10px; background: transparent; padding: 10px 12px; margin-bottom: 4px; white-space: normal; font-weight: 400; justify-content: stretch; line-height: 1.3; }
@@ -61,7 +64,8 @@
 .lk-board-notice { color: var(--lk-claret); }
 .lk-board-blocked { color: var(--lk-warn-ink); }
 .lk-board-foot { display: flex; align-items: center; gap: 8px; padding-top: 8px; margin-top: 2px; border-top: 1px solid var(--lk-rule-2); font-size: 13px; }
-.lk-board-foot span:not(.lk-avatar) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lk-board-foot { flex-wrap: wrap; }
+.lk-board-foot span:not(.lk-avatar) { flex: 1 0 auto; white-space: nowrap; }
 .lk-app .lk-board-foot small { font-size: 12px; }
 
 /* Renewals: the calendar band and the dated list. */

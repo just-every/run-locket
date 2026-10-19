@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { fetchJson, type LocketState } from './api'
 import type { Locket } from './app'
 import { Avatar, Badge, Empty, Field, Form, Icon, Person, value } from './controls'
-import { actionLabel, can, dayOf, roleLabel, words } from './format'
+import { actionLabel, can, clock, dayOf, roleLabel, words } from './format'
 
 const assignable = ['counsel', 'approver', 'requester', 'viewer', 'agent']
 const PAGE = 20
@@ -76,7 +76,7 @@ export function Activity({ state, locket }: { state: LocketState; locket: Locket
                   const ag = reference(x.agreement_id)
                   return (
                     <li key={x.id} className="lk-log-item">
-                      <time>{new Date(x.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</time>
+                      <time>{clock(x.at)}</time>
                       <Avatar name={x.actor_name} agent={x.actor_role === 'agent'} />
                       <div>
                         <p><strong>{x.actor_name}</strong> <span className="lk-muted">{roleLabel[x.actor_role] ?? x.actor_role}</span> <Badge value={x.action} tone="good" label={action(x.action)} />{ag && <> <a href={`#agreement/${ag.id}`}>{ag.reference}</a></>}</p>

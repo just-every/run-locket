@@ -101,6 +101,8 @@ export function timezone(p: Input, key: string): string {
 }
 
 export const json = (value: unknown) => JSON.stringify(value)
+/** An agreement's reference as people quote it, from its id: LKT-8A8A2C. */
+export const agreementReference = (id: string) => 'LKT-' + id.replace(/[^0-9a-f]/gi, '').slice(0, 6).toUpperCase()
 export const parse = <T = any>(value: unknown): T => (typeof value === 'string' ? JSON.parse(value) : (value as T))
 
 export async function sha256(bytes: Uint8Array | string): Promise<string> {

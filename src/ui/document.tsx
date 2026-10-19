@@ -1,8 +1,10 @@
 // The workspace's page: the shown version as one tall serif page with the
 // changes from the earlier version tracked inline, unchanged sections folded,
 // and the findings and comments as margin notes on dotted connectors beside
-// the clauses they cite. Below 1100 px the notes fold under their clauses.
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+// the clauses they cite. Below 1100 px the notes fold under their clauses. On a
+// wide screen the page opens scrolled just far enough that the open decision,
+// its buttons and the notes on the same clause sit above the command bar.
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Icon } from './controls'
@@ -37,6 +39,13 @@ export function DocumentPage({ state, a, base, shown, locket }: { state: LocketS
   const [opened, setOpened] = useState<Set<number>>(new Set())
   const paper = useRef<HTMLDivElement>(null)
   const [links, setLinks] = useState<{ d: string; tone: string }[]>([])
+  // Where the page last scrolled itself to; once the reader scrolls elsewhere it stays where they put it.
+  const followed = useRef<number | null>(0)
+  useEffect(() => {
+    const moved = () => { if (followed.current !== null && Math.abs(window.scrollY - followed.current) > 2) followed.current = null }
+    window.addEventListener('scroll', moved, { passive: true })
+    return () => window.removeEventListener('scroll', moved)
+  }, [])
   const paragraphs = marked?.sections.flatMap(s => s.paragraphs) ?? []
   const within = (p: Paragraph, start: number) => p.segments.length > 0 && p.start <= start && start <= p.end && p.segments.some(s => s.op !== 'del')
   const notes = useMemo(() => notesFor(state, a, shown, start => paragraphs.some(p => within(p, start) && p.segments.some(s => s.op === 'del') && p.segments.some(s => s.op === 'add'))), [state, a, shown, marked])
@@ -73,6 +82,20 @@ export function DocumentPage({ state, a, base, shown, locket }: { state: LocketS
       }
       page.style.minHeight = `${floor}px`
       setLinks(drawn)
+      if (followed.current !== null) showDecision()
+    }
+    const showDecision = () => {
+      const open = page.querySelector<HTMLElement>('.lk-margin-note[data-tone="open"]')
+      if (!open) return
+      const same = [...open.parentElement!.querySelectorAll<HTMLElement>(':scope > .lk-margin-note')]
+      const group = same.slice(same.indexOf(open)).map(n => n.getBoundingClientRect())
+      const top = group[0].top, bottom = Math.max(...group.map(r => r.bottom))
+      const bar = document.querySelector('.lk-command')?.getBoundingClientRect().top ?? window.innerHeight
+      const head = document.querySelector('.lk-top')?.getBoundingClientRect().bottom ?? 0
+      let by = Math.max(0, bottom - (bar - 16))
+      if (top - by < head + 16) by = Math.max(0, top - head - 16)
+      if (by > 1) window.scrollTo(0, window.scrollY + by)
+      followed.current = window.scrollY
     }
     place()
     const watch = new ResizeObserver(place)

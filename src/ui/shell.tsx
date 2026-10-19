@@ -2,7 +2,8 @@
 // the breadcrumb and the page's own tools; a slim icon rail (bottom tabs on a
 // phone); and the command bar along the bottom with search, the agent's chip
 // and who is signed in. A page fills the top tools and the agent's chip through
-// the slots below; every other page shows the agent's waiting proposals.
+// the slots below; every other page shows the agent's waiting proposals. Search
+// runs from any page: typing away from the board opens the board with the matches.
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { LocketState } from './api'
@@ -31,7 +32,7 @@ export function AgentPlace({ children }: { children: ReactNode }) {
   return agent ? createPortal(children, agent) : null
 }
 
-export function Shell({ active, crumb, state, query, onQuery, onSignOut, children }: { active: string; crumb: ReactNode; state: LocketState | null; query: string; onQuery: (q: string) => void; onSignOut: () => void; children: ReactNode }) {
+export function Shell({ active, board, crumb, state, query, onQuery, onSignOut, children }: { active: string; board: boolean; crumb: ReactNode; state: LocketState | null; query: string; onQuery: (q: string) => void; onSignOut: () => void; children: ReactNode }) {
   const [tools, setTools] = useState<HTMLElement | null>(null)
   const [agent, setAgent] = useState<HTMLElement | null>(null)
   const search = useRef<HTMLInputElement>(null)
@@ -64,7 +65,7 @@ export function Shell({ active, crumb, state, query, onQuery, onSignOut, childre
             <label className="lk-ask">
               <img src="/brand/mark.svg" alt="" />
               <span className="lk-visually-hidden">Search agreements you can access</span>
-              <input ref={search} type="search" value={query} placeholder="Search agreements…" onChange={e => { onQuery(e.target.value); if (active !== 'agreements') window.location.hash = 'agreements' }} />
+              <input ref={search} type="search" value={query} placeholder="Search agreements…" onChange={e => { onQuery(e.target.value); if (!board) window.location.hash = 'agreements' }} />
               <kbd>⌘ K</kbd>
             </label>
             <div className="lk-agent-slot" ref={setAgent} />
@@ -86,7 +87,7 @@ function Account({ state, onSignOut }: { state: LocketState; onSignOut: () => vo
     <details className="lk-account">
       <summary>
         <Avatar name={state.actor.name} />
-        <span><strong>{state.actor.name}</strong> <span className="lk-muted">{roleLabel[state.actor.role]}</span><small>{stamp(state.now, { year: true })}</small></span>
+        <span><span className="lk-account-name"><strong>{state.actor.name}</strong> <span className="lk-muted">{roleLabel[state.actor.role]}</span></span><small>{stamp(state.now, { year: true })}</small></span>
       </summary>
       <div className="lk-account-menu">
         <p><strong>{state.actor.name}</strong><small>{roleLabel[state.actor.role]}</small></p>

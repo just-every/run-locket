@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, Field, Form, value, When } from './controls'
-import { can, day, deadline, partyName, personName } from './format'
+import { can, clock, day, deadline, partyName, personName } from './format'
 
 const DAY = 86_400_000
 const capital = (word: string) => word[0].toUpperCase() + word.slice(1)
@@ -27,7 +27,7 @@ export function Renewals({ state, locket }: { state: LocketState; locket: Locket
               return (
                 <li key={r.id} className={`lk-renewal${open ? ' lk-open' : ''}`}>
                   <div className="lk-renewal-row">
-                    <span className="lk-deadline">{deadline(r.deadline_at, r.timezone).split(',').slice(0, 2).join(',')}<small>{days < 0 ? `${-days} days overdue` : `in ${days} days`} · {r.timezone}</small></span>
+                    <span className="lk-deadline">{deadline(r.deadline_at, r.timezone).split(',').slice(0, 2).join(',')}<small>{days < 0 ? `${-days} days overdue` : `in ${days} days`} · by {clock(r.deadline_at, r.timezone)}</small></span>
                     <span className="lk-renewal-title">
                       <button type="button" className="lk-linklike" aria-expanded={open} onClick={() => setSelected(r.id)}>{a.title}</button>
                       <small>{partyName(state, a.party_id)} · {a.reference} · term ends {day(r.end_date)}{r.auto_renew ? ', auto-renews' : ''} · {r.notice_days} days' notice</small>
@@ -91,7 +91,7 @@ function Steps({ state, r, a, locket }: { state: LocketState; r: Row; a: Row; lo
             <div className="lk-finding-head"><strong>To {n.recipient}</strong><Badge value={n.status === 'sent' ? 'sent' : n.status === 'approved' ? 'approved' : 'draft'} label={n.status === 'sent' ? 'Sent' : n.status === 'approved' ? 'Approved, not sent' : 'Draft'} /></div>
             <pre className="lk-document">{n.body}</pre>
             <small>Prepared by {personName(state, n.prepared_by)}{n.proposal_id ? ' (agent proposal)' : ''}{n.approved_by && <> · approved by {personName(state, n.approved_by)} <When at={n.approved_at} /></>}</small>
-            {n.status === 'sent' && <p>Sent by {n.sent_method} on <span className="lk-nowrap">{deadline(n.sent_at, r.timezone)}</span> ({r.timezone}, recorded by {personName(state, n.sent_recorded_by)}){n.evidence_artifact_id && <> · <a href={`/api/locket/files/${n.evidence_artifact_id}`} download>evidence</a></>}</p>}
+            {n.status === 'sent' && <p>Sent by {n.sent_method} on <span className="lk-nowrap">{deadline(n.sent_at, r.timezone)}</span> (recorded by {personName(state, n.sent_recorded_by)}){n.evidence_artifact_id && <> · <a href={`/api/locket/files/${n.evidence_artifact_id}`} download>evidence</a></>}</p>}
             {n.status === 'draft' && can(state, 'owner', 'approver') && <button type="button" className="lk-primary" disabled={busy} onClick={() => void run('notice.approve', { noticeId: n.id })}>Approve for sending</button>}
             {n.status === 'approved' && can(state, 'owner', 'approver', 'requester') && (
               <Form busy={busy} submit="Record that it was sent" onSubmit={async data => {

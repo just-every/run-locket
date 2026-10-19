@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
 import { Field, Form, Icon, value } from './controls'
-import { can, currentVersion, personName, stamp, versionsOf } from './format'
+import { brief, can, currentVersion, personName, stamp, versionsOf } from './format'
 import { TemplateFields } from './intake'
 
 export const versionHref = (a: Row, number: number) => `#agreement/${a.id}/versions/${number}`
@@ -18,9 +18,9 @@ export function VersionChips({ state, a, shown, base, onBase, adding, onAdding }
     <div className="lk-version-bar">
       <nav className="lk-chips" aria-label="Versions">
         {versions.map(v => (
-          <a key={v.id} className={v.id === shown?.id ? 'lk-chip lk-chip-active' : 'lk-chip'} href={versionHref(a, v.number)} aria-current={v.id === shown?.id ? 'page' : undefined} title={`Version identity ${v.digest}`}>
-            <span><b>v{v.number}</b> {v.label}</span>
-            <small>{stamp(v.created_at, { zone: a.timezone }).replace(/ [A-Z]{1,4}$/, '')}</small>
+          <a key={v.id} className={v.id === shown?.id ? 'lk-chip lk-chip-active' : 'lk-chip'} href={versionHref(a, v.number)} aria-current={v.id === shown?.id ? 'page' : undefined} title={`v${v.number} ${v.label} · version identity ${v.digest}`}>
+            <span><b>v{v.number}</b> {brief(v.label)}</span>
+            <small>{stamp(v.created_at, { zone: a.timezone })}</small>
           </a>
         ))}
       </nav>

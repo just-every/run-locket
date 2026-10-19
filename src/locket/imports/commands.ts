@@ -4,7 +4,7 @@ import { applyD1ImportBatches, canonicalJson, createD1ImportJob, planD1Import, s
 import { authority, may, requireRole } from '../access'
 import { encodeBase64, PDF } from '../artifacts'
 import type { Ctx, Handler } from '../commands'
-import { fail, integer, json, oneOf, parse, sql, text, type Actor } from '../model'
+import { agreementReference, fail, integer, json, oneOf, parse, sql, text, type Actor } from '../model'
 import { plural } from '../display'
 import { locketTargets } from './adapter'
 import { KIT, MAPPING_VERSION, preview, readKitInput, type PreviewRow } from './docusign'
@@ -63,7 +63,7 @@ function plannedEntities(c: Ctx, r: PreviewRow, files: Map<string, Uint8Array>, 
     { check: 'document', ok: true, detail: `Signed PDF ${r.document!.path} (sha256 ${r.document!.sha256.slice(0, 16)}…) kept exactly as exported.` },
     { check: 'certificate', ok: !!r.certificate, detail: r.certificate ? `DocuSign Certificate of Completion kept as exported (${r.certificate.path}).` : 'No separate Certificate of Completion supplied.' },
   ]
-  const reference = 'LK-' + agreementId.slice(0, 6).toUpperCase()
+  const reference = agreementReference(agreementId)
   const terms = [] as Record<string, unknown>[]
   const term = (key: string, value: string) => ({ id: crypto.randomUUID(), agreement_id: agreementId, key, value, citation: json({ source: 'import-manifest', kit: KIT, envelopeId: r.envelopeId, row: r.row, note: 'From the owner’s manifest, not yet checked against the signed PDF.' }), status: 'proposed', proposed_by: c.actor.id, proposal_id: null, confirmed_by: null, confirmed_at: null, supersedes_id: null, reason: 'Imported value; confirm against the signed clause.', created_at: at })
   if (r.endDate) terms.push(term('end_date', r.endDate))

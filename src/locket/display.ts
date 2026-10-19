@@ -1,20 +1,44 @@
 // How Locket words its records for people: dates, deadlines, term names with
 // units, signing services, roles and audit actions. The screens and the audit
 // summaries the server writes read the same formatters, so a moment reads the
-// same everywhere.
+// same everywhere: weekday, date, time and zone (ET, never America/New_York).
 
-const dateParts = { month: 'short', day: 'numeric', year: 'numeric' } as const
-
-/** A calendar date (YYYY-MM-DD) as people read it: May 1, 2027. */
-export const day = (iso: string | null | undefined) => (iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', { ...dateParts, timeZone: 'UTC' }) : '—')
-/** The local calendar date of a moment. */
-export const dayOf = (ms: number | null | undefined) => (ms ? new Date(ms).toLocaleDateString('en-US', dateParts) : '—')
-/** A moment in the reader's time zone, to the minute. */
-export const when = (ms: number | null | undefined) => (ms ? new Date(ms).toLocaleString('en-US', { ...dateParts, hour: 'numeric', minute: '2-digit' }) : '—')
-/** A moment in a named time zone: May 1, 2027, 11:59 PM. */
-export function deadline(ms: number, zone: string) {
-  return new Date(ms).toLocaleString('en-US', { ...dateParts, hour: 'numeric', minute: '2-digit', timeZone: zone })
+/** A zone's short name as people say it: EDT and EST read ET, CDT and CST read CT. */
+const zoneName = (name: string) => name.replace(/^([ECMP])[SD]T$/, '$1T')
+function parts(ms: number, options: Intl.DateTimeFormatOptions) {
+  return Object.fromEntries(new Intl.DateTimeFormat('en-US', options).formatToParts(new Date(ms)).map(p => [p.type, p.value]))
 }
+
+/** A calendar date (YYYY-MM-DD) with its weekday: Tue Jan 12, 2027. */
+export function day(iso: string | null | undefined) {
+  if (!iso) return '—'
+  const p = parts(Date.parse(iso + 'T12:00:00Z'), { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+  return `${p.weekday} ${p.month} ${p.day}, ${p.year}`
+}
+/** A calendar date as quoted contract text writes it: January 12, 2027. */
+export const writtenDay = (iso: string) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+/** The calendar date of a moment, in the reader's zone or a named one: Sun Oct 18, 2026. */
+export function dayOf(ms: number | null | undefined, zone?: string) {
+  if (!ms) return '—'
+  const p = parts(ms, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: zone })
+  return `${p.weekday} ${p.month} ${p.day}, ${p.year}`
+}
+/** A moment the one way Locket writes it, with its zone: Thu Oct 8, 5:40 pm ET (with the year when asked). Without a
+ * zone it is the reader's own. */
+export function stamp(ms: number | null | undefined, { year = false, zone }: { year?: boolean; zone?: string } = {}) {
+  if (!ms) return '—'
+  const p = parts(ms, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: zone, timeZoneName: 'short' })
+  return `${p.weekday} ${p.month} ${p.day}${year ? `, ${p.year}` : ''}, ${p.hour}:${p.minute} ${p.dayPeriod.toLowerCase()} ${zoneName(p.timeZoneName)}`
+}
+/** A moment's time of day with its zone: 10:41 am ET. */
+export function clock(ms: number, zone?: string) {
+  const p = parts(ms, { hour: 'numeric', minute: '2-digit', timeZone: zone, timeZoneName: 'short' })
+  return `${p.hour}:${p.minute} ${p.dayPeriod.toLowerCase()} ${zoneName(p.timeZoneName)}`
+}
+/** A moment in the reader's zone, with the year: Fri Oct 9, 2026, 10:41 am ET. */
+export const when = (ms: number | null | undefined) => stamp(ms, { year: true })
+/** A moment in a named zone, with the year: Fri Nov 13, 2026, 11:59 pm ET. */
+export const deadline = (ms: number, zone: string) => stamp(ms, { year: true, zone })
 
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 

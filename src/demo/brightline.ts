@@ -13,7 +13,8 @@ import { textDocx } from './docx'
 type Add = (table: string, row: Record<string, unknown>) => void
 const ZONE = 'America/New_York'
 
-/** Last week's Monday in Eastern time, and the first Friday after today: the deal's close date. */
+/** Last week's Monday in Eastern time, and the first Friday after today: the deal's close date. The renewals count
+ * from the Monday after next, so their deadlines keep the page's weekdays (Northwind's falls on a Friday). */
 export function storyWeek(now: Date) {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
   const weekday = new Date(today + 'T12:00:00Z').getUTCDay() || 7
@@ -21,6 +22,7 @@ export function storyWeek(now: Date) {
   return {
     at: (offset: number, time: string) => zonedInstant(addDays(monday, offset), `${time}:00`, ZONE),
     closeDate: addDays(today, ((5 - weekday + 7) % 7) || 7),
+    renewalBase: addDays(monday, 14),
   }
 }
 

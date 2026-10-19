@@ -1,10 +1,11 @@
 import type { Bindings } from './auth.server'
 import { clauses, examples, ownerName, team } from './demo/examples'
-import { seedBrightline } from './demo/brightline'
+import { seedBrightline, storyWeek } from './demo/brightline'
 import { playbookRules } from './demo/brightline-msa'
 import { seedJourneys } from './demo/journeys'
-import { noticeDeadline } from './locket/dates'
-import { canonical, sha256 } from './locket/model'
+import { addDays, noticeDeadline } from './locket/dates'
+import { writtenDay } from './locket/display'
+import { agreementReference, canonical, sha256 } from './locket/model'
 import { textPdf } from './locket/pdf'
 import { versionDigest } from './locket/records'
 
@@ -35,14 +36,14 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
   add('lk_playbook_versions', { id: 'demo-playbook', number: 7, rules: JSON.stringify(rules), status: 'active', created_by: owner.id, created_at: at - 34 * day, activated_by: owner.id, activated_at: at - 33 * day })
   for (const [index, [key, party, title, type, status, value, days, notice]] of examples.entries()) {
     const id = `demo-${key}`, versionId = `${id}-v1`, partyId = `${id}-party`, created = at - (30 - index) * day
-    const historical = status === 'imported', end = date(days + notice)
+    const historical = status === 'imported', end = addDays(storyWeek(now).renewalBase, days + notice)
     const quote = index === 0 ? 'Invoices are payable within 60 days.' : 'Invoices are payable within 30 days.'
-    const body = `SAMPLE ONLY - fictional ${historical ? 'historical agreement summary' : 'unsigned draft'}\n${title}\nBetween Fieldstone Software, Inc. and ${party}.\nScope: ${title}.\n${quote}\nLiability is capped at 12 months' fees.\nTerm ends on ${end}. Give ${notice} days notice before the end date.\nGoverning law: Delaware.\nNo signatures or execution evidence are supplied in this demo.`
+    const body = `SAMPLE ONLY - fictional ${historical ? 'historical agreement summary' : 'unsigned draft'}\n${title}\nBetween Fieldstone Software, Inc. and ${party}.\nScope: ${title}.\n${quote}\nLiability is capped at 12 months' fees.\nTerm ends on ${writtenDay(end)}. Give ${notice} days notice before the end date.\nGoverning law: Delaware.\nNo signatures or execution evidence are supplied in this demo.`
     const bytes = textPdf(title, body, 'Fictional sample - unsigned; no execution evidence'), hash = await sha256(bytes)
     const values = { values: { scope: title }, clauses: { payment: 'net30', liability: 'cap' } }
     const digest = await versionDigest({ agreementId: id, number: 1, files: [{ role: 'rendition', sha256: hash }], text: body, fields: values })
     add('lk_parties', { id: partyId, name: party, kind: type === 'supplier' ? 'supplier' : 'customer', email: `contracts@${key}.example`, created_by: 'demo-operations', created_at: created })
-    add('lk_agreements', { id, reference: `LK-${String(index + 1).padStart(4, '0')}`, title, type, party_id: partyId, value_cents: value, currency: 'USD', owner_id: [owner.id, 'demo-supply', 'demo-commercial', 'demo-operations'][index % 4], requester_id: 'demo-operations', status, restricted: 0, needed_by: date(days), start_date: date(-60), timezone: 'America/New_York', origin: historical ? 'legacy' : 'intake', current_version_id: versionId, created_at: created, updated_at: at - index * 3600000 })
+    add('lk_agreements', { id, reference: agreementReference(await sha256(id)), title, type, party_id: partyId, value_cents: value, currency: 'USD', owner_id: [owner.id, 'demo-supply', 'demo-commercial', 'demo-operations'][index % 4], requester_id: 'demo-operations', status, restricted: 0, needed_by: historical ? null : date(days), start_date: date(-60), timezone: 'America/New_York', origin: historical ? 'legacy' : 'intake', current_version_id: versionId, created_at: created, updated_at: at - index * 3600000 })
     add('lk_versions', { id: versionId, agreement_id: id, number: 1, kind: historical ? 'legacy' : 'template', label: historical ? 'Fictional historical summary (no signed original)' : 'Sample draft for review', template_version_id: historical ? null : `demo-template-${type === 'supplier' ? 'supply' : 'services'}-v1`, fields: JSON.stringify(values), text: body, text_source: historical ? 'person' : 'template', digest, created_by: 'demo-operations', created_at: created })
     add('lk_artifacts', { id: `${id}-pdf`, agreement_id: id, version_id: versionId, role: 'rendition', filename: `${key}-sample-unsigned.pdf`, media_type: 'application/pdf', size: bytes.length, sha256: hash, provenance: JSON.stringify({ source: 'fictional-demo', note: 'Unsigned sample, not execution evidence' }), imported: 0, uploaded_by: 'demo-operations', uploaded_at: created })
     add('lk_artifact_chunks', { artifact_id: `${id}-pdf`, ordinal: 0, bytes: [...bytes] })
@@ -57,10 +58,10 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
       add('lk_deviations', { id: 'demo-payment-finding', agreement_id: id, version_id: versionId, playbook_version_id: 'demo-playbook', clause_key: 'payment', result: 'breached', start_offset: start, end_offset: start + quote.length, quote, proposed_wording: 'Invoices are payable within 30 days.', explanation: 'The supplier asks for 60 days; our approved alternative is at most 45 days.', questions: JSON.stringify(['Can the supplier accept net 30?']), authority: 'approver', created_by: owner.id, created_at: at - 3600000 })
     }
     if (historical) {
-      for (const [term, value] of [['end_date', end], ['notice_days', String(notice)], ['auto_renew', 'yes']]) add('lk_terms', { id: `${id}-${term}`, agreement_id: id, key: term, value, citation: JSON.stringify({ source: 'version-text', versionId, quote: term === 'end_date' ? `Term ends on ${end}.` : `Give ${notice} days notice before the end date.` }), status: 'confirmed', proposed_by: 'demo-operations', confirmed_by: owner.id, confirmed_at: at - day, reason: 'Fictional demo terms, not verified against a signed original.', created_at: created })
+      for (const [term, value] of [['end_date', end], ['notice_days', String(notice)], ['auto_renew', 'yes']]) add('lk_terms', { id: `${id}-${term}`, agreement_id: id, key: term, value, citation: JSON.stringify({ source: 'version-text', versionId, quote: term === 'end_date' ? `Term ends on ${writtenDay(end)}.` : `Give ${notice} days notice before the end date.` }), status: 'confirmed', proposed_by: 'demo-operations', confirmed_by: owner.id, confirmed_at: at - day, reason: 'Fictional demo terms, not verified against a signed original.', created_at: created })
       const deadline = noticeDeadline(end, notice, 'America/New_York'), decision = key === 'northwind' ? 'renegotiate' : null
       add('lk_renewals', { id: `${id}-renewal`, agreement_id: id, end_date: end, notice_days: notice, deadline_date: deadline.date, deadline_at: deadline.at, timezone: 'America/New_York', auto_renew: 1, decision, decided_by: decision ? owner.id : null, decided_at: decision ? at - day : null, decision_reason: decision ? 'Renegotiate: two years inside the mandate, keep the 3% cap and the 99.9% SLA.' : null, updated_at: at })
-      for (let n = 0; n < 2; n++) add('lk_obligations', { id: `${id}-obligation-${n}`, agreement_id: id, description: n ? 'Review supplier pricing before the renewal window' : 'Complete the quarterly service review', owner_id: n ? owner.id : 'demo-supply', due_date: date(n ? days - 7 : 7 + index), recurrence: n ? 'annually' : 'quarterly', citation: JSON.stringify({ source: 'version-text', versionId, quote: `Give ${notice} days notice before the end date.`, page: null }), status: 'confirmed', created_by: owner.id, confirmed_by: owner.id, created_at: created })
+      for (let n = 0; n < 2; n++) add('lk_obligations', { id: `${id}-obligation-${n}`, agreement_id: id, description: n ? 'Review supplier pricing before the renewal window' : 'Complete the quarterly service review', owner_id: n ? owner.id : 'demo-supply', due_date: date(n ? days - 7 : 7 + index), recurrence: n ? 'annually' : 'quarterly', citation: JSON.stringify({ source: 'version-text', versionId, quote: n ? `Give ${notice} days notice before the end date.` : `Scope: ${title}.`, page: null }), status: 'confirmed', created_by: owner.id, confirmed_by: owner.id, created_at: created })
       if (decision) add('lk_notices', { id: `${id}-notice`, renewal_id: `${id}-renewal`, agreement_id: id, recipient: 'laura.chen@northwind.example', body: 'Fieldstone Software gives notice under the hosting services agreement that we will not renew on the current terms. We would like to agree a two-year term before the renewal date.', prepared_by: 'demo-supply', status: 'draft', created_at: at - 3600000 })
     }
   }

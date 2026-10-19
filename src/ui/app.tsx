@@ -44,7 +44,7 @@ export function LocketApp() {
     <><a href="#agreements"><strong>Agreements</strong></a><span> / {partyName(state, agreement.party_id)} / </span><span>{agreement.title}{agreement.value_cents !== null ? ` · ${money(agreement.value_cents)}` : ''}</span></>
   ) : pageTitle[route.view] ? <><a href="#agreements"><strong>Agreements</strong></a><span> / {pageTitle[route.view]}</span></> : <strong>{title}</strong>
   return (
-    <Shell active={active} crumb={crumb} state={state} query={query} onQuery={setQuery} onSignOut={() => void signOut()}>
+    <Shell active={active} board={route.view === 'agreements'} crumb={crumb} state={state} query={query} onQuery={setQuery} onSignOut={() => void signOut()}>
       <main className="lk-main" aria-busy={busy}>
         {error && <div className="lk-alert" role="alert"><strong>That did not go through.</strong> {error} <button type="button" onClick={() => void locket.refresh()}>Reload records</button></div>}
         {notice && <div className="lk-note" role="status">{notice}</div>}

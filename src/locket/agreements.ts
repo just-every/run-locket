@@ -4,7 +4,7 @@ import { may, requireRole } from './access'
 import { fileInput, isDocx, isPdf, PDF, storeArtifact, type FileInput } from './artifacts'
 import type { Ctx, Handler, Outcome } from './commands'
 import { docxText } from './docx'
-import { bool, fail, json, list, money, object, oneOf, optionalDate, optionalText, parse, sha256, sql, text, timezone, type Sql } from './model'
+import { agreementReference, bool, fail, json, list, money, object, oneOf, optionalDate, optionalText, parse, sha256, sql, text, timezone, type Sql } from './model'
 import { agreementGuards, bump, invalidateApprovals, requireStatus, statusAfterChange, versionDigest, versionsOf, visibleAgreement, type AgreementRow } from './records'
 
 export const agreementTypes = ['customer', 'supplier', 'nda', 'amendment', 'order_form', 'other'] as const
@@ -122,7 +122,7 @@ const createRequest: Handler = async (c, p) => {
     await visibleAgreement(c, parentId)
     checks.push(sql('EXISTS(SELECT 1 FROM lk_agreements WHERE id=?)', parentId))
   }
-  const id = crypto.randomUUID(), reference = 'LK-' + id.slice(0, 6).toUpperCase()
+  const id = crypto.randomUUID(), reference = agreementReference(id)
   const zone = p.timezone ? timezone(p, 'timezone') : 'America/New_York'
   const relation = parentId ? (type === 'amendment' ? 'amends' : type === 'order_form' ? 'order_under' : oneOf(p, 'relation', relations)) : null
   const writes: Sql[] = [...party.writes]
@@ -308,7 +308,7 @@ const importLegacy: Handler = async (c, p) => {
   const party = await partyFor(c, p)
   const ownerId = typeof p.ownerId === 'string' && p.ownerId ? p.ownerId : c.actor.id
   await operatorExists(c, ownerId)
-  const id = crypto.randomUUID(), versionId = crypto.randomUUID(), reference = 'LK-' + id.slice(0, 6).toUpperCase()
+  const id = crypto.randomUUID(), versionId = crypto.randomUUID(), reference = agreementReference(id)
   const title = text(p, 'title', 200), type = oneOf(p, 'type', agreementTypes)
   let body = optionalText(p, 'text', 400_000), source = body ? 'person' : 'none'
   if (!body && isDocx(file)) { body = await docxText(file.bytes); source = 'docx' }

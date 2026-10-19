@@ -14,7 +14,8 @@ body:has(.lk-app) { margin: 0; padding: 0; background: var(--lk-paper); }
 .lk-mono { font-family: var(--rer-font-mono); font-size: 12.5px; overflow-wrap: break-word; }
 .lk-nowrap { white-space: nowrap; }
 .lk-serif { font-family: var(--lk-font-serif); }
-.lk-visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Hidden but read aloud; it beats the app's own field widths, so a hidden file input never widens the page. */
+.lk-visually-hidden { position: absolute !important; width: 1px !important; min-width: 0 !important; height: 1px !important; min-height: 0 !important; margin: -1px !important; padding: 0 !important; border: 0 !important; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Top bar: mark and heavy wordmark, breadcrumb, the page's tools. */
 .lk-top { grid-column: 1 / -1; position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 26px; height: var(--lk-top); padding: 0 20px 0 26px; background: var(--lk-surface); border-bottom: 1px solid var(--lk-rule); box-shadow: 0 1px 3px rgb(17 17 17 / .03); }
@@ -40,7 +41,7 @@ body:has(.lk-app) { margin: 0; padding: 0; background: var(--lk-paper); }
 
 /* Command bar: search, the agent's chip, the file's seal and who is signed in. */
 .lk-command { position: sticky; bottom: 0; z-index: 25; display: flex; align-items: center; gap: 10px; min-height: 74px; padding: 10px 16px; background: rgb(255 255 255 / .94); backdrop-filter: blur(6px); border-top: 1px solid var(--lk-rule); }
-.lk-ask { display: flex; align-items: center; gap: 10px; flex: 0 1 262px; height: 50px; padding: 0 10px 0 14px; border: 1px solid var(--lk-rule); border-radius: 12px; background: var(--lk-surface); box-shadow: 0 2px 8px rgb(17 17 17 / .03); }
+.lk-ask { display: flex; align-items: center; gap: 10px; flex: 0 0 262px; min-width: 0; height: 50px; padding: 0 10px 0 14px; border: 1px solid var(--lk-rule); border-radius: 12px; background: var(--lk-surface); box-shadow: 0 2px 8px rgb(17 17 17 / .03); }
 .lk-ask img, .lk-agent-chip img { width: 19px; height: 22px; flex: none; }
 .lk-ask:focus-within { border-color: var(--lk-claret); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lk-claret) 16%, transparent); }
 .lk-ask kbd { flex: none; padding: 3px 7px; border-radius: 6px; background: var(--lk-tint); color: var(--lk-ink-2); font: 500 12px/1.2 var(--lk-font); }
@@ -49,13 +50,18 @@ body:has(.lk-app) { margin: 0; padding: 0; background: var(--lk-paper); }
 .lk-agent-chip { display: flex; align-items: center; gap: 10px; flex: 0 1 auto; min-width: 0; height: 50px; padding: 0 14px; border: 1px solid var(--lk-rule); border-radius: 12px; background: var(--lk-surface); box-shadow: 0 2px 8px rgb(17 17 17 / .03); font-size: 13.5px; text-decoration: none; }
 .lk-agent-chip span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lk-agent-chip:hover { border-color: var(--lk-ink-2); }
-.lk-seal { order: 10; margin: 0 0 0 auto; padding: 8px 4px 8px 18px; border-left: 1px solid var(--lk-rule); color: var(--lk-ink-2); font-size: 12px; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+/* The seal gives way first: a long version label ends in an ellipsis, the hash and its check stay. */
+.lk-seal { order: 10; flex: 0 1 auto; min-width: 0; margin: 0 0 0 auto; padding: 8px 4px 8px 18px; border-left: 1px solid var(--lk-rule); color: var(--lk-ink-2); font-size: 12px; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+.lk-seal > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.lk-seal > span, .lk-seal > .lk-icon { flex: none; }
+.lk-seal > span:first-child { flex: 0 1 auto; }
 .lk-seal .lk-icon { width: 13px; height: 13px; color: var(--lk-good-ink); }
-.lk-account { position: relative; flex: 1 1 auto; min-width: 0; }
+.lk-account { position: relative; flex: 0 1 auto; min-width: 0; }
 .lk-account > summary { display: flex; align-items: center; gap: 12px; list-style: none; cursor: pointer; padding: 6px 8px 6px 10px; border-radius: 10px; font-size: 12.5px; line-height: 17px; }
 .lk-account > summary::-webkit-details-marker { display: none; }
 .lk-account > summary:hover { background: var(--lk-tint); }
 .lk-account > summary > span:last-child { min-width: 0; }
+.lk-account-name, .lk-account > summary small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lk-account > summary small { font-size: 12px; line-height: 17px; }
 .lk-account-menu { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 40; display: grid; gap: 10px; min-width: 220px; padding: 14px; border: 1px solid var(--lk-rule); border-radius: 12px; background: var(--lk-surface); box-shadow: var(--lk-shadow); }
 .lk-account-menu p { margin: 0; font-size: 14px; }
@@ -76,10 +82,9 @@ body:has(.lk-app) { margin: 0; padding: 0; background: var(--lk-paper); }
 .lk-empty-state p { margin: 0; max-width: 560px; font-size: 16px; color: var(--lk-ink-2); text-wrap: balance; }
 
 /* Workspace tools share the header without squeezing the breadcrumb away. */
-.lk-top:has(.lk-version-bar) { gap: 22px; }
+.lk-top:has(.lk-version-bar) { gap: 16px; padding: 0 16px 0 22px; }
 .lk-top:has(.lk-version-bar) .lk-top-tools { max-width: 56%; }
-.lk-top:has(.lk-version-bar) .lk-brand { font-size: 25px; }
-.lk-command:has(.lk-seal) .lk-agent-chip { flex: 0 1 440px; }
-.lk-command:has(.lk-seal) .lk-account { flex: 1 1 220px; }
-.lk-command:has(.lk-seal) .lk-account small { overflow-wrap: anywhere; }
+.lk-top:has(.lk-version-bar) .lk-brand { gap: 9px; font-size: 24px; }
+.lk-command:has(.lk-seal) .lk-agent-chip { flex: 0 1 auto; max-width: 440px; }
+.lk-command:has(.lk-seal) .lk-account { flex: none; }
 .lk-command:has(.lk-seal) .lk-seal { font-size: 11px; padding-left: 16px; }

@@ -73,7 +73,7 @@ export async function renewalWrites(c: Ctx, a: AgreementRow, confirmed: Map<stri
         crypto.randomUUID(), a.id, end, Number(days), deadline.date, deadline.at, a.timezone, autoRenew, c.now,
       ),
     ],
-    summary: `Notice deadline ${zoned(deadline.at, a.timezone)} (${a.timezone})`,
+    summary: `Notice deadline ${zoned(deadline.at, a.timezone)}`,
   }
 }
 
@@ -217,7 +217,7 @@ const recordSent: Handler = async (c, p) => {
     evidenceId = stored.id
   }
   writes.push(sql("UPDATE lk_notices SET status='sent', sent_method=?, sent_at=?, sent_recorded_by=?, evidence_artifact_id=? WHERE id=?", method, at, c.actor.id, evidenceId, n.id), bump(c, a))
-  return { allowed: may.signature, result: { id: n.id, status: 'sent' }, writes, checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", n.id)], audit: [{ action: 'notice.sent', agreementId: a.id, summary: `Recorded notice sent by ${method} on ${zoned(at, a.timezone)} (${a.timezone})${evidenceId ? ' with evidence' : ''}` }] }
+  return { allowed: may.signature, result: { id: n.id, status: 'sent' }, writes, checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", n.id)], audit: [{ action: 'notice.sent', agreementId: a.id, summary: `Recorded notice sent by ${method} on ${zoned(at, a.timezone)}${evidenceId ? ' with evidence' : ''}` }] }
 }
 
 export const obligationHandlers: Record<string, Handler> = {

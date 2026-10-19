@@ -16,7 +16,7 @@ export function Review({ state, a, locket }: { state: LocketState; a: Row; locke
   const findings = state.deviations.filter(d => d.agreement_id === a.id).sort((x, y) => y.created_at - x.created_at || Number(x.result === 'met') - Number(y.result === 'met') || x.start_offset - y.start_offset)
   const canReview = can(state, 'owner', 'counsel', 'approver', 'requester') && ['draft', 'in_review', 'approved'].includes(a.status)
   return (
-    <div className="lk-columns">
+    <div className="lk-tab-page">
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Review findings</h2>{playbook && <span className="lk-muted">Playbook v{playbook.number}</span>}</div>
         {findings.length === 0 ? <Empty>No findings recorded. Each finding cites the exact passage it is about.</Empty> : (
@@ -53,10 +53,10 @@ export function Review({ state, a, locket }: { state: LocketState; a: Row; locke
           </Form>
         ) : <p className="lk-muted">Your role reads findings; agents submit them as proposals.</p>}
         {rules.length > 0 && (
-          <>
-            <div className="lk-panel-head"><h2>Playbook rules</h2></div>
+          <details className="lk-disclosure">
+            <summary>Playbook v{playbook!.number} rules ({rules.length})</summary>
             <ul className="lk-rules">{rules.map(r => <li key={r.key}><strong>{r.title}</strong><p>{r.preferred}</p>{r.alternatives.length > 0 && <small>Allowed alternatives: {r.alternatives.join(' / ')}</small>}<small>Exception authority: {r.authority}</small></li>)}</ul>
-          </>
+          </details>
         )}
       </section>
     </div>
@@ -71,7 +71,7 @@ export function Approvals({ state, a, locket }: { state: LocketState; a: Row; lo
   const history = state.approvals.filter(x => x.agreement_id === a.id).sort((p, q) => q.at - p.at)
   const versions = versionsOf(state, a.id)
   return (
-    <div className="lk-columns">
+    <div className="lk-tab-page">
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Approval route for v{v?.number ?? '–'}</h2></div>
         {a.status === 'draft' && <p className="lk-muted">Submit the request for review to open its approvals.</p>}

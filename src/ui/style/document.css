@@ -1,13 +1,15 @@
 /* The document workspace (the picked screen): version chips in the top bar, the file head with its progress bar and
    facts, the tall serif page with tracked changes, and the margin notes on dotted connectors. */
-.lk-version-bar { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.lk-chips { display: flex; gap: 5px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-.lk-chip { display: grid; align-content: center; gap: 3px; min-height: 48px; padding: 7px 15px; border: 1px solid #ECEDF1; border-radius: 16px; background: #F4F5F8; font-size: 13px; line-height: 1.2; text-decoration: none; white-space: nowrap; }
+.lk-version-bar { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.lk-chips { display: flex; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.lk-chip { display: grid; grid-template-columns: minmax(0, auto); align-content: center; gap: 3px; min-width: 0; max-width: 236px; min-height: 48px; padding: 7px 12px; border: 1px solid #ECEDF1; border-radius: 16px; background: #F4F5F8; font-size: 13px; line-height: 1.2; text-decoration: none; white-space: nowrap; }
 .lk-chip small { font-size: 12px; line-height: 1.2; color: var(--lk-ink-2); }
+/* A long label (an import's envelope) ends in an ellipsis; the chip's title carries it whole. */
+.lk-chip > span, .lk-chip small { overflow: hidden; text-overflow: ellipsis; }
 .lk-chip:hover { border-color: var(--lk-ink-2); }
 .lk-chip-active { background: var(--lk-gradient); border-color: transparent; color: #fff; box-shadow: 0 6px 16px -8px #8A1538; }
 .lk-chip-active small { color: rgb(255 255 255 / .92); }
-.lk-compare { position: relative; margin-left: 6px; }
+.lk-compare { position: relative; margin-left: 2px; }
 .lk-popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; display: grid; gap: 10px; width: 260px; padding: 14px; border: 1px solid var(--lk-rule); border-radius: 12px; background: var(--lk-surface); box-shadow: var(--lk-shadow); }
 .lk-popover label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; }
 .lk-version-bar .lk-gradient { margin-left: 4px; }
@@ -15,9 +17,8 @@
 /* File head: the heavy filename, counts and progress at left, the agreement's facts at right. */
 .lk-doc-head { display: flex; justify-content: space-between; gap: 28px; margin-bottom: 8px; }
 .lk-doc-title { flex: 1 1 54%; min-width: 0; }
-.lk-app .lk-doc-title h1 { display: flex; align-items: center; gap: 16px; margin: 4px 0 8px; font-size: 22px; font-weight: 700; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.lk-app .lk-doc-title h1 { display: flex; align-items: center; gap: 16px; margin: 4px 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -.025em; overflow-wrap: anywhere; }
 .lk-file-icon { display: grid; place-items: center; flex: none; width: 22px; height: 27px; border-radius: 3px; background: #1F6FEB; color: #fff; font: 800 13px/1 var(--lk-font); clip-path: polygon(0 0, 70% 0, 100% 24%, 100% 100%, 0 100%); }
-.lk-file-icon:empty { background: var(--lk-tint); }
 .lk-file-pdf { width: 32px; background: var(--lk-bad); font-size: 11px; clip-path: none; }
 .lk-counts { margin: 0 0 12px; font-size: 15.5px; }
 .lk-progress { height: 8px; border-radius: 99px; background: #E6E7EA; overflow: hidden; }
@@ -42,7 +43,7 @@
 
 /* The page, with the margin column beside it. */
 .lk-agreement { container-type: inline-size; --lk-gap: 38px; --lk-note-w: clamp(340px, 38cqw, 500px); }
-.lk-paper { position: relative; margin-right: calc(var(--lk-note-w) + var(--lk-gap)); padding: 36px 48px 44px; border: 1px solid #DFE3EA; border-radius: 12px 12px 0 0; background: var(--lk-surface); box-shadow: 0 3px 13px rgb(37 52 83 / .05); font: 400 20px/1.36 var(--lk-font-serif); color: #16171B; }
+.lk-paper { position: relative; margin-right: calc(var(--lk-note-w) + var(--lk-gap)); padding: 30px 48px 44px; border: 1px solid #DFE3EA; border-radius: 12px 12px 0 0; background: var(--lk-surface); box-shadow: 0 3px 13px rgb(37 52 83 / .05); font: 400 20px/1.36 var(--lk-font-serif); color: #16171B; }
 .lk-paper-empty { font: inherit; }
 .lk-links { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
 .lk-links path { fill: none; stroke-width: 1.6; stroke-dasharray: 3 6; stroke-linecap: round; }
@@ -50,19 +51,21 @@
 .lk-para { display: flex; flex-direction: column; }
 .lk-app .lk-paper h2 { margin: 18px 0 14px; font: 700 26px/1.25 var(--lk-font-serif); letter-spacing: -.02em; }
 .lk-app .lk-paper .lk-section:first-child .lk-para:first-child h2 { margin-top: 0; }
-.lk-clause { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 14px; padding-left: 20px; margin-bottom: 22px; }
-.lk-clause-number { font-variant-numeric: lining-nums; }
+.lk-clause { display: grid; grid-template-columns: minmax(34px, max-content) minmax(0, 1fr); gap: 14px; padding-left: 20px; margin-bottom: 22px; }
+/* A clause number is one token: 10.1 never breaks into "10." and "1". */
+.lk-clause-number { font-variant-numeric: lining-nums; white-space: nowrap; }
 .lk-clause p, .lk-plain { margin: 0; }
 .lk-plain { margin-bottom: 14px; }
 .lk-paper del { color: var(--lk-bad); text-decoration: line-through; text-decoration-thickness: 2px; }
 .lk-paper ins { color: var(--lk-insert); background: var(--lk-insert-bg); text-decoration: none; border-radius: 4px; padding: 1px 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .lk-ghost { display: flex; align-items: center; gap: 14px; width: max-content; max-width: 100%; margin: -10px 0 18px 68px; padding: 8px 13px; border: 1px dashed #5A8DF0; border-radius: 9px; background: var(--lk-insert-bg); color: #0B3F9A; font-size: 17px; }
 .lk-ghost .lk-icon { color: #142745; }
-.lk-folded { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin: 6px 0 16px; }
+.lk-folded { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin: 0 0 14px; }
 .lk-app .lk-paper .lk-folded h2 { margin: 0; color: var(--lk-ink-2); font-size: 21px; }
 .lk-app .lk-paper .lk-folded-run h2 { font: 650 15px/1.4 var(--lk-font); color: var(--lk-ink); letter-spacing: 0; }
 .lk-met { display: inline-flex; align-items: center; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--lk-good-bg); color: var(--lk-good-ink); font: 600 12px/18px var(--lk-font); vertical-align: 3px; white-space: nowrap; }
-.lk-app .lk-ellipsis { display: block; min-height: 0; margin: -6px 0 16px 20px; padding: 0 10px 4px; border: 0; border-radius: 8px; background: none; font: 400 22px/1 var(--lk-font-serif); color: var(--lk-ink-2); letter-spacing: .1em; }
+.lk-app .lk-ellipsis { display: block; min-height: 0; margin: -14px 0 6px 20px; padding: 0 10px 2px; border: 0; border-radius: 8px; background: none; font: 400 22px/.9 var(--lk-font-serif); color: var(--lk-ink-2); letter-spacing: .1em; }
+.lk-para-heading + .lk-ellipsis { margin-top: -6px; }
 .lk-app .lk-ellipsis:hover { background: var(--lk-tint); color: var(--lk-ink); }
 .lk-app .lk-unfold { min-height: 30px; padding: 0 12px 0 8px; border-radius: 999px; font: 500 13px/1 var(--lk-font); color: var(--lk-ink-2); border-color: var(--lk-rule); }
 
