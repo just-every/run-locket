@@ -32,7 +32,7 @@ test('RENEW-004 reviews 40 imported agreements, stores 34 current-term schedules
     const reviewed = p.tracked.find(row => row.agreementId === r.agreement_id)
     assert.equal(r.owner_id, ownerId); assert.equal(r.deadline_at, reviewed.deadlineAt)
     assert.deepEqual(r.reminders, reviewed.reminders); assert.deepEqual(r.offsets, [90, 60, 30, 7])
-    assert.equal(r.delivery_status, 'not_delivered'); assert.equal(r.schedule_status, 'scheduled')
+    assert.equal(r.schedule_status, 'scheduled')
     assert.equal(s.agreements.find(a => a.id === r.agreement_id).version, r.agreement_version)
   }
   for (const action of ['renewal.bulk.preview', 'renewal.bulk.apply']) {

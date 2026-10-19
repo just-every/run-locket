@@ -1,4 +1,5 @@
-// Bulk schedules track the existing lifecycle projection. Delivery is RENEW-002.
+// Bulk schedules track the existing lifecycle projection. RENEW-002 delivers from a
+// schedule whose deadline matches the current one; its messages are the delivery record.
 import type { Bindings } from '../auth.server'
 import { canSee, grantsFor, may, requireRole, roleSql } from './access'
 import { recordReads } from './audit'
@@ -124,6 +125,6 @@ export async function bulkReminderSchedules(env: Bindings, actor: Actor) {
   return rows.map(r => {
     const a = byId.get(r.agreement_id)!, current = lifecycle(a, terms, renewals, notices, Date.now())
     const matches = a.version === r.agreement_version && current.deadline?.at === r.deadline_at && !current.missing.length && !current.terminationUnsent
-    return { ...r, offsets: JSON.parse(r.offsets), reminders: JSON.parse(r.reminders), schedule_status: matches ? 'scheduled' : 'needs_review', delivery_status: 'not_delivered' }
+    return { ...r, offsets: JSON.parse(r.offsets), reminders: JSON.parse(r.reminders), schedule_status: matches ? 'scheduled' : 'needs_review' }
   })
 }

@@ -11,6 +11,7 @@ import { authResponse, runtimeBindings, type Bindings } from './auth.server'
 import { identity } from './identity'
 import { locketResponse } from './locket/api'
 import { runApprovalReminders } from './locket/approval-reminder-dispatch'
+import { runDeadlineReminders } from './locket/deadline-reminder-dispatch'
 
 const api = new Hono<{ Bindings: Bindings }>()
 api.get('/health', (context) => context.json({ status: 'ok', ...deploymentHealth(context.env) }))
@@ -40,8 +41,9 @@ export default withDemo({
     if (lobby) return lobby
     return dispatch(request, () => api.fetch(request, env, execution), async () => noTransform(await start.fetch(request)))
   },
-  // APPROVE-004: hourly approval reminders and escalations (triggers.crons in wrangler.jsonc, crons in deploy.json).
+  // APPROVE-004 approval and RENEW-002 deadline reminders, hourly (triggers.crons in wrangler.jsonc, crons in deploy.json).
   async scheduled(controller, env) {
     await runApprovalReminders(runtimeBindings(env), controller.scheduledTime)
+    await runDeadlineReminders(runtimeBindings(env), controller.scheduledTime)
   },
 } satisfies ExportedHandler<Bindings>, { seed: seedDemo })

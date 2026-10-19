@@ -1,12 +1,10 @@
 // APPROVE-004 screens: who each pending approval waits on, when they are next
-// reminded and escalated, "Remind approver", and the owner's intervals and each
-// approver's time zone and delegate.
+// reminded and escalated, "Remind approver", and the owner's intervals.
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, Field, Form, value } from './controls'
 import { can, deadline, personName, plural, when } from './format'
 
-const zones: [string, string][] = [['America/New_York', 'Eastern'], ['America/Chicago', 'Central'], ['America/Denver', 'Mountain'], ['America/Phoenix', 'Arizona'], ['America/Los_Angeles', 'Pacific'], ['America/Anchorage', 'Alaska'], ['Pacific/Honolulu', 'Hawaii']]
 const reason: Record<string, string> = { delegate: 'delegate', escalation_contact: 'escalation contact', owner: 'owner' }
 const receipt: Record<string, string> = {
   accepted: 'The mail provider accepted the reminder. Mailbox delivery is unconfirmed.',
@@ -50,27 +48,16 @@ export function ApprovalReminders({ state, a, locket }: { state: LocketState; a:
 }
 
 export function ReminderSettings({ state, locket }: { state: LocketState; locket: Locket }) {
-  const { settings, preferences } = state.approvalReminders
-  const owner = can(state, 'owner')
-  if (!can(state, 'owner', 'approver')) return null
+  const { settings } = state.approvalReminders
+  if (!can(state, 'owner')) return null
   const commercial = state.operators.filter(o => o.status === 'active' && ['owner', 'approver'].includes(o.role))
-  const people = owner ? commercial : commercial.filter(o => o.id === state.actor.id)
-  const mine = preferences.find(p => p.operator_id === (people[0]?.id ?? ''))
   return <section className="lk-panel" aria-label="Approval reminder settings">
     <div className="lk-panel-head"><h2>Approval reminders</h2><span className="lk-muted">Business days are Monday to Friday in the approver's time zone, skipping US federal holidays. Locket checks every hour.</span></div>
-    {owner && <Form busy={locket.busy} submit="Save reminder intervals" onSubmit={data => void locket.run('approval.reminders.configure', { firstAfterDays: Number(value(data, 'firstAfterDays')), repeatEveryDays: Number(value(data, 'repeatEveryDays')), escalateAfterDays: Number(value(data, 'escalateAfterDays')), escalationContactId: value(data, 'escalationContactId') || null })}>
-      <h3>Reminder intervals</h3>
+    <Form busy={locket.busy} submit="Save reminder intervals" onSubmit={data => void locket.run('approval.reminders.configure', { firstAfterDays: Number(value(data, 'firstAfterDays')), repeatEveryDays: Number(value(data, 'repeatEveryDays')), escalateAfterDays: Number(value(data, 'escalateAfterDays')), escalationContactId: value(data, 'escalationContactId') || null })}>
       <Field label="First reminder after (business days)"><input name="firstAfterDays" type="number" min={1} max={30} defaultValue={settings.firstAfterDays} required /></Field>
       <Field label="Then every (business days)"><input name="repeatEveryDays" type="number" min={1} max={30} defaultValue={settings.repeatEveryDays} required /></Field>
       <Field label="Escalate after (business days)"><input name="escalateAfterDays" type="number" min={1} max={60} defaultValue={settings.escalateAfterDays} required /></Field>
       <Field label="Escalation contact" hint="Used when the approver has no delegate who can decide; otherwise the owner."><select name="escalationContactId" defaultValue={settings.escalationContactId ?? ''}><option value="">The owner</option>{commercial.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></Field>
-    </Form>}
-    {people.length > 0 && <Form busy={locket.busy} submit="Save approval preferences" onSubmit={data => void locket.run('approval.preferences.set', { operatorId: value(data, 'operatorId'), timezone: value(data, 'timezone'), delegateId: value(data, 'delegateId') || null })}>
-      <h3>Approver time zone and delegate</h3>
-      <Field label="Approver"><select name="operatorId">{people.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></Field>
-      <Field label="Time zone"><select name="timezone" defaultValue={mine?.timezone ?? 'America/New_York'}>{zones.map(([id, label]) => <option key={id} value={id}>{label} ({id})</option>)}</select></Field>
-      <Field label="Delegate" hint="Receives the escalation when an approval waits too long."><select name="delegateId" defaultValue={mine?.delegate_id ?? ''}><option value="">No delegate</option>{commercial.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></Field>
-    </Form>}
-    {owner && preferences.length > 0 && <ul className="lk-list">{preferences.map(p => <li key={p.operator_id}><span><strong>{personName(state, p.operator_id)}</strong> · {zones.find(z => z[0] === p.timezone)?.[1] ?? p.timezone} · delegate {p.delegate_id ? personName(state, p.delegate_id) : 'none'}</span></li>)}</ul>}
+    </Form>
   </section>
 }

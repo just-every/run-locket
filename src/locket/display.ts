@@ -120,5 +120,6 @@ export const actionLabel: Record<string, string> = {
   'role.set': 'Role changed',
   'approval.remind': 'Reminder requested',
   'approval.reminders.configure': 'Reminder intervals set',
-  'approval.preferences.set': 'Approval preferences set',
+  'preferences.set': 'Preferences set',
+  'deadline.reminders.configure': 'Deadline reminder offsets set',
 }

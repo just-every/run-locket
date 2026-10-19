@@ -32,7 +32,7 @@ export function BulkReminders({ state, locket }: { state: LocketState; locket: L
   }
   return <section className="lk-panel lk-bulk-reminders" aria-labelledby="bulk-reminder-title" aria-busy={busy}>
     <h2 id="bulk-reminder-title">Bulk reminder schedules</h2>
-    <p className="lk-muted">Choose imported agreements, review their current term deadlines, then store the schedules. Scheduling does not send email; delivery is not connected.</p>
+    <p className="lk-muted">Choose imported agreements, review their current term deadlines, then store the schedules. A stored schedule that matches the current deadline sets who is reminded and on which days; each sent reminder appears on the deadline.</p>
     <fieldset disabled={busy} className="lk-bulk-fields">
       <div className="lk-bulk-controls">
         <Field label="Agreement view"><select value={view} onChange={e=>{setView(e.target.value);changeFilter()}}><option value="">All imported agreements</option>{state.portfolio.tiles.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select></Field>

@@ -4,6 +4,8 @@ import type { Bindings } from '../auth.server'
 import { approvalMailReceipt, emailApproval } from './approval-mail'
 import { reminderReceiptFor } from './approval-reminder-dispatch'
 import { approvalReminderHandlers } from './approval-reminders'
+import { deadlineReminderHandlers } from './deadline-reminders'
+import { preferenceHandlers } from './preferences'
 import { selectFamilyTerm } from './families'
 import { family } from './family-projection'
 import { bulkOperationHandlers } from './bulk-reminder-operations'
@@ -46,6 +48,8 @@ export const handlers: Record<string, Handler> = {
   'family.term': selectFamilyTerm,
   'approval.email': emailApproval,
   ...approvalReminderHandlers,
+  ...deadlineReminderHandlers,
+  ...preferenceHandlers,
   ...clickwrapHandlers,
   ...libraryHandlers,
   'clause.insert': insertClause,

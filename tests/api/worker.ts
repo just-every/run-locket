@@ -1,6 +1,7 @@
 import { locketResponse } from '../../src/locket/api'
 import { authResponse } from '../../src/auth.server'
 import { runApprovalReminders } from '../../src/locket/approval-reminder-dispatch'
+import { runDeadlineReminders } from '../../src/locket/deadline-reminder-dispatch'
 
 const systemNow = Date.now
 export default {
@@ -10,5 +11,6 @@ export default {
   },
   async scheduled(controller: ScheduledController, env: any) {
     await runApprovalReminders(env, controller.scheduledTime)
+    await runDeadlineReminders(env, controller.scheduledTime)
   },
 }

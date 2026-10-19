@@ -1,5 +1,6 @@
 import { BulkReminders } from './bulk-reminders'
 import { NoticeDelivery } from './notice-delivery'
+import { DeadlineReminderLog, DeadlineReminderSettings } from './deadline-reminders'
 // Renewals on a calendar: a band of the coming months with each notice
 // deadline pinned on it, then the renewals in date order; the chosen one opens
 // in place with its two steps, the decision and the notice.
@@ -17,6 +18,7 @@ export function Renewals({ state, locket }: { state: LocketState; locket: Locket
   return (
     <div className="lk-renewals">
       <div className="lk-titlebar"><div><h1>Renewals</h1><p className="lk-muted">Notice deadlines from confirmed terms, decisions, and notices approved and sent. A prepared or approved notice is not a sent notice.</p></div></div>
+      <DeadlineReminderSettings state={state} locket={locket} />
       <BulkReminders state={state} locket={locket} />
       {renewals.length === 0 ? <section className="lk-panel"><Empty>No renewals yet. Confirm an end date and notice period on an executed agreement.</Empty></section> : (
         <>
@@ -83,6 +85,10 @@ function Steps({ state, r, a, locket }: { state: LocketState; r: Row; a: Row; lo
           </Form>
         ) : <p className="lk-muted">Waiting for the owner or an approver to decide.</p>}
         <a className="lk-text-link" href={`#agreement/${a.id}/terms`}>Open the agreement's terms</a>
+      </section>
+      <section className="lk-card lk-step" aria-label="Deadline reminders sent">
+        <h3>Reminders</h3>
+        <DeadlineReminderLog state={state} subjectId={r.id} />
       </section>
       <section className="lk-card lk-step">
         <h3>2. Notice</h3>

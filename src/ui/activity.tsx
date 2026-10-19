@@ -3,6 +3,7 @@ import { fetchJson, type LocketState } from './api'
 import type { Locket } from './app'
 import { AuditLog } from './audit'
 import { ReminderSettings } from './approval-reminders'
+import { Preferences } from './preferences'
 import { Avatar, Badge, Field, Form, Icon, Person, value } from './controls'
 import { can, roleLabel } from './format'
 
@@ -56,6 +57,7 @@ export function Activity({ state, locket }: { state: LocketState; locket: Locket
         )}
       </section>
       <ReminderSettings state={state} locket={locket} />
+      <Preferences state={state} locket={locket} />
       <AuditLog state={state} />
     </div>
   )

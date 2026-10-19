@@ -5,9 +5,9 @@
 import type { Bindings } from '../auth.server'
 import { may, requireRole } from './access'
 import { recipientGuard } from './approval-mail'
-import { addBusinessDays, defaultZone, usZones } from './business-days'
+import { addBusinessDays, defaultZone } from './business-days'
 import type { Ctx, Handler } from './commands'
-import { fail, integer, oneOf, optionalText, sql, text, type Actor, type Sql } from './model'
+import { fail, integer, optionalText, sql, text, type Actor, type Sql } from './model'
 import { agreementGuards, currentVersion, requireStatus, visibleAgreement } from './records'
 
 export const manualGapMs = 4 * 3_600_000
@@ -24,10 +24,10 @@ export async function reminderSettings(db: D1Database): Promise<Settings> {
 }
 
 export async function approverZone(db: D1Database, operatorId: string): Promise<string> {
-  return (await db.prepare('SELECT timezone FROM lk_approver_preferences WHERE operator_id=?').bind(operatorId).first<{ timezone: string }>())?.timezone ?? defaultZone
+  return (await db.prepare('SELECT timezone FROM lk_person_preferences WHERE operator_id=?').bind(operatorId).first<{ timezone: string }>())?.timezone ?? defaultZone
 }
 
-const commercialSql = `(SELECT CASE WHEN o.role='owner' THEN 'owner' ELSE COALESCE((SELECT r.role FROM lk_roles r WHERE r.operator_id=o.id),'viewer') END) IN ('owner','approver')`
+export const commercialSql = `(SELECT CASE WHEN o.role='owner' THEN 'owner' ELSE COALESCE((SELECT r.role FROM lk_roles r WHERE r.operator_id=o.id),'viewer') END) IN ('owner','approver')`
 
 /** Pending approvals, optionally for one agreement. */
 export async function pendingApprovals(db: D1Database, agreementId: string | null = null): Promise<Pending[]> {
@@ -66,7 +66,7 @@ async function eligible(c: Ctx, agreementId: string, id: string, email: string) 
 export type Reason = 'approver' | 'delegate' | 'escalation_contact' | 'owner'
 /** The approver's delegate, else the escalation contact, else the owner: the first who may decide this agreement. */
 export async function escalationTarget(c: Ctx, p: Pending, s: Settings): Promise<{ id: string; email: string; reason: Reason } | null> {
-  const delegate = (await c.db.prepare('SELECT delegate_id FROM lk_approver_preferences WHERE operator_id=?').bind(p.approverId).first<{ delegate_id: string | null }>())?.delegate_id ?? null
+  const delegate = (await c.db.prepare('SELECT delegate_id FROM lk_person_preferences WHERE operator_id=?').bind(p.approverId).first<{ delegate_id: string | null }>())?.delegate_id ?? null
   const owner = (await c.db.prepare("SELECT id FROM oa_operators WHERE role='owner' AND status='active' ORDER BY created_at LIMIT 1").first<{ id: string }>())?.id ?? null
   for (const [id, reason] of [[delegate, 'delegate'], [s.escalationContactId, 'escalation_contact'], [owner, 'owner']] as [string | null, Reason][]) {
     if (!id || id === p.approverId) continue
@@ -77,11 +77,11 @@ export async function escalationTarget(c: Ctx, p: Pending, s: Settings): Promise
 }
 
 /** Active owners and approvers: the people who can hold, receive or delegate a commercial approval. */
-async function requireCommercial(db: D1Database, id: string, field: string) {
+export async function requireCommercial(db: D1Database, id: string, field: string) {
   const ok = await db.prepare(`SELECT 1 AS ok FROM oa_operators o WHERE o.id=? AND o.status='active' AND ${commercialSql}`).bind(id).first()
   if (!ok) fail('INVALID', 'Choose an active owner or approver.', 400, { field })
 }
-const commercialCheck = (id: string) => sql(`EXISTS(SELECT 1 FROM oa_operators o WHERE o.id=? AND o.status='active' AND ${commercialSql})`, id)
+export const commercialCheck = (id: string) => sql(`EXISTS(SELECT 1 FROM oa_operators o WHERE o.id=? AND o.status='active' AND ${commercialSql})`, id)
 
 const configure: Handler = async (c, p) => {
   requireRole(c.actor, may.manageRoles, 'set approval reminder intervals')
@@ -94,26 +94,6 @@ const configure: Handler = async (c, p) => {
     writes: [sql('INSERT INTO lk_approval_reminder_settings VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET first_after_days=excluded.first_after_days, repeat_every_days=excluded.repeat_every_days, escalate_after_days=excluded.escalate_after_days, escalation_contact_id=excluded.escalation_contact_id, updated_by=excluded.updated_by, updated_at=excluded.updated_at', 'installation', first, repeat, escalate, contact, c.actor.id, c.now)],
     checks: contact ? [commercialCheck(contact)] : [],
     audit: [{ action: 'approval.reminders.configure', summary: `Approval reminders: first after ${first} business day${first === 1 ? '' : 's'}, then every ${repeat}; escalate after ${escalate}.` }],
-  }
-}
-
-const setPreferences: Handler = async (c, p) => {
-  requireRole(c.actor, may.commercialApproval, 'set approval preferences')
-  const operatorId = text(p, 'operatorId', 100)
-  if (c.actor.role !== 'owner' && operatorId !== c.actor.id) fail('FORBIDDEN', 'Only the owner sets another person’s approval preferences.', 403)
-  await requireCommercial(c.db, operatorId, 'operatorId')
-  const zone = oneOf(p, 'timezone', usZones)
-  const delegate = optionalText(p, 'delegateId', 100)
-  if (delegate === operatorId) fail('INVALID', 'A delegate must be someone else.', 400, { field: 'delegateId' })
-  if (delegate) await requireCommercial(c.db, delegate, 'delegateId')
-  const names = await c.db.prepare('SELECT id, display_name FROM oa_operators WHERE id IN (?,?)').bind(operatorId, delegate ?? operatorId).all<{ id: string; display_name: string }>()
-  const name = (id: string) => names.results.find(n => n.id === id)?.display_name ?? id
-  return {
-    allowed: may.commercialApproval,
-    result: { operatorId, timezone: zone, delegateId: delegate },
-    writes: [sql('INSERT INTO lk_approver_preferences VALUES(?,?,?,?,?) ON CONFLICT(operator_id) DO UPDATE SET timezone=excluded.timezone, delegate_id=excluded.delegate_id, updated_by=excluded.updated_by, updated_at=excluded.updated_at', operatorId, zone, delegate, c.actor.id, c.now)],
-    checks: [commercialCheck(operatorId), ...(delegate ? [commercialCheck(delegate)] : [])],
-    audit: [{ action: 'approval.preferences.set', summary: `${name(operatorId)}: approval time zone ${zone}; delegate ${delegate ? name(delegate) : 'none'}.` }],
   }
 }
 
@@ -140,14 +120,13 @@ const remind: Handler = async (c, p) => {
 
 export const approvalReminderHandlers: Record<string, Handler> = {
   'approval.reminders.configure': configure,
-  'approval.preferences.set': setPreferences,
   'approval.remind': remind,
 }
 
 /** What the workspace shows: settings, preferences, and each visible pending approval's schedule. */
 export async function approvalReminderState(env: Bindings, actor: Actor, visible: Set<string>, now: number) {
   const db = env.DB, settings = await reminderSettings(db)
-  const preferences = (await db.prepare('SELECT operator_id, timezone, delegate_id FROM lk_approver_preferences').all<any>()).results
+  const preferences = (await db.prepare('SELECT operator_id, timezone, delegate_id, digest, alternate_id FROM lk_person_preferences').all<any>()).results
   const pending = []
   for (const p of (await pendingApprovals(db)).filter(x => visible.has(x.agreementId))) {
     const zone = preferences.find(x => x.operator_id === p.approverId)?.timezone ?? defaultZone

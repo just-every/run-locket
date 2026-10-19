@@ -1,6 +1,7 @@
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, Field, Form, Person, value, When } from './controls'
+import { DeadlineReminderLog } from './deadline-reminders'
 import { can, day, deadline, parse, personName, renewalOf, termLabel, termValue, words } from './format'
 
 const keys = ['effective_date', 'end_date', 'auto_renew', 'renewal_term_months', 'notice_days', 'governing_law', 'payment_terms']
@@ -62,6 +63,7 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
                 <div><dt>Repeats</dt><dd>{o.recurrence === 'none' ? 'Once' : words(o.recurrence)}</dd></div>
               </dl>
               <small>{cite(parse(o.citation))}</small>
+              {o.status === 'confirmed' && o.due_date && <DeadlineReminderLog state={state} subjectId={o.id} />}
               <span className="lk-row-actions">
                 {o.status === 'proposed' && confirmer && <><button type="button" className="lk-small lk-primary" disabled={busy} onClick={() => void run('obligation.update', { agreementId: a.id, obligationId: o.id, action: 'confirm' })}>Confirm</button><button type="button" className="lk-small" disabled={busy} onClick={() => void run('obligation.update', { agreementId: a.id, obligationId: o.id, action: 'reject' })}>Reject</button></>}
                 {o.status === 'confirmed' && (o.owner_id === state.actor.id || confirmer) && <button type="button" className="lk-small" disabled={busy} onClick={() => void run('obligation.update', { agreementId: a.id, obligationId: o.id, action: 'done' })}>Mark done</button>}
