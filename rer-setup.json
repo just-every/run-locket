@@ -73,6 +73,15 @@
       "required": false,
       "ownerVisible": false,
       "group": "owner"
+    },
+    {
+      "name": "NOTICE_RESEND_WEBHOOK_SECRET",
+      "label": "Notice delivery webhook signing secret",
+      "help": "Optional Resend endpoint whsec_ secret for /api/locket/notice-events/resend. Required for sending approved notice PDFs. Subscribe to delivered, bounced, delivery_delayed and failed events.",
+      "kind": "secret",
+      "required": false,
+      "ownerVisible": false,
+      "group": "owner"
     }
   ],
   "steps": [

@@ -4,6 +4,7 @@
 import type { Bindings } from '../auth.server'
 import { authority } from './access'
 import { authorizeBulkPreviewResult } from './bulk-reminders'
+import { dispatchNotice } from './notice-mail'
 import { dispatchApprovalMail } from './approval-mail'
 import { canonical, fail, json, object, Problem, sha256, sql, type Actor, type Role, type Sql } from './model'
 
@@ -70,6 +71,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const completed = async (result: unknown) => {
     if (type === 'renewal.bulk.preview') await authorizeBulkPreviewResult(c, result)
     if (type === 'approval.email') await dispatchApprovalMail(c)
+    if (type === 'notice.email') await dispatchNotice(c)
     return result
   }
   const digest = await sha256(canonical({ type, payload }))

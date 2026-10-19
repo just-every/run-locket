@@ -6,6 +6,8 @@ import { may, requireRole } from './access'
 import { fileInput, storeArtifact } from './artifacts'
 import type { Ctx, Handler } from './commands'
 import { noticeDeadline } from './dates'
+import { frozenLetter } from './notice-letters'
+import { initialTracking } from './notice-tracking'
 import { day, deadline as zoned, termLabel, termValue as termText } from './display'
 import { date, fail, integer, json, object, oneOf, optionalDate, optionalText, sql, text, type Sql } from './model'
 import { agreementGuards, bump, visibleAgreement, type AgreementRow } from './records'
@@ -175,13 +177,15 @@ export async function noticeDraft(c: Ctx, renewalId: unknown, p: Record<string, 
   const { r, a } = await renewalOf(c, renewalId)
   if (!r.decision) fail('NO_DECISION', 'Decide renew, renegotiate or terminate before preparing a notice.', 409)
   const id = crypto.randomUUID()
-  return { id, a, r, write: sql('INSERT INTO lk_notices VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, r.id, a.id, text(p, 'recipient', 300), text(p, 'body', 20_000), c.actor.id, proposalId, 'draft', null, null, null, null, null, null, c.now) }
+  const recipient = text(p, 'recipient', 300), body = text(p, 'body', 20_000)
+  const letter = await frozenLetter(c, { id, agreement_id: a.id, recipient, body })
+  return { id, a, r, writes: [sql('INSERT INTO lk_notices VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, r.id, a.id, recipient, body, c.actor.id, proposalId, 'draft', null, null, null, null, null, null, c.now), ...letter.writes] }
 }
 
 const prepareNotice: Handler = async (c, p) => {
   requireRole(c.actor, may.review, 'prepare notices')
   const n = await noticeDraft(c, p.renewalId, p, null)
-  return { allowed: may.review, result: { id: n.id, status: 'draft' }, writes: [n.write, bump(c, n.a)], checks: agreementGuards(c, n.a), audit: [{ action: 'notice.prepare', agreementId: n.a.id, summary: `Prepared a ${n.r.decision} notice draft` }] }
+  return { allowed: may.review, result: { id: n.id, status: 'draft' }, writes: [...n.writes, bump(c, n.a)], checks: agreementGuards(c, n.a), audit: [{ action: 'notice.prepare', agreementId: n.a.id, summary: `Prepared a ${n.r.decision} notice draft` }] }
 }
 
 async function noticeOf(c: Ctx, id: unknown) {
@@ -197,7 +201,9 @@ const approveNotice: Handler = async (c, p) => {
   // The drafter is whoever prepared the text: the proposal's preparer when it came through one.
   const drafter = n.proposal_id ? (await c.db.prepare('SELECT prepared_by FROM lk_proposals WHERE id=?').bind(n.proposal_id).first<{ prepared_by: string }>())?.prepared_by : null
   if (c.actor.role !== 'owner' && (n.prepared_by === c.actor.id || drafter === c.actor.id)) fail('SELF_APPROVAL', 'Another approver or the owner must approve a notice you prepared.', 403)
-  return { allowed: may.renewalDecision, result: { id: n.id, status: 'approved' }, writes: [sql("UPDATE lk_notices SET status='approved', approved_by=?, approved_at=? WHERE id=?", c.actor.id, c.now, n.id), bump(c, a)], checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='draft'", n.id)], audit: [{ action: 'notice.approve', agreementId: a.id, summary: 'Approved notice for sending (not yet sent)' }] }
+  const letter = await c.db.prepare('SELECT sha256 FROM lk_notice_letters WHERE id=?').bind(n.id).first<{ sha256: string }>()
+  if (!letter) fail('LETTER', 'Prepare and review the PDF letter before approval.', 409)
+  return { allowed: may.renewalDecision, result: { id: n.id, status: 'approved', pdfDigest: letter.sha256 }, writes: [sql("UPDATE lk_notices SET status='approved', approved_by=?, approved_at=? WHERE id=?", c.actor.id, c.now, n.id), bump(c, a)], checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='draft'", n.id)], audit: [{ action: 'notice.approve', agreementId: a.id, summary: 'Approved notice for sending (not yet sent)' }] }
 }
 
 /** Separate evidence that the approved notice actually went out. */
@@ -209,7 +215,7 @@ const recordSent: Handler = async (c, p) => {
   const at = Date.parse(sentAt)
   if (Number.isNaN(at)) fail('INVALID', 'sentAt must be a date and time.', 400)
   const method = oneOf(p, 'method', ['email', 'post', 'courier', 'hand', 'portal'] as const)
-  const writes: Sql[] = []
+  const writes: Sql[] = initialTracking(c, p, n, method)
   let evidenceId: string | null = null
   if (p.evidence) {
     const stored = await storeArtifact(fileInput(p.evidence, 'evidence'), { agreementId: a.id, role: 'notice_evidence', provenance: { notice: n.id, method }, actorId: c.actor.id, at: c.now })
@@ -217,7 +223,7 @@ const recordSent: Handler = async (c, p) => {
     evidenceId = stored.id
   }
   writes.push(sql("UPDATE lk_notices SET status='sent', sent_method=?, sent_at=?, sent_recorded_by=?, evidence_artifact_id=? WHERE id=?", method, at, c.actor.id, evidenceId, n.id), bump(c, a))
-  return { allowed: may.signature, result: { id: n.id, status: 'sent' }, writes, checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", n.id)], audit: [{ action: 'notice.sent', agreementId: a.id, summary: `Recorded notice sent by ${method} on ${zoned(at, a.timezone)}${evidenceId ? ' with evidence' : ''}` }] }
+  return { allowed: may.signature, result: { id: n.id, status: 'sent' }, writes, checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", n.id), sql('NOT EXISTS(SELECT 1 FROM lk_notice_dispatches WHERE notice_id=?)', n.id)], audit: [{ action: 'notice.sent', agreementId: a.id, summary: `Recorded notice sent by ${method} on ${zoned(at, a.timezone)}${evidenceId ? ' with evidence' : ''}` }] }
 }
 
 export const obligationHandlers: Record<string, Handler> = {

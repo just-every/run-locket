@@ -16,6 +16,7 @@ With a confirmed end date and notice period, the agreement appears under **Renew
 
 1. **Decision**: the owner or an approver chooses **Renew**, **Renegotiate** or **Terminate**, with an internal note if useful.
 2. **Notice**: anyone working the agreement can **Draft a notice** to the counterparty. The owner or an approver then chooses **Approve for sending**; whoever drafted it cannot approve it, unless they are the owner.
-3. Send the notice yourself, then **Record that it was sent**: how (email, mail, courier, by hand or a portal), when, and evidence such as the sent email or a receipt.
+3. Review **Download PDF letter** and its recipient before approval. With the installation's Resend sender and authenticated delivery callbacks configured, choose **Send approved PDF by email**. Locket sends those exact bytes to the approved address and keeps the provider message ID. Local/demo email is suppressed, never labeled sent.
+4. For mail, courier or another external method, download the PDF and send it yourself, then **Record that it was sent** with method, time and any evidence. Mail/courier records include a tracking number and remain **Sent, delivery unconfirmed** until you **Record delivered evidence** with its time and receipt note.
 
-An approved notice reads **Approved, not sent** until you record the sending. Locket does not send email or notices on your behalf.
+Approval, sending and delivery stay separate. Provider acceptance is not delivery. Signed delivery/bounce events are labeled provider reports; manual carrier receipts are labeled manually recorded. Counsel decides whether the evidence constitutes legally effective notice. An interrupted or uncertain email send never retries automatically: inspect its outcome before preparing another notice.

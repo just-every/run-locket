@@ -1,9 +1,10 @@
 import { BulkReminders } from './bulk-reminders'
+import { NoticeDelivery } from './notice-delivery'
 // Renewals on a calendar: a band of the coming months with each notice
 // deadline pinned on it, then the renewals in date order; the chosen one opens
 // in place with its two steps, the decision and the notice.
 import { useState } from 'react'
-import { fileToPayload, type LocketState, type Row } from './api'
+import { type LocketState, type Row } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, Field, Form, value, When } from './controls'
 import { can, clock, day, daysUntil, deadline, partyName, personName } from './format'
@@ -86,27 +87,7 @@ function Steps({ state, r, a, locket }: { state: LocketState; r: Row; a: Row; lo
       <section className="lk-card lk-step">
         <h3>2. Notice</h3>
         {notices.length === 0 && <p className="lk-muted">No notice drafted.</p>}
-        {notices.map(n => (
-          <article key={n.id} className="lk-notice">
-            <div className="lk-finding-head"><strong>To {n.recipient}</strong><Badge value={n.status === 'sent' ? 'sent' : n.status === 'approved' ? 'approved' : 'draft'} label={n.status === 'sent' ? 'Sent' : n.status === 'approved' ? 'Approved, not sent' : 'Draft'} /></div>
-            <pre className="lk-document">{n.body}</pre>
-            <small>Prepared by {personName(state, n.prepared_by)}{n.proposal_id ? ' (agent proposal)' : ''}{n.approved_by && <> · approved by {personName(state, n.approved_by)} <When at={n.approved_at} /></>}</small>
-            {n.status === 'sent' && <p>Sent by {n.sent_method} on <span className="lk-nowrap">{deadline(n.sent_at, r.timezone)}</span> (recorded by {personName(state, n.sent_recorded_by)}){n.evidence_artifact_id && <> · <a href={`/api/locket/files/${n.evidence_artifact_id}`} download>evidence</a></>}</p>}
-            {n.status === 'draft' && can(state, 'owner', 'approver') && <button type="button" className="lk-primary" disabled={busy} onClick={() => void run('notice.approve', { noticeId: n.id })}>Approve for sending</button>}
-            {n.status === 'approved' && can(state, 'owner', 'approver', 'requester') && (
-              <Form busy={busy} submit="Record that it was sent" onSubmit={async data => {
-                const evidence = data.get('evidence') as File | null
-                await run('notice.sent', { noticeId: n.id, method: value(data, 'method'), sentAt: new Date(value(data, 'sentAt')).toISOString(), evidence: evidence?.size ? await fileToPayload(evidence) : undefined })
-              }}>
-                <div className="lk-grid2">
-                  <Field label="Sent by"><select name="method"><option value="email">Email</option><option value="post">Mail</option><option value="courier">Courier</option><option value="hand">By hand</option><option value="portal">Portal</option></select></Field>
-                  <Field label="Sent at"><input type="datetime-local" name="sentAt" required /></Field>
-                </div>
-                <Field label="Evidence (sent email, receipt)"><input type="file" name="evidence" /></Field>
-              </Form>
-            )}
-          </article>
-        ))}
+        {notices.map(n => <NoticeDelivery key={n.id} state={state} notice={n} renewal={r} locket={locket} />)}
         {r.decision && can(state, 'owner', 'counsel', 'approver', 'requester') && (
           <details className="lk-disclosure">
             <summary>Draft a notice</summary>

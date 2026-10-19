@@ -37,6 +37,11 @@
       "binding": "CLICKWRAP_SIGNING_KEY",
       "environment": "CLICKWRAP_SIGNING_KEY",
       "optional": true
+    },
+    {
+      "binding": "NOTICE_RESEND_WEBHOOK_SECRET",
+      "environment": "NOTICE_RESEND_WEBHOOK_SECRET",
+      "optional": true
     }
   ],
   "platforms": [

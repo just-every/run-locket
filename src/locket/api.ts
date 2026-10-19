@@ -18,6 +18,10 @@ import { runCommand, type Handler } from './commands'
 import { executionHandlers } from './execution'
 import { importHandlers } from './imports/commands'
 import { libraryHandlers } from './library'
+import { emailNotice } from './notice-mail'
+import { prepareLetter } from './notice-letters'
+import { trackNotice } from './notice-tracking'
+import { noticeEventResponse } from './notice-events'
 import { Problem } from './model'
 import { obligationHandlers } from './obligations'
 import { peopleHandlers } from './people'
@@ -26,6 +30,9 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, search, state } from './views'
 
 export const handlers: Record<string, Handler> = {
+  'notice.email': emailNotice,
+  'notice.letter': prepareLetter,
+  'notice.tracking': trackNotice,
   ...agreementHandlers,
   ...bulkReminderHandlers,
   ...bulkOperationHandlers,
@@ -50,6 +57,8 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
   if (!url.pathname.startsWith('/api/locket/')) return null
   const path = url.pathname.slice('/api/locket'.length)
   try {
+    const event = await noticeEventResponse(request, env)
+    if (event) return event
     if (request.method === 'POST') {
       // Same-origin JSON only: a cross-site form cannot carry a session into a command.
       const origin = request.headers.get('origin')

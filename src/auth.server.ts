@@ -13,6 +13,8 @@ const theme = { href: '/rer-theme.css', productName: branding.name, accentColor:
 export interface Bindings {
  /** Server-only HMAC key for customer-site clickwrap identity assertions. */
  CLICKWRAP_SIGNING_KEY?: string
+ /** Resend endpoint signing key; never returned to a browser. */
+ NOTICE_RESEND_WEBHOOK_SECRET?: string
  DB: D1Database
  /** Built browser files; hosted deploys run the Worker first (staticAssetResponse). */
  ASSETS?: Fetcher

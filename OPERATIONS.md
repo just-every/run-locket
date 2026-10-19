@@ -68,3 +68,5 @@ instructions under `node_modules/@runeditrun/rer/modules/deploy-kit`; account sc
 resource ownership, migrations, receipt and health checks are defined there.
 Local validation does not prove hosted acceptance, provider delivery or remote
 health.
+
+Approved notice emails use the installation's Resend sender. Configure the optional server-only `NOTICE_RESEND_WEBHOOK_SECRET` through setup or the matching deploy secret. Subscribe its Resend endpoint `/api/locket/notice-events/resend` to delivered, bounced, delivery_delayed and failed events. Provider sends require the signing key so their delivery evidence can be authenticated; local/demo sends remain suppressed. Inspect the notice's retained dispatch and provider-event history before preparing another notice after an uncertain/interrupted result; Locket never automatically retries these sends. Provider reports and manual courier receipts are evidence for counsel, not a legal-service determination.
