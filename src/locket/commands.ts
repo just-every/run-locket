@@ -6,6 +6,7 @@ import { authority } from './access'
 import { authorizeBulkPreviewResult } from './bulk-reminders'
 import { dispatchNotice } from './notice-mail'
 import { dispatchApprovalMail } from './approval-mail'
+import { deliverReminder } from './approval-reminder-dispatch'
 import { canonical, fail, json, object, Problem, sha256, sql, type Actor, type Role, type Sql } from './model'
 
 export interface Ctx {
@@ -71,6 +72,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const completed = async (result: unknown) => {
     if (type === 'renewal.bulk.preview') await authorizeBulkPreviewResult(c, result)
     if (type === 'approval.email') await dispatchApprovalMail(c)
+    if (type === 'approval.remind') await deliverReminder(c, commandId, true)
     if (type === 'notice.email') await dispatchNotice(c)
     return result
   }

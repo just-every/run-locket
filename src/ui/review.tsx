@@ -1,6 +1,7 @@
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { ApprovalMail } from './approval-mail'
+import { ApprovalReminders } from './approval-reminders'
 import { Badge, Empty, Field, Form, value } from './controls'
 import { can, currentVersion, parse, personName, roleLabel, versionsOf, when } from './format'
 import { decisionLine } from './notes'
@@ -78,6 +79,7 @@ export function Approvals({ state, a, locket }: { state: LocketState; a: Row; lo
   return (
     <div className="lk-tab-page">
       <ApprovalMail state={state} a={a} locket={locket} />
+      <ApprovalReminders state={state} a={a} locket={locket} />
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Approval route for v{v?.number ?? '–'}</h2></div>
         {a.status === 'draft' && <p className="lk-muted">Submit the request for review to open its approvals.</p>}

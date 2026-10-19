@@ -47,7 +47,7 @@ export function daysUntil(ms: number, from: number, zone: string) {
 }
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
-export const roleLabel: Record<string, string> = { owner: 'Owner', counsel: 'Counsel', approver: 'Approver', requester: 'Requester', viewer: 'Viewer', agent: 'Agent' }
+export const roleLabel: Record<string, string> = { owner: 'Owner', counsel: 'Counsel', approver: 'Approver', requester: 'Requester', viewer: 'Viewer', agent: 'Agent', scheduler: 'Scheduler' }
 
 export const providers: [string, string][] = [['docusign', 'DocuSign'], ['adobe-acrobat-sign', 'Adobe Acrobat Sign'], ['dropbox-sign', 'Dropbox Sign'], ['pandadoc', 'PandaDoc'], ['documenso', 'Documenso'], ['docuseal', 'DocuSeal'], ['paper', 'Paper (wet ink)'], ['other', 'Other']]
 export const providerName = (id: string) => providers.find(p => p[0] === id)?.[1] ?? id
@@ -118,4 +118,7 @@ export const actionLabel: Record<string, string> = {
   'import.apply': 'Archive moved in',
   'import.undo': 'Move-in undone',
   'role.set': 'Role changed',
+  'approval.remind': 'Reminder requested',
+  'approval.reminders.configure': 'Reminder intervals set',
+  'approval.preferences.set': 'Approval preferences set',
 }

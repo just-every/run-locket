@@ -92,7 +92,7 @@ export async function installation({ bindings = {}, mailResponse } = {}) {
       if (role) await owner.command('role.set', { operatorId: person.id, role })
       return person
     }
-    return { mf, db, origin, request, owner, invite, mails, async setTime(at) { workerBindings.TEST_NOW = String(at); await mf.setOptions(runtimeOptions()) }, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
+    return { mf, db, origin, request, owner, invite, mails, async setTime(at) { workerBindings.TEST_NOW = String(at); await mf.setOptions(runtimeOptions()) }, async scheduled(at) { await (await mf.getWorker()).scheduled({ scheduledTime: new Date(at), cron: '0 * * * *' }) }, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
   } catch (error) {
     await mf.dispose().catch(() => {})
     await rm(root, { recursive: true, force: true }).catch(() => {})

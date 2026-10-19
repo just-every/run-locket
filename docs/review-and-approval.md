@@ -20,4 +20,10 @@ Every agreement needs commercial approval from the owner or an approver. Each br
 
 An approval counts only for the version and context it was given on: the version's files and text, the value, the counterparty and the findings that need a decision. A new version or a changed value withdraws earlier approvals, visibly, and the agreement goes back to review. A finding that a rule is met changes nothing an approval rests on.
 
+## Approval reminders
+
+Once you email an approval link to an approver, Locket reminds them by email: by default after 1 business day, then every business day, at the time of day the request was sent. Business days are Monday to Friday in the approver's US time zone, skipping US federal holidays. After 3 business days the approval escalates once to the approver's delegate, or to the escalation contact, or to the owner. The owner sets the intervals and the escalation contact under Activity; each approver sets their own time zone and delegate there. Locket checks every hour.
+
+On the Approvals tab, anyone working on the agreement can press Remind approver, at most once every 4 hours per approver. Reminders stop as soon as the approval is given or declined, a new version is added, or the agreement leaves review. Every reminder and escalation appears in the agreement's history with the mail provider's outcome; acceptance by the provider is not proof the email reached the mailbox.
+
 Locket organizes and prepares agreements. It does not give legal advice or decide whether an agreement is valid or enforceable.

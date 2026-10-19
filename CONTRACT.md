@@ -361,7 +361,7 @@ Owner-configured rules add approvers by agreement type, USD value thresholds, de
 
 *Acceptance:* a journey publishes rules for $100,000 and $500,000 thresholds and a data-processing condition, submits a $600,000 supplier agreement with data processing and sees Finance, Security and CFO approvals required in order; a delegate approves for an absent approver; a value change withdraws all three.
 
-*Status:* partial. Commercial approval plus exception decisions routed to the playbook rule's authority ship (`src/locket/review.ts`, `tests/api/flows.test.mjs`); configurable value, department and condition rules, ordering and delegates do not exist.
+*Status:* partial. Commercial approval plus exception decisions routed to the playbook rule's authority ship (`src/locket/review.ts`, `tests/api/flows.test.mjs`); named delegates receive escalations under `APPROVE-004`; configurable value, department and condition rules, ordering, away status and delegates approving for an absent approver do not exist.
 
 #### APPROVE-003 — Approve where people work.
 The explicit generic approval-email link and phone approval under MOBILE-001 ship today; every channel added here must preserve its authenticated review, permission/version checks, no title/figures/digest in notification, audited outcomes and honest delivery labels. Automatic requests and broader channels remain this clause's work. Approvers are asked by email, Slack, Teams or Nook, in the Word add-in or on a phone (`MOBILE-001`). Every approval, wherever it is given, passes through the same server checks and pins the exact version digest the approver saw; an approval of a version that has since changed is refused and the approver is shown the new version.
@@ -373,9 +373,20 @@ The explicit generic approval-email link and phone approval under MOBILE-001 shi
 #### APPROVE-004 — Approval reminders and escalation.
 A pending approval reminds its approver through their notification channel (`NOTIFY-001`, `APPROVE-003`) at owner-configured intervals. The default is after 1 business day, then daily, in the approver's US time zone. If it is still pending after a configured time (default 3 business days), it escalates to the approver's delegate (`APPROVE-002`), or to the rule's escalation contact when there is no delegate. Anyone working on the agreement can press "Remind approver", at most once every 4 hours per approver. Every reminder and escalation is recorded in the agreement's activity, and reminders stop as soon as the approval is given, declined or withdrawn.
 
-*Acceptance:* a journey with a Postmark fake and a controlled clock submits an agreement for approval. The approver is reminded after 1 business day and escalated to their delegate after 3. A manual reminder is sent and a second one within 4 hours is refused. Once the approver approves, no further reminder goes out, and each reminder and the escalation appear in the activity.
+The exact rules the code uses:
 
-*Status:* missing. Approvals send no reminders.
+- **Pending approval.** Today an approval is pending for a named approver when an approval request (the explicit email link under `MOBILE-001`) names an active owner or approver, the agreement is in review on the same current version (identity and digest), and no live commercial decision exists for that version. Approving or rejecting by anyone, a new version, leaving review, or the approver losing the owner/approver role ends it. Automatic requests (`APPROVE-003`) and rule-added approvers (`APPROVE-002`) inherit these reminders and escalation before they ship.
+- **Channel.** Email through the installation's mail provider, with the same generic text and signed-in review link as the approval email: no title, figures or digest. Other channels (`NOTIFY-001`, `APPROVE-003`) inherit the obligation. Labels are honest: provider acceptance is not mailbox delivery, local/demo suppression means nothing was sent, and an unknown outcome is never resent automatically.
+- **Business days and zone.** Monday to Friday, skipping US federal holidays as observed (a Saturday holiday is observed the Friday before, a Sunday holiday the Monday after), counted in the approver's US time zone (Eastern, Central, Mountain, Arizona, Pacific, Alaska or Hawaii; America/New_York until the approver or the owner chooses one). Reminder n is due at the request's local time of day on the business day that is (first + (n − 1) × repeat) business days after the request's local date; the escalation is due the same way after the escalation interval. The first request to that approver for that version starts the clock.
+- **Intervals.** The owner sets the first reminder (1–30 business days, default 1), the repeat (1–30, default 1) and the escalation (1–60, default 3). Changes apply to pending approvals from the next run.
+- **Scheduling.** A Cloudflare Cron Trigger runs hourly (`triggers.crons` in `wrangler.jsonc`, `crons` in `deploy.json`), so a reminder goes out within the hour after it is due. Each run sends only the latest due reminder for each pending approval; a slot is sent at most once, even when runs overlap.
+- **Escalation target.** Once per pending approval: the approver's delegate, else the owner-chosen escalation contact (the only escalation rule until `APPROVE-002` rules ship; each rule then names its own), else the installation owner. Each candidate must be an active owner or approver, someone other than the approver, able to read the agreement, and not its requester unless they are the owner; otherwise the next one is used. Each owner or approver names their own delegate and time zone, and the owner may set them for anyone. A delegate here receives the escalation; acting for an absent approver, and the "away" status, remain `APPROVE-002`'s.
+- **Manual reminder.** Owner, counsel, approver or requester able to read the agreement may press "Remind approver" for a pending approver. A second manual reminder for the same approver on the same agreement within 4 hours of the last one is refused (`TOO_SOON`, with the time it becomes available). Viewers and agents cannot send one.
+- **Activity.** The request to remind, each reminder (automatic ones attributed to the Locket scheduler) and the escalation are recorded in the agreement's activity with recipient and provider outcome.
+
+*Acceptance:* a journey with a mail-provider fake and a controlled clock submits an agreement for approval. The approver is reminded after 1 business day and escalated to their delegate after 3. A manual reminder is sent and a second one within 4 hours is refused. Once the approver approves, no further reminder goes out, and each reminder and the escalation appear in the activity.
+
+*Status:* done. Clause-named `tests/api/approval-reminders.test.mjs` drives the real Worker's scheduled handler at controlled times; `tests/browser/approval-reminders.spec.ts` covers settings, the pending-approval panel, "Remind approver" and the activity at 1440 and 390 pixels.
 
 ### Signing and execution
 
@@ -866,8 +877,8 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 10 | 35 | 35 | 80 |
-| All | 29 | 35 | 35 | 99 |
+| Target and push further | 11 | 35 | 34 | 80 |
+| All | 30 | 35 | 34 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -921,9 +932,9 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | `REVIEW-005` | Model choice, records and switch-off | target | missing |  | Locket makes no model calls |
 | `REVIEW-006` | Live accuracy evidence for every AI and OCR task | target | missing |  | No evaluation command, labeled set or recorded live run exists |
 | `REVIEW-007` | Plain-English summary of one agreement | target | missing |  | No summaries exist |
-| `APPROVE-002` | Conditional approval rules in USD | target | partial | `src/locket/review.ts`; `tests/api/flows.test.mjs` | Configurable value, department and condition rules, ordering and delegates do not exist |
+| `APPROVE-002` | Conditional approval rules in USD | target | partial | `src/locket/review.ts`; `tests/api/flows.test.mjs` | Configurable value, department and condition rules, ordering, away status and delegate approval do not exist (delegates receive APPROVE-004 escalations) |
 | `APPROVE-003` | Approve where people work | target | partial | `src/locket/approval-mail.ts`; `tests/api/approval-mail.test.mjs`; `tests/browser/mobile-approval.spec.ts` | Explicit email links ship; automatic requests and Slack/Teams/Nook/Word approval actions remain absent |
-| `APPROVE-004` | Approval reminders and escalation | target | missing |  | Approvals send no reminders |
+| `APPROVE-004` | Approval reminders and escalation | target | done | `src/locket/approval-reminders.ts`; `src/locket/approval-reminder-dispatch.ts`; `tests/api/approval-reminders.test.mjs`; `tests/browser/approval-reminders.spec.ts` |  |
 | `SIGN-002` | Live Docusign, Adobe Acrobat Sign and Dropbox Sign | target | partial | `src/locket/execution.ts`; `tests/api/flows.test.mjs` | Live sending, webhooks, reminders and voiding do not exist |
 | `SIGN-003` | Inkwell signing | target | missing |  | No Inkwell connection exists |
 | `EXEC-002` | Automatic retrieval and filing of executed agreements | target | partial | `src/locket/execution.ts` | Automatic retrieval, filing and notification do not exist |

@@ -19,6 +19,12 @@ export interface LocketState {
   playbooks: Row[]
   deviations: Row[]
   approvals: Row[]
+  approvalReminders: {
+    settings: { firstAfterDays: number; repeatEveryDays: number; escalateAfterDays: number; escalationContactId: string | null }
+    preferences: Row[]
+    pending: { agreementId: string; versionId: string; approverId: string; requestedAt: number; timezone: string; nextReminderAt: number; escalateAt: number; manualAvailableAt: number | null }[]
+    sent: Row[]
+  }
   packages: Row[]
   executions: Row[]
   clickwrapTerms: Row[]

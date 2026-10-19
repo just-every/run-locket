@@ -2,6 +2,8 @@
 // interface, an agent working through an invited `agent` operator, and tests.
 import type { Bindings } from '../auth.server'
 import { approvalMailReceipt, emailApproval } from './approval-mail'
+import { reminderReceiptFor } from './approval-reminder-dispatch'
+import { approvalReminderHandlers } from './approval-reminders'
 import { selectFamilyTerm } from './families'
 import { family } from './family-projection'
 import { bulkOperationHandlers } from './bulk-reminder-operations'
@@ -43,6 +45,7 @@ export const handlers: Record<string, Handler> = {
   ...bulkOperationHandlers,
   'family.term': selectFamilyTerm,
   'approval.email': emailApproval,
+  ...approvalReminderHandlers,
   ...clickwrapHandlers,
   ...libraryHandlers,
   'clause.insert': insertClause,
@@ -117,7 +120,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
       }
       const result = await runCommand(env, actor, body, handlers, request)
       const input = body as { type: string; commandId: string }
-      return reply({ ok: true, result, ...(input.type === 'approval.email' ? { mailReceipt: await approvalMailReceipt(env, input.commandId) } : {}) })
+      return reply({ ok: true, result, ...(input.type === 'approval.email' ? { mailReceipt: await approvalMailReceipt(env, input.commandId) } : input.type === 'approval.remind' ? { mailReceipt: await reminderReceiptFor(env, input.commandId) } : {}) })
     }
     return reply({ ok: false, error: { code: 'NOT_FOUND', message: 'No such Locket endpoint.' } }, 404)
   } catch (error) {

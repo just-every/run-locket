@@ -14,8 +14,8 @@ interface MailRow {
 
 const localMail = (c: Ctx) => c.env.AUTH_LOCAL === 'true' || (c.env as { RER_DEMO?: string }).RER_DEMO === '1'
 
-/** The recipient must be able to make this agreement's commercial decision. */
-function recipientGuard(c: Ctx, agreementId: string, recipientId: string, email: string): Sql[] {
+/** The recipient must be able to make this agreement's commercial decision (also APPROVE-004 reminders). */
+export function recipientGuard(c: Ctx, agreementId: string, recipientId: string, email: string): Sql[] {
   return [
     sql(`EXISTS(SELECT 1 FROM oa_operators o JOIN lk_agreements a ON a.id=? WHERE o.id=? AND o.status='active' AND o.email=? AND ${roleSql} IN ('owner','approver') AND (${roleSql}='owner' OR a.requester_id<>o.id))`, agreementId, recipientId, email, recipientId, recipientId),
     visibleSql({ ...c.actor, id: recipientId }, agreementId),
