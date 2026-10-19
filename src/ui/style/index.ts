@@ -12,3 +12,5 @@ import './clickwrap.css'
 import './portfolio.css'
 
 import './family.css'
+
+import './bulk-reminders.css'

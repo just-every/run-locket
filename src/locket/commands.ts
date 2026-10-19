@@ -3,6 +3,7 @@
 // Retrying the same commandId with the same payload returns the first outcome.
 import type { Bindings } from '../auth.server'
 import { authority } from './access'
+import { authorizeBulkPreviewResult } from './bulk-reminders'
 import { dispatchApprovalMail } from './approval-mail'
 import { canonical, fail, json, object, Problem, sha256, sql, type Actor, type Role, type Sql } from './model'
 
@@ -67,6 +68,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const payload = object(input.payload)
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const completed = async (result: unknown) => {
+    if (type === 'renewal.bulk.preview') await authorizeBulkPreviewResult(c, result)
     if (type === 'approval.email') await dispatchApprovalMail(c)
     return result
   }

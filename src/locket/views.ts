@@ -5,6 +5,8 @@ import { canSee, fullReaders, grantsFor, may, requireRole } from './access'
 import { encodeBase64, readArtifactBytes } from './artifacts'
 import { diffLines } from './diff'
 import { fail, parse, type Actor } from './model'
+import { bulkReminderOperations } from './bulk-reminder-operations'
+import { bulkReminderSchedules } from './bulk-reminders'
 import { routing } from './review'
 import { recordReads } from './audit'
 
@@ -64,6 +66,8 @@ export async function state(env: Bindings, actor: Actor) {
     terms,
     obligations: mine(await all(db, 'SELECT * FROM lk_obligations ORDER BY due_date'), ids),
     renewals,
+    reminderSchedules: await bulkReminderSchedules(env, actor),
+    reminderOperations: await bulkReminderOperations(env, actor),
     notices: mine(await all(db, 'SELECT * FROM lk_notices ORDER BY created_at'), ids),
     proposals,
     imports: actor.role === 'owner' ? await all(db, 'SELECT id, kit, status, source_label, preview, fingerprint, created_by, created_at, applied_by, applied_at, undone_by, undone_at, undo_reason, version FROM lk_import_batches ORDER BY created_at DESC') : [],
@@ -127,7 +131,7 @@ export async function download(env: Bindings, actor: Actor, id: string): Promise
 export async function exportArchive(env: Bindings, actor: Actor) {
   requireRole(actor, may.export, 'export the complete archive')
   const db = env.DB
-  const tables = ['lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms']
+  const tables = ['lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations']
   const records: Record<string, unknown[]> = {}
   for (const t of tables) records[t] = await all(db, `SELECT * FROM ${t}`)
   const files = []

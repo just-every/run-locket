@@ -4,6 +4,8 @@ import type { Bindings } from '../auth.server'
 import { approvalMailReceipt, emailApproval } from './approval-mail'
 import { selectFamilyTerm } from './families'
 import { family } from './family-projection'
+import { bulkOperationHandlers } from './bulk-reminder-operations'
+import { bulkReminderHandlers } from './bulk-reminders'
 import { portfolio } from './portfolio'
 import { publicClickwrapResponse } from './clickwrap/http'
 import { acceptanceCsv, acceptanceRecords, clickwrapHandlers } from './clickwrap/records'
@@ -25,6 +27,8 @@ import { compare, download, exportArchive, search, state } from './views'
 
 export const handlers: Record<string, Handler> = {
   ...agreementHandlers,
+  ...bulkReminderHandlers,
+  ...bulkOperationHandlers,
   'family.term': selectFamilyTerm,
   'approval.email': emailApproval,
   ...clickwrapHandlers,

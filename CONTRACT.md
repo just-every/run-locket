@@ -181,7 +181,7 @@ A person saves a repository view (query, filters, sort and chosen columns, inclu
 #### REPO-008 — Agreement families.
 Agreements link as amends, order under, statement of work under, schedule to, renews and supersedes. The family page shows the parent and every accessible child in ascending recorded start-date order, falling back to creation date, then creation time and identity for ties. Linking rechecks the current session, role, child, parent and ancestry versions atomically and refuses cycles. An agent's proposed link is decided by owner or counsel.
 
-Owner or counsel explicitly selects a currently confirmed term from a visible linked document as the family's governing value for that key. The family page cites its document, quote and page where supplied. This records a human choice, never automatic legal precedence. A superseded source or changed source relation is visibly stale and needs review; a source the viewer cannot access is omitted. No governing selection changes a renewal deadline automatically. AGENT-005 carries conflict detection, counsel's resolution and governing-term propagation, and future record kinds and term keys inherit the same visibility, citation, guarded selection and stale-source checks before shipping.
+Owner or counsel explicitly selects a currently confirmed term from a visible linked document as the family's governing value for that key. The family page cites its document, quote and page where supplied. This records a human choice, never automatic legal precedence. A superseded source or changed source relation is visibly stale and needs review; a source the viewer cannot access is omitted. No governing selection changes a renewal deadline automatically. AGENT-005 carries conflict detection, counsel's resolution and governing-term propagation. REPO-004 (additional extracted term keys), REPO-005 (custom fields used as key terms), and MOVE-002, MOVE-003, MOVE-004, MOVE-005, MOVE-006 and MOVE-007 (new imported record kinds) inherit the same family visibility, citation, guarded selection and stale-source checks before shipping.
 
 *Acceptance:* clause-named `tests/api/families.test.mjs` and `tests/browser/families.spec.ts` link an MSA, two orders and an amendment at 1440/390; date order matches the recorded dates, the explicitly selected amended end date cites the amendment, and its source opens. API assertions cover all six relations, cycle and stale-parent refusal, requester/agent write refusal, a human-decided agent link, stale superseded terms, restricted members hidden, signed-out refusal, attributed audit and complete archive. Browser assertions include the requester's read-only family screen and no horizontal scrolling.
 
@@ -436,7 +436,7 @@ Each renewal and obligation deadline sends reminder emails at owner-configured o
 
 *Acceptance:* a Workers journey with a Postmark fake and a controlled clock confirms an end date and 60-day notice in America/Chicago, advances to each offset and receives the four reminders at 9:00 local time, sees escalation at 30 days without a decision, and sees a bounce event shown on the deadline with the alternate recipient emailed.
 
-*Status:* partial. Notice deadlines are computed in the agreement's time zone and listed in the renewal queue (`src/locket/obligations.ts`, `src/locket/dates.ts`); no reminder is scheduled or sent.
+*Status:* partial. Notice deadlines and reviewed bulk schedules under RENEW-004 ship (`src/locket/obligations.ts`, `src/locket/dates.ts`, `src/locket/bulk-reminders.ts`); automatic dispatch, delivery/bounce/complaint events, alternate-recipient retries and escalation do not exist.
 
 #### RENEW-003 — Deadlines on Google Calendar and Outlook.
 A person connects Google Calendar or Outlook (Microsoft Graph) and chooses which deadlines appear (their own, their team's, all they may see). Notice deadlines, end dates and obligation due dates become calendar events with a link back, updated when a confirmed term is corrected and removed when the agreement ends or the deadline is met. Events follow the current term (`RENEW-007`): when an auto-renewing agreement rolls forward, the next term's notice deadline and end date are added.
@@ -448,9 +448,11 @@ A person connects Google Calendar or Outlook (Microsoft Graph) and chooses which
 #### RENEW-004 — Bulk reminders for imported contracts.
 After a bulk import (`REPO-003`, `MOVE-*`), a person selects confirmed agreements by view or filter and sets reminder schedules and owners on all of them in one action, with a preview of the deadlines that will be tracked and those skipped for missing confirmed terms. Deadlines come from each agreement's current term (`RENEW-007`), so auto-renewing agreements whose original end dates are past are tracked, and expired or terminated ones are skipped with that reason.
 
-*Acceptance:* a journey selects 40 imported agreements, 34 with confirmed terms, previews 34 tracked deadlines and 6 skipped with reasons, applies, and sees reminders scheduled for the 34. Of the 34, the 20 auto-renewing agreements signed before 2025 are tracked at their current term's notice deadline, all in the future.
+Current scheduling covers every imported agreement kind that exists today (legacy upload and MOVE-001 DocuSign archives); REPO-003, MOVE-002, MOVE-003, MOVE-004, MOVE-005, MOVE-006 and MOVE-007 inherit the same reviewed current-term scheduling before shipping. Owners and approvers select a currently active reminder owner who can read the selection. Offsets are whole calendar days before the notice deadline, at 09:00 in each agreement's zone; past offset times are labelled as past, never sent. The user selects the whole set in one action without a user-facing count cap; a durable operation previews and applies it in sequential guarded batches of at most 100 records, with progress and resume after interruption. Each batch is atomic; completed batches remain recorded if a later batch is refused. The actor's reviewed preview expires after 30 minutes and is applied only while actor/owner access, agreement revisions and projected deadlines still match. A later agreement or lifecycle change marks stored schedules as needing review. This clause stores schedules; RENEW-002 retains actual dispatch, escalation and delivery evidence, and a schedule is never labelled delivered.
 
-*Status:* missing. Reminder schedules do not exist.
+*Acceptance:* clause-named `tests/api/bulk-reminders.test.mjs` and `tests/browser/bulk-reminders.spec.ts` move a synthetic 40-record fixture through the public DocuSign bulk-import door, select it by view/filter, preview 34 tracked deadlines and six missing-term skips, reload/resume the review, and apply with visible progress at 1440/390. All 20 pre-2025 auto-renewing agreements use future current-term notice deadlines, original terms stay unchanged, owners/offsets/local 09:00 instants match the preview, and stored schedules never claim delivery. API assertions include expired/terminated skips, stale/role/access/owner refusals, protected replay, audit/archive, and a larger whole selection resumed across multiple preview/apply batches without a user-facing cap.
+
+*Status:* done. Durable whole-selection operations, reviewed current-term schedules and resumable progress are proven (`src/locket/bulk-reminders.ts`, `src/locket/bulk-reminder-operations.ts`, `src/ui/bulk-reminders.tsx`, `tests/api/bulk-reminders.test.mjs`, `tests/browser/bulk-reminders.spec.ts`).
 
 #### RENEW-005 — Renewal briefs and renewal workflows.
 At a configured lead time before each notice deadline, Locket prepares a renewal brief for the decision-maker: current terms and amendments, price-increase cap, spend to date and invoices (`LINK-001`), obligation and service-level history, open issues and the options (renew, renegotiate, terminate) with their deadlines. Choosing renew or renegotiate opens a renewal request linked as `renews` with the brief attached.
@@ -852,8 +854,8 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 6 | 36 | 38 | 80 |
-| All | 25 | 36 | 38 | 99 |
+| Target and push further | 7 | 36 | 37 | 80 |
+| All | 26 | 36 | 37 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -917,9 +919,9 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | `SIGN-005` | Signer rules, signature fields and multi-document packets | target | partial | `src/locket/execution.ts`; `tests/api/flows.test.mjs` | Signer rules, the fallback signer, template signature blocks, field placement and multi-document packets do not exist |
 | `OBL-001` | Obligation extraction, owners and status | target | partial | `src/locket/obligations.ts`; `tests/api/flows.test.mjs` | Built-in extraction, status values beyond done and owner lists do not exist |
 | `OBL-002` | Fulfilment evidence and escalation | target | partial | `src/locket/obligations.ts` | Evidence requirements, overdue escalation and risk ratings do not exist |
-| `RENEW-002` | Delivered reminders and escalation by email | target | partial | `src/locket/obligations.ts`; `src/locket/dates.ts` | No reminder is scheduled or sent |
+| `RENEW-002` | Delivered reminders and escalation by email | target | partial | `src/locket/obligations.ts`; `src/locket/dates.ts`; `src/locket/bulk-reminders.ts` | RENEW-004 stores schedules; automatic dispatch, delivery events, alternate retries and escalation remain |
 | `RENEW-003` | Deadlines on Google Calendar and Outlook | target | missing |  | No calendar connection exists |
-| `RENEW-004` | Bulk reminders for imported contracts | target | missing |  | Reminder schedules do not exist |
+| `RENEW-004` | Bulk reminders for imported contracts | target | done | `src/locket/bulk-reminders.ts`; `src/locket/bulk-reminder-operations.ts`; `tests/api/bulk-reminders.test.mjs`; `tests/browser/bulk-reminders.spec.ts` | |
 | `RENEW-005` | Renewal briefs and renewal workflows | target | partial | `src/locket/obligations.ts`; `src/locket/proposals.ts` | Briefs and renewal-request creation do not exist |
 | `RENEW-006` | Send approved notices with delivery evidence | target | partial | `src/locket/obligations.ts`; `tests/api/flows.test.mjs` | Sending from Locket and provider delivery events do not exist |
 | `RENEW-007` | Auto-renewal roll-forward and lifecycle status | target | partial | `src/locket/obligations.ts`; `src/ui/renewals.tsx` | REPORT-003 projects recorded terms read-only; optional/evergreen types, limits, early termination, durable daily history, supersession and reminder/calendar parity remain absent |

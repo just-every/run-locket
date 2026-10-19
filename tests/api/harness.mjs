@@ -31,10 +31,11 @@ export async function installation({ bindings = {}, mailResponse } = {}) {
   // through the real Resend sender and are captured at the network edge.
   const origin = `https://127.0.0.1:${await freePort()}`, mails = []
   const script = await worker()
-  const mf = new Miniflare({
+  const workerBindings = { AUTH_LOCAL: 'false', AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: randomBytes(32).toString('hex'), SETUP_TOKEN: setup, MAIL_PROVIDER: 'resend', MAIL_FROM: 'auth@example.test', MAIL_API_KEY: 'test-only-key', ...bindings }
+  const runtimeOptions = () => ({
     ...convertV4MiniflareOptions({
       host: '127.0.0.1', port: Number(new URL(origin).port), https: true, modules: true, script, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: ['DB'],
-      bindings: { AUTH_LOCAL: 'false', AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: randomBytes(32).toString('hex'), SETUP_TOKEN: setup, MAIL_PROVIDER: 'resend', MAIL_FROM: 'auth@example.test', MAIL_API_KEY: 'test-only-key', ...bindings },
+      bindings: workerBindings,
       outboundService: async request => {
         if (request.url !== 'https://api.resend.com/emails') throw new Error('Unexpected test network destination')
         mails.push(await request.json())
@@ -43,6 +44,7 @@ export async function installation({ bindings = {}, mailResponse } = {}) {
     }),
     resourcePersistencePath: root,
   })
+  const mf = new Miniflare(runtimeOptions())
   try {
     await mf.ready
     const db = await mf.getD1Database('DB')
@@ -90,7 +92,7 @@ export async function installation({ bindings = {}, mailResponse } = {}) {
       if (role) await owner.command('role.set', { operatorId: person.id, role })
       return person
     }
-    return { mf, db, origin, request, owner, invite, mails, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
+    return { mf, db, origin, request, owner, invite, mails, async setTime(at) { workerBindings.TEST_NOW = String(at); await mf.setOptions(runtimeOptions()) }, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
   } catch (error) {
     await mf.dispose().catch(() => {})
     await rm(root, { recursive: true, force: true }).catch(() => {})

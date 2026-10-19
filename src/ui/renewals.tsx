@@ -1,3 +1,4 @@
+import { BulkReminders } from './bulk-reminders'
 // Renewals on a calendar: a band of the coming months with each notice
 // deadline pinned on it, then the renewals in date order; the chosen one opens
 // in place with its two steps, the decision and the notice.
@@ -15,6 +16,7 @@ export function Renewals({ state, locket }: { state: LocketState; locket: Locket
   return (
     <div className="lk-renewals">
       <div className="lk-titlebar"><div><h1>Renewals</h1><p className="lk-muted">Notice deadlines from confirmed terms, decisions, and notices approved and sent. A prepared or approved notice is not a sent notice.</p></div></div>
+      <BulkReminders state={state} locket={locket} />
       {renewals.length === 0 ? <section className="lk-panel"><Empty>No renewals yet. Confirm an end date and notice period on an executed agreement.</Empty></section> : (
         <>
           <Band state={state} renewals={renewals} selected={selected} />
