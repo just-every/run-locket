@@ -1,0 +1,6 @@
+.lk-family .lk-list li { align-items: start; }
+.lk-family .lk-list p { margin: .4rem 0 0; }
+.lk-family-term { border-top: 1px solid var(--lk-rule); padding-block: 1rem; }
+.lk-family-term blockquote { margin: .75rem 0; padding-left: 1rem; border-left: 2px solid currentColor; overflow-wrap: anywhere; }
+.lk-family select { max-width: 100%; }
+.lk-family a { overflow-wrap: anywhere; }

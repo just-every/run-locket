@@ -2,6 +2,8 @@
 // interface, an agent working through an invited `agent` operator, and tests.
 import type { Bindings } from '../auth.server'
 import { approvalMailReceipt, emailApproval } from './approval-mail'
+import { selectFamilyTerm } from './families'
+import { family } from './family-projection'
 import { portfolio } from './portfolio'
 import { publicClickwrapResponse } from './clickwrap/http'
 import { acceptanceCsv, acceptanceRecords, clickwrapHandlers } from './clickwrap/records'
@@ -23,6 +25,7 @@ import { compare, download, exportArchive, search, state } from './views'
 
 export const handlers: Record<string, Handler> = {
   ...agreementHandlers,
+  'family.term': selectFamilyTerm,
   'approval.email': emailApproval,
   ...clickwrapHandlers,
   ...libraryHandlers,
@@ -69,6 +72,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
       return reply({ rows })
     }
     if (request.method === 'GET' && path === '/clause-library') return reply({ results: approvedClauses(await state(env, actor), url.searchParams.get('q') ?? '') })
+    if (request.method === 'GET' && path.startsWith('/families/')) return reply(family(await state(env, actor), decodeURIComponent(path.slice('/families/'.length))))
     if (request.method === 'GET' && path === '/portfolio') return reply(portfolio(await state(env, actor)))
     if (request.method === 'GET' && path === '/state') { const workspace = await state(env, actor); return reply({ ...workspace, portfolio: portfolio(workspace) }) }
     if (request.method === 'GET' && path === '/search') return reply(await search(env, actor, url.searchParams.get('q') ?? ''))

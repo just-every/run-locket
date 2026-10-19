@@ -22,6 +22,7 @@ export interface LocketState {
   executions: Row[]
   clickwrapTerms: Row[]
   clickwrapVersions: Row[]
+  familyTerms: Row[]
   terms: Row[]
   obligations: Row[]
   renewals: Row[]

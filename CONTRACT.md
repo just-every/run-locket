@@ -179,11 +179,13 @@ A person saves a repository view (query, filters, sort and chosen columns, inclu
 *Status:* missing. The register has fixed columns and no saved views.
 
 #### REPO-008 — Agreement families.
-Agreements link as amends, order under, statement of work under, schedule to, renews and supersedes. The family page shows the parent, every child in date order, and the governing value of each key term with the document that sets it. Linking runs the same version and authority checks as other writes, and an agent's proposed link is decided by owner or counsel.
+Agreements link as amends, order under, statement of work under, schedule to, renews and supersedes. The family page shows the parent and every accessible child in ascending recorded start-date order, falling back to creation date, then creation time and identity for ties. Linking rechecks the current session, role, child, parent and ancestry versions atomically and refuses cycles. An agent's proposed link is decided by owner or counsel.
 
-*Acceptance:* a journey links an MSA, two order forms and an amendment that extends the term; the family page lists them in order and shows the amended end date as governing, with the amendment cited; a requester's attempt to link is refused.
+Owner or counsel explicitly selects a currently confirmed term from a visible linked document as the family's governing value for that key. The family page cites its document, quote and page where supplied. This records a human choice, never automatic legal precedence. A superseded source or changed source relation is visibly stale and needs review; a source the viewer cannot access is omitted. No governing selection changes a renewal deadline automatically. AGENT-005 carries conflict detection, counsel's resolution and governing-term propagation, and future record kinds and term keys inherit the same visibility, citation, guarded selection and stale-source checks before shipping.
 
-*Status:* partial. Parent links with amends, order, schedule and renews relations and agent link proposals ship (`src/locket/agreements.ts`); the family page and governing-term view do not, and no flow test exercises family links.
+*Acceptance:* clause-named `tests/api/families.test.mjs` and `tests/browser/families.spec.ts` link an MSA, two orders and an amendment at 1440/390; date order matches the recorded dates, the explicitly selected amended end date cites the amendment, and its source opens. API assertions cover all six relations, cycle and stale-parent refusal, requester/agent write refusal, a human-decided agent link, stale superseded terms, restricted members hidden, signed-out refusal, attributed audit and complete archive. Browser assertions include the requester's read-only family screen and no horizontal scrolling.
+
+*Status:* done. Six guarded relations, date-ordered family page and explicitly selected cited governing values are proven (`src/locket/families.ts`, `src/locket/family-projection.ts`, `src/ui/family.tsx`, `tests/api/families.test.mjs`, `tests/browser/families.spec.ts`).
 
 #### REPO-009 — Groups, departments and field-level access.
 Beyond restricted agreements, the owner defines departments and groups (Sales, Procurement, HR, Finance) and grants each visibility by agreement type and department, and can hide specific fields (value, pricing schedules) from roles that may otherwise read the agreement. Every read, search hit, export, notification and connector payload applies the same rules.
@@ -612,16 +614,16 @@ A home dashboard shows total contracted value in USD by type and by lifecycle st
 ### Mobile
 
 #### MOBILE-001 — Phone-width web app.
-Every screen works at 390 pixels wide: a person can submit a request, read a review summary, approve or decline from a notification link, search, see deadlines and upload a signed copy from the phone's camera or files, without horizontal scrolling. The current approval notification is an explicit Email approval link action by owner, counsel, approver or requester on an in-review version. Its named recipient must be an active owner/approver able to read the agreement and make its commercial decision. The email contains only a generic request and a signed-in review link, never title, figures or digest; the recipient reviews the current version and uses the same authenticated approval command. A guarded outbox records requester, recipient, time and provider receipt with an audit entry; retries never send the same request twice. The command result is an immutable queued-request acknowledgement under SEC-002; a separate mailReceipt snapshot reports the current provider outcome without rewriting that first result. Provider acceptance is not mailbox delivery, local/demo suppression means no email was sent, and interrupted/failed outcomes never claim acceptance or retry automatically. `APPROVE-003` and `NOTIFY-001` retain broader channels, automatic requests and preferences; they must preserve the same phone layout, authority, version checks, generic-link privacy and honest delivery labels before shipping. Signed-copy upload uses the phone's files picker; native scanning remains `MOBILE-002`.
+Every screen works at 390 pixels wide: a person can submit a request, read a review summary, approve or decline from a notification link, search, see deadlines and upload a signed copy from the phone's camera or files, without horizontal scrolling. The current approval notification is an explicit Email approval link action by owner, counsel, approver or requester on an in-review version. Its named recipient must be an active owner/approver able to read the agreement and make its commercial decision. The email contains only a generic request and a signed-in review link, never title, figures or digest; the recipient reviews the current version and uses the same authenticated approval command. A guarded outbox records requester, recipient, time and provider receipt with an audit entry; retries never send the same request twice. The command result is an immutable queued-request acknowledgement under SEC-002; a separate mailReceipt snapshot reports the current provider outcome without rewriting that first result. Provider acceptance is not mailbox delivery, local/demo suppression means no email was sent, and interrupted/failed outcomes never claim acceptance or retry automatically. `APPROVE-003` and `NOTIFY-001` retain broader channels, automatic requests and preferences; they must preserve the same phone layout, authority, version checks, generic-link privacy and honest delivery labels before shipping. Signed-copy upload uses the phone's files picker; camera capture from MOBILE-001 is carried by `MOBILE-002` and must meet the same phone-width checks before shipping.
 
 *Acceptance:* `MOBILE-001` in `tests/browser/journey.spec.ts` runs request to renewal notice and search/deadlines at 390 pixels; `tests/browser/mobile-approval.spec.ts` uses the actual product component and real Worker API at 1440/390, sends the explicit approval request through a mail-provider fake, follows its captured link as the named approver, refuses a replaced version, approves the current digest and uploads/downloads byte-identical signed PDF evidence from the files picker without horizontal scrolling. `tests/api/approval-mail.test.mjs` asserts generic email contents, current authority/access/recipient/version/self-approval refusals, attributed audit, concurrent and serial retry deduplication, and honest local suppression. The browser provider fake captures Resend acceptance; no live delivery or full APPROVE-003 is claimed. Future APPROVE-003/NOTIFY-001 channels must assert the inherited phone flow.
 
 *Status:* done. The released phone flow, real captured approval-email link, current-version approval and files upload are proven (`tests/browser/journey.spec.ts`, `tests/browser/mobile-approval.spec.ts`, `tests/api/approval-mail.test.mjs`).
 
 #### MOBILE-002 — iOS and Android apps.
-Native iOS and Android apps (App Store and Google Play) sign in with the installation, receive push notifications for approvals, mentions and deadlines, approve the exact version, search the repository and view documents, and capture a signed paper copy with the camera as a PDF.
+This clause carries MOBILE-001's camera-upload requirement: capture a signed paper copy with the camera as a PDF and attach it to the execution record, keeping the same phone layout, current authority/version checks and byte-preserving file evidence. Native iOS and Android apps (App Store and Google Play) sign in with the installation, receive push notifications for approvals, mentions and deadlines, approve the exact version, search the repository and view documents, and capture a signed paper copy with the camera as a PDF.
 
-*Acceptance:* device-farm journeys on a current iPhone and Pixel receive an approval push, approve the version with its digest recorded, search for an agreement and scan a two-page signed copy into its execution record.
+*Acceptance:* naming MOBILE-001 and MOBILE-002, device-farm journeys on a current iPhone and Pixel receive an approval push, approve the version with its digest recorded, search for an agreement and scan a two-page signed copy into its execution record.
 
 *Status:* missing. No native apps exist.
 
@@ -850,8 +852,8 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 5 | 37 | 38 | 80 |
-| All | 24 | 37 | 38 | 99 |
+| Target and push further | 6 | 36 | 38 | 80 |
+| All | 25 | 36 | 38 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -886,7 +888,7 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | `REPO-005` | Custom metadata fields | target | missing |  | Agreement fields are fixed in the schema |
 | `REPO-006` | Search and structured filters | target | partial | `src/locket/views.ts`; `src/ui/register.tsx`; `tests/api/flows.test.mjs` | OCR text, field, value and date filters and clause-level hits do not exist |
 | `REPO-007` | Saved views and columns | target | missing |  | The register has fixed columns and no saved views |
-| `REPO-008` | Agreement families | target | partial | `src/locket/agreements.ts` | The family page and governing-term view do not, and no flow test exercises family links |
+| `REPO-008` | Agreement families | target | done | `src/locket/families.ts`; `src/locket/family-projection.ts`; `src/ui/family.tsx`; `tests/api/families.test.mjs`; `tests/browser/families.spec.ts` | |
 | `REPO-009` | Groups, departments and field-level access | target | partial | `src/locket/access.ts`; `tests/api/security.test.mjs` | Groups, departments and field-level hiding do not exist |
 | `REPO-010` | Counterparty records | target | partial | `src/locket/agreements.ts` | Entity details, notice addresses, signatories, merging and the counterparty page do not exist |
 | `REPO-011` | Bulk repository actions | target | missing |  | The register has no selection or bulk actions |

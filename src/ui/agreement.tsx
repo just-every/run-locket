@@ -11,6 +11,7 @@ import { Approvals, Review } from './review'
 import { AgentPlace, TopTools } from './shell'
 import { Execution, Signature } from './signature'
 import { liveApprovals } from './summary'
+import { Family } from './family'
 import { Terms } from './terms'
 import { AddVersion, Attachments, Comments, VersionChips } from './versions'
 
@@ -21,6 +22,7 @@ const tabs = [
   { id: 'signature', title: 'Signature' },
   { id: 'execution', title: 'Execution' },
   { id: 'terms', title: 'Terms and obligations' },
+  { id: 'family', title: 'Family' },
   { id: 'details', title: 'Details and access' },
 ]
 const fileLabel: Record<string, string> = { original: 'Original', rendition: 'Signing PDF', signed: 'Signed PDF', package: 'Signature-ready PDF', manifest: 'Routing manifest' }
@@ -86,6 +88,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { 
       {selected === 'signature' && <Signature state={state} a={a} locket={locket} />}
       {selected === 'execution' && <Execution state={state} a={a} locket={locket} />}
       {selected === 'terms' && <Terms state={state} a={a} locket={locket} />}
+      {selected === 'family' && <Family state={state} a={a} locket={locket} />}
       {selected === 'details' && <Details state={state} a={a} locket={locket} />}
     </div>
   )

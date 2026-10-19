@@ -10,7 +10,7 @@ import { agreementGuards, bump, invalidateApprovals, requireStatus, statusAfterC
 
 export const agreementTypes = ['customer', 'supplier', 'nda', 'amendment', 'order_form', 'other'] as const
 export const partyKinds = ['customer', 'supplier', 'partner', 'other'] as const
-export const relations = ['amends', 'order_under', 'schedule_to', 'renews'] as const
+import { relations } from './family-relations'
 
 /** Decided default: attachments each request type must carry before review. */
 export const defaultRequirements: Record<string, string[]> = {
@@ -285,13 +285,16 @@ const linkFamily: Handler = async (c, p) => {
   const a = await visibleAgreement(c, p.agreementId)
   const parent = await visibleAgreement(c, p.parentId)
   if (parent.id === a.id) fail('INVALID', 'An agreement cannot be its own parent.')
+  const ancestors = [parent]
   let cursor: string | null = parent.parent_id
   while (cursor) {
     if (cursor === a.id) fail('INVALID', 'That link would make a cycle in the agreement family.')
-    cursor = (await c.db.prepare('SELECT parent_id FROM lk_agreements WHERE id=?').bind(cursor).first<{ parent_id: string | null }>())?.parent_id ?? null
+    const ancestor = await visibleAgreement(c, cursor)
+    ancestors.push(ancestor)
+    cursor = ancestor.parent_id
   }
   const relation = oneOf(p, 'relation', relations)
-  return { allowed: ['owner', 'counsel'], result: { id: a.id }, writes: [bump(c, a, 'parent_id=?, relation=?', parent.id, relation)], checks: agreementGuards(c, a, p), audit: [{ action: 'family.link', agreementId: a.id, summary: `Linked as ${relation.replace('_', ' ')} ${parent.reference}` }] }
+  return { allowed: ['owner', 'counsel'], result: { id: a.id }, writes: [bump(c, a, 'parent_id=?, relation=?', parent.id, relation)], checks: [...agreementGuards(c, a, p), ...ancestors.flatMap(x => agreementGuards(c, x)), ...(p.parentVersion === undefined ? [] : agreementGuards(c, parent, {version:p.parentVersion}))], audit: [{ action: 'family.link', agreementId: a.id, summary: `Linked as ${relation.replace('_', ' ')} ${parent.reference}` }] }
 }
 
 const grantAccess: Handler = async (c, p) => {
