@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchJson, type LocketState, type Row } from './api'
 import { Avatar, Badge, EmptyState, Icon } from './controls'
-import { can, currentVersion, money, partyName, personName, statusLabel } from './format'
+import { can, currentVersion, deadline, money, partyName, personName, statusLabel } from './format'
 import { blockers, nextNotice } from './summary'
 
 const columns = [
@@ -16,7 +16,7 @@ const columns = [
   { id: 'executed', title: 'Executed', statuses: ['executed', 'imported'] },
 ]
 
-export function Register({ state, query }: { state: LocketState; query: string }) {
+export function Register({ state, query, portfolioFilter = '' }: { state: LocketState; query: string; portfolioFilter?: string }) {
   const [status, setStatus] = useState('')
   const [hits, setHits] = useState<{ id: string; match: { version: number; excerpt: string } | null }[] | null>(null)
   const [searchError, setSearchError] = useState('')
@@ -27,15 +27,16 @@ export function Register({ state, query }: { state: LocketState; query: string }
     }, 250)
     return () => clearTimeout(timer)
   }, [query])
-  const rows = useMemo(() => (hits ? state.agreements.filter(a => hits.some(h => h.id === a.id)) : state.agreements), [state.agreements, hits])
-  const shown = columns.filter(c => !status || c.id === status)
+  const tile = state.portfolio.tiles.find(t => t.id === portfolioFilter)
+  const rows = useMemo(() => state.agreements.filter(a => (!hits || hits.some(h => h.id === a.id)) && (!tile || tile.agreementIds.includes(a.id))), [state.agreements, hits, tile])
   const count = (c: (typeof columns)[number]) => rows.filter(a => c.statuses.includes(a.status)).length
+  const shown = columns.filter(c => status ? c.id === status : !tile || count(c) > 0)
   return (
     <div className="lk-register">
       <div className="lk-titlebar">
         <div>
-          <h1>Agreements</h1>
-          <p className="lk-muted">{hits ? `${rows.length} of ${state.agreements.length} match “${query.trim()}”` : `${state.agreements.length} agreements you can access, by stage.`}</p>
+          <h1>{tile ? tile.label : 'Agreements'}</h1>
+          <p className="lk-muted">{hits ? `${rows.length} of ${state.agreements.length} match “${query.trim()}”` : `${tile ? rows.length : state.agreements.length} agreements you can access, by stage.`}</p>
         </div>
         {can(state, 'owner', 'counsel', 'approver', 'requester') && (
           <div className="lk-actions">
@@ -44,6 +45,7 @@ export function Register({ state, query }: { state: LocketState; query: string }
           </div>
         )}
       </div>
+      {tile && <p><a href="#portfolio">Back to portfolio</a> · <a href="#agreements">Clear portfolio filter</a> · {rows.length} agreements · {money(rows.reduce((sum, a) => sum + (a.value_cents ?? 0), 0))} USD</p>}
       <div className="lk-filters" role="group" aria-label="Stage">
         {columns.map(c => (
           <button key={c.id} type="button" className={`lk-filter${status === c.id ? ' lk-selected' : ''}`} aria-pressed={status === c.id} onClick={() => setStatus(status === c.id ? '' : c.id)}>
@@ -74,9 +76,12 @@ export function Register({ state, query }: { state: LocketState; query: string }
 function AgreementCard({ state, a, hit }: { state: LocketState; a: Row; hit: { version: number; excerpt: string } | null }) {
   const v = currentVersion(state, a), notice = nextNotice(state, a), blocked = blockers(state, a).length
   const owner = personName(state, a.owner_id)
+  const projected = state.portfolio.lifecycle[a.id]
+  const currentNotice = projected?.deadline
   return (
-    <article className="lk-board-card">
+    <article className="lk-board-card" data-agreement-id={a.id}>
       <h3><a href={`#agreement/${a.id}`}>{a.title}</a></h3>
+      {state.portfolio.lifecycle[a.id]?.status !== 'not_executed' && <p className="lk-meta">{state.portfolio.lifecycle[a.id]?.status.replaceAll('_', ' ')}</p>}
       <p className="lk-board-party">{partyName(state, a.party_id)}</p>
       <p className="lk-board-facts">
         <span>{money(a.value_cents)}</span>
@@ -84,7 +89,7 @@ function AgreementCard({ state, a, hit }: { state: LocketState; a: Row; hit: { v
         {a.status === 'imported' && <Badge value="imported" label={statusLabel.imported} />}
       </p>
       {hit && <p className="lk-excerpt">v{hit.version}: …{hit.excerpt}…</p>}
-      {notice && <p className="lk-board-notice"><Icon name="calendar" /><span>Notice by {notice.text.split(',').slice(0, 2).join(',')}</span></p>}
+      {currentNotice ? <p className="lk-board-notice"><Icon name="calendar" /><span>{currentNotice.days} days left · {deadline(currentNotice.at, a.timezone)}</span></p> : projected?.status === 'not_executed' && notice ? <p className="lk-board-notice"><Icon name="calendar" /><span>Notice by {notice.text.split(',').slice(0, 2).join(',')}</span></p> : null}
       {blocked > 0 && <p className="lk-board-blocked"><Icon name="warn" /><span>{blocked} open {blocked === 1 ? 'item' : 'items'}</span></p>}
       <p className="lk-board-foot"><Avatar name={owner} /><span>{owner}</span><small>{a.reference}{a.restricted ? ' · restricted' : ''}</small></p>
     </article>

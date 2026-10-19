@@ -11,6 +11,7 @@ import { Avatar, Icon, type IconName } from './controls'
 import { plural, roleLabel, stamp } from './format'
 
 export const sections: { id: string; title: string; icon: IconName }[] = [
+  { id: 'portfolio', title: 'Portfolio', icon: 'pulse' },
   { id: 'agreements', title: 'Agreements', icon: 'document' },
   { id: 'library', title: 'Library', icon: 'book' },
   { id: 'renewals', title: 'Renewals', icon: 'calendar' },

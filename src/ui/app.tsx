@@ -7,6 +7,7 @@ import { Imports } from './imports'
 import { Intake, LegacyImport } from './intake'
 import { Library } from './library'
 import { Proposals } from './proposals'
+import { Portfolio } from './portfolio'
 import { Register } from './register'
 import { Renewals } from './renewals'
 import { money, partyName } from './format'
@@ -18,8 +19,8 @@ const pageTitle: Record<string, string> = { new: 'New request', 'import-signed':
 
 /** #view/id/tab/version: a section, or one agreement with its tab and the version shown. */
 function readHash() {
-  const [view = 'agreements', id = '', tab = '', shown = ''] = window.location.hash.slice(1).split('/')
-  return { view: view || 'agreements', id, tab, shown }
+  const [view = 'portfolio', id = '', tab = '', shown = ''] = window.location.hash.slice(1).split('/')
+  return { view: view || 'portfolio', id, tab, shown }
 }
 
 export function LocketApp() {
@@ -51,7 +52,8 @@ export function LocketApp() {
         {notice && <div className="lk-note" role="status">{notice}</div>}
         {!state ? <p className="lk-empty">{error ? 'Locket could not load your agreements. Sign in again if your session ended.' : 'Loading agreements…'}</p> : (
           <>
-            {route.view === 'agreements' && <Register state={state} query={query} />}
+            {route.view === 'portfolio' && <Portfolio state={state} />}
+            {route.view === 'agreements' && <Register state={state} query={query} portfolioFilter={route.id === 'portfolio' ? route.tab : ''} />}
             {route.view === 'agreement' && <AgreementPage key={route.id} state={state} id={route.id} tab={route.tab} shown={route.shown} locket={locket} />}
             {route.view === 'new' && <Intake state={state} locket={locket} />}
             {route.view === 'import-signed' && <LegacyImport state={state} locket={locket} />}

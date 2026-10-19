@@ -1,6 +1,7 @@
 // Locket's HTTP surface under /api/locket. The same commands serve the
 // interface, an agent working through an invited `agent` operator, and tests.
 import type { Bindings } from '../auth.server'
+import { portfolio } from './portfolio'
 import { publicClickwrapResponse } from './clickwrap/http'
 import { acceptanceCsv, acceptanceRecords, clickwrapHandlers } from './clickwrap/records'
 import { currentActor, fullReaders } from './access'
@@ -66,7 +67,8 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
       return reply({ rows })
     }
     if (request.method === 'GET' && path === '/clause-library') return reply({ results: approvedClauses(await state(env, actor), url.searchParams.get('q') ?? '') })
-    if (request.method === 'GET' && path === '/state') return reply(await state(env, actor))
+    if (request.method === 'GET' && path === '/portfolio') return reply(portfolio(await state(env, actor)))
+    if (request.method === 'GET' && path === '/state') { const workspace = await state(env, actor); return reply({ ...workspace, portfolio: portfolio(workspace) }) }
     if (request.method === 'GET' && path === '/search') return reply(await search(env, actor, url.searchParams.get('q') ?? ''))
     if (request.method === 'GET' && path === '/compare') return reply(await compare(env, actor, url.searchParams.get('from') ?? '', url.searchParams.get('to') ?? ''))
     if (request.method === 'GET' && path === '/export') {

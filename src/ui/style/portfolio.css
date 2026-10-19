@@ -1,0 +1,8 @@
+/* Portfolio uses the workspace's existing panels and type scale. */
+.lk-portfolio-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.lk-portfolio-tile { display: grid; gap: 8px; color: var(--lk-ink); text-decoration: none; }
+.lk-portfolio-tile:hover, .lk-portfolio-tile:focus-visible { border-color: var(--lk-claret); }
+.lk-portfolio-tile > strong { font: 700 23px/1.2 var(--lk-font-heading); }
+.lk-portfolio-tile > span:first-child { color: var(--lk-ink-2); font-size: 13px; }
+.lk-portfolio-tile > small { overflow-wrap: anywhere; }
+@media (max-width: 600px) { .lk-portfolio-grid { grid-template-columns: minmax(0, 1fr); } }

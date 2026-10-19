@@ -473,6 +473,7 @@ Most agreements a buyer brings in are evergreen SaaS and supplier contracts whos
 - **Derived history, never a rewrite.** Each roll-forward is a derived history entry beside the confirmed terms: term number, start, end, notice deadline, the confirmed terms it was computed from, when it was derived, and the decision state for that term (no decision, renew or renegotiate decided by a named person). Entries derived for periods before the agreement was in Locket are labelled as derived at import. The confirmed original end date is never changed. Correcting a confirmed term recomputes the chain, and the earlier derivation is kept as superseded.
 - **Termination.** A terminate decision stops the roll-forward. If no notice is recorded as sent by the notice deadline, the agreement is flagged to owner and counsel as "termination decided, notice not recorded by the deadline", with no roll-forward, until one of them records the notice with its evidence or confirms that the agreement renewed. A recorded termination takes effect on the current term's end date, or on an earlier effective date a person records with the clause that allows it.
 - **Lifecycle status.** Every executed or imported agreement has a derived lifecycle status beside its workflow stage: not yet in effect (effective date in the future), active (in term and not auto-renewing, including a fixed term, an evergreen agreement and one with a termination noticed, which shows its end date), auto-renewing (with the days left to the next notice deadline), expired (past the end of its last term), or terminated (from the termination's effective date). An evergreen agreement has no notice deadline; it is listed for review on each anniversary of its effective date at an owner-configured lead time.
+- **Dashboard inheritance.** Before RENEW-007 is done, REPORT-003's tiles, values, current-term countdowns and drilldowns must also assert optional/evergreen renewal types, renewal limits, early termination and the durable/superseded derivation history described here.
 - **Used everywhere.** Search and filters (`REPO-006`), saved views and columns (`REPO-007`), reports and the dashboard (`REPORT-002`, `REPORT-003`), reminders (`RENEW-002`), calendar events (`RENEW-003`), bulk schedules (`RENEW-004`), renewal briefs (`RENEW-005`), the API and webhooks (`INT-002`) and the archive (`PORT-001`) use the current term, its notice deadline and the lifecycle status, never an original end date that has passed.
 
 *Acceptance:* with the clock at 17 October 2026, a journey imports an agreement effective 1 March 2022 with a 1-year term, auto-renewal, 1-year renewals, unlimited renewals and 60 days' notice in America/New_York, and confirms its terms.
@@ -482,6 +483,7 @@ Most agreements a buyer brings in are evergreen SaaS and supplier contracts whos
 - The clock advances past the deadline with no decision. The renewal is recorded as committed with no decision, and the next term (1 March 2027 to 29 February 2028) and its deadline of 31 December 2027 appear with their reminders.
 - The same agreement with 2 renewals allowed shows expired from 1 March 2025, with no deadline or reminder.
 - A terminate decision with its notice recorded as sent before 30 December 2026 stops the roll-forward. The agreement shows active with an end date of 28 February 2027, then terminated from 1 March 2027. A terminate decision with no notice recorded by the deadline is flagged and does not roll forward.
+- Dashboard parity is asserted for optional/evergreen types, limits and early termination, including its durable/superseded current-term derivations and every affected REPORT-003 tile and drilldown.
 - Correcting the renewal term to 18 months recomputes the current term to 1 March 2026 to 31 August 2027 and the notice deadline to 2 July 2027, and keeps the earlier derivation as superseded.
 
 *Status:* partial. Auto-renewal and renewal term are confirmable terms, the renewal row keeps the auto-renewal flag, and the renewal queue labels auto-renewing agreements (`src/locket/obligations.ts`, `src/ui/renewals.tsx`); renewal type, renewals allowed, term derivation, roll-forward, derived history and lifecycle status do not exist.
@@ -601,11 +603,11 @@ A person builds a report from a saved view (`REPO-007`) with grouping and totals
 *Status:* missing. No reports or schedules exist.
 
 #### REPORT-003 — Portfolio dashboard.
-A home dashboard shows total contracted value in USD by type and by lifecycle status (`RENEW-007`), renewals and notice deadlines in the next 30, 60 and 90 days with their value (from each agreement's current term, with a days-to-deadline countdown), overdue obligations, agreements with accepted playbook exceptions, and agreements missing confirmed key terms.
+A home dashboard shows total contracted value in USD by type and by lifecycle status (`RENEW-007`), renewals and notice deadlines in the next 30, 60 and 90 days with their value (from each agreement's current term, with a days-to-deadline countdown), overdue obligations, agreements with accepted playbook exceptions, and agreements missing confirmed key terms. Today this applies to every recorded term and workflow: confirmed fixed/auto-renewing terms project the current term without rewriting the original end date; proposed terms never drive a tile. Contracted value includes executed/imported agreements, including expired ones, grouped by type and lifecycle; absent values are counted separately. Windows include today through the named calendar day in the agreement's zone, excluding passed instants. Overdue means a confirmed, unfinished obligation with a due date before today in that zone; the tile shows obligation count and distinct agreements, counting each agreement's value once. Accepted exceptions are current-version, non-invalidated approved exception decisions. Missing key terms means effective date, end date, auto-renewal, notice days, governing law or payment terms are unconfirmed, or an auto-renewal lacks its confirmed renewal months. A termination decision stops projection; a sent notice is recorded evidence, and a missed termination notice is flagged. `RENEW-007` must extend the dashboard to its optional/evergreen types, renewal limits, early termination and durable/superseded history before shipping; this clause is done for today's recorded capabilities.
 
-*Acceptance:* a journey on a fixture repository sees each tile's count and USD value match a query over the same data, and each tile opens the filtered register. An auto-renewing agreement signed in 2022 whose current term's notice deadline falls in 74 days is counted in the 90-day notice-deadline tile, and an expired one is not.
+*Acceptance:* `REPORT-003` in `tests/api/portfolio.test.mjs` and `tests/browser/portfolio.spec.ts` asserts each tile's count and USD value against the same fixture records and opens every filtered register at 1440/390. The 2022 auto-renewing agreement is term 5 (1 March 2026–28 February 2027), with 30 December 2026 at 23:59:59 Eastern 74 calendar days away: the 90-day notice tile counts it and excludes the expired fixed-term agreement. Tests also assert type/lifecycle groups, 30/60/90-day term/notice windows, overdue obligations, accepted exceptions, missing terms/values, unchanged original end date, ignored proposed corrections, recomputation on confirmation, restricted scope, attributed restricted reads and signed-out refusal. `RENEW-007` asserts its inherited expanded dashboard parity when those terms ship.
 
-*Status:* missing. The register lists agreements and next deadlines without a dashboard.
+*Status:* done. Permission-scoped portfolio tiles, current-term projections and matching register drilldowns are proven by `tests/api/portfolio.test.mjs` and `tests/browser/portfolio.spec.ts` at 1440 and 390 pixels.
 
 ### Mobile
 
@@ -848,8 +850,8 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 3 | 36 | 41 | 80 |
-| All | 22 | 36 | 41 | 99 |
+| Target and push further | 4 | 36 | 40 | 80 |
+| All | 23 | 36 | 40 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -934,7 +936,7 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | `OPS-001` | Self-hosted install, updates and security answers | target | partial | `OPERATIONS.md`; `deploy.json`; `tests/portable.mjs` | The release cadence, the one-command update with an automatic export and the security questionnaire do not exist |
 | `REPORT-001` | Cycle time, throughput and bottlenecks | target | missing |  | No analytics exist |
 | `REPORT-002` | Custom and scheduled reports | target | missing |  | No reports or schedules exist |
-| `REPORT-003` | Portfolio dashboard | target | missing |  | The register lists agreements and next deadlines without a dashboard |
+| `REPORT-003` | Portfolio dashboard | target | done | `src/locket/portfolio.ts`; `src/locket/lifecycle.ts`; `tests/api/portfolio.test.mjs`; `tests/browser/portfolio.spec.ts` |  |
 | `MOBILE-001` | Phone-width web app | target | partial | `tests/browser/journey.spec.ts` | Approval from notification links and camera upload are not exercised |
 | `MOBILE-002` | iOS and Android apps | target | missing |  | No native apps exist |
 | `MOVE-002` | Ironclad move-in | target | missing |  | Only the DocuSign kit exists |

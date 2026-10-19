@@ -13,6 +13,8 @@ The screens and any agent use the same HTTP API. Authenticate with a Base native
 
 - `GET /api/locket/audit?person=OPERATOR_ID&agreement=AGREEMENT_ID&action=ACTION&from=YYYY-MM-DD&to=YYYY-MM-DD&q=TEXT` — owner/counsel only: `{rows:[audit entries]}`. All supplied filters intersect; UTC start/end dates are inclusive. Add `format=csv` to download the same rows. CSV records an `audit.export` event after selecting its rows; filtering and reading do not add entries. Restricted workspace/search/comparison reads record `agreement.view`; successful artifact downloads record `file.download`.
 
+- `GET /api/locket/portfolio` — permission-scoped portfolio tiles (agreement ids, count, recorded USD cents, missing-value count), lifecycle projections and current-term notice countdowns. The same `portfolio` is included in workspace state.
+
 ## Commands
 
 `POST /api/locket/commands` with `{commandId, type, payload}`. `commandId` is a UUID; retrying the same id and payload returns the first result, a different payload is refused (`IDEMPOTENCY`). Success: `{ok:true,result}`. Failure: `{ok:false,error:{code,message,details}}` with 400, 401, 403, 404, 409, 413 or 415. `STALE` means the record changed since it was read; reload and review. Commands that change an agreement after review take its current `version` (the agreement row's `version`). Files are `{filename, mediaType?, base64}` (5 MB each). Dates are `YYYY-MM-DD`; money is a decimal string in USD (`"48000.50"`).

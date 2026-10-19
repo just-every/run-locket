@@ -90,7 +90,7 @@ export async function installation({ bindings = {} } = {}) {
       if (role) await owner.command('role.set', { operatorId: person.id, role })
       return person
     }
-    return { mf, db, origin, request, owner, invite, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
+    return { mf, db, origin, request, owner, invite, mails, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
   } catch (error) {
     await mf.dispose().catch(() => {})
     await rm(root, { recursive: true, force: true }).catch(() => {})
