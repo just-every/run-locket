@@ -362,7 +362,7 @@ The explicit generic approval-email link and phone approval under MOBILE-001 shi
 
 *Acceptance:* a journey sends an approval request by email (Postmark fake) and Slack (fake); approving from the Slack action records the approver and version digest; a second approver acting from an email link after a new version was added is refused and shown the new version.
 
-*Status:* missing. Approvals are given only in the Locket screens.
+*Status:* partial. Explicit generic approval-email links ship under MOBILE-001 (`src/locket/approval-mail.ts`, `tests/api/approval-mail.test.mjs`, `tests/browser/mobile-approval.spec.ts`); automatic requests and Slack, Teams, Nook and Word approval actions do not exist. Decisions still happen in the authenticated Locket screens.
 
 #### APPROVE-004 — Approval reminders and escalation.
 A pending approval reminds its approver through their notification channel (`NOTIFY-001`, `APPROVE-003`) at owner-configured intervals. The default is after 1 business day, then daily, in the approver's US time zone. If it is still pending after a configured time (default 3 business days), it escalates to the approver's delegate (`APPROVE-002`), or to the rule's escalation contact when there is no delegate. Anyone working on the agreement can press "Remind approver", at most once every 4 hours per approver. Every reminder and escalation is recorded in the agreement's activity, and reminders stop as soon as the approval is given, declined or withdrawn.
@@ -486,7 +486,7 @@ Most agreements a buyer brings in are evergreen SaaS and supplier contracts whos
 - Dashboard parity is asserted for optional/evergreen types, limits and early termination, including its durable/superseded current-term derivations and every affected REPORT-003 tile and drilldown.
 - Correcting the renewal term to 18 months recomputes the current term to 1 March 2026 to 31 August 2027 and the notice deadline to 2 July 2027, and keeps the earlier derivation as superseded.
 
-*Status:* partial. Auto-renewal and renewal term are confirmable terms, the renewal row keeps the auto-renewal flag, and the renewal queue labels auto-renewing agreements (`src/locket/obligations.ts`, `src/ui/renewals.tsx`); renewal type, renewals allowed, term derivation, roll-forward, derived history and lifecycle status do not exist.
+*Status:* partial. Auto-renewal and renewal term are confirmable terms, the renewal row keeps the auto-renewal flag, and the renewal queue labels auto-renewing agreements (`src/locket/obligations.ts`, `src/ui/renewals.tsx`); REPORT-003 now provides a read-only current-term/lifecycle projection for recorded fixed/auto-renewing terms. Optional/evergreen types, renewal limits, early termination, durable daily roll-forward, superseded derivation history and reminder/calendar parity do not exist.
 
 ### Commercial systems
 
@@ -546,7 +546,7 @@ MOBILE-001's explicit approval-email action ships today, passing only a recipien
 
 *Acceptance:* a journey mentions a counsel in a comment, assigns a request and completes a signature; counsel receives the in-app and email notifications under their preferences, switching to a daily digest batches the next day's notifications, and a viewer without access receives none for a restricted agreement.
 
-*Status:* missing. Locket sends no notifications.
+*Status:* partial. MOBILE-001 sends an explicit generic approval-email link with an audited provider outcome (`src/locket/approval-mail.ts`, `tests/api/approval-mail.test.mjs`); automatic assignment/mention/signature/deadline notifications, in-app delivery, preferences, chat and daily digests do not exist.
 
 #### US-001 — US defaults.
 A new installation defaults to USD with values entered and shown as US dollars, an installation time zone chosen from US zones (Eastern, Central, Mountain, Arizona, Pacific, Alaska, Hawaii) that new agreements inherit and can change per agreement, US date format, governing law chosen from US states and the District of Columbia (with other jurisdictions available), counterparty EIN in place of ABN, and an option to roll notice deadlines that fall on a weekend or US federal holiday to the previous business day. Agreements in another currency keep their original amount and show the USD equivalent at a recorded rate. Default required attachments: supplier agreements need a certificate of insurance and a Form W-9; customer agreements need a statement of work or order form; amendments need the signed parent; NDAs none.
@@ -850,8 +850,8 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 5 | 35 | 40 | 80 |
-| All | 24 | 35 | 40 | 99 |
+| Target and push further | 5 | 37 | 38 | 80 |
+| All | 24 | 37 | 38 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -906,7 +906,7 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | `REVIEW-006` | Live accuracy evidence for every AI and OCR task | target | missing |  | No evaluation command, labelled set or recorded live run exists |
 | `REVIEW-007` | Plain-English summary of one agreement | target | missing |  | No summaries exist |
 | `APPROVE-002` | Conditional approval rules in USD | target | partial | `src/locket/review.ts`; `tests/api/flows.test.mjs` | Configurable value, department and condition rules, ordering and delegates do not exist |
-| `APPROVE-003` | Approve where people work | target | missing |  | Approvals are given only in the Locket screens |
+| `APPROVE-003` | Approve where people work | target | partial | `src/locket/approval-mail.ts`; `tests/api/approval-mail.test.mjs`; `tests/browser/mobile-approval.spec.ts` | Explicit email links ship; automatic requests and Slack/Teams/Nook/Word approval actions remain absent |
 | `APPROVE-004` | Approval reminders and escalation | target | missing |  | Approvals send no reminders |
 | `SIGN-002` | Live Docusign, Adobe Acrobat Sign and Dropbox Sign | target | partial | `src/locket/execution.ts`; `tests/api/flows.test.mjs` | Live sending, webhooks, reminders and voiding do not exist |
 | `SIGN-003` | Inkwell signing | target | missing |  | No Inkwell connection exists |
@@ -920,7 +920,7 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | `RENEW-004` | Bulk reminders for imported contracts | target | missing |  | Reminder schedules do not exist |
 | `RENEW-005` | Renewal briefs and renewal workflows | target | partial | `src/locket/obligations.ts`; `src/locket/proposals.ts` | Briefs and renewal-request creation do not exist |
 | `RENEW-006` | Send approved notices with delivery evidence | target | partial | `src/locket/obligations.ts`; `tests/api/flows.test.mjs` | Sending from Locket and provider delivery events do not exist |
-| `RENEW-007` | Auto-renewal roll-forward and lifecycle status | target | partial | `src/locket/obligations.ts`; `src/ui/renewals.tsx` | Renewal type, renewals allowed, term derivation, roll-forward, derived history and lifecycle status do not exist |
+| `RENEW-007` | Auto-renewal roll-forward and lifecycle status | target | partial | `src/locket/obligations.ts`; `src/ui/renewals.tsx` | REPORT-003 projects recorded terms read-only; optional/evergreen types, limits, early termination, durable daily history, supersession and reminder/calendar parity remain absent |
 | `LINK-001` | Accounting links: Pantry, QuickBooks Online and NetSuite | target | missing |  | No accounting connection exists |
 | `LINK-002` | Procurement links: Purse and Coupa | target | missing |  | No procurement connection exists |
 | `LINK-003` | Proposal and billing handoffs: Platter and Nectar | target | missing |  | No proposal or billing connection exists |
@@ -928,7 +928,7 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | `INT-002` | Public API, webhooks, Zapier and Crank | target | partial | `src/locket/api.ts`; `API.md` | Scoped tokens, webhooks and the Zapier and Crank apps do not exist |
 | `INT-003` | SSO and SCIM provisioning | target | partial | `src/locket/people.ts`; `src/locket/access.ts` | SSO and SCIM do not exist |
 | `INT-004` | Connection health | target | missing |  | No connections exist yet |
-| `NOTIFY-001` | Notifications and preferences | target | missing |  | Locket sends no notifications |
+| `NOTIFY-001` | Notifications and preferences | target | partial | `src/locket/approval-mail.ts`; `tests/api/approval-mail.test.mjs` | Explicit approval email ships; automatic events, in-app delivery, preferences, chat and daily digests remain absent |
 | `US-001` | US defaults | target | partial | `src/locket/model.ts`; `src/locket/dates.ts` | Values are stored and shown in USD and the default zone is America/New_York; counterparties still carry an ABN, and installation time-zone selection, business-day rolling and multi-currency do not exist |
 | `AUDIT-001` | Filterable activity audit trail | target | done | `src/locket/audit.ts`; `src/locket/views.ts`; `tests/api/flows.test.mjs`; `tests/browser/audit.spec.ts` |  |
 | `ERASE-001` | Personal-data erasure with legal hold | target | missing |  | No erasure, hold or retention capability exists |
