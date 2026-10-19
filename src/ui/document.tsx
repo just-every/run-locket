@@ -1,9 +1,12 @@
 // The workspace's page: the shown version as one tall serif page with the
 // changes from the earlier version tracked inline, unchanged sections folded,
 // and the findings and comments as margin notes on dotted connectors beside
-// the clauses they cite. Below 1100 px the notes fold under their clauses. On a
-// wide screen the page opens scrolled just far enough that the open decision,
-// its buttons and the notes on the same clause sit above the command bar.
+// the clauses they cite. On a wide screen the margin starts beside the file
+// head, and when the open decision's clause is further down than the first view
+// reaches, the decision and the notes before it rise in the margin so the head
+// and the decision with its buttons share the first view, unscrolled. Below
+// 1100 px the notes fold under their clauses, and the settled sections before
+// the open decision fold too, so the breach note comes first.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
@@ -12,8 +15,10 @@ import { plural } from './format'
 import { findingTone, NoteCard, type Note } from './notes'
 import { cut, redline, type Paragraph, type Section } from './redline'
 
-const order: Record<string, number> = { open: 0, breach: 1, unsure: 2, met: 3, internal: 4 }
-const color: Record<string, string> = { open: 'var(--lk-bad)', breach: 'var(--lk-bad)', unsure: 'var(--lk-warn)', met: 'var(--lk-good)', internal: 'var(--lk-internal)' }
+const order: Record<string, number> = { open: 0, breach: 1, unsure: 2, accepted: 3, met: 4, internal: 5 }
+const color: Record<string, string> = { open: 'var(--lk-bad)', breach: 'var(--lk-bad)', unsure: 'var(--lk-warn)', accepted: 'var(--lk-decided)', met: 'var(--lk-good)', internal: 'var(--lk-internal)' }
+const WIDE = '(min-width: 1100px)'
+const GAP = 14
 
 export function useRedline(base: Row | null, shown: Row | null) {
   return useMemo(() => (shown?.text ? redline(base?.text ?? null, shown.text) : null), [base?.text, shown?.text])
@@ -39,12 +44,11 @@ export function DocumentPage({ state, a, base, shown, locket }: { state: LocketS
   const [opened, setOpened] = useState<Set<number>>(new Set())
   const paper = useRef<HTMLDivElement>(null)
   const [links, setLinks] = useState<{ d: string; tone: string }[]>([])
-  // Where the page last scrolled itself to; once the reader scrolls elsewhere it stays where they put it.
-  const followed = useRef<number | null>(0)
+  const [wide, setWide] = useState(() => window.matchMedia(WIDE).matches)
   useEffect(() => {
-    const moved = () => { if (followed.current !== null && Math.abs(window.scrollY - followed.current) > 2) followed.current = null }
-    window.addEventListener('scroll', moved, { passive: true })
-    return () => window.removeEventListener('scroll', moved)
+    const query = window.matchMedia(WIDE), change = () => setWide(query.matches)
+    query.addEventListener('change', change)
+    return () => query.removeEventListener('change', change)
   }, [])
   const paragraphs = marked?.sections.flatMap(s => s.paragraphs) ?? []
   const within = (p: Paragraph, start: number) => p.segments.length > 0 && p.start <= start && start <= p.end && p.segments.some(s => s.op !== 'del')
@@ -53,60 +57,63 @@ export function DocumentPage({ state, a, base, shown, locket }: { state: LocketS
   // Rules met on the other changed clauses read as a tick beside the clause.
   const ticks = (p: Paragraph) => (p.changed ? state.deviations.filter(d => d.version_id === shown.id && d.result === 'met' && within(p, d.start_offset) && !notes.some(n => n.row.id === d.id)) : [])
 
-  // Margin notes beside their clauses, pushed down so none overlap, with a dotted connector from the cited words.
+  // Margin notes beside their clauses, stacked so none overlap, with a dotted connector from the cited words.
   useLayoutEffect(() => {
     const page = paper.current
     if (!page) return
     const place = () => {
       const cards = [...page.querySelectorAll<HTMLElement>('.lk-margin-note')]
-      const wide = window.matchMedia('(min-width: 1100px)').matches
       cards.forEach(card => { card.style.top = '' })
       page.style.minHeight = ''
-      if (!wide) { setLinks([]); return }
+      if (!window.matchMedia(WIDE).matches) { setLinks([]); return }
       const box = page.getBoundingClientRect()
-      let floor = 0
+      const heights = cards.map(card => card.offsetHeight)
+      const wanted = cards.map(card => card.parentElement!.getBoundingClientRect().top - box.top - 56)
+      const tops: number[] = []
+      cards.forEach((_, i) => { tops[i] = Math.max(wanted[i], i ? tops[i - 1] + heights[i - 1] + GAP : 0) })
+      // The open decision, buttons and all, ends above the command bar in the first view: when its clause is further
+      // down, it rises, and the notes before it rise with it, as far as the top of the file head.
+      const open = cards.findIndex(card => card.dataset.tone === 'open')
+      const head = (page.closest('.lk-agreement')?.getBoundingClientRect().top ?? box.top) - box.top
+      const sight = window.innerHeight - (document.querySelector<HTMLElement>('.lk-command')?.offsetHeight ?? 0) - 16 - (box.top + window.scrollY)
+      if (open >= 0 && tops[open] + heights[open] > sight) {
+        const room = head + heights.slice(0, open).reduce((sum, h) => sum + h + GAP, 0)
+        tops[open] = Math.max(room, sight - heights[open])
+        for (let i = open - 1; i >= 0; i--) tops[i] = Math.min(tops[i], tops[i + 1] - GAP - heights[i])
+        for (let i = open + 1; i < cards.length; i++) tops[i] = Math.max(wanted[i], tops[i - 1] + heights[i - 1] + GAP)
+      }
       const drawn: { d: string; tone: string }[] = []
-      for (const card of cards) {
-        const id = card.dataset.note!, para = card.parentElement!
-        const top = Math.max(para.getBoundingClientRect().top - box.top - 56, floor)
+      cards.forEach((card, i) => {
+        const id = card.dataset.note!, para = card.parentElement!, top = tops[i]
         card.style.top = `${top}px`
-        floor = top + card.offsetHeight + 14
         const words = [...page.querySelectorAll<HTMLElement>(`[data-notes~="${id}"]`)]
         const end = (words.filter(w => w.tagName === 'INS').at(-1) ?? words.at(-1) ?? para.querySelector('.lk-clause-text'))?.getClientRects()
         const rect = end?.[end.length - 1]
-        if (!rect) continue
+        if (!rect) return
         // From the cited words' line, out through the page's right margin, so no connector crosses the text.
         const x1 = Math.max(rect.right - box.left + 6, page.clientWidth - 30), y1 = rect.top - box.top + rect.height / 2, x2 = card.offsetLeft - 6, y2 = top + 24
         const bend = Math.max(30, (x2 - x1) / 2)
         drawn.push({ d: `M${x1} ${y1}C${x1 + bend} ${y1} ${x2 - bend} ${y2} ${x2} ${y2}`, tone: card.dataset.tone! })
-      }
-      page.style.minHeight = `${floor}px`
+      })
+      if (cards.length) page.style.minHeight = `${tops.at(-1)! + heights.at(-1)!}px`
       setLinks(drawn)
-      if (followed.current !== null) showDecision()
-    }
-    const showDecision = () => {
-      const open = page.querySelector<HTMLElement>('.lk-margin-note[data-tone="open"]')
-      if (!open) return
-      const same = [...open.parentElement!.querySelectorAll<HTMLElement>(':scope > .lk-margin-note')]
-      const group = same.slice(same.indexOf(open)).map(n => n.getBoundingClientRect())
-      const top = group[0].top, bottom = Math.max(...group.map(r => r.bottom))
-      const bar = document.querySelector('.lk-command')?.getBoundingClientRect().top ?? window.innerHeight
-      const head = document.querySelector('.lk-top')?.getBoundingClientRect().bottom ?? 0
-      let by = Math.max(0, bottom - (bar - 16))
-      if (top - by < head + 16) by = Math.max(0, top - head - 16)
-      if (by > 1) window.scrollTo(0, window.scrollY + by)
-      followed.current = window.scrollY
     }
     place()
     const watch = new ResizeObserver(place)
     watch.observe(page)
+    window.addEventListener('resize', place)
+    // A settled note opening or closing changes its height.
+    page.addEventListener('toggle', place, true)
     void document.fonts?.ready.then(place)
-    return () => watch.disconnect()
-  }, [notes, opened, marked])
+    return () => { watch.disconnect(); window.removeEventListener('resize', place); page.removeEventListener('toggle', place, true) }
+  }, [notes, opened, marked, wide])
 
   if (!marked) return <div className="lk-paper lk-paper-empty"><p className="lk-empty">This version has no text. Supply text or a DOCX to compare and cite passages.</p></div>
   const folding = !!base && marked.changes > 0
-  const quiet = (s: Section) => folding && !s.paragraphs.some(p => p.changed || inPara(p).length)
+  // Below 1100 px the sections before the open decision's, with nothing open in them, fold like unchanged ones.
+  const openAt = wide ? -1 : marked.sections.findIndex(s => s.paragraphs.some(p => inPara(p).some(n => n.tone === 'open')))
+  const settledBefore = (s: Section) => marked.sections.indexOf(s) < openAt && !s.paragraphs.some(p => inPara(p).some(n => n.tone === 'open' || n.tone === 'unsure'))
+  const quiet = (s: Section) => (folding && !s.paragraphs.some(p => p.changed || inPara(p).length)) || settledBefore(s)
   const runs: { sections: Section[]; index: number }[] = []
   marked.sections.forEach((s, index) => {
     const last = runs.at(-1)
@@ -167,12 +174,13 @@ export function DocumentPage({ state, a, base, shown, locket }: { state: LocketS
         if (!quiet(sections[0]) || opened.has(index)) return <section key={index} className="lk-section">{shownSection(sections[0], index)}</section>
         const numbered = sections.filter(s => s.number)
         const clauses = sections.reduce((n, s) => n + s.paragraphs.filter(p => p.kind !== 'heading').length, 0)
+        const changes = sections.reduce((n, s) => n + s.paragraphs.filter(p => p.changed).length, 0)
         const single = numbered.length === 1 && sections.length === 1
         const unfold = () => setOpened(new Set([...opened, ...sections.map(s => marked.sections.indexOf(s))]))
         return (
           <section key={index} className={`lk-section lk-folded${single ? '' : ' lk-folded-run'}`}>
             <h2 title={sections.map(s => s.title).filter(Boolean).join(', ')}>{single ? `§ ${numbered[0].number}. ${numbered[0].title}` : numbered.length ? `§ ${numbered[0].number}–${numbered.at(-1)!.number}` : 'Title and parties'}</h2>
-            <button type="button" className="lk-unfold" onClick={unfold}><Icon name="arrow" />{plural(clauses, 'unchanged paragraph')}</button>
+            <button type="button" className="lk-unfold" onClick={unfold}><Icon name="arrow" />{changes ? `${plural(clauses, 'paragraph')} · ${plural(changes, 'settled change')}` : plural(clauses, 'unchanged paragraph')}</button>
           </section>
         )
       })}

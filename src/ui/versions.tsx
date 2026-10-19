@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
 import { Field, Form, Icon, value } from './controls'
-import { brief, can, currentVersion, personName, stamp, versionsOf } from './format'
+import { brief, can, currentVersion, personName, stamp, versionName, versionsOf } from './format'
 import { TemplateFields } from './intake'
 
 export const versionHref = (a: Row, number: number) => `#agreement/${a.id}/versions/${number}`
@@ -18,8 +18,8 @@ export function VersionChips({ state, a, shown, base, onBase, adding, onAdding }
     <div className="lk-version-bar">
       <nav className="lk-chips" aria-label="Versions">
         {versions.map(v => (
-          <a key={v.id} className={v.id === shown?.id ? 'lk-chip lk-chip-active' : 'lk-chip'} href={versionHref(a, v.number)} aria-current={v.id === shown?.id ? 'page' : undefined} title={`v${v.number} ${v.label} · version identity ${v.digest}`}>
-            <span><b>v{v.number}</b> {brief(v.label)}</span>
+          <a key={v.id} className={v.id === shown?.id ? 'lk-chip lk-chip-active' : 'lk-chip'} href={versionHref(a, v.number)} aria-current={v.id === shown?.id ? 'page' : undefined} title={`v${v.number} ${versionName(state, v)} · version identity ${v.digest}`}>
+            <span><b>v{v.number}</b> {brief(versionName(state, v))}</span>
             <small>{stamp(v.created_at, { zone: a.timezone })}</small>
           </a>
         ))}
@@ -29,8 +29,8 @@ export function VersionChips({ state, a, shown, base, onBase, adding, onAdding }
           <button type="button" className="lk-tool" aria-expanded={comparing} onClick={() => setComparing(!comparing)}><Icon name="compare" />Compare</button>
           {comparing && (
             <div className="lk-popover">
-              <label>Earlier version<select value={base?.number ?? ''} onChange={e => onBase(e.target.value ? Number(e.target.value) : null)}><option value="">None (clean text)</option>{versions.filter(v => v.number < (shown?.number ?? 0)).map(v => <option key={v.id} value={v.number}>v{v.number} {v.label}</option>)}</select></label>
-              <label>Later version<select value={shown?.number ?? ''} onChange={e => { window.location.hash = versionHref(a, Number(e.target.value)).slice(1) }}>{versions.map(v => <option key={v.id} value={v.number}>v{v.number} {v.label}</option>)}</select></label>
+              <label>Earlier version<select value={base?.number ?? ''} onChange={e => onBase(e.target.value ? Number(e.target.value) : null)}><option value="">None (clean text)</option>{versions.filter(v => v.number < (shown?.number ?? 0)).map(v => <option key={v.id} value={v.number}>v{v.number} {versionName(state, v)}</option>)}</select></label>
+              <label>Later version<select value={shown?.number ?? ''} onChange={e => { window.location.hash = versionHref(a, Number(e.target.value)).slice(1) }}>{versions.map(v => <option key={v.id} value={v.number}>v{v.number} {versionName(state, v)}</option>)}</select></label>
             </div>
           )}
         </div>

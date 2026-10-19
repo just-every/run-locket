@@ -5,7 +5,7 @@ import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Avatar, Badge, Empty, Field, Form, Icon, Person, value } from './controls'
 import { DocumentPage, useRedline } from './document'
-import { brief, can, currentVersion, day, parse, partyName, personName, plural, roleLabel, stamp, typeLabel, versionsOf, when } from './format'
+import { brief, can, currentVersion, day, parse, partyName, personName, plural, roleLabel, stamp, typeLabel, versionName, versionsOf, when } from './format'
 import { Approvals, Review } from './review'
 import { AgentPlace, TopTools } from './shell'
 import { Execution, Signature } from './signature'
@@ -52,7 +52,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { 
         <div className="lk-doc-title">
           <h1>{original && <span className={`lk-file-icon${docx ? '' : ' lk-file-pdf'}`} aria-hidden="true">{docx ? 'W' : 'PDF'}</span>}{original?.filename ?? a.title}</h1>
           <p className="lk-counts">
-            {[base && marked ? plural(marked.changes, 'tracked change') + ` from v${base.number}` : shown ? `v${shown.number} · ${shown.label}` : 'No document yet', plural(comments, 'comment'), route.length ? `${decided} of ${route.length} approvals decided` : ''].filter(Boolean).join(' · ')}
+            {[base && marked ? plural(marked.changes, 'tracked change') + ` from v${base.number}` : shown ? `v${shown.number} · ${shown.kind === 'template' ? 'from template ' : ''}${versionName(state, shown)}` : 'No document yet', plural(comments, 'comment'), route.length ? `${decided} of ${route.length} approvals decided` : ''].filter(Boolean).join(' · ')}
           </p>
           {route.length > 0 && <div className="lk-progress" role="progressbar" aria-label="Approvals decided" aria-valuemin={0} aria-valuemax={route.length} aria-valuenow={decided}><span style={{ width: `${(decided / route.length) * 100}%` }} /></div>}
           {parent && <p className="lk-muted">{a.relation?.replace('_', ' ')} <a href={`#agreement/${parent.id}`}>{parent.reference} {parent.title}</a></p>}
@@ -106,7 +106,7 @@ function AgentReply({ state, a, shown, original }: { state: LocketState; a: Row;
         <span>{findings.length && playbook ? `v${shown.number} vs playbook v${playbook.number}: ${met} of ${rules} met${breached.length ? ` · ${breached.join(', ')} breached` : ''}` : `v${shown.number} has no playbook review yet`}</span>
         <Icon name="arrow" />
       </a>
-      {original && <p className="lk-seal" title={`v${shown.number} · ${shown.label} · ${original.filename} · sha256 ${original.sha256}`}><span>v{shown.number} · {brief(shown.label)}</span><span>· sha256 {original.sha256.slice(0, 4)}…{original.sha256.slice(-4)} · original kept</span><Icon name="check" /></p>}
+      {original && <p className="lk-seal" title={`v${shown.number} · ${versionName(state, shown)} · ${original.filename} · sha256 ${original.sha256}`}><span>v{shown.number} · {brief(versionName(state, shown))}</span><span>· sha256 {original.sha256.slice(0, 4)}…{original.sha256.slice(-4)} · original kept</span><Icon name="check" /></p>}
     </>
   )
 }

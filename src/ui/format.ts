@@ -1,5 +1,5 @@
 import type { LocketState, Row } from './api'
-export { actionLabel, clock, day, dayOf, deadline, plural, providerName, providers, roleLabel, stamp, termLabel, termValue, when } from '../locket/display'
+export { actionLabel, clock, day, dayOf, daysUntil, deadline, plural, providerName, providers, roleLabel, stamp, termLabel, termValue, when } from '../locket/display'
 
 export const statusLabel: Record<string, string> = {
   draft: 'Draft',
@@ -34,4 +34,11 @@ export function brief(label: string, max = 24) {
 }
 export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]!.toUpperCase()).join('') || '?'
 /** Whether a person is an agent: their findings and proposals carry Locket's mark. */
+/** A version's name beside its number. A generated version's stored label repeats its template's version ("Supply
+ * agreement v1" on v1), so it is named by its template alone; any other version keeps its label. */
+export function versionName(state: LocketState, v: Row) {
+  if (v.kind !== 'template') return v.label as string
+  const template = state.templateVersions.find(t => t.id === v.template_version_id)
+  return (template && state.templates.find(t => t.id === template.template_id)?.name) ?? v.label
+}
 export const isAgent = (state: LocketState, id: string | null | undefined) => state.operators.find(o => o.id === id)?.role === 'agent'

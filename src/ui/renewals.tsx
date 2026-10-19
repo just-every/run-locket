@@ -5,15 +5,13 @@ import { useState } from 'react'
 import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, Field, Form, value, When } from './controls'
-import { can, clock, day, deadline, partyName, personName } from './format'
+import { can, clock, day, daysUntil, deadline, partyName, personName } from './format'
 
-const DAY = 86_400_000
 const capital = (word: string) => word[0].toUpperCase() + word.slice(1)
 
 export function Renewals({ state, locket }: { state: LocketState; locket: Locket }) {
   const renewals = [...state.renewals].sort((a, b) => a.deadline_at - b.deadline_at)
   const [selected, setSelected] = useState(renewals[0]?.id ?? '')
-  const due = (ms: number) => Math.ceil((ms - state.now) / DAY)
   return (
     <div className="lk-renewals">
       <div className="lk-titlebar"><div><h1>Renewals</h1><p className="lk-muted">Notice deadlines from confirmed terms, decisions, and notices approved and sent. A prepared or approved notice is not a sent notice.</p></div></div>
@@ -22,7 +20,7 @@ export function Renewals({ state, locket }: { state: LocketState; locket: Locket
           <Band state={state} renewals={renewals} selected={selected} />
           <ol className="lk-renewal-list">
             {renewals.map(r => {
-              const a = state.agreements.find(x => x.id === r.agreement_id)!, days = due(r.deadline_at), open = r.id === selected
+              const a = state.agreements.find(x => x.id === r.agreement_id)!, days = daysUntil(r.deadline_at, state.now, r.timezone), open = r.id === selected
               const decision = r.decision ? <Badge value="approved" label={capital(r.decision)} /> : days <= 30 ? <Badge value="undetermined" label="Decide soon" /> : <Badge value="draft" label="Open" />
               return (
                 <li key={r.id} className={`lk-renewal${open ? ' lk-open' : ''}`}>

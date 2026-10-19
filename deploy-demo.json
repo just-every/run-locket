@@ -2,8 +2,8 @@
   "version": 1,
   "domain": "run-locket.com",
   "name": "Locket",
-  "ownerEmail": "nora@northbank.example",
+  "ownerEmail": "priya@fieldstone.example",
   "settings": {
-    "MAIL_FROM": "contracts@northbank.example"
+    "MAIL_FROM": "contracts@fieldstone.example"
   }
 }

@@ -40,6 +40,11 @@ export const when = (ms: number | null | undefined) => stamp(ms, { year: true })
 /** A moment in a named zone, with the year: Fri Nov 13, 2026, 11:59 pm ET. */
 export const deadline = (ms: number, zone: string) => stamp(ms, { year: true, zone })
 
+/** Calendar days from one moment's date to another's in a zone: Sun Oct 18 to Mon Nov 2 (ET) is 15, whatever the hour. */
+export function daysUntil(ms: number, from: number, zone: string) {
+  const date = (at: number) => { const p = parts(at, { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: zone }); return Date.UTC(+p.year, +p.month - 1, +p.day) }
+  return Math.round((date(ms) - date(from)) / 86_400_000)
+}
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
 export const roleLabel: Record<string, string> = { owner: 'Owner', counsel: 'Counsel', approver: 'Approver', requester: 'Requester', viewer: 'Viewer', agent: 'Agent' }

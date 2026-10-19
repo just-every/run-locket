@@ -28,6 +28,8 @@
   --lk-insert: var(--insert);
   --lk-insert-bg: var(--insert-bg);
   --lk-internal: var(--marcus);
+  /* A decided exception (accepted breach): the decision's ink, never the met green. */
+  --lk-decided: var(--lk-ink);
   --lk-radius: 12px;
   --lk-shadow: var(--card-shadow);
   --lk-top: 72px;

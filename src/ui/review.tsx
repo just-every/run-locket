@@ -2,6 +2,7 @@ import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, Field, Form, value } from './controls'
 import { can, currentVersion, parse, personName, roleLabel, versionsOf, when } from './format'
+import { decisionLine } from './notes'
 import { liveApprovals } from './summary'
 
 const resultLabel: Record<string, string> = { met: 'Rule met', breached: 'Rule breached', undetermined: 'Cannot determine' }
@@ -15,6 +16,8 @@ export function Review({ state, a, locket }: { state: LocketState; a: Row; locke
   // Newest version first; on each, what needs a decision before what is met, then in the order of the text.
   const findings = state.deviations.filter(d => d.agreement_id === a.id).sort((x, y) => y.created_at - x.created_at || Number(x.result === 'met') - Number(y.result === 'met') || x.start_offset - y.start_offset)
   const canReview = can(state, 'owner', 'counsel', 'approver', 'requester') && ['draft', 'in_review', 'approved'].includes(a.status)
+  // A breach's exception decision on the current version, worded as the margin note words it.
+  const decisionOn = (d: Row) => liveApprovals(state, a).find(x => x.kind === 'exception' && x.deviation_id === d.id)
   return (
     <div className="lk-tab-page">
       <section className="lk-panel">
@@ -23,12 +26,12 @@ export function Review({ state, a, locket }: { state: LocketState; a: Row; locke
           <ul className="lk-findings">
             {findings.map(d => (
               <li key={d.id} className={d.version_id === v?.id ? undefined : 'lk-faded'}>
-                <div className="lk-finding-head"><strong>{rules.find(r => r.key === d.clause_key)?.title ?? d.clause_key}</strong><Badge value={d.result} label={resultLabel[d.result]} /><span className="lk-muted">v{versions.find(x => x.id === d.version_id)?.number} · characters {d.start_offset}–{d.end_offset}{d.proposal_id ? ' · prepared by agent' : ''}</span></div>
+                <div className="lk-finding-head"><strong>{rules.find(r => r.key === d.clause_key)?.title ?? d.clause_key}</strong><Badge value={d.result} label={resultLabel[d.result]} />{decisionOn(d) && <Badge value={decisionOn(d)!.decision} tone={decisionOn(d)!.decision === 'approved' ? 'neutral' : 'bad'} label={decisionOn(d)!.decision === 'approved' ? 'Accepted ✓' : 'Rejected'} />}<span className="lk-muted">v{versions.find(x => x.id === d.version_id)?.number} · characters {d.start_offset}–{d.end_offset}{d.proposal_id ? ' · prepared by agent' : ''}</span></div>
                 <blockquote>{d.quote}</blockquote>
                 <p>{d.explanation}</p>
                 {d.proposed_wording && <p className="lk-proposed"><strong>Proposed wording:</strong> {d.proposed_wording}</p>}
                 {parse<string[]>(d.questions).length > 0 && <ul className="lk-questions">{parse<string[]>(d.questions).map(q => <li key={q}>{q}</li>)}</ul>}
-                <small>{d.result === 'met' ? 'No exception needed' : `Needs ${d.authority} exception approval`} · {personName(state, d.created_by)} · {when(d.created_at)}</small>
+                <small>{d.result === 'met' ? 'No exception needed' : decisionOn(d) ? decisionLine(state, a, decisionOn(d)!) : `Needs ${d.authority} exception approval`} · {personName(state, d.created_by)} · {when(d.created_at)}</small>
               </li>
             ))}
           </ul>
