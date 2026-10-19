@@ -8,6 +8,7 @@ import { fail, parse, type Actor } from './model'
 import { bulkReminderOperations } from './bulk-reminder-operations'
 import { bulkReminderSchedules } from './bulk-reminders'
 import { routing } from './review'
+import { savedViews } from './saved-views'
 import { recordReads } from './audit'
 
 const all = async <T = any>(db: D1Database, query: string, ...params: unknown[]) => (await db.prepare(query).bind(...params).all<T>()).results
@@ -43,6 +44,7 @@ export async function state(env: Bindings, actor: Actor) {
   const proposals = mine(await all(db, 'SELECT * FROM lk_proposals ORDER BY prepared_at DESC'), ids).filter(p => seesIntake(actor, p))
   await recordReads(env, actor, agreements.filter(a => a.restricted).map(a => ({ action: 'agreement.view', agreementId: a.id, summary: 'Read restricted agreement in workspace state.' })))
   return {
+    savedViews: await savedViews(env, actor),
     actor: { id: actor.id, name: actor.name, role: actor.role },
     now: Date.now(),
     operators: operators.map(o => (actor.role === 'owner' ? o : { id: o.id, name: o.name, role: o.role, status: o.status })),
@@ -76,7 +78,7 @@ export async function state(env: Bindings, actor: Actor) {
     proposals,
     imports: actor.role === 'owner' ? await all(db, 'SELECT id, kit, status, source_label, preview, fingerprint, created_by, created_at, applied_by, applied_at, undone_by, undone_at, undo_reason, version FROM lk_import_batches ORDER BY created_at DESC') : [],
     access: mine(await all(db, 'SELECT * FROM lk_access'), ids),
-    audit: mine(await all(db, 'SELECT * FROM lk_audit ORDER BY at DESC, id'), ids).filter(a => !a.action.startsWith('clickwrap.') || fullReaders.includes(actor.role) || a.actor_id === actor.id),
+    audit: mine(await all(db, 'SELECT * FROM lk_audit ORDER BY at DESC, id'), ids).filter(a => !a.action.startsWith('view.') || a.actor_id === actor.id).filter(a => !a.action.startsWith('clickwrap.') || fullReaders.includes(actor.role) || a.actor_id === actor.id),
   }
 }
 
@@ -135,7 +137,7 @@ export async function download(env: Bindings, actor: Actor, id: string): Promise
 export async function exportArchive(env: Bindings, actor: Actor) {
   requireRole(actor, may.export, 'export the complete archive')
   const db = env.DB
-  const tables = ['lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations', 'lk_notice_letters', 'lk_notice_dispatches', 'lk_notice_events', 'lk_notice_tracking']
+  const tables = ['lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations', 'lk_notice_letters', 'lk_notice_dispatches', 'lk_notice_events', 'lk_notice_tracking', 'lk_saved_views', 'lk_view_pins']
   const records: Record<string, unknown[]> = {}
   for (const t of tables) records[t] = await all(db, `SELECT * FROM ${t}`)
   const files = []

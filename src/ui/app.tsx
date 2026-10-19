@@ -53,7 +53,7 @@ export function LocketApp() {
         {!state ? <p className="lk-empty">{error ? 'Locket could not load your agreements. Sign in again if your session ended.' : 'Loading agreements…'}</p> : (
           <>
             {route.view === 'portfolio' && <Portfolio state={state} />}
-            {route.view === 'agreements' && <Register state={state} query={query} portfolioFilter={route.id === 'portfolio' ? route.tab : ''} />}
+            {route.view === 'agreements' && <Register state={state} locket={locket} query={query} portfolioFilter={route.id === 'portfolio' ? route.tab : ''} />}
             {route.view === 'agreement' && <AgreementPage key={route.id} state={state} id={route.id} tab={route.tab} shown={route.shown} locket={locket} />}
             {route.view === 'new' && <Intake state={state} locket={locket} />}
             {route.view === 'import-signed' && <LegacyImport state={state} locket={locket} />}

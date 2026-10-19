@@ -7,6 +7,8 @@ import { fetchJson, type LocketState, type Row } from './api'
 import { Avatar, Badge, EmptyState, Icon } from './controls'
 import { can, currentVersion, deadline, money, partyName, personName, statusLabel } from './format'
 import { blockers, nextNotice } from './summary'
+import type { Locket } from './app'
+import { SavedViews } from './saved-views'
 
 const columns = [
   { id: 'draft', title: 'Draft', statuses: ['draft'] },
@@ -16,7 +18,8 @@ const columns = [
   { id: 'executed', title: 'Executed', statuses: ['executed', 'imported'] },
 ]
 
-export function Register({ state, query, portfolioFilter = '' }: { state: LocketState; query: string; portfolioFilter?: string }) {
+export function Register({ state, locket, query, portfolioFilter = '' }: { state: LocketState; locket: Locket; query: string; portfolioFilter?: string }) {
+  const [viewOpen, setViewOpen] = useState(false)
   const [status, setStatus] = useState('')
   const [hits, setHits] = useState<{ id: string; match: { version: number; excerpt: string } | null }[] | null>(null)
   const [searchError, setSearchError] = useState('')
@@ -45,7 +48,9 @@ export function Register({ state, query, portfolioFilter = '' }: { state: Locket
           </div>
         )}
       </div>
+      <SavedViews state={state} locket={locket} query={query} onActive={setViewOpen} />
       {tile && <p><a href="#portfolio">Back to portfolio</a> · <a href="#agreements">Clear portfolio filter</a> · {rows.length} agreements · {money(rows.reduce((sum, a) => sum + (a.value_cents ?? 0), 0))} USD</p>}
+      {!viewOpen && <>
       <div className="lk-filters" role="group" aria-label="Stage">
         {columns.map(c => (
           <button key={c.id} type="button" className={`lk-filter${status === c.id ? ' lk-selected' : ''}`} aria-pressed={status === c.id} onClick={() => setStatus(status === c.id ? '' : c.id)}>
@@ -69,6 +74,7 @@ export function Register({ state, query, portfolioFilter = '' }: { state: Locket
           })}
         </div>
       )}
+      </>}
     </div>
   )
 }

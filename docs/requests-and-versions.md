@@ -27,3 +27,9 @@ For one agreement signed outside Locket, choose **Import signed file**: the PDF 
 On the agreement's **Versions** tab, add your own revision or the counterparty's markup as a PDF or DOCX. Every original stays exactly as uploaded. **Compare versions** shows any two versions line by line, and **Comments** can quote the passage they are about. When the version is ready, **Submit for review**.
 
 Locket reads the text of DOCX files. For a PDF, paste its text with the upload if you want to compare it or cite it in review.
+
+## Save a repository view
+
+Under Agreements, open **Saved repository views**, choose **New view** and name it. Set a search and filters, choose a sort, select result columns and move them into the order you want. **Apply view** previews the results; **Save view** keeps the definition. Keep it private or share it with named roles. Sharing never grants access to agreements.
+
+Choose **Pin view** to put a view in your own pinned list. Reopen it from **Saved view** and **Open saved view**; **Export view CSV** downloads the currently accessible rows in the same column and sort order. Only the creator edits or deletes a definition; another person can save their own copy. **Return to board** returns to the ordinary stage board.

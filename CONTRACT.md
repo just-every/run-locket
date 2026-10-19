@@ -80,7 +80,7 @@ These are the clauses the first release promised. They still hold, rewritten onl
 
 ### Released safeguards
 
-- **ROLE-001 — Six roles enforced on the server.** Roles are **owner** (everything), **counsel** (library, legal exceptions, restricted agreements, execution mismatches), **approver** (commercial approval, renewal decisions, notice approval), **requester** (requests, versions, attachments, signature handoff), **viewer** (reads) and **agent** (reads and prepares proposals only). The installation's native owner is always owner; other operators are invited through Base sign-in and given a Locket role. *Acceptance:* signed-out and cross-site requests, viewers, agents and demoted approvers refused by the server (security test).
+- **ROLE-001 — Six roles enforced on the server.** Roles are **owner** (everything), **counsel** (library, legal exceptions, restricted agreements, execution mismatches), **approver** (commercial approval, renewal decisions, notice approval), **requester** (requests, versions, attachments, signature handoff), **viewer** (reads) and **agent** (reads and prepares proposals only). The installation's native owner is always owner; other operators are invited through Base sign-in and given a Locket role. REPO-007's personal saved-view preferences are available to every human role, including viewers; this never permits a business-record write, and agents remain read-only for preferences. *Acceptance:* signed-out and cross-site requests, viewers, agents and demoted approvers refused by the server (security test).
 - **SEC-001 — Writes recheck session, role and version atomically.** Every command re-reads the session and role and repeats the session, role and record-version checks inside the D1 batch that writes, so a revoked session, removed role or changed record saves nothing. *Acceptance:* a revoked session and a decision against a stale snapshot both refused with no write (security test).
 - **SEC-002 — Retried commands return their first outcome.** Every command carries a command identity. Retrying the same identity and content returns the first outcome; reusing it for different content is refused. *Acceptance:* a retried command returning its first result and a reused identity with new content refused (security test).
 - **ACCESS-001 — Restricted agreements are invisible to others.** A restricted agreement and everything attached to it (versions, files, findings, approvals, terms, proposals, counterparty, search hits) is visible only to the owner, counsel, its requester, its responsible person and people explicitly granted access. To anyone else it does not exist. *Acceptance:* an agent-prepared restricted request, counterparty included, hidden from everyone outside it, and restricted search results hidden (security test and flow test 12).
@@ -158,7 +158,7 @@ For any executed or imported agreement, the built-in model proposes parties and 
 *Status:* partial. Cited terms proposed by an agent or importer are confirmed by people (`src/locket/proposals.ts`, `src/locket/obligations.ts`); built-in extraction and custom fields do not exist.
 
 #### REPO-005 — Custom metadata fields.
-The owner defines custom fields (text, number, USD money, date, pick list, yes/no, person, counterparty) per agreement type, with help text, required-at-stage rules and who may edit them. Fields appear on intake forms, the agreement page, extraction proposals, search filters, saved views, reports, exports and the API.
+The owner defines custom fields (text, number, USD money, date, pick list, yes/no, person, counterparty) per agreement type, with help text, required-at-stage rules and who may edit them. Fields appear on intake forms, the agreement page, extraction proposals, search filters, saved views, reports, exports and the API. Before shipping, custom fields join REPO-007's typed filters, sort, ordered columns and identical scoped CSV executor; unknown or inaccessible custom fields never act as a substitute value.
 
 *Acceptance:* a journey adds a "Data processing" yes/no field and a "Cost center" pick list required before approval, sees approval refused until the field is filled, filters the repository by both fields and finds them in the CSV export and the API state.
 
@@ -172,11 +172,15 @@ People search the full text of every version they may access (DOCX text and OCR 
 *Status:* partial. Permission-scoped search over titles, counterparties, references and version text with a status-filtered register ships (`src/locket/views.ts`, `src/ui/register.tsx`, `tests/api/flows.test.mjs`); OCR text, field, value and date filters and clause-level hits do not exist.
 
 #### REPO-007 — Saved views and columns.
-A person saves a repository view (query, filters, sort and chosen columns, including custom fields) as private or shared with a role or group, pins it, and exports it to CSV. Shared views respect each viewer's access.
+A person saves a repository view (query, filters, sort and chosen columns) as private or shared with named current roles, pins it personally, and exports it to CSV. The query searches standard metadata and accessible version text. Filters all match together and support case-insensitive text equality/containment and inclusive lower/upper bounds; USD amounts are entered as decimal dollars and compared as exact cents, dates as calendar dates (created/updated dates are UTC; current-term notice dates use each agreement's zone). Nulls sort last, with agreement identity breaking ties. Chosen columns retain their selected order in the screen and CSV, including value, owner, confirmed original terms and separately labelled derived current-term/notice fields. Original confirmed dates are never replaced by the projection.
 
-*Acceptance:* a journey saves "Supplier renewals next quarter" with value, owner and notice-deadline columns, shares it with approvers, opens it as an approver who sees only permitted rows, and exports the CSV with matching rows.
+Each human role, including a viewer, can manage their own view preferences; agents can read shared definitions and results but cannot save, pin or delete. Only the creator updates or deletes a definition, with its current revision checked atomically; each person's pin is independent. A role share exposes only the explicitly shared definition and never grants agreement access. Every read and CSV export re-evaluates the query using the current viewer's agreement visibility. Private definitions, names and pins are hidden from other people; the owner's complete archive retains all definitions and pins. The CSV matches visible selected columns and sorted rows, uses standard quoting and prefixes spreadsheet formula-looking text with an apostrophe without changing stored values.
 
-*Status:* missing. The register has fixed columns and no saved views.
+This clause is done for every field and role that exists today. REPO-005 adds real custom fields to the same validated query/filter/sort/column/CSV path before it ships. REPO-009 adds real group shares and applies its field restrictions before filtering, sorting, search excerpts or projection, so no view grants access or exposes a hidden value indirectly.
+
+*Acceptance:* REPO-007 public API and browser journeys save "Supplier renewals next quarter" with ordered value, owner and notice-deadline columns, share it with approvers, reopen it as an approver with fewer permitted rows, and export matching CSV. At 1440/390 the controls, personal pins and resulting columns work without horizontal page scrolling. API assertions cover private and wrong-role definitions hidden by guessed ID, current access grant/revocation, creator-only/stale mutations, independent pins, viewer-owned preferences, agent write refusal, exact USD/date filters and formula-safe multiline CSV. REPO-005 and REPO-009 assert their inherited custom-field/group/field-access behavior before shipping.
+
+*Status:* done. Guarded saved definitions, current-viewer queries, personal pins, chosen column order and matching CSV are proven (`src/locket/saved-views.ts`, `src/locket/repository.ts`, `tests/api/saved-views.test.mjs`, `tests/browser/saved-views.spec.ts`).
 
 #### REPO-008 — Agreement families.
 Agreements link as amends, order under, statement of work under, schedule to, renews and supersedes. The family page shows the parent and every accessible child in ascending recorded start-date order, falling back to creation date, then creation time and identity for ties. Linking rechecks the current session, role, child, parent and ancestry versions atomically and refuses cycles. An agent's proposed link is decided by owner or counsel.
@@ -188,7 +192,7 @@ Owner or counsel explicitly selects a currently confirmed term from a visible li
 *Status:* done. Six guarded relations, date-ordered family page and explicitly selected cited governing values are proven (`src/locket/families.ts`, `src/locket/family-projection.ts`, `src/ui/family.tsx`, `tests/api/families.test.mjs`, `tests/browser/families.spec.ts`).
 
 #### REPO-009 — Groups, departments and field-level access.
-Beyond restricted agreements, the owner defines departments and groups (Sales, Procurement, HR, Finance) and grants each visibility by agreement type and department, and can hide specific fields (value, pricing schedules) from roles that may otherwise read the agreement. Every read, search hit, export, notification and connector payload applies the same rules.
+Beyond restricted agreements, the owner defines departments and groups (Sales, Procurement, HR, Finance) and grants each visibility by agreement type and department, and can hide specific fields (value, pricing schedules) from roles that may otherwise read the agreement. Every read, search hit, export, notification and connector payload applies the same rules. Before shipping, groups join REPO-007's definition-sharing audiences through current membership checks; field restrictions run before saved-view filters, sort, excerpts or projection, so a definition never grants access or leaks a hidden value indirectly.
 
 *Acceptance:* a journey grants Sales visibility of customer agreements only and hides value from viewers; a Sales viewer sees customer agreements without value in the register, search, CSV export and API state, and sees no supplier agreement.
 
@@ -858,8 +862,8 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 8 | 35 | 37 | 80 |
-| All | 27 | 35 | 37 | 99 |
+| Target and push further | 9 | 35 | 36 | 80 |
+| All | 28 | 35 | 36 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -875,7 +879,7 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | `TERMS-001` | Confirm terms and obligations | published | done | `tests/api/flows.test.mjs`; `src/locket/obligations.ts` |  |
 | `RENEW-001` | Work the renewal queue | published | done | `tests/api/flows.test.mjs`; `src/locket/dates.ts` |  |
 | `PORT-001` | Search, export and restore | published | done | `tests/api/flows.test.mjs`; `tests/portable.mjs` |  |
-| `ROLE-001` | Six roles enforced on the server | published | done | `tests/api/security.test.mjs`; `src/locket/access.ts` |  |
+| `ROLE-001` | Six roles enforced on the server | published | done | `tests/api/security.test.mjs`; `tests/api/saved-views.test.mjs`; `src/locket/access.ts` |  |
 | `SEC-001` | Writes recheck session, role and version atomically | published | done | `tests/api/security.test.mjs`; `src/locket/commands.ts` |  |
 | `SEC-002` | Retried commands return their first outcome | published | done | `tests/api/security.test.mjs`; `src/locket/commands.ts` |  |
 | `ACCESS-001` | Restricted agreements are invisible to others | published | done | `tests/api/security.test.mjs`; `src/locket/records.ts` |  |
@@ -893,7 +897,7 @@ Target rows updated through 19 October 2026, with clause-named public-door evide
 | `REPO-004` | Built-in term and metadata extraction | target | partial | `src/locket/proposals.ts`; `src/locket/obligations.ts` | Built-in extraction and custom fields do not exist |
 | `REPO-005` | Custom metadata fields | target | missing |  | Agreement fields are fixed in the schema |
 | `REPO-006` | Search and structured filters | target | partial | `src/locket/views.ts`; `src/ui/register.tsx`; `tests/api/flows.test.mjs` | OCR text, field, value and date filters and clause-level hits do not exist |
-| `REPO-007` | Saved views and columns | target | missing |  | The register has fixed columns and no saved views |
+| `REPO-007` | Saved views and columns | target | done | `src/locket/saved-views.ts`; `src/locket/repository.ts`; `tests/api/saved-views.test.mjs`; `tests/browser/saved-views.spec.ts` |  |
 | `REPO-008` | Agreement families | target | done | `src/locket/families.ts`; `src/locket/family-projection.ts`; `src/ui/family.tsx`; `tests/api/families.test.mjs`; `tests/browser/families.spec.ts` | |
 | `REPO-009` | Groups, departments and field-level access | target | partial | `src/locket/access.ts`; `tests/api/security.test.mjs` | Groups, departments and field-level hiding do not exist |
 | `REPO-010` | Counterparty records | target | partial | `src/locket/agreements.ts` | Entity details, notice addresses, signatories, merging and the counterparty page do not exist |

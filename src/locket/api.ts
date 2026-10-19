@@ -22,6 +22,8 @@ import { emailNotice } from './notice-mail'
 import { prepareLetter } from './notice-letters'
 import { trackNotice } from './notice-tracking'
 import { noticeEventResponse } from './notice-events'
+import { savedViewHandlers } from './saved-views'
+import { repositoryResult, repositoryCsv } from './repository'
 import { Problem } from './model'
 import { obligationHandlers } from './obligations'
 import { peopleHandlers } from './people'
@@ -30,6 +32,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, search, state } from './views'
 
 export const handlers: Record<string, Handler> = {
+  ...savedViewHandlers,
   'notice.email': emailNotice,
   'notice.letter': prepareLetter,
   'notice.tracking': trackNotice,
@@ -86,6 +89,14 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     }
     if (request.method === 'GET' && path === '/clause-library') return reply({ results: approvedClauses(await state(env, actor), url.searchParams.get('q') ?? '') })
     if (request.method === 'GET' && path.startsWith('/families/')) return reply(family(await state(env, actor), decodeURIComponent(path.slice('/families/'.length))))
+    if (request.method === 'GET' && path === '/repository') {
+      const result = await repositoryResult(env, actor, url.searchParams)
+      if (url.searchParams.get('format') === 'csv') {
+        await recordReads(env, actor, [{ action: 'view.export', summary: 'Exported an accessible repository view as CSV.' }])
+        return new Response(repositoryCsv(result), { headers: { ...headers, 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="locket-view.csv"' } })
+      }
+      return reply(result)
+    }
     if (request.method === 'GET' && path === '/portfolio') return reply(portfolio(await state(env, actor)))
     if (request.method === 'GET' && path === '/state') { const workspace = await state(env, actor); return reply({ ...workspace, portfolio: portfolio(workspace) }) }
     if (request.method === 'GET' && path === '/search') return reply(await search(env, actor, url.searchParams.get('q') ?? ''))
