@@ -36,6 +36,18 @@ export async function openDeadlines(db: D1Database, now: number): Promise<Deadli
   ]
 }
 
+/** OBL-002: owner-configured days from an overdue obligation's first notice to its escalation; no row means 3. */
+export async function overdueEscalationDays(db: D1Database): Promise<number> {
+  return (await db.prepare('SELECT overdue_escalation_days AS days FROM lk_deadline_reminder_settings WHERE id=?').bind('installation').first<{ days: number }>())?.days ?? 3
+}
+/** OBL-002: confirmed obligations whose due date has ended in the agreement's zone and are not done. */
+export async function overdueObligations(db: D1Database, now: number) {
+  const rows = (await db.prepare(`SELECT o.id, o.agreement_id, o.due_date, o.owner_id, a.timezone, a.owner_id AS responsible_id FROM lk_obligations o JOIN lk_agreements a ON a.id=o.agreement_id
+    WHERE o.status='confirmed' AND o.due_date IS NOT NULL`).all<any>()).results
+  return rows.map(o => ({ subjectKind: 'obligation' as const, subjectId: o.id, agreementId: o.agreement_id, deadlineDate: o.due_date, deadlineAt: noticeDeadline(o.due_date, 0, o.timezone).at, zone: o.timezone,
+    recipientId: o.owner_id, reason: 'obligation owner', offsets: [-1], responsibleId: o.responsible_id as string })).filter(o => o.deadlineAt <= now)
+}
+
 /** SQL: the deadline is still open with the same date (decision, completion or a moved date ends its reminders). */
 export function stillOpenSql(kind: string, subjectId: string, deadlineDate: string) {
   return kind === 'renewal'
@@ -60,14 +72,15 @@ export const dueAt = (deadlineDate: string, offset: number, zone: string) => zon
 
 const configure: Handler = async (c, p) => {
   requireRole(c.actor, may.manageRoles, 'set deadline reminder offsets')
+  const escalateDays = p.overdueEscalationDays === undefined ? await overdueEscalationDays(c.db) : integer(p, 'overdueEscalationDays', 1, 60)
   const offsets = list(p, 'offsets', 12).map(value => integer({ value }, 'value', 0, 730))
   if (!offsets.length || new Set(offsets).size !== offsets.length) fail('INVALID', 'Choose between 1 and 12 different offsets in days before the deadline.', 400, { field: 'offsets' })
   offsets.sort((a, b) => b - a)
   return {
     allowed: may.manageRoles,
     result: { offsets },
-    writes: [sql('INSERT INTO lk_deadline_reminder_settings VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET offsets=excluded.offsets, updated_by=excluded.updated_by, updated_at=excluded.updated_at', 'installation', json(offsets), c.actor.id, c.now)],
-    audit: [{ action: 'deadline.reminders.configure', summary: `Deadline reminders ${offsets.join(', ')} days before each renewal notice deadline and obligation due date.` }],
+    writes: [sql('INSERT INTO lk_deadline_reminder_settings(id,offsets,updated_by,updated_at,overdue_escalation_days) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET offsets=excluded.offsets, overdue_escalation_days=excluded.overdue_escalation_days, updated_by=excluded.updated_by, updated_at=excluded.updated_at', 'installation', json(offsets), c.actor.id, c.now, escalateDays)],
+    audit: [{ action: 'deadline.reminders.configure', summary: `Deadline reminders ${offsets.join(', ')} days before each renewal notice deadline and obligation due date; an overdue obligation escalates ${escalateDays} day${escalateDays === 1 ? '' : 's'} after its owner is told.` }],
   }
 }
 export const deadlineReminderHandlers: Record<string, Handler> = { 'deadline.reminders.configure': configure }
@@ -79,5 +92,5 @@ export async function deadlineReminderState(env: Bindings, actor: Actor, visible
   const sent = rows.filter(r => r.agreement_id ? visible.has(r.agreement_id) : actor.role === 'owner' || r.recipient_id === actor.id)
   const ids = new Set([...sent.map(r => r.id), ...sent.map(r => r.digest_id).filter(Boolean)])
   const events = (await env.DB.prepare('SELECT id, reminder_id, status, occurred_at, recorded_at FROM lk_deadline_reminder_events ORDER BY occurred_at').all<any>()).results.filter(e => ids.has(e.reminder_id))
-  return { offsets: await deadlineOffsets(env.DB), sent, events }
+  return { offsets: await deadlineOffsets(env.DB), overdueEscalationDays: await overdueEscalationDays(env.DB), sent, events }
 }

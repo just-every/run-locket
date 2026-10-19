@@ -26,7 +26,8 @@ export interface LocketState {
     pending: { agreementId: string; versionId: string; approverId: string; requestedAt: number; timezone: string; nextReminderAt: number; escalateAt: number; manualAvailableAt: number | null }[]
     sent: Row[]
   }
-  deadlineReminders: { offsets: number[]; sent: Row[]; events: Row[] }
+  deadlineReminders: { offsets: number[]; overdueEscalationDays: number; sent: Row[]; events: Row[] }
+  risk: import('../locket/obligation-risk').RiskView
   packages: Row[]
   executions: Row[]
   clickwrapTerms: Row[]

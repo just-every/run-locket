@@ -13,6 +13,7 @@ import { recordReads } from './audit'
 import { approvalReminderState } from './approval-reminders'
 import { deadlineReminderState } from './deadline-reminders'
 import { installationSettings } from './installation'
+import { risks } from './obligation-risk'
 
 const all = async <T = any>(db: D1Database, query: string, ...params: unknown[]) => (await db.prepare(query).bind(...params).all<T>()).results
 
@@ -45,11 +46,12 @@ export async function state(env: Bindings, actor: Actor) {
   const renewals = mine(await all(db, 'SELECT * FROM lk_renewals ORDER BY deadline_at'), ids)
   const terms = mine(await all(db, 'SELECT * FROM lk_terms ORDER BY created_at'), ids)
   const proposals = mine(await all(db, 'SELECT * FROM lk_proposals ORDER BY prepared_at DESC'), ids).filter(p => seesIntake(actor, p))
+  const obligations = mine(await all(db, 'SELECT * FROM lk_obligations ORDER BY due_date'), ids), now = Date.now()
   await recordReads(env, actor, agreements.filter(a => a.restricted).map(a => ({ action: 'agreement.view', agreementId: a.id, summary: 'Read restricted agreement in workspace state.' })))
   return {
     savedViews: await savedViews(env, actor),
     actor: { id: actor.id, name: actor.name, role: actor.role },
-    now: Date.now(),
+    now,
     settings: await installationSettings(db),
     operators: operators.map(o => (actor.role === 'owner' ? o : { id: o.id, name: o.name, role: o.role, status: o.status })),
     parties: (await all(db, 'SELECT * FROM lk_parties ORDER BY name')).filter(p => !hiddenParties.has(p.id)),
@@ -73,7 +75,8 @@ export async function state(env: Bindings, actor: Actor) {
     clickwrapVersions: await all(db, 'SELECT * FROM lk_clickwrap_versions ORDER BY terms_id, number DESC'),
     familyTerms: (await all(db, 'SELECT * FROM lk_family_terms')).filter(t => ids.has(t.root_id) && terms.some(source => source.id === t.term_id)),
     terms,
-    obligations: mine(await all(db, 'SELECT * FROM lk_obligations ORDER BY due_date'), ids),
+    obligations,
+    risk: risks({ agreements, obligations }, now),
     renewals,
     reminderSchedules: await bulkReminderSchedules(env, actor),
     reminderOperations: await bulkReminderOperations(env, actor),

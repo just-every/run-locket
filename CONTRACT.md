@@ -203,7 +203,7 @@ Each counterparty has its legal entity name, entity type and state of formation,
 
 *Acceptance:* a journey adds a counterparty with a notice address, links three agreements, merges a duplicate created by intake, and sees the combined value, open deadlines and linked HubSpot company on the counterparty page.
 
-*Status:* partial. Counterparties with a name, kind and email are created and reused by intake (`src/locket/agreements.ts`); entity details, notice addresses, signatories, merging and the counterparty page do not exist.
+*Status:* partial. Counterparties with a name, kind, EIN or foreign tax ID (`US-001`) and email are created and reused by intake (`src/locket/agreements.ts`), and a counterparty page lists the agreements the reader may see with their open obligations and `OBL-002` risk (`src/ui/counterparty.tsx`); entity details, addresses, notice address and method, contacts, signatories, contracted values, deadlines, merging and linked records do not exist.
 
 #### REPO-011 — Bulk repository actions.
 From any search, filter or saved view (`REPO-006`, `REPO-007`), a person selects up to 5,000 agreements and acts on all of them at once:
@@ -442,9 +442,11 @@ The built-in model proposes obligations from executed agreements (deliverables, 
 #### OBL-002 — Fulfillment evidence and escalation.
 Marking an obligation done requires evidence when its type says so (a file such as a certificate of insurance, a link, or a note). Overdue obligations notify the owner, then escalate to the agreement's responsible person and to an approver after the configured days; each obligation carries a risk rating that rolls up to the agreement and counterparty.
 
-*Acceptance:* a journey marks an insurance obligation done and is refused without a certificate, attaches one and succeeds; another obligation passes its due date, its owner is emailed (Postmark fake), and after three more days the approver is notified and the counterparty page shows the raised risk.
+Exactly: each obligation records the evidence it needs to be marked done (none, a file such as a certificate of insurance, a web link starting https:// or http://, or a note) and a risk rating (low, medium or high, medium unless set). Marking it done without the required kind of evidence is refused; a file is kept with its exact bytes and digest as evidence for that obligation, and any other evidence given is kept too. A confirmed obligation not done is overdue once its due date has ended (23:59:59 in the agreement's zone). At 9:00 the next day in its owner's time zone (`RENEW-002` preferences, else the agreement's zone) the owner is emailed, at most one day late; the owner-configured number of days after that (1 to 60, default 3) the agreement's responsible person and the approver who gave its current commercial approval are emailed, or the owner when no one approved it (an imported agreement). Each message is generic (how many days overdue and a signed-in link, never the title, counterparty or value), sent once per obligation, due date and recipient through the `RENEW-002` outbox with its honest provider outcome, and marking the obligation done stops any not yet sent. Overdue raises an obligation's rating one level (low to medium, medium to high, high stays high); an agreement's risk is the highest raised rating among its open obligations, and a counterparty's the highest among the agreements the reader may see, shown on the counterparty page with how many obligations are overdue. Obligation kinds that `OBL-001` extraction adds inherit the evidence and risk fields, and their overdue escalation, before they ship.
 
-*Status:* partial. Confirmed obligations are marked done with actor and time (`src/locket/obligations.ts`); evidence requirements, overdue escalation and risk ratings do not exist.
+*Acceptance:* a journey marks an insurance obligation done and is refused without a certificate, attaches one and succeeds; another obligation passes its due date, its owner is emailed (the installation's mail-provider fake), and after three more days the approver is notified and the counterparty page shows the raised risk.
+
+*Status:* done. Evidence kinds and risk ratings on obligations, the evidence check on done, the overdue owner email, the configured escalation to the responsible person and approver and the agreement and counterparty risk roll-up on a counterparty page ship (`src/locket/obligations.ts`, `src/locket/obligation-risk.ts`, `src/locket/deadline-reminder-dispatch.ts`, `src/ui/counterparty.tsx`, `tests/api/obligation-evidence.test.mjs`, `tests/browser/obligation-evidence.spec.ts`).
 
 #### RENEW-002 — Delivered reminders and escalation by email.
 Each renewal and obligation deadline sends reminder emails at owner-configured offsets (default 90, 60, 30 and 7 days before the notice deadline, taken from the current term under `RENEW-007`, so an auto-renewing agreement is reminded again every term) in the recipient's US time zone, from Postmark or the installation's mail provider, with a daily digest option. If no renewal decision is recorded by the 30-day reminder, Locket escalates to the agreement's approver and the owner. Every message keeps its provider message ID and delivery, bounce and complaint events; a bounced reminder is retried to an alternate recipient and shown on the deadline.
@@ -890,8 +892,8 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 13 | 33 | 34 | 80 |
-| All | 32 | 33 | 34 | 99 |
+| Target and push further | 14 | 32 | 34 | 80 |
+| All | 33 | 32 | 34 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -928,7 +930,7 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | `REPO-007` | Saved views and columns | target | done | `src/locket/saved-views.ts`; `src/locket/repository.ts`; `tests/api/saved-views.test.mjs`; `tests/browser/saved-views.spec.ts` |  |
 | `REPO-008` | Agreement families | target | done | `src/locket/families.ts`; `src/locket/family-projection.ts`; `src/ui/family.tsx`; `tests/api/families.test.mjs`; `tests/browser/families.spec.ts` | |
 | `REPO-009` | Groups, departments and field-level access | target | partial | `src/locket/access.ts`; `tests/api/security.test.mjs` | Groups, departments and field-level hiding do not exist |
-| `REPO-010` | Counterparty records | target | partial | `src/locket/agreements.ts` | Entity details, notice addresses, signatories, merging and the counterparty page do not exist |
+| `REPO-010` | Counterparty records | target | partial | `src/locket/agreements.ts`; `src/ui/counterparty.tsx` | A counterparty page with its tax ID, visible agreements, open obligations and OBL-002 risk ships; entity details, addresses, notice address and method, contacts, signatories, contracted values, deadlines, merging and linked CRM/accounting/procurement records do not exist |
 | `REPO-011` | Bulk repository actions | target | missing |  | The register has no selection or bulk actions |
 | `DRAFT-002` | Word documents from templates | target | partial | `src/locket/library.ts`; `src/locket/pdf.ts` | DOCX output with preserved formatting and answer-driven conditional clauses do not exist |
 | `DRAFT-003` | Clause library in negotiation | target | done | `src/locket/clause-insertion.ts`; `src/locket/clause-provenance.ts`; `tests/api/clause-library.test.mjs`; `tests/browser/clause-library.spec.ts` |  |
@@ -954,7 +956,7 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | `SIGN-004` | Clickwrap acceptance of published terms | target | done | `src/locket/clickwrap/records.ts`; `src/locket/clickwrap/http.ts`; `tests/api/clickwrap.test.mjs`; `tests/browser/clickwrap.spec.ts` |  |
 | `SIGN-005` | Signer rules, signature fields and multi-document packets | target | partial | `src/locket/execution.ts`; `tests/api/flows.test.mjs` | Signer rules, the fallback signer, template signature blocks, field placement and multi-document packets do not exist |
 | `OBL-001` | Obligation extraction, owners and status | target | partial | `src/locket/obligations.ts`; `tests/api/flows.test.mjs` | Built-in extraction, status values beyond done and owner lists do not exist |
-| `OBL-002` | Fulfillment evidence and escalation | target | partial | `src/locket/obligations.ts` | Evidence requirements, overdue escalation and risk ratings do not exist |
+| `OBL-002` | Fulfillment evidence and escalation | target | done | `src/locket/obligations.ts`; `src/locket/obligation-risk.ts`; `tests/api/obligation-evidence.test.mjs`; `tests/browser/obligation-evidence.spec.ts` |  |
 | `RENEW-002` | Delivered reminders and escalation by email | target | done | `src/locket/deadline-reminders.ts`; `src/locket/deadline-reminder-dispatch.ts`; `tests/api/deadline-reminders.test.mjs`; `tests/browser/deadline-reminders.spec.ts` |  |
 | `RENEW-003` | Deadlines on Google Calendar and Outlook | target | missing |  | No calendar connection exists |
 | `RENEW-004` | Bulk reminders for imported contracts | target | done | `src/locket/bulk-reminders.ts`; `src/locket/bulk-reminder-operations.ts`; `tests/api/bulk-reminders.test.mjs`; `tests/browser/bulk-reminders.spec.ts` | |

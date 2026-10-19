@@ -8,7 +8,7 @@ import type { Bindings } from '../auth.server'
 import { operatorMail } from '../mail.server.mjs'
 import { auditSql, guardSql, type Ctx } from './commands'
 import { defaultZone } from './business-days'
-import { dueAt, escalationOffset, isReader, openDeadlines, preferenceOf, readerSql, stillOpenSql, type Deadline } from './deadline-reminders'
+import { dueAt, escalationOffset, isReader, openDeadlines, overdueEscalationDays, overdueObligations, preferenceOf, readerSql, stillOpenSql, type Deadline } from './deadline-reminders'
 import { sql, type Actor, type Sql } from './model'
 
 export interface ReminderRow {
@@ -38,15 +38,16 @@ function link(env: Bindings, r: Pick<ReminderRow, 'subject_kind' | 'agreement_id
 }
 /** Generic text only: a deadline kind, its days away and a signed-in link; never titles, parties or values. */
 function line(env: Bindings, r: ReminderRow) {
-  const what = r.subject_kind === 'renewal' ? `A renewal notice deadline is ${r.offset_days} days away` : `An obligation is due in ${r.offset_days} days`
+  const what = r.subject_kind === 'renewal' ? `A renewal notice deadline is ${r.offset_days} days away` : r.offset_days < 0 ? `An obligation is ${-r.offset_days} day${r.offset_days === -1 ? '' : 's'} overdue` : `An obligation is due in ${r.offset_days} days`
   return `${what}: ${link(env, r)}`
 }
 function message(env: Bindings, r: ReminderRow, items: ReminderRow[]) {
   const html = (lines: string[]) => lines.map(l => `<p>${l.replaceAll('&', '&amp;').replaceAll('<', '&lt;')}</p>`).join('')
   let lines: string[], subject: string
   if (r.kind === 'digest') { subject = `Your Locket deadlines today (${items.length})`; lines = ['Your daily digest of deadline reminders in Locket. Sign in to review each one.', ...items.map(i => line(env, i))] }
+  else if (r.kind === 'escalation' && r.subject_kind === 'obligation') { subject = 'Escalated overdue obligation in Locket'; lines = [`An obligation in Locket is ${-r.offset_days} days overdue and not marked done. You receive this as the agreement's ${r.recipient_reason}. Sign in to review it.`, link(env, r)] }
   else if (r.kind === 'escalation') { subject = 'Escalated renewal deadline in Locket'; lines = [`A renewal notice deadline in Locket is ${r.offset_days} days away and no renewal decision is recorded. You receive this as the agreement's ${r.recipient_reason}. Sign in to decide.`, link(env, r)] }
-  else { subject = r.subject_kind === 'renewal' ? 'Renewal notice deadline in Locket' : 'Obligation due in Locket'; lines = [...(r.kind === 'alternate' ? ['A reminder to someone else bounced, so Locket sends it to you as the alternate recipient.'] : []), `${line(env, r)}`, 'Sign in to Locket to review it.'] }
+  else { subject = r.subject_kind === 'renewal' ? 'Renewal notice deadline in Locket' : r.offset_days < 0 ? 'Overdue obligation in Locket' : 'Obligation due in Locket'; lines = [...(r.kind === 'alternate' ? ['A reminder to someone else bounced, so Locket sends it to you as the alternate recipient.'] : []), `${line(env, r)}`, 'Sign in to Locket to review it.'] }
   return { subject, text: lines.join('\n\n'), html: html(lines) }
 }
 
@@ -56,7 +57,9 @@ async function names(db: D1Database, ids: string[]) {
 }
 function summary(r: ReminderRow, status: string, name: (id: string) => string, via?: ReminderRow) {
   const what = r.subject_kind === 'renewal' ? 'renewal notice deadline' : 'obligation due date'
-  const lead = r.kind === 'escalation' ? `Escalated the undecided ${what} (${r.offset_days} days) to ${name(r.recipient_id)} (${r.recipient_reason})`
+  const lead = r.kind === 'escalation' && r.offset_days < 0 ? `Escalated the obligation ${-r.offset_days} days overdue to ${name(r.recipient_id)} (${r.recipient_reason})`
+    : r.kind === 'escalation' ? `Escalated the undecided ${what} (${r.offset_days} days) to ${name(r.recipient_id)} (${r.recipient_reason})`
+    : r.offset_days < 0 ? `Overdue obligation notice (${-r.offset_days} day${r.offset_days === -1 ? '' : 's'}) to ${name(r.recipient_id)} (${r.recipient_reason})${via ? ' in their daily digest' : ''}`
     : r.kind === 'alternate' ? `Retried a bounced ${r.offset_days}-day ${what} reminder to ${name(r.recipient_id)} (${r.recipient_reason})`
     : `${r.offset_days}-day ${what} reminder to ${name(r.recipient_id)} (${r.recipient_reason})${via ? ' in their daily digest' : ''}`
   return `${lead}: ${outcome[status] ?? status}.`
@@ -145,6 +148,23 @@ async function escalate(c: Ctx, d: Deadline) {
   }
 }
 
+/** OBL-002: the day after an obligation was due its owner is told at 9:00; the configured days later (default 3) its
+ * responsible person and the agreement's commercial approver (the owner when none approved it) are. Done ends both. */
+async function overdue(c: Ctx, d: Deadline & { responsibleId: string }, days: number) {
+  await remind(c, d)
+  const approver = (await c.db.prepare("SELECT actor_id FROM lk_approvals WHERE agreement_id=? AND kind='commercial' AND decision='approved' AND invalidated_at IS NULL ORDER BY at DESC LIMIT 1").bind(d.agreementId).first<{ actor_id: string }>())?.actor_id
+  const owner = await ownerId(c.db), offset = -(1 + days)
+  const targets = [[d.responsibleId, 'responsible person'], [approver ?? owner, approver ? 'approver' : 'owner']].filter(([id], i, all) => id && all.findIndex(([x]) => x === id) === i) as [string, string][]
+  for (const [id, reason] of targets) {
+    const email = await emailOf(c.db, id)
+    if (!email || !(await isReader(c, d.agreementId, id))) continue
+    const zone = (await preferenceOf(c.db, id))?.timezone ?? d.zone, at = dueAt(d.deadlineDate, offset, zone)
+    if (at > c.now) continue
+    const row = await insert(c, { agreement_id: d.agreementId, subject_kind: d.subjectKind, subject_id: d.subjectId, deadline_date: d.deadlineDate, deadline_at: d.deadlineAt, kind: 'escalation', offset_days: offset, recipient_id: id, recipient_email: email, recipient_reason: reason, timezone: zone, due_at: at, status: 'queued' })
+    if (row?.status === 'queued') await deliver(c, row.id)
+  }
+}
+
 /** One digest per person per local date carries every reminder that came due for them. */
 async function digests(c: Ctx) {
   const waiting = (await c.db.prepare("SELECT DISTINCT recipient_id, recipient_email, timezone FROM lk_deadline_reminders WHERE status='in_digest' AND digest_id IS NULL").all<{ recipient_id: string; recipient_email: string; timezone: string }>()).results
@@ -164,6 +184,8 @@ export async function runDeadlineReminders(env: Bindings, now: number) {
     await remind(c, d)
     await escalate(c, d)
   }
+  const days = await overdueEscalationDays(env.DB)
+  for (const d of await overdueObligations(env.DB, now)) await overdue(c, d, days)
   await digests(c)
 }
 

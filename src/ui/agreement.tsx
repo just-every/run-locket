@@ -63,7 +63,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { 
         </div>
         <dl className="lk-doc-meta">
           <div><dt>Needed by</dt><dd>{day(a.needed_by)}</dd></div>
-          <div><dt>Counterparty</dt><dd>{partyName(state, a.party_id)}</dd></div>
+          <div><dt>Counterparty</dt><dd><a href={`#counterparty/${a.party_id}`}>{partyName(state, a.party_id)}</a></dd></div>
           <div><dt>Value</dt><dd><AgreementValue state={state} a={a} /></dd></div>
           {state.entities.length > 0 && <div><dt>Our entity</dt><dd>{entityName(state, a.entity_id)}<AssignEntity state={state} a={a} locket={locket} /></dd></div>}
           <div><dt>Owner</dt><dd><Person name={personName(state, a.owner_id)} /></dd></div>

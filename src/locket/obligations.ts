@@ -12,6 +12,7 @@ import { initialTracking } from './notice-tracking'
 import { day, deadline as zoned, termLabel, termValue as termText } from './display'
 import { date, fail, integer, json, object, oneOf, optionalDate, optionalText, sql, text, type Sql } from './model'
 import { agreementGuards, bump, visibleAgreement, type AgreementRow } from './records'
+import { riskLevels } from './obligation-risk'
 
 export const termKeys = ['effective_date', 'end_date', 'auto_renew', 'renewal_term_months', 'notice_days', 'governing_law', 'payment_terms'] as const
 type TermKey = (typeof termKeys)[number]
@@ -129,13 +130,26 @@ const addObligation: Handler = async (c, p) => {
   const ownerId = text(p, 'ownerId', 64)
   if (!(await c.db.prepare("SELECT 1 AS ok FROM oa_operators WHERE id=? AND status='active'").bind(ownerId).first())) fail('INVALID', 'The obligation owner must be an active member.', 400)
   const id = crypto.randomUUID()
+  const evidence = p.evidence === undefined ? 'none' : oneOf(p, 'evidence', evidenceKinds), risk = p.risk === undefined ? 'medium' : oneOf(p, 'risk', riskLevels)
   return {
     allowed: may.review,
     result: { id },
-    writes: [sql('INSERT INTO lk_obligations VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', id, a.id, text(p, 'description', 2000), ownerId, optionalDate(p, 'dueDate'), oneOf(p, 'recurrence', ['none', 'monthly', 'quarterly', 'annually'] as const), json(await citation(c, a, p.citation)), 'proposed', c.actor.id, null, null, null, c.now), bump(c, a)],
+    writes: [sql('INSERT INTO lk_obligations(id,agreement_id,description,owner_id,due_date,recurrence,citation,status,created_by,confirmed_by,done_by,done_at,created_at,evidence,risk) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, a.id, text(p, 'description', 2000), ownerId, optionalDate(p, 'dueDate'), oneOf(p, 'recurrence', ['none', 'monthly', 'quarterly', 'annually'] as const), json(await citation(c, a, p.citation)), 'proposed', c.actor.id, null, null, null, c.now, evidence, risk), bump(c, a)],
     checks: agreementGuards(c, a),
     audit: [{ action: 'obligation.add', agreementId: a.id, summary: 'Proposed an obligation' }],
   }
+}
+
+const evidenceKinds = ['none', 'file', 'link', 'note'] as const
+const evidenceWords: Record<string, string> = { file: 'a file (such as a certificate of insurance)', link: 'a link', note: 'a note' }
+/** OBL-002: the evidence an obligation's type requires before it is done; any other evidence given is kept too. */
+async function evidenceFor(c: Ctx, a: AgreementRow, o: { id: string; evidence: string }, p: Record<string, unknown>) {
+  const link = optionalText(p, 'link', 2000), note = optionalText(p, 'note', 4000)
+  if (link && !/^https?:\/\/[^\s]+$/i.test(link)) fail('INVALID', 'The evidence link must start with https:// or http://.', 400, { field: 'link' })
+  const stored = p.file ? await storeArtifact(fileInput(p.file, 'file'), { agreementId: a.id, role: 'attachment', provenance: { obligationEvidence: o.id }, actorId: c.actor.id, at: c.now }) : null
+  const given = { file: stored, link, note }[o.evidence as 'file' | 'link' | 'note']
+  if (o.evidence !== 'none' && !given) fail('EVIDENCE', `Marking this obligation done needs ${evidenceWords[o.evidence]} as evidence.`, 409, { evidence: o.evidence })
+  return { writes: stored?.writes ?? [], artifactId: stored?.id ?? null, link, note }
 }
 
 const updateObligation: Handler = async (c, p) => {
@@ -151,8 +165,12 @@ const updateObligation: Handler = async (c, p) => {
     if (o.status !== 'proposed') fail('STATUS', 'Only a proposed obligation can be confirmed or rejected.', 409)
   }
   const status = action === 'confirm' ? 'confirmed' : action === 'reject' ? 'rejected' : 'done'
-  const write = action === 'done' ? sql("UPDATE lk_obligations SET status='done', done_by=?, done_at=? WHERE id=?", c.actor.id, c.now, o.id) : sql('UPDATE lk_obligations SET status=?, confirmed_by=? WHERE id=?', status, c.actor.id, o.id)
-  return { allowed: action === 'done' ? may.review : may.confirmTerms, result: { id: o.id, status }, writes: [write, bump(c, a)], checks: [...agreementGuards(c, a), sql('(SELECT status FROM lk_obligations WHERE id=?)=?', o.id, o.status)], audit: [{ action: `obligation.${action}`, agreementId: a.id, summary: `${status[0].toUpperCase() + status.slice(1)} obligation: ${o.description.slice(0, 80)}` }] }
+  const writes: Sql[] = []
+  if (action === 'done') {
+    const proof = await evidenceFor(c, a, o, p)
+    writes.push(...proof.writes, sql("UPDATE lk_obligations SET status='done', done_by=?, done_at=?, evidence_artifact_id=?, evidence_link=?, evidence_note=? WHERE id=?", c.actor.id, c.now, proof.artifactId, proof.link, proof.note, o.id))
+  } else writes.push(sql('UPDATE lk_obligations SET status=?, confirmed_by=? WHERE id=?', status, c.actor.id, o.id))
+  return { allowed: action === 'done' ? may.review : may.confirmTerms, result: { id: o.id, status }, writes: [...writes, bump(c, a)], checks: [...agreementGuards(c, a), sql('(SELECT status FROM lk_obligations WHERE id=?)=?', o.id, o.status)], audit: [{ action: `obligation.${action}`, agreementId: a.id, summary: `${status[0].toUpperCase() + status.slice(1)} obligation: ${o.description.slice(0, 80)}` }] }
 }
 
 async function renewalOf(c: Ctx, id: unknown) {
