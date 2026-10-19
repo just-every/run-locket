@@ -4,7 +4,7 @@
 import { may, requireRole } from './access'
 import type { Handler } from './commands'
 import { agreementTypes } from './agreements'
-import { fail, json, list, object, oneOf, sql, text } from './model'
+import { fail, json, list, object, oneOf, optionalText, sql, text } from './model'
 
 const fieldName = /^[a-z][a-z0-9_]{0,39}$/
 const clauseKey = /^[a-z0-9_-]{1,40}$/
@@ -23,11 +23,13 @@ function templateContent(p: Record<string, unknown>) {
     if (!clauseKey.test(key)) fail('INVALID', `Clause keys use lower case letters, digits, dashes and underscores (${key}).`)
     const variants = list(c, 'variants', 10).map((v, j) => {
       const variant = object(v, `clauses[${i}].variants[${j}]`)
-      return { id: text(variant, 'id', 40), label: text(variant, 'label', 120), text: text(variant, 'text', 20_000) }
+      return { id: text(variant, 'id', 40), label: text(variant, 'label', 120), text: text(variant, 'text', 20_000), notes: optionalText(variant, 'notes', 4000) ?? '' }
     })
     if (!variants.length) fail('INVALID', `Clause ${key} needs at least one wording.`)
-    return { key, title: text(c, 'title', 120), variants }
+    if (new Set(variants.map(v => v.id)).size !== variants.length) fail('INVALID', `Clause ${key} has duplicate variant identities.`)
+    return { key, title: text(c, 'title', 120), notes: optionalText(c, 'notes', 4000) ?? '', ruleKey: optionalText(c, 'ruleKey', 40) ?? key, variants }
   })
+  if (new Set(clauses.map(c => c.key)).size !== clauses.length) fail('INVALID', 'Each clause key must be unique.')
   for (const m of body.matchAll(/\{\{([a-z0-9_]+)\}\}/gi)) if (!fields.some(f => f.name === m[1]) && !['counterparty', 'title'].includes(m[1])) fail('INVALID', `The body uses {{${m[1]}}} but no field defines it.`)
   for (const m of body.matchAll(/\[\[clause:([a-z0-9_-]+)\]\]/g)) if (!clauses.some(c => c.key === m[1])) fail('INVALID', `The body places clause ${m[1]} but no clause defines it.`)
   return { body, fields, clauses }

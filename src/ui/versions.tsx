@@ -1,6 +1,7 @@
 // The version tools around the workspace page: the version chips and Compare
 // in the top bar, adding the next version (upload, template or signing PDF),
 // the required attachments and submitting for review, and the comment box.
+import { ClauseLibrary } from './clause-library'
 import { useState } from 'react'
 import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
@@ -48,6 +49,7 @@ export function AddVersion({ state, a, locket, onDone }: { state: LocketState; a
   return (
     <section className="lk-panel lk-add-version" aria-label={`Add v${next}`}>
       <div className="lk-panel-head"><h2>Add v{next}</h2><span className="lk-muted">Originals are kept untouched; each version keeps its own file and digest.</span></div>
+      {v && <ClauseLibrary state={state} agreement={a} locket={locket} onInserted={onDone} />}
       <div className="lk-add-grid">
         <Form busy={busy} submit="Add version" onSubmit={async (data, form) => {
           const file = data.get('file') as File | null

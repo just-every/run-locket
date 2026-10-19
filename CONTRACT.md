@@ -224,11 +224,11 @@ A populated template produces a formatted DOCX (and its PDF rendition) that keep
 *Status:* partial. Approved templates produce populated text and a text PDF (`src/locket/library.ts`, `src/locket/pdf.ts`); DOCX output with preserved formatting and answer-driven conditional clauses do not exist.
 
 #### DRAFT-003 — Clause library in negotiation.
-Approved clauses (preferred, fallback one, fallback two, walk-away) are searchable by topic with usage notes, the playbook rule they satisfy, and how often each was accepted. During negotiation a person inserts a clause into a new version in the browser or Word (`NEG-003`), and the inserted text is recorded against the library version.
+Approved clauses (preferred, fallback one, fallback two, walk-away) are searchable by topic with usage notes, the playbook rule they satisfy, and how often each was accepted. An approved template version is the library version. During negotiation a person inserts a clause into a new version in the browser, with the current authority, version and selected-passage checks; the inserted text, variant, library version and playbook provenance are recorded in that version and its digest, and earlier originals stay untouched. The count is once per agreement the person may access whose currently executed version retains that recorded template selection or negotiation insertion and whose execution records document confirmation; unchosen matching text and removed wording do not count. The current browser insertion produces a text PDF; Word formatting remains `DRAFT-002`/`NEG-002`. When the Word door (`NEG-003`) ships, it must provide the same approved-clause search, insertion, immutable provenance, version checks, audit and acceptance counting before it is done.
 
-*Acceptance:* a journey searches the library for "indemnity", inserts fallback one into a new version from the browser, and sees the version record the clause and library version; the clause's acceptance count rises when the agreement is executed with it.
+*Acceptance:* the `DRAFT-003` API and browser journeys search for "indemnity", inspect all four approved variants with usage notes and the playbook rule, insert fallback one into a new browser version at 1440 and 390 pixels, verify the text and immutable library/playbook provenance, and execute the agreement so the acceptance count rises. They prove the original download is unchanged, template selections also count, removed wording does not, archive export retains provenance, and draft/retired clauses, viewers and stale or mismatched selections are refused. `NEG-003` must assert the same Word-door obligation when it ships.
 
-*Status:* partial. Versioned clause wordings within approved templates and playbook alternatives ship (`src/locket/library.ts`); a searchable library, insertion during negotiation and usage counts do not exist.
+*Status:* done. Approved variant search, notes/rules, versioned browser insertion, retained-choice acceptance counts and provenance are proven (`src/locket/clause-insertion.ts`, `src/locket/clause-provenance.ts`, `tests/api/clause-library.test.mjs`, `tests/browser/clause-library.spec.ts`).
 
 #### DRAFT-004 — Templates authored from existing Word documents.
 Owner or counsel upload an existing Word template, mark fields and optional clauses in the browser (or with the Word add-in), preview it with sample answers, and approve it as a template version, keeping the document's formatting.
@@ -254,9 +254,9 @@ Locket reads Word tracked changes (insertions, deletions, moves, formatting), co
 *Status:* partial. DOCX originals are kept and their text read and compared (`src/locket/docx.ts`, `src/locket/diff.ts`); tracked changes and comments are not read or written.
 
 #### NEG-003 — Locket for Word add-in.
-An Office add-in for Word on Windows, Mac and the web, distributed through Microsoft AppSource and the buyer's Microsoft 365 admin, signs in with the person's Locket session, opens the current version, shows playbook findings beside the clauses they cite, inserts clause-library text, applies accepted AI redlines as tracked changes, and saves back as a new version with the stale-version check. Approvers can review and approve the exact version from the add-in.
+An Office add-in for Word on Windows, Mac and the web, distributed through Microsoft AppSource and the buyer's Microsoft 365 admin, signs in with the person's Locket session, opens the current version, shows playbook findings beside the clauses they cite, inserts clause-library text, applies accepted AI redlines as tracked changes, and saves back as a new version with the stale-version check. Approvers can review and approve the exact version from the add-in. Before this door ships it also satisfies `DRAFT-003`: approved-clause search, notes/rules, insertion into a new version, immutable library/playbook provenance, authority and stale/passage checks, command audit and retained-choice acceptance counts.
 
-*Acceptance:* a Word-on-the-web journey opens an agreement in the add-in, sees three findings anchored to their clauses, applies one AI redline as a tracked change, saves as version 4, and is refused when saving over a version someone else has replaced; an approver approves version 4 from the add-in and the approval pins its digest. A sideloaded run in Word on the web against a Microsoft 365 developer tenant, and the add-in's passing AppSource validation, are recorded before the clause is accepted.
+*Acceptance:* a Word-on-the-web journey opens an agreement in the add-in, sees three findings anchored to their clauses, applies one AI redline as a tracked change, saves as version 4, and is refused when saving over a version someone else has replaced; an approver approves version 4 from the add-in and the approval pins its digest. A sideloaded run in Word on the web against a Microsoft 365 developer tenant, and the add-in's passing AppSource validation, are recorded before the clause is accepted. The Word journey also searches indemnity, inserts an approved fallback with its library/playbook provenance and audited version checks, and sees its `DRAFT-003` count rise only after document-confirmed execution.
 
 *Status:* missing. No Word add-in exists.
 
@@ -843,11 +843,13 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 
 Judged from the code and tests at commit `60d8141678e03c5186ab053e58f0ed92e8c1074e` (17 October 2026).
 
+Target rows updated through 19 October 2026, with clause-named public-door evidence below.
+
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 1 | 37 | 42 | 80 |
-| All | 20 | 37 | 42 | 99 |
+| Target and push further | 2 | 36 | 42 | 80 |
+| All | 21 | 36 | 42 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -887,7 +889,7 @@ Judged from the code and tests at commit `60d8141678e03c5186ab053e58f0ed92e8c107
 | `REPO-010` | Counterparty records | target | partial | `src/locket/agreements.ts` | Entity details, notice addresses, signatories, merging and the counterparty page do not exist |
 | `REPO-011` | Bulk repository actions | target | missing |  | The register has no selection or bulk actions |
 | `DRAFT-002` | Word documents from templates | target | partial | `src/locket/library.ts`; `src/locket/pdf.ts` | DOCX output with preserved formatting and answer-driven conditional clauses do not exist |
-| `DRAFT-003` | Clause library in negotiation | target | partial | `src/locket/library.ts` | A searchable library, insertion during negotiation and usage counts do not exist |
+| `DRAFT-003` | Clause library in negotiation | target | done | `src/locket/clause-insertion.ts`; `src/locket/clause-provenance.ts`; `tests/api/clause-library.test.mjs`; `tests/browser/clause-library.spec.ts` |  |
 | `DRAFT-004` | Templates authored from existing Word documents | target | missing |  | Templates are authored as text in Locket |
 | `PLAY-002` | Playbooks drafted from templates and history | target | missing |  | Playbooks are authored by hand only |
 | `NEG-002` | Word tracked changes round-trip | target | partial | `src/locket/docx.ts`; `src/locket/diff.ts` | Tracked changes and comments are not read or written |

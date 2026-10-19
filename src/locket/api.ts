@@ -3,6 +3,8 @@
 import type { Bindings } from '../auth.server'
 import { currentActor, fullReaders } from './access'
 import { auditCsv, auditTrail, recordReads } from './audit'
+import { insertClause } from './clause-insertion'
+import { approvedClauses } from './clause-provenance'
 import { agreementHandlers } from './agreements'
 import { runCommand, type Handler } from './commands'
 import { executionHandlers } from './execution'
@@ -18,6 +20,7 @@ import { compare, download, exportArchive, search, state } from './views'
 export const handlers: Record<string, Handler> = {
   ...agreementHandlers,
   ...libraryHandlers,
+  'clause.insert': insertClause,
   ...reviewHandlers,
   ...executionHandlers,
   ...obligationHandlers,
@@ -49,6 +52,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
       }
       return reply({ rows })
     }
+    if (request.method === 'GET' && path === '/clause-library') return reply({ results: approvedClauses(await state(env, actor), url.searchParams.get('q') ?? '') })
     if (request.method === 'GET' && path === '/state') return reply(await state(env, actor))
     if (request.method === 'GET' && path === '/search') return reply(await search(env, actor, url.searchParams.get('q') ?? ''))
     if (request.method === 'GET' && path === '/compare') return reply(await compare(env, actor, url.searchParams.get('from') ?? '', url.searchParams.get('to') ?? ''))

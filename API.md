@@ -5,6 +5,7 @@ The screens and any agent use the same HTTP API. Authenticate with a Base native
 ## Reads
 
 - `GET /api/locket/state` — everything the signed-in person may see: `actor`, `operators`, `parties`, `agreements`, `routes` (required approvals per open agreement), `requirements`, `versions` (with `text` and `digest`), `artifacts` (metadata), `comments`, `templates`, `templateVersions`, `playbooks`, `deviations`, `approvals`, `packages`, `executions`, `terms`, `obligations`, `renewals`, `notices`, `proposals`, `imports` (owner), `access`, `audit`. Rows use database column names. Restricted agreements and their records are absent for people without access.
+- `GET /api/locket/clause-library?q=TOPIC` — `{results:[{id,libraryVersionId,libraryVersionNumber,templateName,clauseKey,clauseTitle,variantId,variantLabel,text,notes,ruleKey,rule,playbookVersionId,playbookNumber,acceptanceCount}]}` for approved template/library clauses. Counts are per distinct accessible executed agreement whose current packaged version retains an explicit insertion; ordinary template choices and superseded wording never count.
 - `GET /api/locket/search?q=TEXT` — `{results:[{id,reference,title,status,party,match:{version,excerpt}|null}]}` over titles, references, counterparties and version text the person may access.
 - `GET /api/locket/compare?from=VERSION_ID&to=VERSION_ID` — `{from,to,lines:[{op:"same"|"del"|"add",text}]}` for two versions of one agreement.
 - `GET /api/locket/files/ARTIFACT_ID` — the exact stored bytes; header `x-locket-sha256`.
@@ -26,12 +27,13 @@ The screens and any agent use the same HTTP API. Authenticate with a Base native
 | `agreement.submit` | owner, counsel, approver, requester | `{agreementId, version}` |
 | `version.upload` | same | `{agreementId, version, kind:"upload"|"counterparty", label?, file, text?}` (DOCX text is read automatically) |
 | `version.generate` | same | `{agreementId, version, templateVersionId, fields, clauseChoices}` |
+| `clause.insert` | owner, counsel, approver, requester | `{agreementId,version,versionId,libraryVersionId,clauseKey,variantId,start,end,quote}` — replace the exact selected current-version passage (or append with equal offsets at text length and an empty quote), creating a new PDF version. Returns `{versionId,number,digest,clauseLibrary}`. The version’s `fields.clauseLibrary` pins the approved library version, exact wording, usage notes, matching playbook version and inserting person/time. Browser and future Word clients share this command and its stale/authority guards. |
 | `version.rendition` | same | `{agreementId, version, versionId, file}` — the PDF a DOCX version will be signed as |
 | `comment.add` | same | `{agreementId, versionId, body, quote?}` |
 | `legacy.import` | same | `{title, type, partyId? or party, sourceSystem, sourceId, file, signed?, text?, ownerId?, value?, restricted?}` |
 | `family.link` | owner, counsel | `{agreementId, version, parentId, relation:"amends"|"order_under"|"schedule_to"|"renews"}` |
 | `access.set` | owner, counsel | `{agreementId, operatorId, grant:"grant"|"revoke"}` |
-| `template.create` / `template.revise` | owner, counsel | `{name, type, body, fields:[{name,label,required}], clauses:[{key,title,variants:[{id,label,text}]}]}` / `{templateId, body, fields, clauses}`. Body uses `{{field}}`, `{{counterparty}}`, `{{title}}` and `[[clause:key]]`. |
+| `template.create` / `template.revise` | owner, counsel | `{name, type, body, fields:[{name,label,required}], clauses:[{key,title,notes?,ruleKey?,variants:[{id,label,text,notes?}]}]}` / `{templateId, body, fields, clauses}`. Body uses `{{field}}`, `{{counterparty}}`, `{{title}}` and `[[clause:key]]`. |
 | `template.decide` | owner, counsel | `{versionId, decision:"approve"|"retire"}` |
 | `playbook.draft` / `playbook.activate` | owner, counsel | `{rules:[{key,title,preferred,alternatives:[],authority:"counsel"|"approver",guidance?}]}` / `{id}` |
 | `deviation.add` | owner, counsel, approver, requester | `{agreementId, versionId, clauseKey, result:"met"|"breached"|"undetermined", start, end, quote, explanation, proposedWording?, questions:[]}`; `quote` must equal the version text from `start` to `end` |
@@ -51,3 +53,5 @@ The screens and any agent use the same HTTP API. Authenticate with a Base native
 | `import.preview` / `import.apply` / `import.undo` | owner | see [IMPORT.md](IMPORT.md) |
 
 Invite people and agents with Base's `POST /auth/invite` `{email, displayName, role:"member"}` as the owner, then `role.set`.
+
+An approved template version is the library version; each insertion pins that immutable version identity. Clause variant identities may be `preferred`, `fallback1`, `fallback2`, and `walk-away`. `ruleKey` defaults to the clause key. Template authoring supports `Notes:`, `Rule:`, and `Notes[variantId]:` lines. Explicit insertion provenance survives later uploaded/generated versions only while their text retains the exact inserted wording; it participates in the version digest. Acceptance requires a reconciled/accepted execution whose document check passed and whose package pins the current version and digest. Counts respect agreement visibility.

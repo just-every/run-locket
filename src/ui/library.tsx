@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ClauseLibrary } from './clause-library'
 import type { LocketState } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, Field, Form, value } from './controls'
@@ -16,7 +17,9 @@ function clausesFrom(textValue: string) {
   return textValue.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean).map(block => {
     const [head, ...lines] = block.split('\n')
     const [key, title] = head.split('|').map(s => s.trim())
-    return { key, title: title || key, variants: lines.map(l => { const [id, label, ...rest] = l.split('|').map(s => s.trim()); return { id, label, text: rest.join(' | ') } }) }
+    const notes = lines.find(l => l.startsWith('Notes:'))?.slice(6).trim() ?? ''
+    const ruleKey = lines.find(l => l.startsWith('Rule:'))?.slice(5).trim() || key
+    return { key, title: title || key, notes, ruleKey, variants: lines.filter(l => !/^(Notes:|Rule:|Notes\[)/.test(l)).map(l => { const [id, label, ...rest] = l.split('|').map(s => s.trim()); return { id, label, text: rest.join(' | '), notes: lines.find(n => n.startsWith(`Notes[${id}]:`))?.split(']:').slice(1).join(']:').trim() ?? '' } }) }
   })
 }
 /** Blocks: "key | Title | counsel or approver", "Preferred: …", "Alternative: …", "Guidance: …". */
@@ -41,6 +44,7 @@ export function Library({ state, locket }: { state: LocketState; locket: Locket 
   return (
     <div className="lk-library">
       <div className="lk-titlebar"><div><h1>Library</h1><p className="lk-muted">Owner- and counsel-approved templates and the clause playbook reviews are measured against.</p></div></div>
+      <ClauseLibrary state={state} />
       <div className="lk-library-grid">
         <div className="lk-stack">
         <section className="lk-panel">
@@ -114,12 +118,12 @@ export function Library({ state, locket }: { state: LocketState; locket: Locket 
 
 function TemplateInputs({ from }: { from?: any }) {
   const fields = from ? parse<any[]>(from.fields).map(f => `${f.name} | ${f.label}${f.required ? '' : ' | optional'}`).join('\n') : ''
-  const clauses = from ? parse<any[]>(from.clauses).map(c => [`${c.key} | ${c.title}`, ...c.variants.map((v: any) => `${v.id} | ${v.label} | ${v.text}`)].join('\n')).join('\n\n') : ''
+  const clauses = from ? parse<any[]>(from.clauses).map(c => [`${c.key} | ${c.title}`, c.notes ? `Notes: ${c.notes}` : '', c.ruleKey ? `Rule: ${c.ruleKey}` : '', ...c.variants.flatMap((v: any) => [`${v.id} | ${v.label} | ${v.text}`, v.notes ? `Notes[${v.id}]: ${v.notes}` : ''])].filter(Boolean).join('\n')).join('\n\n') : ''
   return (
     <>
       <Field label="Body" hint="Use {{field}} for filled values, {{counterparty}} and {{title}} are filled for you, and [[clause:key]] to place a clause."><textarea name="body" rows={8} required defaultValue={from?.body ?? ''} /></Field>
       <Field label="Fields" hint="One per line: name | Label (add | optional when not required)."><textarea name="fields" rows={3} defaultValue={fields} /></Field>
-      <Field label="Clauses" hint="Blank line between clauses: first line key | Title, then variant | Label | wording."><textarea name="clauses" rows={5} defaultValue={clauses} /></Field>
+      <Field label="Clauses" hint="Blank line between clauses: key | Title, then variant | Label | wording. Use preferred, fallback1, fallback2 and walk-away identities. Add Notes: usage guidance, Rule: playbook key, or Notes[variant]: wording guidance."><textarea name="clauses" rows={5} defaultValue={clauses} /></Field>
     </>
   )
 }

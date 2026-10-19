@@ -1,5 +1,6 @@
 // One agreement: the document workspace (its default), and the review,
 // approval, signature, execution, terms and access tabs under the same head.
+import { ClauseProvenance } from './clause-library'
 import { useState } from 'react'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
@@ -74,6 +75,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, locket }: { 
         <>
           {(adding || versions.length === 0) && <AddVersion state={state} a={a} locket={locket} onDone={() => setAdding(false)} />}
           {(a.status === 'draft' || state.requirements.some(r => r.agreement_id === a.id && !r.artifact_id && !r.waived_reason)) && <Attachments state={state} a={a} locket={locket} />}
+          {shown && <ClauseProvenance version={shown} />}
           {shown ? <DocumentPage state={state} a={a} base={base} shown={shown} locket={locket} /> : <Empty>Add a version to see its text.</Empty>}
           {shown && <Comments state={state} a={a} shown={shown} locket={locket} />}
           {a.status !== 'draft' && !state.requirements.some(r => r.agreement_id === a.id && !r.artifact_id && !r.waived_reason) && state.requirements.some(r => r.agreement_id === a.id) && <Attachments state={state} a={a} locket={locket} />}

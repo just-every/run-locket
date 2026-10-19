@@ -1,5 +1,6 @@
 // Intake, parties, required attachments, versions, comments, family links,
 // access grants and legacy file import (clauses 1, 2, 3 and 5).
+import { retainedClauseUses, templateClauseUses } from './clause-provenance'
 import { may, requireRole } from './access'
 import { fileInput, isDocx, isPdf, PDF, storeArtifact, type FileInput } from './artifacts'
 import type { Ctx, Handler, Outcome } from './commands'
@@ -76,7 +77,7 @@ interface NewVersion {
   number: number
 }
 /** Builds a version from an uploaded file, keeping its exact bytes. */
-async function uploadedVersion(c: Ctx, agreementId: string, number: number, kind: string, label: string, file: FileInput, suppliedText: string | null): Promise<NewVersion> {
+async function uploadedVersion(c: Ctx, agreementId: string, number: number, kind: string, label: string, file: FileInput, suppliedText: string | null, priorFields: string | null = null): Promise<NewVersion> {
   if (!isPdf(file) && !isDocx(file)) fail('FILE_TYPE', 'A contract version must be a PDF or DOCX file.', 415)
   const id = crypto.randomUUID()
   let body = suppliedText, source = suppliedText ? 'person' : 'none'
@@ -85,20 +86,27 @@ async function uploadedVersion(c: Ctx, agreementId: string, number: number, kind
     source = 'docx'
   }
   const artifact = await storeArtifact(file, { agreementId, versionId: id, role: 'original', provenance: { uploadedAs: kind, label }, actorId: c.actor.id, at: c.now })
-  const digest = await versionDigest({ agreementId, number, files: [{ role: 'original', sha256: artifact.sha256 }], text: body, fields: null })
+  const uses = retainedClauseUses(priorFields, body)
+  const fields = uses.length ? { clauseLibrary: uses } : null
+  const digest = await versionDigest({ agreementId, number, files: [{ role: 'original', sha256: artifact.sha256 }], text: body, fields })
   return {
     id,
     number,
     digest,
-    writes: [...artifact.writes, sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, kind, label, null, null, body, source, digest, c.actor.id, c.now)],
+    writes: [...artifact.writes, sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, kind, label, null, fields ? json(fields) : null, body, source, digest, c.actor.id, c.now)],
   }
 }
-async function templateVersion(c: Ctx, agreementId: string, number: number, p: Record<string, unknown>, extra: Record<string, string>): Promise<NewVersion> {
+async function templateVersion(c: Ctx, agreementId: string, number: number, p: Record<string, unknown>, extra: Record<string, string>, priorFields: string | null = null): Promise<NewVersion> {
   const template = await approvedTemplate(c, p.templateVersionId)
   const values = { ...extra, ...object(p.fields ?? {}, 'fields') }
   const filled = populate(template, values, object(p.clauseChoices ?? {}, 'clauseChoices'))
   const id = crypto.randomUUID()
-  const fields = { template: template.id, ...filled.fields }
+  const uses = retainedClauseUses(priorFields, filled.text)
+  const selectedFields = { template: template.id, ...filled.fields }
+  const playbook = await c.db.prepare("SELECT id, rules FROM lk_playbook_versions WHERE status='active'").first<any>()
+  const selected = templateClauseUses(template, json(selectedFields), c.actor.id, c.now, playbook, values)
+  const recorded = [...new Map([...uses, ...selected].map(use => [JSON.stringify([use.libraryVersionId, use.clauseKey, use.variantId]), use])).values()]
+  const fields = { ...selectedFields, clauseLibrary: recorded }
   const digest = await versionDigest({ agreementId, number, files: [], text: filled.text, fields })
   return {
     id,
@@ -228,7 +236,8 @@ const uploadVersion: Handler = async (c, p) => {
   const a = await visibleAgreement(c, p.agreementId)
   const number = await nextVersion(c, a)
   const kind = oneOf(p, 'kind', ['upload', 'counterparty'] as const)
-  const v = await uploadedVersion(c, a.id, number, kind, optionalText(p, 'label', 200) ?? (kind === 'counterparty' ? 'Counterparty markup' : 'Our revision'), fileInput(p.file), optionalText(p, 'text', 400_000))
+  const prior = await c.db.prepare('SELECT fields FROM lk_versions WHERE id=?').bind(a.current_version_id).first<{ fields: string | null }>()
+  const v = await uploadedVersion(c, a.id, number, kind, optionalText(p, 'label', 200) ?? (kind === 'counterparty' ? 'Counterparty markup' : 'Our revision'), fileInput(p.file), optionalText(p, 'text', 400_000), prior?.fields ?? null)
   return versionOutcome(c, a, p, v, `Added version ${number} (${kind})`)
 }
 const generateVersion: Handler = async (c, p) => {
@@ -236,7 +245,8 @@ const generateVersion: Handler = async (c, p) => {
   const a = await visibleAgreement(c, p.agreementId)
   const party = await c.db.prepare('SELECT name FROM lk_parties WHERE id=?').bind(a.party_id).first<{ name: string }>()
   const number = await nextVersion(c, a)
-  const v = await templateVersion(c, a.id, number, p, { counterparty: party?.name ?? '', title: a.title })
+  const prior = await c.db.prepare('SELECT fields FROM lk_versions WHERE id=?').bind(a.current_version_id).first<{ fields: string | null }>()
+  const v = await templateVersion(c, a.id, number, p, { counterparty: party?.name ?? '', title: a.title }, prior?.fields ?? null)
   return versionOutcome(c, a, p, v, `Generated version ${number} from an approved template`)
 }
 /** Attaches the PDF a DOCX or template version will be signed as; it becomes part of the version's identity. */
