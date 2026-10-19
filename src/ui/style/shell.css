@@ -87,4 +87,5 @@ body:has(.lk-app) { margin: 0; padding: 0; background: var(--lk-paper); }
 .lk-top:has(.lk-version-bar) .lk-brand { gap: 9px; font-size: 24px; }
 .lk-command:has(.lk-seal) .lk-agent-chip { flex: 0 1 auto; max-width: 440px; }
 .lk-command:has(.lk-seal) .lk-account { flex: none; }
-.lk-command:has(.lk-seal) .lk-seal { font-size: 11px; padding-left: 16px; }
+/* The seal keeps its hash whole (its label gives way first); between 1100 and 1240 px the reply chip absorbs the rest. */
+.lk-command:has(.lk-seal) .lk-seal { min-width: 256px; overflow: hidden; font-size: 11px; padding-left: 16px; }
