@@ -6,6 +6,7 @@ import { encodeBase64, readArtifactBytes } from './artifacts'
 import { diffLines } from './diff'
 import { fail, parse, type Actor } from './model'
 import { routing } from './review'
+import { recordReads } from './audit'
 
 const all = async <T = any>(db: D1Database, query: string, ...params: unknown[]) => (await db.prepare(query).bind(...params).all<T>()).results
 
@@ -37,6 +38,7 @@ export async function state(env: Bindings, actor: Actor) {
   const operators = await all(db, "SELECT o.id, o.display_name AS name, o.email, o.status, CASE WHEN o.role='owner' THEN 'owner' ELSE COALESCE(r.role,'viewer') END AS role FROM oa_operators o LEFT JOIN lk_roles r ON r.operator_id=o.id ORDER BY o.created_at")
   const renewals = mine(await all(db, 'SELECT * FROM lk_renewals ORDER BY deadline_at'), ids)
   const proposals = mine(await all(db, 'SELECT * FROM lk_proposals ORDER BY prepared_at DESC'), ids).filter(p => seesIntake(actor, p))
+  await recordReads(env, actor, agreements.filter(a => a.restricted).map(a => ({ action: 'agreement.view', agreementId: a.id, summary: 'Read restricted agreement in workspace state.' })))
   return {
     actor: { id: actor.id, name: actor.name, role: actor.role },
     now: Date.now(),
@@ -62,7 +64,7 @@ export async function state(env: Bindings, actor: Actor) {
     proposals,
     imports: actor.role === 'owner' ? await all(db, 'SELECT id, kit, status, source_label, preview, fingerprint, created_by, created_at, applied_by, applied_at, undone_by, undone_at, undo_reason, version FROM lk_import_batches ORDER BY created_at DESC') : [],
     access: mine(await all(db, 'SELECT * FROM lk_access'), ids),
-    audit: mine(await all(db, 'SELECT * FROM lk_audit ORDER BY at DESC LIMIT 500'), ids),
+    audit: mine(await all(db, 'SELECT * FROM lk_audit ORDER BY at DESC, id'), ids),
   }
 }
 
@@ -83,6 +85,7 @@ export async function search(env: Bindings, actor: Actor, query: string) {
       results.push({ id: a.id, reference: a.reference, title: a.title, status: a.status, party: parties.get(a.party_id), match: hit && at >= 0 ? { version: hit.number, excerpt: hit.text!.slice(Math.max(0, at - 60), at + q.length + 60) } : null })
     }
   }
+  await recordReads(env, actor, results.filter(r => agreements.find(a => a.id === r.id)?.restricted).map(r => ({ action: 'agreement.view', agreementId: r.id, summary: 'Read restricted agreement in search results.' })))
   return { results }
 }
 
@@ -93,6 +96,8 @@ export async function compare(env: Bindings, actor: Actor, from: string, to: str
   const a = rows.find(r => r.id === from), b = rows.find(r => r.id === to)
   if (!a || !b || !ids.has(a.agreement_id) || a.agreement_id !== b.agreement_id) fail('NOT_FOUND', 'Choose two versions of one agreement you can access.', 404)
   if (a.text === null || b.text === null) fail('NO_TEXT', 'Both versions need text to compare. Upload DOCX files or supply the text with each version.', 409)
+  const agreement = await env.DB.prepare('SELECT restricted FROM lk_agreements WHERE id=?').bind(a.agreement_id).first<{ restricted: number }>()
+  if (agreement?.restricted) await recordReads(env, actor, [{ action: 'agreement.view', agreementId: a.agreement_id, summary: `Compared restricted agreement versions ${a.number} and ${b.number}.` }])
   return { from: a.number, to: b.number, lines: diffLines(a.text, b.text) }
 }
 
@@ -102,6 +107,7 @@ export async function download(env: Bindings, actor: Actor, id: string): Promise
   const { ids } = await visibleIds(env, actor)
   if (!artifact || (artifact.agreement_id && !ids.has(artifact.agreement_id))) fail('NOT_FOUND', 'No file you can access has that identity.', 404)
   const bytes = await readArtifactBytes(env.DB, id)
+  await recordReads(env, actor, [{ action: 'file.download', agreementId: artifact.agreement_id, summary: `Downloaded ${artifact.filename} (${artifact.id}, SHA-256 ${artifact.sha256}).` }])
   return new Response(bytes as BodyInit, {
     headers: {
       'content-type': artifact.media_type,

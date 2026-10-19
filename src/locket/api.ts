@@ -1,7 +1,8 @@
 // Locket's HTTP surface under /api/locket. The same commands serve the
 // interface, an agent working through an invited `agent` operator, and tests.
 import type { Bindings } from '../auth.server'
-import { currentActor } from './access'
+import { currentActor, fullReaders } from './access'
+import { auditCsv, auditTrail, recordReads } from './audit'
 import { agreementHandlers } from './agreements'
 import { runCommand, type Handler } from './commands'
 import { executionHandlers } from './execution'
@@ -40,6 +41,14 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
       if (!(request.headers.get('content-type') ?? '').includes('application/json')) return reply({ ok: false, error: { code: 'INVALID', message: 'Send JSON.' } }, 415)
     }
     const actor = await currentActor(request, env)
+    if (request.method === 'GET' && path === '/audit') {
+      const { rows } = await auditTrail(env, actor, url.searchParams)
+      if (url.searchParams.get('format') === 'csv') {
+        await recordReads(env, actor, [{ action: 'audit.export', summary: `Exported ${rows.length} audit rows as CSV.` }], fullReaders)
+        return new Response(auditCsv(rows), { headers: { ...headers, 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="locket-audit.csv"' } })
+      }
+      return reply({ rows })
+    }
     if (request.method === 'GET' && path === '/state') return reply(await state(env, actor))
     if (request.method === 'GET' && path === '/search') return reply(await search(env, actor, url.searchParams.get('q') ?? ''))
     if (request.method === 'GET' && path === '/compare') return reply(await compare(env, actor, url.searchParams.get('from') ?? '', url.searchParams.get('to') ?? ''))

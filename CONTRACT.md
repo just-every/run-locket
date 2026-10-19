@@ -554,11 +554,11 @@ A new installation defaults to USD with values entered and shown as US dollars, 
 *Status:* partial. Per-agreement IANA time zones with daylight-saving-correct deadlines ship (`src/locket/model.ts`, `src/locket/dates.ts`); values are stored and shown in AUD, the default zone is Australia/Sydney, counterparties carry an ABN, and US defaults, business-day rolling and multi-currency do not exist.
 
 #### AUDIT-001 — Filterable activity audit trail.
-Every action is recorded with actor, role, time, agreement and summary, including views of restricted agreements and downloads. The owner and counsel filter the audit trail by person, agreement, action and date and export it as CSV; the complete archive (`PORT-001`) includes it.
+Every successful current business command is recorded with actor, role, time, agreement (where applicable) and summary, together with views of restricted agreements and file downloads. Returning restricted agreements in workspace state, search results or a version comparison records a view; a successful file download records its artifact identity and digest. The owner and counsel filter the audit trail by person, agreement, action and date and export it as CSV; date bounds include the whole chosen UTC dates and supplied filters intersect. Reading or filtering the trail creates no entry. CSV export records an `audit.export` event after selecting its rows, so the exported snapshot matches the screen; filters can exclude `audit.export`. The complete archive (`PORT-001`) includes the trail. Every future capability inherits this obligation before it ships, including the remaining `INTAKE-*`, `REPO-*`, `DRAFT-*`, `PLAY-*`, `NEG-*`, `REVIEW-*`, `APPROVE-*`, `SIGN-*`, `EXEC-*`, `OBL-*`, `RENEW-*`, `LINK-*`, `INT-*`, `NOTIFY-001`, `ERASE-001`, `ENTITY-001`, `REPORT-*`, `MOBILE-*`, `MOVE-*` and `AGENT-*` clauses.
 
-*Acceptance:* a journey performs approvals, downloads and a restricted view, filters the trail by one person and date range, and exports a CSV whose rows match the screen.
+*Acceptance:* the `AUDIT-001` API and browser journeys perform approvals, downloads and restricted views, verify attributed entries and permission refusals, filter by person, agreement, action and inclusive UTC date range, and export a CSV whose rows match the screen at 1440 and 390 pixels. The export records `audit.export`, while reading/filtering adds no entry; the complete archive retains the entries. Every future capability named above must assert its own inherited audit events before shipping.
 
-*Status:* partial. Attributed activity is recorded and exported in the complete archive (`src/locket/views.ts`, `tests/api/flows.test.mjs`); filtering, CSV export and view and download events are absent.
+*Status:* done. Attributed commands, restricted reads, downloads and CSV export events, owner/counsel filters and matching CSV are proven through HTTP and the Activity screen (`src/locket/audit.ts`, `tests/api/flows.test.mjs`, `tests/browser/audit.spec.ts`).
 
 #### ERASE-001 — Personal-data erasure with legal hold.
 On a verified request (for example under the California Consumer Privacy Act), the owner erases a person's personal data from contacts, comments and notifications while keeping executed agreements, signatures and audit records that must be retained, with a recorded reason. Agreements under a legal hold (set by counsel) cannot be deleted or have files removed until the hold is released. Retention rules delete or anonymise expired, unexecuted drafts after a configured period.
@@ -846,8 +846,8 @@ Judged from the code and tests at commit `60d8141678e03c5186ab053e58f0ed92e8c107
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 0 | 38 | 42 | 80 |
-| All | 19 | 38 | 42 | 99 |
+| Target and push further | 1 | 37 | 42 | 80 |
+| All | 20 | 37 | 42 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -926,7 +926,7 @@ Judged from the code and tests at commit `60d8141678e03c5186ab053e58f0ed92e8c107
 | `INT-004` | Connection health | target | missing |  | No connections exist yet |
 | `NOTIFY-001` | Notifications and preferences | target | missing |  | Locket sends no notifications |
 | `US-001` | US defaults | target | partial | `src/locket/model.ts`; `src/locket/dates.ts` | Values are stored and shown in AUD, the default zone is Australia/Sydney, counterparties carry an ABN, and US defaults, business-day rolling and multi-currency do not exist |
-| `AUDIT-001` | Filterable activity audit trail | target | partial | `src/locket/views.ts`; `tests/api/flows.test.mjs` | Filtering, CSV export and view and download events are absent |
+| `AUDIT-001` | Filterable activity audit trail | target | done | `src/locket/audit.ts`; `src/locket/views.ts`; `tests/api/flows.test.mjs`; `tests/browser/audit.spec.ts` |  |
 | `ERASE-001` | Personal-data erasure with legal hold | target | missing |  | No erasure, hold or retention capability exists |
 | `ENTITY-001` | Our contracting entities | target | missing |  | Agreements have no record of our contracting entity |
 | `OPS-001` | Self-hosted install, updates and security answers | target | partial | `OPERATIONS.md`; `deploy.json`; `tests/portable.mjs` | The release cadence, the one-command update with an automatic export and the security questionnaire do not exist |
