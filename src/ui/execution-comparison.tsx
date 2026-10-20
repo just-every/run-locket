@@ -12,7 +12,7 @@ export function ExecutionComparison({ comparison }: { comparison: PdfComparison 
   return <section className="lk-execution-comparison" aria-label="Signed document comparison">
     <h3>PDF text comparison</h3>
     <p className="lk-muted">Compared with the exact approved package. Whitespace is ignored; punctuation, case, numbers and page order are compared. Signatures, initials and visual changes need human review.</p>
-    <p>Approved: {comparison.approvedPages ?? 'unreadable'} pages · Returned: {comparison.signedPages ?? 'unreadable'} pages</p>
+    <p>Pages: approved {comparison.approvedPages ?? 'unreadable'} · returned {comparison.signedPages ?? 'unreadable'}</p>
     {comparison.differences.map(d => <details key={d.page} open>
       <summary>Page {d.page} differs</summary>
       <strong>Approved page {d.page}</strong><blockquote>{passage(d.approved, d.signed)}</blockquote>

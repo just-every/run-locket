@@ -97,7 +97,7 @@ export function Execution({ state, a, locket }: { state: LocketState; a: Row; lo
         {executions.length === 0 ? <Empty>Unsigned. No executed file is recorded.</Empty> : executions.map(e => (
           <article key={e.id} className="lk-card">
             <div className="lk-finding-head"><strong>{e.imported ? 'Imported from ' : 'Signed via '}{providerName(e.provider)}</strong><Badge value={e.status} /></div>
-            <p>Executed {day(e.executed_on)} · envelope {e.envelope_id ? <EnvelopeId id={e.envelope_id} /> : '—'}</p>
+            <p>{e.status === 'needs_review' ? 'Returned with stated signing date' : 'Executed'} {day(e.executed_on)} · envelope {e.envelope_id ? <EnvelopeId id={e.envelope_id} /> : '—'}</p>
             <p className="lk-file-links">{file(e.signed_artifact_id) && <a href={`/api/locket/files/${e.signed_artifact_id}`} title={`sha256 ${file(e.signed_artifact_id)!.sha256}`} download><Icon name="file" /> Signed PDF</a>}{e.certificate_artifact_id && <a href={`/api/locket/files/${e.certificate_artifact_id}`} download><Icon name="file" /> Provider certificate</a>}</p>
             <ul className="lk-checks">{parse<any[]>(e.checks).map(c => <li key={c.check} className={c.ok ? 'lk-ok' : 'lk-missing'}><span>{c.ok ? '✓' : '!'}</span>{c.detail}</li>)}</ul>
             {parse<any[]>(e.checks).filter(c => c.comparison).map(c => <ExecutionComparison key={c.check} comparison={c.comparison} />)}
