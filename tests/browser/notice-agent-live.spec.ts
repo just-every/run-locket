@@ -19,7 +19,7 @@ for(const width of [1440,390])test(`AGENT-003 real rer dev selected-source prepa
  }
  const state=async()=> (await page.request.get(origin+'/api/locket/state')).json()
  const tag=randomUUID().slice(0,6),quote='Give 60 days notice by email or courier to the recorded notice address.'
- const a=await command('legacy.import',{title:`Cardinal facilities agreement ${width} ${tag}`,type:'supplier',party:{name:`Cardinal Facilities ${tag}`,kind:'supplier',email:'notices@cardinal.example',noticeAddress:'Cardinal Legal, 10 Main St, Raleigh NC',noticeMethod:'email'},sourceSystem:'Executed supplier archive',sourceId:tag,file:file('executed-facilities.pdf',pdf(quote)),text:quote,signed:true})
+ const a=await command('legacy.import',{title:`Cardinal facilities agreement ${width} ${tag}`,type:'supplier',party:{name:`Cardinal Facilities ${tag}`,kind:'supplier',email:'notices@cardinal.example',noticeAddress:'Cardinal Legal, 10 Main St, Raleigh NC',noticeMethod:'email'},sourceSystem:'Executed supplier archive',sourceId:tag,file:file('executed-facilities.pdf',pdf(`Facilities agreement ${tag}. ${quote}`)),text:`Facilities agreement ${tag}. ${quote}`,signed:true})
  for(const [key,value]of [['end_date','2027-12-31'],['notice_days','60']]){const t=await command('term.propose',{agreementId:a.id,key,value,citation:{quote}});await command('term.decide',{agreementId:a.id,termId:t.id,decision:'confirm'})}
  const r=(await state()).renewals.find((r:any)=>r.agreement_id===a.id)
  await command('renewal.decide',{renewalId:r.id,decision:'terminate',reason:'Facilities supplier replacement approved.'})

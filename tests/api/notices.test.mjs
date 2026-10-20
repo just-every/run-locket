@@ -100,7 +100,7 @@ test('AGENT-003 selected passage and 45-day termination decision to scheduled fr
   const key=webhookKey(),h=await installation({bindings:{NOTICE_RESEND_WEBHOOK_SECRET:key}})
   t.after(()=>h.close())
   const {agentFixture,approveAgent}=await import('./notice-fixture.mjs')
-  const f=await agentFixture(h),agent=await h.invite('notice-agent@example.test','agent')
+  const f=await agentFixture(h),agent=await h.invite('notice-agent@example.test','agent'),approver=await h.invite('notice-approver@example.test','approver')
   await agent.command('notice.source',{agreementId:f.agreementId,quote:'Give 60 days notice.'},{error:'FORBIDDEN'})
   await h.owner.command('notice.source',{agreementId:f.agreementId,quote:'Invented passage'},{error:'CITATION'})
   const draft=await agent.command('notice.agent.prepare',{sourceId:f.sourceId})
@@ -113,7 +113,7 @@ test('AGENT-003 selected passage and 45-day termination decision to scheduled fr
   const due=Math.ceil((f.now+3600000)/3600000)*3600000
   await h.owner.command('notice.schedule',{noticeId:n.id,pdfDigest:'wrong',recipient:letter.recipient,method:'email',sendLocal:'2026-09-19T09:00'},{error:'APPROVAL'})
   await h.owner.command('notice.schedule',{noticeId:n.id,pdfDigest:letter.sha256,recipient:letter.recipient,method:'email',sendLocal:'2026-11-01T23:59'},{error:'DEADLINE'})
-  const approval=await approveAgent(h.owner,n.id,due)
+  const approval=await approveAgent(approver,n.id,due)
   assert.ok(approval.marginMs>3600000)
   const bytes=Buffer.from(await (await h.owner.request(`/api/locket/files/${letter.artifact_id}`)).arrayBuffer())
   const before=h.mails.length
@@ -132,7 +132,7 @@ test('AGENT-003 selected passage and 45-day termination decision to scheduled fr
   assert.ok(s.noticePlans.find(p=>p.id===n.id).alert_at<f.deadline)
   assert.ok(s.notifications.items.some(i=>i.kind==='deadline'))
   await h.owner.command('notice.sent',{noticeId:alternate.id,method:'courier',sentAt:new Date(due).toISOString(),trackingNumber:'UPS-LOCKET-45'},{error:'STATUS'})
-  await approveAgent(h.owner,alternate.id,due+3600000)
+  await approveAgent(approver,alternate.id,due+3600000)
   await h.setTime(due+3600000);await h.scheduled(due+3600000)
   await h.owner.command('notice.sent',{noticeId:alternate.id,method:'courier',sentAt:new Date(due+3600000).toISOString(),trackingNumber:'UPS-LOCKET-45'})
   await h.setTime(due+7200000)
@@ -190,5 +190,6 @@ test('AGENT-003 missing acknowledgment alerts before deadline; uncertain sends n
   const current=h.mails.filter(m=>m.attachments).length
   await h.setTime(f.deadline+1);await h.scheduled(f.deadline+1)
   assert.equal(h.mails.filter(m=>m.attachments).length,current)
-  assert.equal((await h.owner.state()).noticePlans.find(p=>p.id===late.id).status,'cancelled')
+  const renewedOwner=await h.signIn('owner@example.test')
+  assert.equal((await renewedOwner.state()).noticePlans.find(p=>p.id===late.id).status,'cancelled')
 })

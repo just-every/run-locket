@@ -199,7 +199,7 @@ export async function noticeDraft(c: Ctx, renewalId: unknown, p: Record<string, 
   const { r, a } = await renewalOf(c, renewalId)
   if (!r.decision) fail('NO_DECISION', 'Decide renew, renegotiate or terminate before preparing a notice.', 409)
   const id = crypto.randomUUID()
-  const recipient = text(p, 'recipient', 300), body = text(p, 'body', 20_000)
+  const recipient = text(p, 'recipient', 1000), body = text(p, 'body', 20_000)
   const letter = await frozenLetter(c, { id, agreement_id: a.id, recipient, body })
   return { id, a, r, writes: [sql('INSERT INTO lk_notices VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, r.id, a.id, recipient, body, c.actor.id, proposalId, 'draft', null, null, null, null, null, null, c.now), ...letter.writes] }
 }

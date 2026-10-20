@@ -10,7 +10,7 @@ Each proposal carries its evidence and assumptions, and waits under **Proposals*
 | Review: findings with exact cited passages | Owner or counsel |
 | Agreement family: a link to a parent agreement | Owner or counsel |
 | Terms: values with citations from the signed text | Owner, counsel or an approver |
-| Renewal notice: a draft for a decided renewal | Owner or an approver |
+| Renewal notice: a draft from a person-selected executed passage and confirmed decision/deadline | Owner or an approver |
 
 Approving a proposal runs the same checks as doing the work by hand and records who prepared it and who decided. Nobody decides a proposal they prepared, unless they are the owner. An approved notice draft still needs its own approval for sending.
 
@@ -21,3 +21,5 @@ An agent never approves, signs, sends or confirms anything. A proposal for a res
 Reads and commands are plain JSON over the installation's own origin, with a signed-in session. Every command carries an identity, so a retry never applies twice. The full list of reads, commands, payloads and who may send each is in [API.md](https://github.com/just-every/run-locket/blob/main/API.md).
 
 Locket has no built-in model account. Your own agent works through the API.
+
+For AGENT-003, a human first calls `notice.source {agreementId, quote}` after recording the counterparty email and courier notice address. An agent calls `notice.agent.prepare {sourceId}`, or submits `proposal.prepare` with `kind:"renewal"` and `payload:{sourceId}`. Free-text renewal proposals from agents are refused. The draft is labelled prepared, not legal advice or proof of service. The owner or an approver then reviews its PDF, frozen digest, recipient, method and local time with the displayed lead margin and uses `notice.schedule`; ordinary sending approval cannot bypass this schedule. Failures and missing acknowledgment produce a separate courier draft requiring another approval. Provider acceptance, delivery evidence and acknowledgment remain distinct; counsel decides adequacy.

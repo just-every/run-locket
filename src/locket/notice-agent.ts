@@ -41,7 +41,7 @@ export async function agentDraft(c: Ctx, s: any, method: string, parent: string 
   const recipient = method === 'email' ? s.recipient : s.alternate_address
   const body = preparedNoticeText(s, r.end_date)
   const n = await noticeDraft(c, s.renewal_id, { recipient, body }, proposalId)
-  return { n, writes: [...n.writes, sql("INSERT INTO lk_notice_plans(id,agreement_id,source_id,parent_notice_id,method,status) VALUES(?,?,?,?,?,'draft')", n.id, s.agreement_id, s.id, parent, method)] }
+  return { n, writes: [...n.writes, ...(parent ? [sql('UPDATE lk_notices SET prepared_by=? WHERE id=?','locket-scheduler',n.id)] : []), sql("INSERT INTO lk_notice_plans(id,agreement_id,source_id,parent_notice_id,method,status) VALUES(?,?,?,?,?,'draft')", n.id, s.agreement_id, s.id, parent, method)] }
 }
 const prepareAgent: Handler = async (c, p) => {
   requireRole(c.actor, may.prepare, 'prepare a notice from a person-selected passage')

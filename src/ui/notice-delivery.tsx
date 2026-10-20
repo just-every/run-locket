@@ -24,7 +24,7 @@ export function NoticeDelivery({ state, notice: n, renewal: r, locket }: { state
     <article className="lk-notice" style={{ overflowWrap: 'anywhere', minWidth: 0 }}>
       <div className="lk-finding-head"><strong>To {n.recipient}</strong><Badge value={n.status} label={n.status === 'sent' ? 'Sent' : n.status === 'approved' ? 'Approved, not sent' : 'Draft'} /></div>
       <pre className="lk-document">{n.body}</pre>
-      <small>Prepared by {personName(state, n.prepared_by)}{n.proposal_id ? ' (agent proposal)' : ''}{n.approved_by && <> · approved by {personName(state, n.approved_by)} <When at={n.approved_at} /></>}</small>
+      <small>Prepared by {plan?.parent_notice_id ? 'Locket delivery watch' : personName(state, n.prepared_by)}{n.proposal_id ? ' (agent proposal)' : ''}{n.approved_by && <> · approved by {personName(state, n.approved_by)} <When at={n.approved_at} /></>}</small>
       {letter && <div><p><a className="lk-text-link" href={`/api/locket/files/${letter.artifact_id}`} download>Download PDF letter</a> · frozen recipient: {letter.recipient}</p><p className="lk-muted">PDF SHA-256: <code style={{ overflowWrap: 'anywhere' }}>{letter.sha256}</code></p></div>}
       {n.status === 'draft' && !letter && can(state, 'owner', 'counsel', 'approver', 'requester') && <button type="button" disabled={busy} onClick={() => void run('notice.letter', { noticeId: n.id })}>Prepare PDF letter</button>}
       <NoticeAgentPlan state={state} notice={n} renewal={r} locket={locket} />
