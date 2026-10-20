@@ -67,6 +67,7 @@ for (const width of [1440, 390]) test(`AGENT-006 changed signed liability is vis
     a = await agreement()
     await command('package.sent', { agreementId: a.id, version: a.version, packageId: pkg.packageId, envelopeId: `ENV-${tag}` })
     await page.goto(origin + `/app#agreement/${a.id}/execution`)
+    await page.reload() // Public API fixture commands ran after the live app initially loaded.
     await page.getByLabel('Signed PDF', { exact: true }).setInputFiles({ name: 'returned-liability.pdf', mimeType: 'application/pdf', buffer: returned })
     await page.getByLabel('Certificate of completion (as issued by the provider)').setInputFiles({ name: 'certificate.pdf', mimeType: 'application/pdf', buffer: pdf(`Provider certificate ${tag}`) })
     await page.getByLabel('Executed on', { exact: true }).fill('2026-10-20')
