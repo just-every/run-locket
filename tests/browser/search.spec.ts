@@ -33,6 +33,8 @@ for (const width of [1440, 390]) test(`REPO-006 structured current-term search a
     let a=(await owner.state()).agreements.find((a:any)=>a.id===old.id)
     await owner.command('version.upload',{agreementId:old.id,version:a.version,kind:'counterparty',file:file('revised.docx',docx([`Historical ${tag}.`,'The updated draft has no cap.']))})
     await page.goto(origin+'/app#agreements')
+    // Fixtures enter through the HTTP API while the live app is already open.
+    await page.reload()
     await page.getByRole('searchbox',{name:'Search agreements you can access'}).fill('limitation of liability')
     const card=page.locator(`[data-agreement-id="${old.id}"]`)
     await expect(card.getByRole('link',{name:/v1:.*limitation of liability/i}).first()).toBeVisible()
