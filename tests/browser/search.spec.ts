@@ -35,8 +35,11 @@ for (const width of [1440, 390]) test(`REPO-006 structured current-term search a
     await page.goto(origin+'/app#agreements')
     // Fixtures enter through the HTTP API while the live app is already open.
     await page.reload()
-    await page.getByRole('searchbox',{name:'Search agreements you can access'}).fill('limitation of liability')
     const card=page.locator(`[data-agreement-id="${old.id}"]`)
+    await expect(card).toBeVisible()
+    const searched = page.waitForResponse(response => new URL(response.url()).pathname === '/api/locket/search')
+    await page.getByRole('searchbox',{name:'Search agreements you can access'}).fill('limitation of liability')
+    await searched
     await expect(card.getByRole('link',{name:/v1:.*limitation of liability/i}).first()).toBeVisible()
     await shot('board')
     console.log('REPO-006 board captured; opening older passage')
