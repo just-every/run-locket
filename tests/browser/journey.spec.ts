@@ -139,7 +139,7 @@ for (const width of [1440, 390]) {
     // Execution: signed file and certificate reconcile.
     await page.getByRole('link', { name: 'Execution', exact: true }).click()
     scope = panel(page, 'Record the signed agreement')
-    await scope.getByLabel('Signed PDF').setInputFiles({ name: 'signed.pdf', mimeType: 'application/pdf', buffer: pdf(`Signed ${tag}`) })
+    await scope.getByLabel('Signed PDF').setInputFiles({ name: 'signed.pdf', mimeType: 'application/pdf', buffer: await pdfResponse.body() })
     await scope.getByLabel('Certificate of completion (as issued by the provider)').setInputFiles({ name: 'Summary.pdf', mimeType: 'application/pdf', buffer: pdf(`Certificate ${tag}`) })
     await scope.getByLabel('Executed on').fill('2026-07-01')
     await scope.getByRole('checkbox').check()

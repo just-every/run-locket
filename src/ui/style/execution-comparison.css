@@ -1,0 +1,5 @@
+.lk-execution-comparison { min-width: 0; overflow-wrap: anywhere; }
+.lk-execution-comparison details { margin-block: 16px; }
+.lk-execution-comparison summary { margin-bottom: 12px; cursor: pointer; }
+.lk-execution-comparison blockquote { margin: 8px 0 16px; padding: 10px 14px; border-left: 2px solid var(--lk-claret); background: var(--lk-tint); white-space: pre-wrap; font: 15px/1.5 var(--lk-font-serif); }
+.lk-execution-comparison mark { background: var(--lk-warn-bg); color: inherit; text-decoration: underline; }

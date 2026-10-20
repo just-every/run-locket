@@ -228,7 +228,7 @@ test('09 execution ingests the signed file and certificate and reconciles envelo
   let s = await tm.owner.state()
   const e = s.executions.find(x => x.agreement_id === id)
   assert.equal(s.agreements.find(x => x.id === id).status, 'executed')
-  assert.deepEqual(JSON.parse(e.checks).map(c => [c.check, c.ok]), [['envelope', true], ['signers', true], ['document', true], ['certificate', true]])
+  assert.deepEqual(JSON.parse(e.checks).map(c => [c.check, c.ok]), [['envelope', true], ['signers', true], ['document', true], ['text', true], ['certificate', true]])
   assert.equal(s.artifacts.find(f => f.id === e.certificate_artifact_id).role, 'certificate')
   // A mismatched return stays unsigned until owner or counsel accepts it with a reason.
   const other = await outForSignature(h, tm, lib, { title: 'Second', party: 'Second Co' })
@@ -236,7 +236,7 @@ test('09 execution ingests the signed file and certificate and reconciles envelo
   const signed = pdf('Second signed copy')
   const mismatch = await tm.requester.command('execution.record', { agreementId: other.id, version: a.version, envelopeId: 'ENV-WRONG', executedOn: '2026-07-02', documentConfirmed: true, signers: [{ name: 'Hana Park', email: 'hana@harbour.example' }], signed: file('s.pdf', signed) })
   assert.equal(mismatch.status, 'needs_review')
-  assert.deepEqual(mismatch.checks.filter(c => !c.ok).map(c => c.check), ['envelope', 'signers', 'certificate'])
+  assert.deepEqual(mismatch.checks.filter(c => !c.ok).map(c => c.check), ['envelope', 'signers', 'text', 'certificate'])
   assert.equal((await find(tm.owner, other.id)).status, 'out_for_signature')
   a = await find(tm.requester, other.id)
   await tm.requester.command('execution.resolve', { agreementId: other.id, version: a.version, executionId: mismatch.executionId, reason: 'x' }, { error: 'FORBIDDEN' })

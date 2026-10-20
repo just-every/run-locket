@@ -59,11 +59,3 @@ export function textPdf(title: string, body: string, footer: string): Uint8Array
   for (let i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 0xff
   return bytes
 }
-
-/** Page count from uncompressed page objects; null when the PDF hides them in object streams. */
-export function pdfPageCount(bytes: Uint8Array): number | null {
-  let text = ''
-  for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
-  const count = (text.match(/\/Type\s*\/Page(?![s\w])/g) ?? []).length
-  return count || null
-}

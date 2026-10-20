@@ -39,7 +39,7 @@ async function execute(h, id) {
   const envelopeId = `ENV-${id}`
   await h.owner.command('package.sent', { agreementId: id, version: a.version, packageId: pkg.packageId, envelopeId })
   a = await agreement(h.owner, id)
-  await h.owner.command('execution.record', { agreementId: id, version: a.version, envelopeId, executedOn: '2026-10-19', documentConfirmed: true, signers: [{ name: 'Alex', email: 'alex@example.test' }], signed: file('signed.pdf', pdf(`Signed ${id}`)), certificate: file('certificate.pdf', pdf(`Certificate ${id}`)) })
+  await h.owner.command('execution.record', { agreementId: id, version: a.version, envelopeId, executedOn: '2026-10-19', documentConfirmed: true, signers: [{ name: 'Alex', email: 'alex@example.test' }], signed: file('signed.pdf', Buffer.from(await (await h.owner.request('/api/locket/files/' + pkg.pdfArtifactId)).arrayBuffer())), certificate: file('certificate.pdf', pdf(`Certificate ${id}`)) })
 }
 
 test('DRAFT-003 searches approved variants and records insertion provenance through execution and export', async t => {

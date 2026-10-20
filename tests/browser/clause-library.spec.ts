@@ -66,7 +66,7 @@ for (const width of [1440, 390]) {
     s = await state(); a = s.agreements.find((x: any) => x.id === request.id)
     await command('package.sent', { agreementId: a.id, version: a.version, packageId: pkg.packageId, envelopeId: `ENV-${tag}` })
     s = await state(); a = s.agreements.find((x: any) => x.id === request.id)
-    await command('execution.record', { agreementId: a.id, version: a.version, envelopeId: `ENV-${tag}`, executedOn: '2026-10-19', documentConfirmed: true, signers: [{ name: 'Alex', email: 'alex@example.test' }], signed: { filename: 'signed.pdf', base64: pdf(`Signed ${tag}`).toString('base64') }, certificate: { filename: 'certificate.pdf', base64: pdf(`Certificate ${tag}`).toString('base64') } })
+    await command('execution.record', { agreementId: a.id, version: a.version, envelopeId: `ENV-${tag}`, executedOn: '2026-10-19', documentConfirmed: true, signers: [{ name: 'Alex', email: 'alex@example.test' }], signed: { filename: 'signed.pdf', base64: (await (await page.request.get(origin + '/api/locket/files/' + pkg.pdfArtifactId)).body()).toString('base64') }, certificate: { filename: 'certificate.pdf', base64: pdf(`Certificate ${tag}`).toString('base64') } })
     await page.goto(`${origin}/app#library`)
     await page.reload()
     await page.getByRole('searchbox', { name: 'Search clauses by topic' }).fill(`indemnity ${tag}`)

@@ -5,7 +5,8 @@ import { may, requireRole } from './access'
 import { fileInput, isPdf, PDF, readArtifactBytes, storeArtifact } from './artifacts'
 import type { Ctx, Handler } from './commands'
 import { bool, date, fail, json, list, object, oneOf, optionalText, sha256, sql, text, type Sql } from './model'
-import { pdfPageCount, textPdf } from './pdf'
+import { textPdf } from './pdf'
+import { compareExecutionPdf, comparisonCheck } from './execution-comparison'
 import { day, plural, providerName } from './display'
 import { agreementGuards, bump, currentVersion, requireStatus, visibleAgreement, type AgreementRow } from './records'
 import { decisionContext, routing } from './review'
@@ -148,11 +149,13 @@ const recordExecution: Handler = async (c, p) => {
   const expectedSigners = new Set<string>(manifest.recipients.filter((r: any) => r.action === 'sign').map((r: any) => r.email))
   const actualSigners = new Set(signers.map(s => s.email))
   const packagePdf = await readArtifactBytes(c.db, pkg.pdf_artifact_id)
-  const expectedPages = pdfPageCount(packagePdf), actualPages = pdfPageCount(signed.bytes)
+  const comparison = await compareExecutionPdf(packagePdf, signed.bytes)
+  const expectedPages = comparison.approvedPages, actualPages = comparison.signedPages
   const checks = [
     { check: 'envelope', ok: envelopeId === pkg.envelope_id, detail: envelopeId === pkg.envelope_id ? `Envelope ${envelopeId} matches the recorded handoff.` : `Envelope ${envelopeId} differs from the handoff's ${pkg.envelope_id}.` },
     { check: 'signers', ok: expectedSigners.size === actualSigners.size && [...expectedSigners].every(e => actualSigners.has(e)), detail: `Package signers: ${[...expectedSigners].join(', ')}. Signed by: ${[...actualSigners].join(', ') || 'nobody listed'}.` },
     { check: 'document', ok: bool(p, 'documentConfirmed') && (expectedPages === null || actualPages === null || actualPages >= expectedPages), detail: `${bool(p, 'documentConfirmed') ? 'Recorder confirmed' : 'Recorder did not confirm'} the signed file is the packaged document${pagesNote(expectedPages, actualPages)}.` },
+    comparisonCheck(comparison),
     { check: 'certificate', ok: certificate !== null, detail: certificate ? `Provider certificate kept as supplied (${certificate.filename}).` : 'No completion certificate supplied.' },
   ]
   const reconciled = checks.every(x => x.ok)

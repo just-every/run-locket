@@ -73,7 +73,7 @@ for (const width of [1440, 390]) {
       await page.goto(`${origin}/app#agreement/${a.id}/execution`)
       await page.reload()
       const execution = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Record the signed agreement', exact: true }) })
-      const signed = pdf(`Signed paper from phone files ${tag}`)
+      const signed = Buffer.from(await (await page.request.get(origin + '/api/locket/files/' + pkg.pdfArtifactId)).body())
       await execution.getByLabel('Signed PDF', { exact: true }).setInputFiles({ name: 'phone-signed.pdf', mimeType: 'application/pdf', buffer: signed })
       await execution.getByLabel('Certificate of completion (as issued by the provider)').setInputFiles({ name: 'certificate.pdf', mimeType: 'application/pdf', buffer: pdf(`Provider certificate ${tag}`) })
       await execution.getByLabel('Executed on', { exact: true }).fill('2026-10-19')

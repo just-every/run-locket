@@ -14,3 +14,4 @@ import './portfolio.css'
 import './family.css'
 
 import './bulk-reminders.css'
+import './execution-comparison.css'

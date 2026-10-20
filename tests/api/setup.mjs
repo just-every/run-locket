@@ -64,7 +64,8 @@ export async function outForSignature(h, t, lib, opts) {
 export async function executed(h, t, lib, opts) {
   const { id, pkg } = await outForSignature(h, t, lib, opts)
   const a = await find(t.requester, id)
-  const result = await t.requester.command('execution.record', { agreementId: id, version: a.version, envelopeId: `ENV-${id.slice(0, 8)}`, executedOn: '2026-07-01', documentConfirmed: true, signers: [{ name: 'Hana Park', email: 'hana@harbour.example' }, { name: 'Olive Owner', email: 'owner@example.test' }], signed: file('signed.pdf', pdf(`Signed ${id}`)), certificate: file('Summary.pdf', pdf(`Certificate ${id}`)) })
+  const returned = Buffer.from(await (await t.requester.request('/api/locket/files/' + pkg.pdfArtifactId)).arrayBuffer())
+  const result = await t.requester.command('execution.record', { agreementId: id, version: a.version, envelopeId: `ENV-${id.slice(0, 8)}`, executedOn: '2026-07-01', documentConfirmed: true, signers: [{ name: 'Hana Park', email: 'hana@harbour.example' }, { name: 'Olive Owner', email: 'owner@example.test' }], signed: file('signed.pdf', returned), certificate: file('Summary.pdf', pdf(`Certificate ${id}`)) })
   assert.equal(result.status, 'reconciled')
   return { id, pkg }
 }

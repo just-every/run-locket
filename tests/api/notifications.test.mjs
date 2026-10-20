@@ -44,7 +44,7 @@ test('NOTIFY-001 assignments, explicit mentions, approval requests and signature
   a=await find(people.requester,a.id)
   await people.requester.command('package.sent',{agreementId:a.id,version:a.version,packageId:pkg.packageId,envelopeId:'NORTH-2026-101'})
   a=await find(people.requester,a.id)
-  await people.requester.command('execution.record',{agreementId:a.id,version:a.version,envelopeId:'NORTH-2026-101',executedOn:'2026-10-20',documentConfirmed:true,signers:[{name:'North Harbor signer',email:'signer@example.test'}],signed:file('signed.pdf',pdf('Signed confidentiality agreement.')),certificate:file('certificate.pdf',pdf('Provider completion certificate.'))})
+  await people.requester.command('execution.record',{agreementId:a.id,version:a.version,envelopeId:'NORTH-2026-101',executedOn:'2026-10-20',documentConfirmed:true,signers:[{name:'North Harbor signer',email:'signer@example.test'}],signed:file('signed.pdf',Buffer.from(await (await people.requester.request('/api/locket/files/'+pkg.pdfArtifactId)).arrayBuffer())),certificate:file('certificate.pdf',pdf('Provider completion certificate.'))})
   const obligation=await people.counsel.command('obligation.add',{agreementId:a.id,description:'Protect confidential information',ownerId:people.counsel.id,dueDate:'2026-11-01',recurrence:'none',citation:{quote:'Confidential information must be protected.'}})
   await people.counsel.command('obligation.update',{agreementId:a.id,obligationId:obligation.id,action:'confirm'})
   assert.equal((await snapshot(people.counsel)).items.filter(n=>n.kind==='assignment'&&n.agreement_id===a.id).length,3)

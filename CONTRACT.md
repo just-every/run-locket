@@ -844,7 +844,9 @@ Agents serve the job beyond what today's up-and-comers ship: they connect what w
 
 *Acceptance:* a journey returns a signed PDF whose liability cap was changed after approval; the agent flags the passage, the agreement stays unsigned under `EXEC-001`, and counsel's acceptance with a reason is recorded; a clean return executes without intervention.
 
-*Status:* partial. Exact approved-version handoff and execution mismatch holds exist (`src/locket/execution.ts`); text comparison of the signed document does not exist.
+The current text-comparison slice parses the exact approved package PDF and the returned PDF locally, comparing page order and each page's text after collapsing whitespace only. Case, punctuation and numbers remain significant. Changed or missing pages, unreadable PDFs and pages without readable text stay in execution review even if the recorder checks document confirmation. Each differing page retains both readings, with the changed span shown, beside the immutable file downloads. Owner/counsel acceptance records the reason and keeps the comparison. A text match is not signature, initials, visual-content or certificate validation; image-only content requires human review until OCR is available.
+
+*Status:* partial. Clause-named public-door tests prove changed-liability holds, reasoned counsel acceptance, clean/whitespace-only automatic execution, missing pages, unreadable/image-only text, authority and archive evidence (`tests/api/execution-comparison.test.mjs`, `tests/browser/execution-comparison.spec.ts`). Automatic signature/initial detection, OCR and extracted-term reconciliation remain absent; the full clause is not done.
 
 #### AGENT-007 — Exceptions become measured playbook changes.
 *What the agent does:* compares approved exceptions, counterparty negotiation outcomes and later operational issues (disputes, missed obligations, credits from `AGENT-001` and `AGENT-002`), and recommends a revised clause position with examples, the expected effect on cycle time (`REPORT-001`) and the agreements that would have been affected.
@@ -1016,7 +1018,7 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | `AGENT-003` | Renewal decision to verified notice delivery | push-further | done | `src/locket/notice-agent.ts`; `src/locket/notice-agent-runtime.ts`; `tests/api/notices.test.mjs`; `tests/browser/notice-agent.spec.ts`; `tests/browser/notice-agent-live.spec.ts` | |
 | `AGENT-004` | Authorized renegotiation to an executed amendment | push-further | missing |  | No negotiation agent exists |
 | `AGENT-005` | Governing terms across a contract family | push-further | partial | `src/locket/agreements.ts`; `src/locket/proposals.ts` | Conflict detection and governing-term propagation do not exist |
-| `AGENT-006` | Signed document matches the approved version | push-further | partial | `src/locket/execution.ts` | Text comparison of the signed document does not exist |
+| `AGENT-006` | Signed document matches the approved version | push-further | partial | `src/locket/execution.ts`; `src/locket/execution-comparison.ts`; `tests/api/execution-comparison.test.mjs`; `tests/browser/execution-comparison.spec.ts` | Text/page comparison and held-resolution journey ship; automatic signature/initial detection, OCR and extracted-term reconciliation remain absent |
 | `AGENT-007` | Exceptions become measured playbook changes | push-further | partial | `src/locket/review.ts`; `src/locket/library.ts` | Exception analysis and recommendations do not exist |
 | `AGENT-008` | Obligation remediation to verified evidence | push-further | missing |  | No remediation agent exists |
 | `AGENT-009` | Missed obligations and avoidable spend report | push-further | missing |  | No outcome reporting exists |
