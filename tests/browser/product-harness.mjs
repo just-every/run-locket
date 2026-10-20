@@ -37,7 +37,7 @@ export async function productPage(page, { width = 1440, bindings = {} } = {}) {
       return route.fulfill({ contentType: mime[extname(file)] ?? 'application/octet-stream', body: await readFile(file) })
     }
     await page.route(matcher, host)
-    return { h, origin: h.origin, owner: h.owner, command: h.owner.command, state: h.owner.state, async close() { await page.unroute(matcher, host); await h.close() } }
+    return { h, origin: h.origin, owner: h.owner, command: h.owner.command, state: h.owner.state, async close() { try { if (!page.isClosed()) await page.unroute(matcher, host) } finally { await h.close() } } }
   } catch (error) {
     await h.close()
     throw error

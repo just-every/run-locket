@@ -6,7 +6,7 @@ import { productPage } from './product-harness.mjs'
 import { searchFixture, searchDefinition } from '../api/search-fixture.mjs'
 import { file, docx } from '../api/files.mjs'
 
-test.use({ ignoreHTTPSErrors: true })
+test.use({ ignoreHTTPSErrors: true, actionTimeout: 15000 })
 for (const width of [1440, 390]) test(`REPO-006 structured current-term search and exact current/older passages at ${width}px`, async ({ page }) => {
   let close = async () => {}, owner: any, origin: string
   const live = !!process.env.LOCKET_SEARCH_LIVE
@@ -37,7 +37,9 @@ for (const width of [1440, 390]) test(`REPO-006 structured current-term search a
     const card=page.locator(`[data-agreement-id="${old.id}"]`)
     await expect(card.getByRole('link',{name:/v1:.*limitation of liability/i}).first()).toBeVisible()
     await shot('board')
+    console.log('REPO-006 board captured; opening older passage')
     await card.getByRole('link',{name:/v1:.*limitation of liability/i}).last().click()
+    console.log('REPO-006 older passage clicked')
     await expect(page).toHaveURL(/versions\/1\/\d+\/\d+$/)
     await expect(page.locator('mark[data-search-hit]')).toHaveText('limitation of liability')
     await expect(page.locator('mark[data-search-hit]')).toBeInViewport()
@@ -66,5 +68,5 @@ for (const width of [1440, 390]) test(`REPO-006 structured current-term search a
     await expect(page.locator('mark[data-search-hit]')).toBeInViewport()
     await expect(page).toHaveURL(new RegExp(ids.current+'/versions/1/'))
     await shot('current-passage')
-  } finally { await close() }
+  } catch (error) { console.error(String(error).replace(/https?:\/\/[^\s]+/g, '[URL]')); throw error } finally { await close() }
 })

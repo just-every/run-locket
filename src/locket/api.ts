@@ -136,6 +136,8 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
         params.set('definition', JSON.stringify({ query: params.get('q'), filters: [], sort: { field: 'title', direction: 'asc' }, columns: ['title','reference','status','counterparty'] }))
       }
       const result = await repositoryResult(env, actor, params)
+      const restricted = new Set((await env.DB.prepare('SELECT id FROM lk_agreements WHERE restricted=1').all<{id:string}>()).results.map(a => a.id))
+      await recordReads(env, actor, result.rows.filter(r => restricted.has(r.id)).map(r => ({action:'agreement.view',agreementId:r.id,summary:'Read restricted agreement in search results.'})))
       return reply({ results: result.rows.map(r => ({ id: r.id, title: r.values.title, reference: r.values.reference, status: r.values.status, party: r.values.counterparty, match: r.matches?.[0] ?? null, matches: r.matches })) })
     }
     if (request.method === 'GET' && path === '/compare') return reply(await compare(env, actor, url.searchParams.get('from') ?? '', url.searchParams.get('to') ?? ''))
