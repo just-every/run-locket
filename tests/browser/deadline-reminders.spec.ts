@@ -33,6 +33,7 @@ for (const width of [1440, 390]) {
 
       await page.context().addCookies(rhea.cookie.split('; ').map((pair: string) => { const i = pair.indexOf('='); return { name: pair.slice(0,i), value: pair.slice(i+1), url: origin, secure: true, httpOnly: true, sameSite: 'Lax' as const } }))
       await page.goto(`${origin}/app#activity`)
+      await page.reload() // changing the signed-in person requires a fresh workspace snapshot
       const preferences = page.getByRole('region', { name: 'Reminder preferences', exact: true })
       await expect(preferences.getByLabel('Time zone', { exact: true })).toBeEnabled()
       await preferences.getByLabel('Time zone', { exact: true }).selectOption('America/Denver')
