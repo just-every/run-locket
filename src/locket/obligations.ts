@@ -248,6 +248,7 @@ const recordSent: Handler = async (c, p) => {
     writes.push(...stored.writes)
     evidenceId = stored.id
   }
+  if (plan) writes.push(sql("UPDATE lk_notice_plans SET status='recorded',outcome='Actual sending recorded; inspect delivery and acknowledgment evidence separately.' WHERE id=?", plan.id))
   writes.push(sql("UPDATE lk_notices SET status='sent', sent_method=?, sent_at=?, sent_recorded_by=?, evidence_artifact_id=? WHERE id=?", method, at, c.actor.id, evidenceId, n.id), bump(c, a))
   return { allowed: may.signature, result: { id: n.id, status: 'sent' }, writes, checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", n.id), sql('NOT EXISTS(SELECT 1 FROM lk_notice_dispatches WHERE notice_id=?)', n.id), ...(source ? sourceChecks(source) : [])], audit: [{ action: 'notice.sent', agreementId: a.id, summary: `Recorded notice sent by ${method} on ${zoned(at, a.timezone)}${evidenceId ? ' with evidence' : ''}` }] }
 }

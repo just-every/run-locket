@@ -46,6 +46,7 @@ for(const width of [1440,390])test(`AGENT-003 cited draft, exact schedule, bounc
   await courier.getByLabel('Sent at',{exact:true}).fill(localMinute(due+3600000,f.timezone))
   await courier.getByLabel('Certified mail or courier tracking number').fill('UPS-LKT-45-DAYS')
   await click(courier,'Record that it was sent')
+  await expect(courier).toContainText('Schedule: recorded')
   await expect(courier).toContainText('Sent, delivery unconfirmed')
   await shot('courier-unconfirmed')
   await h.setTime(due+7200000)

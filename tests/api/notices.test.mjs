@@ -139,7 +139,7 @@ test('AGENT-003 selected passage and 45-day termination decision to scheduled fr
   await h.setTime(due+7200000)
   await h.owner.command('notice.tracking',{noticeId:alternate.id,trackingNumber:'UPS-LOCKET-45',status:'delivered',deliveredAt:new Date(due+7200000).toISOString(),detail:'Courier signed receipt from reception.'})
   await h.owner.command('notice.acknowledge',{noticeId:alternate.id,detail:'Recipient confirmed receipt by telephone.'})
-  s=await h.owner.state();assert.ok(s.noticeTracking.find(t=>t.id===alternate.id).delivered_at<f.deadline)
+  s=await h.owner.state();assert.equal(s.noticePlans.find(p=>p.id===alternate.id).status,'recorded');assert.ok(s.noticeTracking.find(t=>t.id===alternate.id).delivered_at<f.deadline)
   assert.equal(s.noticePlans.find(p=>p.id===alternate.id).acknowledgment,'Recipient confirmed receipt by telephone.')
   await h.scheduled(due+86400000);assert.equal(h.mails.filter(m=>m.attachments).length,1)
   // Provider delivery alone is not recipient acknowledgment: the watch still alerts.
