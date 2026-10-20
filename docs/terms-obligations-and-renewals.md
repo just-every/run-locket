@@ -2,7 +2,7 @@ Once an agreement is executed, its terms decide what happens next. Nothing drive
 
 ## Confirm terms
 
-On the **Terms and obligations** tab, **Propose or correct a term**: end date, effective date, auto-renewal, renewal term, notice period, governing law or payment terms, each with the **Words from the signed clause** (or a **Signed PDF page** when the version has no text). The owner, counsel or an approver confirms or rejects each one. Correcting a confirmed term keeps the earlier value in the history.
+On the **Terms and obligations** tab, **Propose or correct a term**: end date, effective date, auto-renewal, renewal term, notice period, governing law or payment terms, each with the **Words from the signed clause** (or a **Signed PDF page** when the version has no text). When Locket recorded the execution and the signed PDF has readable text, the words must appear in that signed PDF, so wording changed after approval cannot be cited; a signed PDF without readable text is shown as not checked. The owner, counsel or an approver confirms or rejects each one. Correcting a confirmed term keeps the earlier value in the history.
 
 ## Obligations
 

@@ -73,6 +73,36 @@ test('AGENT-006 changed liability text holds execution until counsel accepts; ev
   assert.deepEqual(Buffer.from(archive.files.find(f => f.id === execution.signed_artifact_id).base64, 'base64'), returned)
 })
 
+test('AGENT-006 extracted terms and obligations reconcile with the signed PDF text, not the approved wording', async t => {
+  const h = await installation(); t.after(() => h.close())
+  const counsel = await h.invite('terms-counsel@example.test', 'counsel')
+  const f = await sent(h, 'Term reconciliation')
+  const result = await h.owner.command('execution.record', f.payload(pdf(f.text.replace('100000', '1000000'))))
+  let a = await agreement(counsel, f.a.id)
+  await counsel.command('execution.resolve', { agreementId: a.id, version: a.version, executionId: result.executionId, reason: 'Counsel accepts the negotiated cap.' })
+  a = await agreement(h.owner, f.a.id)
+  // The approved version text still says USD 100000; the signed document does not.
+  const approvedOnly = { quote: 'Liability cap is USD 100000.' }
+  const term = { agreementId: a.id, key: 'payment_terms', value: 'Liability cap USD 1000000' }
+  await h.owner.command('term.propose', { ...term, citation: approvedOnly }, { error: 'CITATION' })
+  await h.owner.command('obligation.add', { agreementId: a.id, ownerId: counsel.id, description: 'Track the liability cap', recurrence: 'none', citation: approvedOnly }, { error: 'CITATION' })
+  await h.owner.command('term.propose', { ...term, citation: { quote: 'Liability cap is USD 1000000.', page: 2 } }, { error: 'CITATION' })
+  const proposed = await h.owner.command('term.propose', { ...term, citation: { quote: 'Liability   cap is USD 1000000.' } })
+  await h.owner.command('obligation.add', { agreementId: a.id, ownerId: counsel.id, description: 'Track the liability cap', recurrence: 'none', citation: { quote: 'USD 1000000', page: 1 } })
+  const state = await h.owner.state()
+  const signedCitation = { source: 'signed-pdf-text', executionId: result.executionId, versionId: a.current_version_id, page: 1 }
+  assert.deepEqual(JSON.parse(state.terms.find(x => x.id === proposed.id).citation), { ...signedCitation, quote: 'Liability   cap is USD 1000000.' })
+  assert.deepEqual(JSON.parse(state.obligations.find(x => x.agreement_id === a.id).citation), { ...signedCitation, quote: 'USD 1000000' })
+  // A signed PDF without readable text cannot be checked: the citation says so instead of claiming a match.
+  const scanned = await sent(h, 'Scanned return')
+  const held = await h.owner.command('execution.record', scanned.payload(graphicsPdf()))
+  let s = await agreement(counsel, scanned.a.id)
+  await counsel.command('execution.resolve', { agreementId: s.id, version: s.version, executionId: held.executionId, reason: 'Counsel compared the scanned pages by eye.' })
+  s = await agreement(h.owner, scanned.a.id)
+  const unread = await h.owner.command('term.propose', { agreementId: s.id, key: 'governing_law', value: 'Delaware', citation: { quote: 'Liability cap is USD 100000.' } })
+  assert.deepEqual(JSON.parse((await h.owner.state()).terms.find(x => x.id === unread.id).citation), { source: 'version-text', versionId: s.current_version_id, quote: 'Liability cap is USD 100000.', page: null, signedText: 'unreadable', executionId: held.executionId })
+})
+
 test('AGENT-006 unchanged PDF text executes automatically, including whitespace-only differences', async t => {
   const h = await installation(); t.after(() => h.close())
   for (const whitespace of [false, true]) {

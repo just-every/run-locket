@@ -5,7 +5,8 @@ import { notificationWrites } from './notifications'
 // proposes drives a deadline until a person confirms it against the signed text.
 // Preparing or approving a notice is never evidence that it was sent.
 import { may, requireRole } from './access'
-import { fileInput, storeArtifact } from './artifacts'
+import { fileInput, readArtifactBytes, storeArtifact } from './artifacts'
+import { quotedPage, readablePages } from './execution-comparison'
 import type { Ctx, Handler } from './commands'
 import { noticeDeadlineFor } from './business-days'
 import { installationSettings } from './installation'
@@ -27,18 +28,33 @@ function termValue(key: TermKey, p: Record<string, unknown>): string {
   return text(p, 'value', 2000)
 }
 
-/** A citation points into the executed agreement: the version text or a signed-PDF page. */
+/** The Locket-recorded execution a person reconciled (EXEC-001); imported history keeps its own evidence. */
+async function signedDocument(c: Ctx, a: AgreementRow) {
+  const e = await c.db.prepare("SELECT id, signed_artifact_id FROM lk_executions WHERE agreement_id=? AND imported=0 AND status IN ('reconciled','accepted') ORDER BY recorded_at DESC LIMIT 1").bind(a.id).first<{ id: string; signed_artifact_id: string }>()
+  return e ? { executionId: e.id, pages: await readablePages(await readArtifactBytes(c.db, e.signed_artifact_id)) } : null
+}
+
+/** A citation points into the executed agreement. AGENT-006: when Locket recorded the
+ *  execution and the signed PDF has readable text, the quote must be in that signed text,
+ *  so a term or obligation never rests on approved wording the signed document changed. */
 async function citation(c: Ctx, a: AgreementRow, value: unknown) {
   const cite = object(value, 'citation')
   const quote = text(cite, 'quote', 4000)
   const page = cite.page === undefined || cite.page === null ? null : integer(cite, 'page', 1, 5000)
+  const signed = await signedDocument(c, a)
+  if (signed?.pages) {
+    const found = quotedPage(signed.pages, quote, page)
+    if (found === null) fail('CITATION', page === null ? 'The quoted words are not in the signed PDF text.' : `The quoted words are not on page ${page} of the signed PDF.`, 400)
+    return { source: 'signed-pdf-text', executionId: signed.executionId, versionId: a.current_version_id, quote, page: found }
+  }
+  const unread = signed ? { signedText: 'unreadable', executionId: signed.executionId } : {}
   const version = a.current_version_id ? await c.db.prepare('SELECT number, text FROM lk_versions WHERE id=?').bind(a.current_version_id).first<{ number: number; text: string | null }>() : null
   if (version?.text) {
     if (!version.text.includes(quote)) fail('CITATION', `The quoted words are not in the executed text of version ${version.number}.`, 400)
-    return { source: 'version-text', versionId: a.current_version_id, quote, page }
+    return { source: 'version-text', versionId: a.current_version_id, quote, page, ...unread }
   }
   if (page === null) fail('CITATION', 'This agreement has no text rendition; cite the signed PDF page number with the quoted words.', 400)
-  return { source: 'signed-pdf-page', versionId: a.current_version_id, quote, page }
+  return { source: 'signed-pdf-page', versionId: a.current_version_id, quote, page, ...unread }
 }
 
 function requireEffective(a: AgreementRow) {

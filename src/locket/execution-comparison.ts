@@ -43,6 +43,20 @@ export async function compareExecutionPdf(approved: Uint8Array, signed: Uint8Arr
   return { ...out, status: out.differences.length ? 'changed' : 'matched' }
 }
 
+/** The signed PDF's page texts, or null when any page has no readable text (OCR is not available). */
+export async function readablePages(bytes: Uint8Array): Promise<string[] | null> {
+  try { const result = await pages(bytes); return result.length && result.every(page => normalized(page)) ? result : null }
+  catch { return null }
+}
+
+/** The 1-based page holding the quote (whitespace collapsed; case, punctuation and numbers significant), or null. */
+export function quotedPage(texts: string[], quote: string, page: number | null): number | null {
+  const wanted = normalized(quote)
+  if (page !== null) return wanted && normalized(texts[page - 1] ?? '').includes(wanted) ? page : null
+  const index = texts.findIndex(text => normalized(text).includes(wanted))
+  return wanted && index >= 0 ? index + 1 : null
+}
+
 export function comparisonCheck(comparison: PdfComparison) {
   return {
     check: 'text', ok: comparison.status === 'matched', comparison,
