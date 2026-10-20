@@ -102,6 +102,7 @@ test('AGENT-003 selected passage and 45-day termination decision to scheduled fr
   const {agentFixture,approveAgent}=await import('./notice-fixture.mjs')
   const f=await agentFixture(h),agent=await h.invite('notice-agent@example.test','agent'),approver=await h.invite('notice-approver@example.test','approver')
   await agent.command('notice.source',{agreementId:f.agreementId,quote:'Give 60 days notice.'},{error:'FORBIDDEN'})
+  await agent.command('proposal.prepare',{kind:'renewal',payload:{renewalId:f.renewalId,recipient:'notices@cardinal.example',body:'Uncited text'},evidence:['Agent assertion']},{error:'CITATION'})
   await h.owner.command('notice.source',{agreementId:f.agreementId,quote:'Invented passage'},{error:'CITATION'})
   const draft=await agent.command('notice.agent.prepare',{sourceId:f.sourceId})
   let s=await h.owner.state(),n=s.notices.find(n=>n.id===draft.id),letter=s.noticeLetters.find(l=>l.id===draft.id)

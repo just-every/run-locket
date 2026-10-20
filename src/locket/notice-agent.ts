@@ -60,7 +60,7 @@ const approveSchedule: Handler = async (c, p) => {
   const local = text(p, 'sendLocal', 16)
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local)) fail('INVALID', 'Choose a local sending date and time.')
   const at = reportInstant(local, a.timezone)
-  if (localMinute(at, a.timezone) !== local || at <= c.now || at + 3_600_000 >= s.deadline_at) fail('DEADLINE', 'Choose an unambiguous valid future time with more than one hour before the confirmed deadline.', 409)
+  if (localMinute(at, a.timezone) !== local || at <= c.now || at + 3_600_000 >= s.deadline_at) fail('DEADLINE', 'Choose a valid future time with more than one hour before the confirmed deadline.', 409)
   const watchAt = Math.min(at + 86_400_000, s.deadline_at - 3_600_000)
   const out = await approveNotice(c, p, true)
   return { ...out, result: { id: plan.id, status: 'scheduled', sendAt: at, watchAt, marginMs: s.deadline_at - at },

@@ -287,7 +287,7 @@ test('10 terms and obligations are confirmed against the executed text, and corr
   assert.equal((await tm.owner.state()).obligations.find(x => x.id === ob.id).status, 'done')
 })
 
-test('11 the renewal queue computes notice deadlines in the agreement time zone and keeps sending evidence separate', async t => {
+test('AGENT-003 / RENEW-001 the renewal queue computes notice deadlines in the agreement time zone and keeps sending evidence separate', async t => {
   const h = await installation(); t.after(() => h.close())
   const tm = await team(h)
   const agent = await h.invite('agent@example.test', 'agent')
