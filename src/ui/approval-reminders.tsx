@@ -37,7 +37,7 @@ export function ApprovalReminders({ state, a, locket }: { state: LocketState; a:
           {working && (blocked ? <small>Reminded recently. Next manual reminder from {when(p.manualAvailableAt)}.</small> : (
             <button type="button" disabled={locket.busy} onClick={async () => {
               const out = await locket.run('approval.remind', { agreementId: a.id, version: a.version, approverId: p.approverId })
-              if (out) locket.setNotice(receipt[out.mailReceipt?.status] ?? 'Reminder acceptance has not been confirmed.')
+              if (out) locket.setNotice(out.mailReceipt?.code === 'daily_digest' ? 'Waiting for the recipient’s daily digest. No reminder email has been sent yet.' : out.mailReceipt?.code === 'notification_preferences' ? 'Email is disabled in the recipient’s notification preferences. No reminder email was sent.' : receipt[out.mailReceipt?.status] ?? 'Reminder acceptance has not been confirmed.')
             }}>Remind approver</button>
           ))}
         </li>

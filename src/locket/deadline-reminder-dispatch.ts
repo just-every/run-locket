@@ -1,3 +1,4 @@
+import { routeNotification, notificationOutcome } from './notification-dispatch'
 // RENEW-002 delivery: the hourly run sends each open deadline's latest due
 // reminder once, batches a digest person's reminders into one daily email,
 // escalates an undecided renewal at 30 days to the agreement's approver and the
@@ -73,6 +74,7 @@ export async function deliver(c: Ctx, id: string) {
   const attempt = crypto.randomUUID()
   const name = await names(c.db, [row.recipient_id, ...items.map(i => i.recipient_id)])
   const finish = async (status: string, provider: string | null, messageId: string | null, code: string | null) => {
+    await notificationOutcome(c.env, 'deadline', id, status, provider, messageId)
     const token = status === 'cancelled' ? null : attempt
     const audited = row!.kind === 'digest' ? items : [row!]
     const audits = audited.map(r => auditSql({ ...c, commandId: id }, { action: `deadline.${row!.kind}.${status}`, agreementId: r.agreement_id, summary: summary(r, status, name, row!.kind === 'digest' ? row! : undefined) }, 'scheduler'))
@@ -92,6 +94,8 @@ export async function deliver(c: Ctx, id: string) {
   }
   row = (await read(c.db, id))!
   if (row.attempt_id !== attempt) return
+  const routed = await routeNotification(c, {key:id,agreementId:row.agreement_id!,recipientId:row.recipient_id,kind:'deadline',sourceKind:'deadline',sourceId:id})
+  if (routed.status !== 'immediate') return finish('suppressed', null, null, routed.status === 'deferred' ? 'daily_digest' : 'notification_preferences')
   if (localMail(c.env)) return finish('suppressed', 'development', null, null)
   const sender = operatorMail(c.env)
   if (!sender || !c.env.MAIL_FROM) return finish('rejected', null, null, 'mail_unavailable')
@@ -128,7 +132,7 @@ async function remind(c: Ctx, d: Deadline) {
   const pref = await preferenceOf(c.db, to.id), zone = pref?.timezone ?? d.zone
   const due = d.offsets.map(offset => ({ offset, at: dueAt(d.deadlineDate, offset, zone) })).filter(x => x.at <= c.now && x.at > c.now - lateLimitMs).sort((a, b) => b.at - a.at)[0]
   if (!due) return
-  const row = await insert(c, { agreement_id: d.agreementId, subject_kind: d.subjectKind, subject_id: d.subjectId, deadline_date: d.deadlineDate, deadline_at: d.deadlineAt, kind: 'reminder', offset_days: due.offset, recipient_id: to.id, recipient_email: email, recipient_reason: to.reason, timezone: zone, due_at: due.at, status: pref?.digest ? 'in_digest' : 'queued' })
+  const row = await insert(c, { agreement_id: d.agreementId, subject_kind: d.subjectKind, subject_id: d.subjectId, deadline_date: d.deadlineDate, deadline_at: d.deadlineAt, kind: 'reminder', offset_days: due.offset, recipient_id: to.id, recipient_email: email, recipient_reason: to.reason, timezone: zone, due_at: due.at, status: 'queued' })
   if (row?.status === 'queued') await deliver(c, row.id)
 }
 
@@ -165,18 +169,6 @@ async function overdue(c: Ctx, d: Deadline & { responsibleId: string }, days: nu
   }
 }
 
-/** One digest per person per local date carries every reminder that came due for them. */
-async function digests(c: Ctx) {
-  const waiting = (await c.db.prepare("SELECT DISTINCT recipient_id, recipient_email, timezone FROM lk_deadline_reminders WHERE status='in_digest' AND digest_id IS NULL").all<{ recipient_id: string; recipient_email: string; timezone: string }>()).results
-  for (const w of waiting) {
-    const date = new Intl.DateTimeFormat('en-CA', { timeZone: w.timezone || defaultZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(c.now))
-    const row = await insert(c, { agreement_id: null, subject_kind: 'digest', subject_id: w.recipient_id, deadline_date: date, deadline_at: c.now, kind: 'digest', offset_days: 0, recipient_id: w.recipient_id, recipient_email: w.recipient_email, recipient_reason: 'digest', timezone: w.timezone, due_at: c.now, status: 'queued' })
-    if (row?.status !== 'queued') continue // today's digest already went; these wait for tomorrow's
-    await c.db.prepare("UPDATE lk_deadline_reminders SET digest_id=? WHERE status='in_digest' AND digest_id IS NULL AND recipient_id=?").bind(row.id, w.recipient_id).run()
-    await deliver(c, row.id)
-  }
-}
-
 /** One scheduled run (hourly Cron Trigger). */
 export async function runDeadlineReminders(env: Bindings, now: number) {
   const c: Ctx = { env, db: env.DB, actor: scheduler, now, commandId: crypto.randomUUID() }
@@ -186,7 +178,6 @@ export async function runDeadlineReminders(env: Bindings, now: number) {
   }
   const days = await overdueEscalationDays(env.DB)
   for (const d of await overdueObligations(env.DB, now)) await overdue(c, d, days)
-  await digests(c)
 }
 
 /** A bounced message is retried once: to the bounced person's alternate, else the agreement's responsible person, else the owner. */

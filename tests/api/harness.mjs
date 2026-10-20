@@ -100,7 +100,7 @@ export async function installation({ bindings = {}, mailResponse } = {}) {
       assert.equal(confirmed.status, 303)
       return client(confirmed.headers.getSetCookie().map(v => v.split(';')[0]).join('; '))
     }
-    return { mf, db, origin, request, owner, invite, signIn, mails, async setTime(at) { workerBindings.TEST_NOW = String(at); await mf.setOptions(runtimeOptions()) }, async scheduled(at) { await (await mf.getWorker()).scheduled({ scheduledTime: new Date(at), cron: '0 * * * *' }) }, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
+    return { mf, db, origin, request, owner, invite, signIn, mails, async setTime(at) { workerBindings.TEST_NOW = String(at); await mf.setOptions(runtimeOptions()) }, async scheduled(at) { const result = await (await mf.getWorker()).scheduled({ scheduledTime: new Date(at), cron: '0 * * * *' }); assert.equal(result.outcome, 'ok', JSON.stringify(result)) }, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
   } catch (error) {
     await mf.dispose().catch(() => {})
     await rm(root, { recursive: true, force: true }).catch(() => {})

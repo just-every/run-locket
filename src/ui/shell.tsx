@@ -15,6 +15,7 @@ export const sections: { id: string; title: string; icon: IconName }[] = [
   { id: 'agreements', title: 'Agreements', icon: 'document' },
   { id: 'library', title: 'Library', icon: 'book' },
   { id: 'renewals', title: 'Renewals', icon: 'calendar' },
+  { id: 'notifications', title: 'Notifications', icon: 'inbox' },
   { id: 'proposals', title: 'Proposals', icon: 'inbox' },
   { id: 'imports', title: 'Imports', icon: 'upload' },
   { id: 'activity', title: 'Activity', icon: 'pulse' },

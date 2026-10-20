@@ -1,3 +1,7 @@
+import { approvalNotifications } from './notification-events'
+import { routing } from './review'
+import { notificationWrites } from './notifications'
+import { readerSql } from './deadline-reminders'
 // Intake, parties, required attachments, versions, comments, family links,
 // access grants and legacy file import (clauses 1, 2, 3 and 5).
 import { retainedClauseUses, templateClauseUses } from './clause-provenance'
@@ -168,6 +172,7 @@ const createRequest: Handler = async (c, p) => {
     ),
   )
   if (version) writes.push(...version.writes)
+  writes.push(...notificationWrites(c,{key:c.commandId,agreementId:id,recipientId:ownerId,kind:'assignment'}))
   const labels = [...defaultRequirements[type], ...list(p, 'requirements', 20).map(x => (typeof x === 'string' && x.trim() ? x.trim().slice(0, 200) : fail('INVALID', 'Requirement labels must be text.')))]
   for (const label of [...new Set(labels)]) writes.push(sql('INSERT INTO lk_requirements VALUES(?,?,?,?,?,?,?)', crypto.randomUUID(), id, label, null, null, null, c.now))
   return {
@@ -192,6 +197,7 @@ const updateRequest: Handler = async (c, p) => {
   const m = value ?? { currency: a.currency, valueCents: a.value_cents, originalCents: a.original_cents, rate: a.usd_rate, rateBy: a.rate_recorded_by, rateAt: a.rate_recorded_at }
   const contextChanged = m.valueCents !== a.value_cents || m.currency !== a.currency || m.originalCents !== a.original_cents || m.rate !== a.usd_rate
   const writes = [bump(c, a, 'title=?, value_cents=?, currency=?, original_cents=?, usd_rate=?, rate_recorded_by=?, rate_recorded_at=?, owner_id=?, needed_by=?, restricted=?, status=?', title, m.valueCents, m.currency, m.originalCents, m.rate, m.rateBy, m.rateAt, ownerId, neededBy, restricted, contextChanged ? statusAfterChange(a) : a.status)]
+  if (ownerId !== a.owner_id) writes.push(...notificationWrites(c,{key:c.commandId,agreementId:a.id,recipientId:ownerId,kind:'assignment'}))
   if (contextChanged) writes.push(invalidateApprovals(c, a.id, 'Contract value changed'))
   return { allowed: may.intake, result: { id: a.id }, writes, checks: agreementGuards(c, a, p), audit: [{ action: 'request.update', agreementId: a.id, summary: contextChanged ? `Changed request details and value to ${amountWords(m as Amount)}; earlier approvals no longer count` : 'Changed request details' }] }
 }
@@ -233,7 +239,7 @@ const submit: Handler = async (c, p) => {
   return {
     allowed: may.intake,
     result: { id: a.id, status: 'in_review' },
-    writes: [bump(c, a, "status='in_review'")],
+    writes: [bump(c, a, "status='in_review'"), ...await approvalNotifications(c,a,[...new Set((await routing(c.db,a)).flatMap(r=>r.roles))],c.commandId)],
     // Nothing may be detached between our read and this write.
     checks: [...agreementGuards(c, a, p), sql('NOT EXISTS(SELECT 1 FROM lk_requirements WHERE agreement_id=? AND artifact_id IS NULL AND waived_reason IS NULL)', a.id)],
     audit: [{ action: 'agreement.submit', agreementId: a.id, summary: 'Submitted for review' }],
@@ -300,7 +306,11 @@ const addComment: Handler = async (c, p) => {
   const a = await visibleAgreement(c, p.agreementId)
   const v = await c.db.prepare('SELECT id, number FROM lk_versions WHERE id=? AND agreement_id=?').bind(p.versionId, a.id).first<any>()
   if (!v) fail('NOT_FOUND', 'That version is not on this agreement.', 404)
-  return { allowed: may.review, result: { agreementId: a.id }, writes: [sql('INSERT INTO lk_comments VALUES(?,?,?,?,?,?,?)', crypto.randomUUID(), a.id, v.id, c.actor.id, text(p, 'body', 4000), optionalText(p, 'quote', 2000), c.now)], checks: agreementGuards(c, a), audit: [{ action: 'comment.add', agreementId: a.id, summary: `Commented on version ${v.number}` }] }
+  const mentionIds = [...new Set(list(p, 'mentionIds', 50).map(id => typeof id === 'string' && id ? id : fail('INVALID', 'Mentions name explicit operator identities.')))]
+  const mentionChecks = mentionIds.flatMap(id => readerSql(c, a.id, id))
+  for (const check of mentionChecks) if (!(await c.db.prepare(`SELECT CASE WHEN ${check.sql} THEN 1 ELSE 0 END AS ok`).bind(...check.params).first<{ok:number}>())?.ok) fail('RECIPIENT', 'A mentioned person must be an active human with current agreement access.', 400)
+  const id = crypto.randomUUID()
+  return { allowed: may.review, result: { agreementId: a.id, commentId: id }, writes: [sql('INSERT INTO lk_comments VALUES(?,?,?,?,?,?,?)', id, a.id, v.id, c.actor.id, text(p, 'body', 4000), optionalText(p, 'quote', 2000), c.now), ...mentionIds.flatMap(recipientId => notificationWrites(c, {key:id,agreementId:a.id,recipientId,kind:'mention'}))], checks: [...agreementGuards(c, a), ...mentionChecks], audit: [{ action: 'comment.add', agreementId: a.id, summary: `Commented on version ${v.number}; ${mentionIds.length} explicit mentions` }] }
 }
 
 /** Links an agreement into its family (MSA, amendment, order form). */

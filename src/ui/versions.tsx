@@ -133,9 +133,14 @@ export function Comments({ state, a, shown, locket }: { state: LocketState; a: R
       <div className="lk-panel-head"><h2>Comments</h2><span className="lk-muted">Internal: the counterparty never sees them. A comment that quotes a passage sits beside it.</span></div>
       {loose.length > 0 && <ul className="lk-comments">{loose.map(c => <li key={c.id}><strong>{personName(state, c.author_id)}</strong> on v{shown.number}<small>{stamp(c.at, { zone: a.timezone })}</small>{c.quote && <q>{c.quote}</q>}<p>{c.body}</p></li>)}</ul>}
       {can(state, 'owner', 'counsel', 'approver', 'requester') && (
-        <Form busy={busy} submit="Comment" onSubmit={async (data, form) => { if (await run('comment.add', { agreementId: a.id, versionId: shown.id, body: value(data, 'body'), quote: value(data, 'quote') || undefined })) form.reset() }}>
+        <Form busy={busy} submit="Comment" onSubmit={async (data, form) => { if (await run('comment.add', { agreementId: a.id, versionId: shown.id, body: value(data, 'body'), quote: value(data, 'quote') || undefined, mentionIds: data.getAll('mentionIds').map(String) })) form.reset() }}>
           <Field label="Quoted passage (optional)"><input name="quote" /></Field>
           <Field label={`Comment on v${shown.number}`}><textarea name="body" rows={2} required /></Field>
+          <fieldset className="lk-fieldset">
+            <legend>Mention people (optional)</legend>
+            <small>Choose the people to notify. They must have access to this agreement.</small>
+            {state.operators.filter(o => o.status === 'active' && o.role !== 'agent').map(o => <label className="lk-check" key={o.id}><input type="checkbox" name="mentionIds" value={o.id} /> Mention {o.name}{o.email ? ` (${o.email})` : ''}</label>)}
+          </fieldset>
         </Form>
       )}
     </section>

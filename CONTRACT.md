@@ -116,12 +116,16 @@ The owner connects Salesforce, HubSpot or Orbit with OAuth. A seller starts a co
 #### INTAKE-005 — Slack, Microsoft Teams and Nook intake and updates.
 A `/contract` command or message shortcut in Slack, Microsoft Teams or Nook opens the request form and creates the request as the signed-in person. Request owners and watchers receive status changes, mentions, approval requests and signature completion in a direct message or a chosen channel, each linking to the record. Messages never reveal a restricted agreement to a channel member without access.
 
+Before shipping, these new events and channels inherit `NOTIFY-001` personal inbox/channel/digest preferences, generic authenticated-link messages, current-access checks, single-use send claims and honest outcomes.
+
 *Acceptance:* a journey with a Slack API fake submits a request from the shortcut, receives the approval-needed and executed messages in direct messages, and confirms that a restricted agreement's update is withheld from a channel whose members lack access. The same journey runs against Teams and Nook fakes.
 
 *Status:* missing. No chat connector exists.
 
 #### INTAKE-006 — Request queue, assignment and service levels.
 Legal and operations see one queue of open requests with responsible person, assignee, stage, needed-by date, age and the next action, filterable by type, team and status, plus a "my work" view. Assignment rules spread new requests across a team; a person can reassign with a reason. Each type has a service level (for example an NDA turned around in 2 business days); requests close to or past it are flagged and escalated to the team lead. The requester, the responsible person, owner or counsel can cancel a request that is not yet executed, choosing a reason (deal lost, no longer needed, duplicate, replaced by another request, other with a note). A canceled request leaves the open queue, keeps its versions and history, voids any envelope out for signature (`SIGN-002`), withdraws its approvals, and stops its reminders. It appears under a Canceled filter and in `REPORT-001` as canceled with its reason and the stage it reached. The owner or counsel can reopen it with a reason.
+
+Before shipping, these new events and channels inherit `NOTIFY-001` personal inbox/channel/digest preferences, generic authenticated-link messages, current-access checks, single-use send claims and honest outcomes.
 
 *Acceptance:* a browser journey at 1440 and 390 pixels creates three requests, sees them assigned round-robin, reassigns one, advances the clock past an NDA's 2-business-day service level and sees it flagged and the team lead notified. It cancels one request in negotiation as "deal lost": the request leaves the open queue, appears under Canceled with its reason, and is counted in `REPORT-001`'s canceled-by-reason figures. A viewer's cancel is refused, and counsel reopens the request with a reason.
 
@@ -395,12 +399,16 @@ The exact rules the code uses:
 #### SIGN-002 — Live Docusign, Adobe Acrobat Sign and Dropbox Sign.
 The owner connects a Docusign, Adobe Acrobat Sign or Dropbox Sign account with OAuth. From an approved signature package (`SIGN-001`), Locket creates and sends the envelope with every document in the packet and the recipients, signing order, CCs and signature fields that `SIGN-005` decides, records the envelope ID, and tracks status through the provider's webhooks (Docusign Connect, Acrobat Sign webhooks, Dropbox Sign callbacks), verifying each callback's signature. People see sent, viewed, signed, declined and voided per signer, can send reminders, and Locket voids the envelope if the agreement changes after sending. A coordinator (`SIGN-005`) can correct a recipient who has not yet signed without voiding: fix a wrong name or email, or reassign the signer when they delegate to a colleague. Locket does this through each provider's own correction (Docusign's envelope recipient update, Acrobat Sign's participant replacement, Dropbox Sign's signer email update, and Inkwell's equivalent). Each correction records who changed whom and why in the routing manifest, which `EXEC-001` reconciles against. The document and its approval stay unchanged; a provider that cannot correct a recipient is shown as needing void and resend. Provider credentials stay in the owner's secret store.
 
+Before shipping, these new events and channels inherit `NOTIFY-001` personal inbox/channel/digest preferences, generic authenticated-link messages, current-access checks, single-use send claims and honest outcomes.
+
 *Acceptance:* a Workers journey with a Docusign API fake sends an approved two-document package with its `SIGN-005` signers and fields, receives signed callbacks for viewed, one signer completed and envelope completed, rejects a callback with a bad signature, and voids an envelope when a new version is added. A counterparty signer's mistyped email is corrected, and a second signer is reassigned to a delegate, both without voiding; the envelope keeps its ID, the manifest records both changes, and `EXEC-001` reconciles cleanly against the corrected signers. The same journey runs against Acrobat Sign and Dropbox Sign fakes. A live sandbox run against each provider's developer account is recorded before the clause is accepted.
 
 *Status:* partial. Provider-named packages, routing manifests and recorded envelope IDs ship (`src/locket/execution.ts`, `tests/api/flows.test.mjs`); live sending, webhooks, reminders and voiding do not exist.
 
 #### SIGN-003 — Inkwell signing.
 Inkwell, the Run Edit Run e-signature product, connects the same way as `SIGN-002`: Locket sends the approved package to the buyer's Inkwell installation, receives signed status events and retrieves the completed file and Inkwell's completion certificate automatically.
+
+Before shipping, these new events and channels inherit `NOTIFY-001` personal inbox/channel/digest preferences, generic authenticated-link messages, current-access checks, single-use send claims and honest outcomes.
 
 *Acceptance:* a journey against an Inkwell installation fake sends a package, receives completion and retrieves the file and certificate, which `EXEC-001` reconciles cleanly.
 
@@ -436,6 +444,8 @@ Locket decides who signs, where they sign and what they sign before an envelope 
 
 #### OBL-001 — Obligation extraction, owners and status.
 The built-in model proposes obligations from executed agreements (deliverables, payment milestones, service levels, insurance certificates, reporting, audit rights, data return or destruction, exclusivity, minimum commitments), each with the party bound, due date or recurrence, and citation. Confirmed obligations get an owner and status (upcoming, due, done, missed, waived) and appear on the owner's list and the counterparty page.
+
+Before shipping, these new events and channels inherit `NOTIFY-001` personal inbox/channel/digest preferences, generic authenticated-link messages, current-access checks, single-use send claims and honest outcomes.
 
 *Acceptance:* a journey with a model-provider fake extracts six obligations from a fixture supplier agreement, a person confirms five with owners and rejects one; the confirmed ones appear on each owner's list with their next due dates and recurrence. The clause is accepted only when a live run under `REVIEW-006` meets the obligations bar.
 
@@ -580,11 +590,17 @@ Every connection (CRM, signing, storage, calendar, chat, accounting, procurement
 *Status:* missing. No connections exist yet.
 
 #### NOTIFY-001 — Notifications and preferences.
-MOBILE-001's explicit approval-email action ships today, passing only a recipient address, generic text and authenticated record link to the configured mail provider; its guarded outbox keeps the requester/recipient, version, time and honest provider outcome. Every new channel, automatic request and preference in this clause must preserve the same phone layout, current access/authority/version checks, generic-link privacy and honest delivery labels. People receive in-app and email notifications (and chat under `INTAKE-005`) for assignments, mentions, approval requests, signature events, overdue obligations and deadlines, with per-person preferences for channel and a daily digest. Notifications never disclose an agreement the recipient may not see.
+People receive personal in-app and email notifications for today's request responsible-person assignment and reassignment, confirmed obligation assignment, explicit comment mentions, pending commercial and exception approvals, manual signature handoff/void/completion and accepted execution, overdue obligations and renewal/obligation deadlines. Only explicit operator identities are mentions; typing a display name never selects a recipient. Automatic approval requests follow the current route and exclude a requester who cannot approve their own request. Signature events go to the requester's and responsible person's accounts. Every recipient must be an active human with current agreement access.
 
-*Acceptance:* a journey mentions a counsel in a comment, assigns a request and completes a signature; counsel receives the in-app and email notifications under their preferences, switching to a daily digest batches the next day's notifications, and a viewer without access receives none for a restricted agreement.
+Each person sets their own in-app/email switches, daily email digest and US time zone. Existing reminder delegates and bounce alternates are preserved. Channels default on, digest off; the personal reminder zone (else the installation zone) is used. The inbox lists generic event kinds with authenticated record links and personal read state, and rechecks current access each time. In-app events created while that channel was off are not backfilled. Disabling in-app delivery hides the inbox until re-enabled. Email contains only generic labels and authenticated links, never titles, counterparties, values or comment text.
 
-*Status:* partial. MOBILE-001 sends an explicit generic approval-email link with an audited provider outcome (`src/locket/approval-mail.ts`, `tests/api/approval-mail.test.mjs`); automatic assignment/mention/signature/deadline notifications, in-app delivery, preferences, chat and daily digests do not exist.
+New business events are inserted in the same guarded batch as their command; command replay never creates a second event. The existing explicit approval email, approval reminders/escalations and deadline reminders/escalations use these same channel and digest choices, keeping their authority/version/deadline checks and signed delivery evidence. The first hourly tick at or after 9 a.m. in each recipient's zone claims at most one digest for that local date with all eligible waiting items; later items wait for the next day's digest. Current access, role, preferences and pending approval/deadline state are checked again inside the send claim. A provider-accepted outcome means acceptance only, never confirmed mailbox delivery. Interrupted or uncertain sends are visible and never automatically resent. Local/dev mail stays suppressed.
+
+This clause is done for every capability that exists today. `INTAKE-005` adds chat delivery; `INTAKE-006` adds team assignment and queue/SLA events; `SIGN-002` and `SIGN-003` add provider signing events. Each inherits this clause's personal preferences, generic-link privacy, current access, one-use claim, inbox and digest obligations before shipping. `OBL-001` adds the same assignment/overdue notifications for extracted obligation kinds. Whole-installation owner archives retain the notification records and delivery outcomes under PORT-001; ordinary workspace reads never expose another person's inbox or delivery address.
+
+*Acceptance:* clause-named API and browser journeys mention counsel, assign a request and complete a signature; counsel receives the in-app and email events under personal preferences. Switching to a daily digest batches the next day's notifications into one own-zone 9 a.m. email, including an explicit approval email and existing deadline reminders. Assertions cover each current event kind, duplicate/concurrent sends, read-state persistence, channel switches, explicit-identity mentions, agent/other-person refusal, current role/access revocation, pending approval/version changes, no restricted viewer disclosure, generic mail, uncertain outcomes without resend, signed deadline-digest evidence and whole-archive retention (`tests/portable.mjs` names NOTIFY-001 and restores channels, read state, records and delivery outcomes through rer export/import). Browser journeys at 1440/390 use the comment mention control, open the inbox and linked agreement, mark read, and save/reload channel, digest and zone preferences without horizontal scrolling. Future named clauses assert their inherited channels and event kinds before shipping.
+
+*Status:* done. Current events, personal channels and inbox, shared own-zone daily digest, guarded one-use sends and honest outcomes ship (`src/locket/notifications.ts`, `src/locket/notification-dispatch.ts`, `tests/api/notifications.test.mjs`, `tests/api/approval-mail.test.mjs`, `tests/api/approval-reminders.test.mjs`, `tests/api/deadline-reminders.test.mjs`, `tests/browser/notifications.spec.ts`).
 
 #### US-001 — US defaults.
 A new installation defaults to USD with values entered and shown as US dollars, an installation time zone chosen from US zones (Eastern, Central, Mountain, Arizona, Pacific, Alaska, Hawaii) that new agreements inherit and can change per agreement, US date format, governing law chosen from US states and the District of Columbia (with other jurisdictions available), counterparty EIN in place of ABN, and an option to roll notice deadlines that fall on a weekend or US federal holiday to the previous business day. Agreements in another currency keep their original amount and show the USD equivalent at a recorded rate. Default required attachments: supplier agreements need a certificate of insurance and a Form W-9; customer agreements need a statement of work or order form; amendments need the signed parent; NDAs none.
@@ -896,8 +912,8 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 16 | 31 | 33 | 80 |
-| All | 35 | 31 | 33 | 99 |
+| Target and push further | 17 | 30 | 33 | 80 |
+| All | 36 | 30 | 33 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -974,7 +990,7 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | `INT-002` | Public API, webhooks, Zapier and Crank | target | partial | `src/locket/api.ts`; `API.md` | Scoped tokens, webhooks and the Zapier and Crank apps do not exist |
 | `INT-003` | SSO and SCIM provisioning | target | partial | `src/locket/people.ts`; `src/locket/access.ts` | SSO and SCIM do not exist |
 | `INT-004` | Connection health | target | missing |  | No connections exist yet |
-| `NOTIFY-001` | Notifications and preferences | target | partial | `src/locket/approval-mail.ts`; `tests/api/approval-mail.test.mjs` | Explicit approval email ships; automatic events, in-app delivery, preferences, chat and daily digests remain absent |
+| `NOTIFY-001` | Notifications and preferences | target | done | `src/locket/notifications.ts`; `src/locket/notification-dispatch.ts`; `tests/api/notifications.test.mjs`; `tests/api/approval-mail.test.mjs`; `tests/api/approval-reminders.test.mjs`; `tests/api/deadline-reminders.test.mjs`; `tests/browser/notifications.spec.ts`; `tests/portable.mjs` | |
 | `US-001` | US defaults | target | done | `src/locket/installation.ts`; `src/locket/us-defaults.ts`; `src/locket/business-days.ts`; `tests/api/us-defaults.test.mjs`; `tests/browser/us-defaults.spec.ts` |  |
 | `AUDIT-001` | Filterable activity audit trail | target | done | `src/locket/audit.ts`; `src/locket/views.ts`; `tests/api/flows.test.mjs`; `tests/browser/audit.spec.ts` |  |
 | `ERASE-001` | Personal-data erasure with legal hold | target | missing |  | No erasure, hold or retention capability exists |

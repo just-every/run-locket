@@ -1,3 +1,4 @@
+import { routeNotification, notificationOutcome } from './notification-dispatch'
 import type { Bindings } from '../auth.server'
 import { operatorMail } from '../mail.server.mjs'
 import { may, requireRole, roleSql, visibleSql } from './access'
@@ -62,6 +63,7 @@ export async function dispatchApprovalMail(c: Ctx): Promise<unknown> {
   if (row.status !== 'queued') return receipt(row)
   const attempt = crypto.randomUUID()
   const finish = async (status: string, provider: string | null, providerMessageId: string | null, code: string | null) => {
+    await notificationOutcome(c.env, 'approval_mail', c.commandId, status, provider, providerMessageId)
     const cancelled = status === 'cancelled'
     const token = cancelled ? null : attempt
     const audit = auditSql(c, { action: `approval.email.${status}`, agreementId: row!.agreement_id, summary: status === 'accepted' ? 'Mail provider accepted the approval email; mailbox delivery is unconfirmed.' : status === 'suppressed' ? 'Approval email suppressed in local development or demo; no email was sent.' : `Approval email outcome: ${status}.` })
@@ -83,6 +85,8 @@ export async function dispatchApprovalMail(c: Ctx): Promise<unknown> {
   }
   row = (await c.db.prepare('SELECT * FROM lk_approval_mail WHERE id=?').bind(c.commandId).first<MailRow>())!
   if (row.attempt_id !== attempt) return receipt(row)
+  const routed = await routeNotification(c, {key:c.commandId,agreementId:row.agreement_id!,recipientId:row.recipient_id,kind:'approval',sourceKind:'approval_mail',sourceId:c.commandId})
+  if (routed.status !== 'immediate') return finish('suppressed', null, null, routed.status === 'deferred' ? 'daily_digest' : 'notification_preferences')
   if (localMail(c)) return finish('suppressed', 'development', null, null)
   const sender = operatorMail(c.env)
   if (!sender || !c.env.MAIL_FROM) return finish('rejected', null, null, 'mail_unavailable')

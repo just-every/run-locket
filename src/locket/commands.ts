@@ -1,3 +1,5 @@
+import { commandNotifications } from './notification-events'
+import { runNotifications } from './notification-dispatch'
 // One consequential write = one D1 batch: guard (session, role, record
 // versions) → writes → durable command outcome → audit → guard release.
 // Retrying the same commandId with the same payload returns the first outcome.
@@ -74,6 +76,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     if (type === 'approval.email') await dispatchApprovalMail(c)
     if (type === 'approval.remind') await deliverReminder(c, commandId, true)
     if (type === 'notice.email') await dispatchNotice(c)
+    await runNotifications(env, c.now, false)
     return result
   }
   const digest = await sha256(canonical({ type, payload }))
@@ -83,9 +86,11 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     return completed(JSON.parse(prior.result))
   }
   const out = await handlers[type](c, payload)
+  const notifications = await commandNotifications(c, type, payload, out)
   try {
     await commit(c, out.allowed, out.checks ?? [], [
       ...out.writes,
+      ...notifications,
       sql('INSERT INTO lk_commands VALUES(?,?,?,?,?,?)', commandId, type, actor.id, digest, json(out.result), c.now),
       ...out.audit.map(entry => auditSql(c, entry)),
     ])

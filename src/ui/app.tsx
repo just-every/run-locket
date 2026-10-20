@@ -11,6 +11,7 @@ import { Proposals } from './proposals'
 import { Portfolio } from './portfolio'
 import { Register } from './register'
 import { Renewals } from './renewals'
+import { Notifications } from './notifications'
 import { money, partyName } from './format'
 import { sections, Shell } from './shell'
 import './style'
@@ -62,6 +63,7 @@ export function LocketApp() {
             {route.view === 'clickwrap' && <Clickwrap state={state} locket={locket} />}
             {route.view === 'library' && <Library state={state} locket={locket} />}
             {route.view === 'renewals' && <Renewals state={state} locket={locket} />}
+            {route.view === 'notifications' && <Notifications state={state} locket={locket} />}
             {route.view === 'proposals' && <Proposals state={state} locket={locket} />}
             {route.view === 'imports' && <Imports state={state} locket={locket} />}
             {route.view === 'activity' && <Activity state={state} locket={locket} />}

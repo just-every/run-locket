@@ -94,6 +94,7 @@ async function port() {
 async function start(root, p) {
   const runtime = child(root, [
     "dev",
+    "--foreground",
     "--port",
     String(p),
     "--no-queue",
@@ -146,13 +147,11 @@ async function start(root, p) {
         return result.result;
       },
       async close() {
-        await command(root, ["dev", "--stop"]);
         if (runtime.proc.exitCode === null) runtime.proc.kill("SIGTERM");
         await runtime.done;
       },
     };
   } catch (error) {
-    await command(root, ["dev", "--stop"]).catch(() => {});
     if (runtime.proc.exitCode === null) runtime.proc.kill("SIGTERM");
     await runtime.done;
     throw error;
@@ -166,6 +165,8 @@ try {
   const source = await copy('source'), destination = await copy('destination'), p = await port()
   await command(source, ['setup', '--owner-email', 'owner@example.test', '--port', String(p), '--non-interactive', '--no-queue'])
   running = await start(source, p)
+  // NOTIFY-001: personal channels, read state and honest delivery outcomes travel in the whole installation archive.
+  await running.cmd('notification.preferences', { inApp: true, email: true, digest: false, timezone: 'America/Chicago' })
   const state = async () => (await running.request('/api/locket/state')).json()
   const tpl = await running.cmd('template.create', { name: 'NDA', type: 'nda', body: 'NDA with {{counterparty}}.\n[[clause:term]]', fields: [], clauses: [{ key: 'term', title: 'Term', variants: [{ id: 'two', label: '2 years', text: 'Obligations last 2 years.' }] }] })
   await running.cmd('template.decide', { versionId: tpl.versionId, decision: 'approve' })
@@ -195,7 +196,12 @@ try {
   const dry = await running.cmd('import.preview', { kit: 'docusign-archive', label: 'Portable move-in', dateFormat: 'dmy', manifest: file('envelopes.csv', await readFile('tests/fixtures/docusign-archive/envelopes.csv')), files: [{ path: `${MSA}/MSA.pdf`, base64: pdf('Signed MSA', 2).toString('base64') }, { path: `${MSA}/Summary.pdf`, base64: pdf('MSA certificate').toString('base64') }] })
   let batch = (await state()).imports.find(b => b.id === dry.batchId)
   await running.cmd('import.apply', { batchId: batch.id, version: batch.version, fingerprint: batch.fingerprint })
+  const notification = (await state()).notifications.items.find(n => !n.read_at)
+  assert.ok(notification, 'NOTIFY-001 has a current event before export')
+  await running.cmd('notification.read', { id: notification.id })
   const before = await (await running.request('/api/locket/export')).json()
+  assert.ok(before.records.lk_notifications.some(n => n.id === notification.id && n.read_at), 'NOTIFY-001 read state is archived')
+  assert.ok(before.records.lk_notification_deliveries.some(n => n.status === 'suppressed'), 'NOTIFY-001 retains honest local suppression')
   assert.equal(before.records.lk_agreements.length, 2)
   assert.equal(before.records.lk_renewals.length, 1)
   const oldSession = running.sessionCookie()
@@ -210,7 +216,7 @@ try {
   assert.equal((await running.request('/api/locket/state', 'GET', undefined, oldSession)).status, 401, 'restored operator evidence does not restore the source session')
   const after = await (await running.request('/api/locket/export')).json()
   const ids = rows => [...rows].sort((x, y) => String(x.id ?? x.operator_id ?? x.agreement_id).localeCompare(String(y.id ?? y.operator_id ?? y.agreement_id)))
-  for (const table of Object.keys(before.records)) assert.deepEqual(ids(after.records[table]), ids(before.records[table]), `${table} restored exactly`)
+  for (const table of Object.keys(before.records)) assert.deepEqual(ids(after.records[table]), ids(before.records[table]), `${table.startsWith('lk_notification') || table === 'lk_person_preferences' ? 'NOTIFY-001 ' : ''}${table} restored exactly`)
   assert.deepEqual(after.files.map(f => [f.id, f.sha256, f.base64]).sort(), before.files.map(f => [f.id, f.sha256, f.base64]).sort(), 'every file restored byte for byte')
   // The restored owner continues work: the move-in journal still undoes, and new terms still compute.
   batch = (await (await running.request('/api/locket/state')).json()).imports.find(b => b.id === dry.batchId)
@@ -222,7 +228,7 @@ try {
   assert.equal(final.renewals.find(r => r.agreement_id === a.id).deadline_date, '2028-07-18')
   await running.close()
   running = null
-  console.log('Fresh rer export/import restored every Locket record and file byte for byte; a new owner session undid the restored move-in and corrected a term.')
+  console.log('NOTIFY-001: fresh rer export/import restored every Locket record and file byte for byte; a new owner session undid the restored move-in and corrected a term.')
 } finally {
   if (running) await running.close().catch(() => {})
   for (const proc of children) {

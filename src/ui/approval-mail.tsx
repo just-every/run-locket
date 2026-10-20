@@ -24,7 +24,7 @@ export function ApprovalMail({ state, a, locket }: { state: LocketState; a: Row;
         rate_limited: 'The mail provider rate limited the approval email. No acceptance is confirmed.',
         cancelled: 'The approval email was cancelled because access or the agreement changed. Reload before trying again.',
       }
-      locket.setNotice(message[sent.mailReceipt?.status] ?? 'Approval email acceptance has not been confirmed.')
+      locket.setNotice(sent.mailReceipt?.code === 'daily_digest' ? 'Waiting for the recipient’s daily digest. No email has been sent yet.' : sent.mailReceipt?.code === 'notification_preferences' ? 'Email is disabled in the recipient’s notification preferences. No email was sent.' : message[sent.mailReceipt?.status] ?? 'Approval email acceptance has not been confirmed.')
     }}>
       <Field label="Approval email recipient"><select name="recipientId" required>{recipients.map(p => <option key={p.id} value={p.id}>{p.name}{p.email ? ` (${p.email})` : ''}</option>)}</select></Field>
     </Form>}

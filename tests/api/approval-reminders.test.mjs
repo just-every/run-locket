@@ -14,7 +14,7 @@ async function inReview(client, title) {
 const ask = (client, a, recipientId) => client.command('approval.email', { agreementId: a.id, version: a.version, versionId: a.current_version_id, recipientId })
 const reminders = (h, to, subject = 'Reminder: approval waiting in Locket') => h.mails.filter(m => m.subject === subject && m.to[0] === to)
 
-test('APPROVE-004 reminds the approver after 1 business day then daily in their zone, escalates to the delegate after 3, limits manual reminders to one per 4 hours and stops once approved', async t => {
+test('APPROVE-004 / NOTIFY-001 reminds the approver after 1 business day then daily in their zone, escalates to the delegate after 3, limits manual reminders to one per 4 hours and stops once approved', async t => {
   const h = await installation(); t.after(() => h.close())
   await h.setTime(at('2026-10-12T14:00:00Z')) // Monday 10:00 ET, 09:00 CT
   const requester = await h.invite('requester@example.test', 'requester')
@@ -77,6 +77,8 @@ test('APPROVE-004 reminds the approver after 1 business day then daily in their 
   assert.equal(reminders(h, 'delegate@example.test', 'Escalated approval in Locket').length, 1)
   await requester.command('approval.remind', { agreementId: a.id, version: (await find(requester, a.id)).version, approverId: approver.id }, { error: 'STATUS' })
 
+  assert.ok((await approver.state()).notifications.items.some(n=>n.kind==='approval'&&n.email_status==='accepted'))
+  assert.ok((await delegate.state()).notifications.items.some(n=>n.kind==='approval'&&n.email_status==='accepted'))
   const s = await requester.state()
   const activity = (await h.owner.state()).audit.filter(e => e.agreement_id === a.id)
   const automatic = activity.filter(e => e.action === 'approval.reminder.accepted' && e.actor_role === 'scheduler')

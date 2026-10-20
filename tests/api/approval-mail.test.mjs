@@ -56,16 +56,19 @@ test('MOBILE-001 / SEC-002 emails a generic authenticated review link once, then
   assert.notEqual((await find(approver, stale.id)).current_version_id, stale.current_version_id)
 })
 
-test('approval email checks sender, recipient role, current version, self-approval and restricted visibility on the server', async t => {
+test('MOBILE-001 / NOTIFY-001 approval email checks sender, recipient role, current version, self-approval and restricted visibility on the server', async t => {
   const h = await installation(); t.after(() => h.close())
   const requester = await h.invite('requester@example.test', 'requester'), approver = await h.invite('approver@example.test', 'approver')
   const viewer = await h.invite('viewer@example.test', 'viewer'), agent = await h.invite('agent@example.test', 'agent')
-  const a = await review(requester), count = h.mails.length
+  const a = await review(requester)
+  let count = h.mails.length
   for (const sender of [viewer, agent]) await sender.command('approval.email', payload(a, approver.id), { error: 'FORBIDDEN' })
   for (const id of [viewer.id, requester.id, randomUUID()]) await requester.command('approval.email', payload(a, id), { error: 'RECIPIENT' })
   await requester.command('approval.email', { ...payload(a, approver.id), versionId: randomUUID() }, { error: 'NOT_CURRENT' })
   await requester.command('approval.email', { ...payload(a, approver.id), version: a.version + 1 }, { error: 'STALE' })
+  assert.equal(h.mails.length, count, 'Refused explicit email commands make no provider calls.')
   const privateAgreement = await review(requester, { restricted: true })
+  count = h.mails.length
   await requester.command('approval.email', payload(privateAgreement, approver.id), { error: 'RECIPIENT' })
   await approver.command('approval.email', payload(privateAgreement, approver.id), { error: 'NOT_FOUND' })
   await h.owner.command('role.set', { operatorId: approver.id, role: 'viewer' })
@@ -78,7 +81,7 @@ test('approval email checks sender, recipient role, current version, self-approv
   assert.equal((await delivery(requester, privateAgreement, ownerId, owned.id)).status, 'accepted')
 })
 
-test('MOBILE-001 local suppression and uncertain provider outcomes never claim sending or resend on replay', async t => {
+test('MOBILE-001 / NOTIFY-001 local suppression and uncertain provider outcomes never claim sending or resend on replay', async t => {
   const h = await installation({ bindings: { AUTH_LOCAL: 'true' } }); t.after(() => h.close())
   const a = await review(h.owner), ownerId = (await h.owner.state()).actor.id, commandId = randomUUID()
   const sent = await h.owner.command('approval.email', payload(a, ownerId), { commandId })
@@ -87,15 +90,17 @@ test('MOBILE-001 local suppression and uncertain provider outcomes never claim s
   assert.equal(suppressed.status, 'suppressed')
   assert.equal(suppressed.providerMessageId, null)
   assert.equal(h.mails.length, 0)
+  assert.ok((await h.owner.state()).notifications.items.every(n => n.email_status === 'suppressed'))
   assert.deepEqual(await h.owner.command('approval.email', payload(a, ownerId), { commandId }), sent)
   assert.ok((await h.owner.state()).audit.some(e => e.action === 'approval.email.suppressed'))
   const failed = await installation({ mailResponse: () => new Response('Provider unavailable', { status: 503 }) }); t.after(() => failed.close())
   const pending = await review(failed.owner), recipientId = (await failed.owner.state()).actor.id, failedId = randomUUID()
+  const beforeExplicit = failed.mails.length
   const outcome = await failed.owner.command('approval.email', payload(pending, recipientId), { commandId: failedId })
   assert.equal(outcome.status, 'queued')
   const uncertain = await delivery(failed.owner, pending, recipientId, failedId)
   assert.equal(uncertain.status, 'uncertain'); assert.equal(uncertain.providerMessageId, null)
   assert.deepEqual(await failed.owner.command('approval.email', payload(pending, recipientId), { commandId: failedId }), outcome)
-  assert.equal(failed.mails.length, 1)
+  assert.equal(failed.mails.length, beforeExplicit + 1)
   assert.ok((await failed.owner.state()).audit.some(e => e.action === 'approval.email.uncertain'))
 })

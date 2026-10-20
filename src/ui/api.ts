@@ -15,6 +15,10 @@ export interface LocketState {
   versions: Row[]
   artifacts: Row[]
   comments: Row[]
+  notifications: {
+    preferences: { inApp: boolean; email: boolean; digest: boolean; timezone: string }
+    items: { id: string; agreement_id: string; kind: 'assignment' | 'mention' | 'approval' | 'signature' | 'deadline'; created_at: number; read_at: number | null; email_status: string; link: string }[]
+  }
   templates: Row[]
   templateVersions: Row[]
   playbooks: Row[]

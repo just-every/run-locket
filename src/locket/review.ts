@@ -1,3 +1,4 @@
+import { approvalNotifications } from './notification-events'
 // Playbook review findings and exact-version approvals (clauses 6 and 7).
 import { may, requireRole } from './access'
 import type { Ctx, Handler } from './commands'
@@ -62,7 +63,10 @@ export async function deviationOutcome(c: Ctx, a: AgreementRow, p: Record<string
     sql('INSERT INTO lk_deviations VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, a.id, v.id, playbook.id, clauseKey, result, start, end, quote, optionalText(p, 'proposedWording', 20_000), text(p, 'explanation', 4000), json(questions), rule.authority, proposalId, c.actor.id, c.now),
     bump(c, a, 'status=?', a.status === 'approved' && result !== 'met' ? 'in_review' : a.status),
   ]
-  if (result !== 'met') writes.push(invalidateApprovals(c, a.id, `New review finding on ${clauseKey}`))
+  if (result !== 'met') {
+    writes.push(invalidateApprovals(c, a.id, `New review finding on ${clauseKey}`))
+    if (v.id === a.current_version_id && a.status !== 'draft') writes.push(...await approvalNotifications(c,a,rule.authority==='counsel'?['owner','counsel']:['owner','approver'],id))
+  }
   return {
     allowed: may.prepare,
     result: { id, authority: rule.authority },

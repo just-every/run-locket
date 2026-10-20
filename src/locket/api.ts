@@ -1,3 +1,4 @@
+import { notificationHandlers } from './notifications'
 import { reportHandlers, previewReport } from './reports'
 import { reportCsv, reportPdf } from './report-output'
 // Locket's HTTP surface under /api/locket. The same commands serve the
@@ -41,6 +42,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, search, state } from './views'
 
 export const handlers: Record<string, Handler> = {
+  ...notificationHandlers,
   ...savedViewHandlers, ...reportHandlers,
   ...entityHandlers,
   ...installationHandlers,

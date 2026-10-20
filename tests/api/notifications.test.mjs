@@ -1,0 +1,195 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import { randomUUID } from 'node:crypto'
+import { installation } from './harness.mjs'
+import { team,find,file,pdf } from './setup.mjs'
+
+const at = Date.parse
+const prefs = (client, values={}) => client.command('notification.preferences',{inApp:true,email:true,digest:false,timezone:'America/New_York',...values})
+const snapshot = async client => (await client.state()).notifications
+async function draft(client,ownerId,{restricted=false,title='Supplier contract 84500'}={}) {
+  return client.command('request.create',{title,type:'nda',party:{name:'North Harbor Services',kind:'supplier'},value:'84500',ownerId,restricted,file:file('nda.pdf',pdf('Confidential information must be protected.')),text:'Confidential information must be protected.'})
+}
+
+test('NOTIFY-001 assignments, explicit mentions, approval requests and signature events reach the personal inbox and generic email exactly once',async t=>{
+  const h=await installation();t.after(()=>h.close())
+  await h.setTime(at('2026-10-20T12:00:00Z'))
+  const people=await team(h),viewer=await h.invite('outside@example.test','viewer')
+  const commandId=randomUUID(),payload={title:'Supplier contract 84500',type:'nda',party:{name:'North Harbor Services',kind:'supplier'},value:'84500',ownerId:people.counsel.id,file:file('nda.pdf',pdf('Confidential information must be protected.')),text:'Confidential information must be protected.'}
+  const first=await people.requester.command('request.create',payload,{commandId})
+  const before=h.mails.length
+  assert.deepEqual(await people.requester.command('request.create',payload,{commandId}),first)
+  assert.equal(h.mails.length,before)
+  let a=await find(people.requester,first.id)
+  await people.requester.command('request.update',{agreementId:a.id,version:a.version,ownerId:people.approver.id})
+  assert.ok((await snapshot(people.approver)).items.some(n=>n.kind==='assignment'&&n.agreement_id===a.id))
+  a=await find(people.requester,a.id)
+  await people.requester.command('request.update',{agreementId:a.id,version:a.version,ownerId:people.counsel.id})
+  a=await find(people.requester,a.id)
+  const mention=await people.requester.command('comment.add',{agreementId:a.id,versionId:a.current_version_id,body:'Please check the confidential price 84500.',mentionIds:[people.counsel.id]})
+  assert.ok(mention.commentId)
+  await people.requester.command('comment.add',{agreementId:a.id,versionId:a.current_version_id,body:'@counsel is plain text without an identity.'})
+  assert.deepEqual((await snapshot(people.counsel)).items.map(n=>n.kind).sort(),['assignment','assignment','mention'])
+  await people.requester.command('agreement.submit',{agreementId:a.id,version:a.version})
+  assert.ok((await snapshot(people.approver)).items.some(n=>n.kind==='approval'&&n.agreement_id===a.id))
+  await people.counsel.command('playbook.activate',{id:(await people.counsel.command('playbook.draft',{rules:[{key:'confidentiality',title:'Confidentiality',preferred:'Protect information.',alternatives:[],authority:'counsel'}]})).id})
+  const finding=await people.counsel.command('deviation.add',{agreementId:a.id,versionId:a.current_version_id,clauseKey:'confidentiality',result:'breached',start:0,end:12,quote:'Confidential',explanation:'Counsel must confirm the exception.',questions:[]})
+  assert.ok((await snapshot(people.counsel)).items.some(n=>n.kind==='approval'&&n.agreement_id===a.id))
+  a=await find(people.counsel,a.id)
+  await people.counsel.command('approval.decide',{agreementId:a.id,version:a.version,versionId:a.current_version_id,kind:'exception',deviationId:finding.id,decision:'approved'})
+  a=await find(people.approver,a.id)
+  await people.approver.command('approval.decide',{agreementId:a.id,version:a.version,versionId:a.current_version_id,kind:'commercial',decision:'approved'})
+  a=await find(people.requester,a.id)
+  const pkg=await people.requester.command('package.prepare',{agreementId:a.id,version:a.version,provider:'docusign',recipients:[{name:'North Harbor signer',email:'signer@example.test',action:'sign'}]})
+  a=await find(people.requester,a.id)
+  await people.requester.command('package.sent',{agreementId:a.id,version:a.version,packageId:pkg.packageId,envelopeId:'NORTH-2026-101'})
+  a=await find(people.requester,a.id)
+  await people.requester.command('execution.record',{agreementId:a.id,version:a.version,envelopeId:'NORTH-2026-101',executedOn:'2026-10-20',documentConfirmed:true,signers:[{name:'North Harbor signer',email:'signer@example.test'}],signed:file('signed.pdf',pdf('Signed confidentiality agreement.')),certificate:file('certificate.pdf',pdf('Provider completion certificate.'))})
+  const obligation=await people.counsel.command('obligation.add',{agreementId:a.id,description:'Protect confidential information',ownerId:people.counsel.id,dueDate:'2026-11-01',recurrence:'none',citation:{quote:'Confidential information must be protected.'}})
+  await people.counsel.command('obligation.update',{agreementId:a.id,obligationId:obligation.id,action:'confirm'})
+  assert.equal((await snapshot(people.counsel)).items.filter(n=>n.kind==='assignment'&&n.agreement_id===a.id).length,3)
+  const inbox=(await snapshot(people.counsel)).items
+  assert.equal(inbox.filter(n=>n.kind==='signature').length,2)
+  assert.ok(inbox.every(n=>n.email_status==='accepted'))
+  for(const mail of h.mails.filter(m=>m.text.includes('/app#agreement/'))){
+    for(const value of ['Supplier contract 84500','North Harbor','84500','confidential price'])assert.ok(!`${mail.subject}${mail.text}${mail.html}`.includes(value))
+    assert.ok(mail.text.includes(h.origin+'/app#agreement/'))
+  }
+  const read=inbox.find(n=>n.kind==='mention')
+  await people.counsel.command('notification.read',{id:read.id})
+  assert.ok((await snapshot(people.counsel)).items.find(n=>n.id===read.id).read_at)
+  await viewer.command('notification.read',{id:read.id},{error:'NOT_FOUND'})
+  const records=(await(await h.owner.request('/api/locket/export')).json()).records
+  assert.ok(records.lk_notifications.some(n=>n.id===read.id))
+  assert.ok(records.lk_audit.some(n=>n.action==='notification.read'))
+  assert.ok(records.lk_notification_deliveries.length>0)
+  assert.ok(!(await viewer.state()).notifications.items.some(n=>n.id===read.id))
+  assert.ok((await snapshot(people.requester)).items.filter(n=>n.kind==='signature').length===2)
+  assert.equal((await h.request('/api/locket/state')).status,401)
+
+  // Manual void and counsel's accepted execution are distinct current events.
+  const recovery=await draft(h.owner,people.counsel.id,{title:'Manual signing recovery'})
+  a=await find(h.owner,recovery.id)
+  await h.owner.command('agreement.submit',{agreementId:a.id,version:a.version})
+  a=await find(h.owner,a.id)
+  await h.owner.command('approval.decide',{agreementId:a.id,version:a.version,versionId:a.current_version_id,kind:'commercial',decision:'approved'})
+  a=await find(h.owner,a.id)
+  const packet=await h.owner.command('package.prepare',{agreementId:a.id,version:a.version,provider:'paper',recipients:[{name:'North Harbor signer',email:'signer@example.test',action:'sign'}]})
+  a=await find(h.owner,a.id)
+  await h.owner.command('package.sent',{agreementId:a.id,version:a.version,packageId:packet.packageId,envelopeId:'MANUAL-RECOVERY'})
+  a=await find(h.owner,a.id)
+  await h.owner.command('package.void',{agreementId:a.id,version:a.version,packageId:packet.packageId,reason:'Replace incorrect routing.'})
+  assert.equal((await snapshot(people.counsel)).items.filter(n=>n.kind==='signature'&&n.agreement_id===a.id).length,2)
+  a=await find(h.owner,a.id)
+  const replacement=await h.owner.command('package.prepare',{agreementId:a.id,version:a.version,provider:'paper',recipients:[{name:'North Harbor signer',email:'signer@example.test',action:'sign'}]})
+  a=await find(h.owner,a.id)
+  await h.owner.command('package.sent',{agreementId:a.id,version:a.version,packageId:replacement.packageId,envelopeId:'MANUAL-REPLACEMENT'})
+  a=await find(h.owner,a.id)
+  const disputed=await h.owner.command('execution.record',{agreementId:a.id,version:a.version,envelopeId:'MANUAL-REPLACEMENT',executedOn:'2026-10-20',documentConfirmed:false,signers:[{name:'North Harbor signer',email:'signer@example.test'}],signed:file('signed.pdf',pdf('Returned copy requires counsel review.'))})
+  assert.equal(disputed.status,'needs_review')
+  assert.equal((await snapshot(people.counsel)).items.filter(n=>n.kind==='signature'&&n.agreement_id===a.id).length,3)
+  a=await find(people.counsel,a.id)
+  await people.counsel.command('execution.resolve',{agreementId:a.id,version:a.version,executionId:disputed.executionId,reason:'Reviewed and accepted the returned document.'})
+  assert.equal((await snapshot(people.counsel)).items.filter(n=>n.kind==='signature'&&n.agreement_id===a.id).length,4)
+})
+
+test('NOTIFY-001 own channel preferences, 9am local daily batching, current access and uncertain outcomes govern every send',async t=>{
+  const h=await installation();t.after(()=>h.close())
+  await h.setTime(at('2026-10-20T16:00:00Z')) // 09:00 Los Angeles
+  const counsel=await h.invite('counsel@example.test','counsel'),viewer=await h.invite('viewer@example.test','viewer'),agent=await h.invite('agent@example.test','agent')
+  await prefs(counsel,{digest:true,timezone:'America/Los_Angeles'})
+  const first=await draft(h.owner,counsel.id)
+  let a=await find(h.owner,first.id)
+  const count=h.mails.length
+  await h.owner.command('comment.add',{agreementId:a.id,versionId:a.current_version_id,body:'Review tomorrow.',mentionIds:[counsel.id]})
+  assert.equal(h.mails.length,count)
+  await h.scheduled(at('2026-10-21T15:59:00Z'));assert.equal(h.mails.length,count)
+  await h.scheduled(at('2026-10-21T16:00:00Z'));assert.equal(h.mails.length,count+1)
+  await h.scheduled(at('2026-10-21T16:30:00Z'));assert.equal(h.mails.length,count+1)
+  assert.ok((await snapshot(counsel)).items.every(n=>n.email_status==='accepted'))
+  await prefs(counsel,{inApp:false,email:false})
+  await h.owner.command('comment.add',{agreementId:a.id,versionId:a.current_version_id,body:'Neither channel.',mentionIds:[counsel.id]})
+  assert.equal(h.mails.length,count+1)
+  assert.equal((await snapshot(counsel)).items.length,0)
+  await prefs(counsel)
+  assert.ok(!(await snapshot(counsel)).items.some(n=>n.created_at===at('2026-10-20T16:00:00Z')&&n.email_status==='suppressed'))
+  await prefs(viewer,{digest:true,timezone:'America/Chicago'})
+  const secret=await draft(h.owner,(await h.owner.state()).actor.id,{restricted:true,title:'Hidden acquisition'})
+  a=await find(h.owner,secret.id)
+  await h.owner.command('comment.add',{agreementId:a.id,versionId:a.current_version_id,body:'Forbidden recipient.',mentionIds:[viewer.id]},{error:'RECIPIENT'})
+  await h.owner.command('access.set',{agreementId:a.id,operatorId:viewer.id,grant:'grant'})
+  await h.owner.command('comment.add',{agreementId:a.id,versionId:a.current_version_id,body:'Time-limited visibility.',mentionIds:[viewer.id]})
+  const item=(await snapshot(viewer)).items[0]
+  await h.owner.command('access.set',{agreementId:a.id,operatorId:viewer.id,grant:'revoke'})
+  assert.equal((await snapshot(viewer)).items.length,0)
+  await viewer.command('notification.read',{id:item.id},{error:'NOT_FOUND'})
+  const afterRevoke=h.mails.length
+  await h.scheduled(at('2026-10-22T14:00:00Z'));assert.equal(h.mails.length,afterRevoke)
+  await agent.command('notification.preferences',{inApp:true,email:true,digest:false,timezone:'America/New_York'},{error:'FORBIDDEN'})
+  await h.owner.command('comment.add',{agreementId:a.id,versionId:a.current_version_id,body:'No agent mentions.',mentionIds:[agent.id]},{error:'RECIPIENT'})
+  assert.equal((await snapshot(agent)).items.length,0)
+})
+
+test('NOTIFY-001 approval mail joins one shared daily digest and uncertain provider calls are never automatically repeated',async t=>{
+  const h=await installation();t.after(()=>h.close())
+  await h.setTime(at('2026-10-20T16:00:00Z'))
+  const ownerId=(await h.owner.state()).actor.id
+  await prefs(h.owner,{digest:true,timezone:'America/Los_Angeles'})
+  const created=await draft(h.owner,ownerId)
+  let a=await find(h.owner,created.id)
+  await h.owner.command('comment.add',{agreementId:a.id,versionId:a.current_version_id,body:'Owner review.',mentionIds:[ownerId]})
+  await h.owner.command('agreement.submit',{agreementId:a.id,version:a.version})
+  a=await find(h.owner,a.id)
+  const request=await h.owner.command('approval.email',{agreementId:a.id,version:a.version,versionId:a.current_version_id,recipientId:ownerId})
+  await h.owner.command('approval.remind',{agreementId:a.id,version:a.version,approverId:ownerId})
+  const before=h.mails.length
+  await Promise.all([h.scheduled(at('2026-10-21T16:00:00Z')),h.scheduled(at('2026-10-21T16:00:00Z'))])
+  assert.equal(h.mails.length,before+1)
+  const inbox=await snapshot(h.owner)
+  assert.ok(inbox.items.some(n=>n.kind==='assignment'))
+  assert.ok(inbox.items.some(n=>n.kind==='mention'))
+  assert.ok(inbox.items.some(n=>n.kind==='approval'))
+  assert.ok(inbox.items.every(n=>n.email_status==='accepted'))
+  const archive=(await(await h.owner.request('/api/locket/export')).json()).records
+  assert.equal(archive.lk_approval_mail.find(r=>r.id===request.id).status,'accepted')
+  assert.ok(archive.lk_approval_reminders.some(r=>r.agreement_id===a.id&&r.status==='accepted'))
+  assert.equal(archive.lk_notification_deliveries.filter(r=>r.kind==='digest').length,1)
+  await h.owner.command('notification.preferences',{operatorId:'another-human',inApp:true,email:true,digest:false,timezone:'America/New_York'},{error:'FORBIDDEN'})
+
+  // Current role and captured approval version are checked again for digest sends.
+  await h.setTime(at('2026-10-21T17:00:00Z'))
+  const approver=await h.invite('digest-approver@example.test','approver')
+  await prefs(approver,{digest:true,timezone:'America/Los_Angeles'})
+  const approvalDraft=await draft(h.owner,ownerId,{title:'Pending role check'})
+  a=await find(h.owner,approvalDraft.id)
+  await h.owner.command('agreement.submit',{agreementId:a.id,version:a.version})
+  a=await find(h.owner,a.id)
+  await h.owner.command('approval.email',{agreementId:a.id,version:a.version,versionId:a.current_version_id,recipientId:approver.id})
+  const queued=(await snapshot(approver)).items.filter(n=>n.agreement_id===a.id)
+  await h.owner.command('role.set',{operatorId:approver.id,role:'viewer'})
+  await h.scheduled(at('2026-10-22T16:00:00Z'))
+  assert.ok(queued.length>0)
+  assert.ok((await snapshot(approver)).items.filter(n=>queued.some(q=>q.id===n.id)).every(n=>n.email_status==='cancelled'))
+  await h.owner.command('role.set',{operatorId:approver.id,role:'approver'})
+  const versionDraft=await draft(h.owner,ownerId,{title:'Pending version check'})
+  a=await find(h.owner,versionDraft.id)
+  await h.owner.command('agreement.submit',{agreementId:a.id,version:a.version})
+  a=await find(h.owner,a.id)
+  const versionEvents=(await snapshot(approver)).items.filter(n=>n.agreement_id===a.id)
+  await h.owner.command('version.upload',{agreementId:a.id,version:a.version,kind:'counterparty',file:file('changed.pdf',pdf('New confidentiality document.')),text:'New confidentiality document.'})
+  await h.scheduled(at('2026-10-23T16:00:00Z'))
+  assert.ok(versionEvents.length>0)
+  assert.ok((await snapshot(approver)).items.filter(n=>versionEvents.some(q=>q.id===n.id)).every(n=>n.email_status==='cancelled'))
+
+  const failed=await installation({mailResponse:()=>new Response('Temporarily unavailable',{status:503})});t.after(()=>failed.close())
+  const principal=(await failed.owner.state()).actor.id
+  const id=randomUUID(),payload={title:'Uncertain contract',type:'nda',ownerId:principal,party:{name:'Example Supplier',kind:'supplier'}}
+  const first=await failed.owner.command('request.create',payload,{commandId:id})
+  const calls=failed.mails.length
+  assert.equal((await snapshot(failed.owner)).items[0].email_status,'uncertain')
+  assert.deepEqual(await failed.owner.command('request.create',payload,{commandId:id}),first)
+  await failed.scheduled(Date.now()+86400000)
+  assert.equal(failed.mails.length,calls)
+  const receipt=(await(await failed.owner.request('/api/locket/export')).json()).records.lk_notification_deliveries[0]
+  assert.equal(receipt.status,'uncertain');assert.equal(receipt.provider_message_id,null)
+})

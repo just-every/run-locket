@@ -1,3 +1,4 @@
+import { routeNotification, notificationOutcome } from './notification-dispatch'
 // APPROVE-004 delivery: the hourly scheduled run and the "Remind approver" send.
 // Each reminder is a durable outbox row first; a one-use claim re-checks that the
 // approval still waits and the recipient may still decide before any provider call.
@@ -59,6 +60,7 @@ export async function deliverReminder(c: Ctx, id: string, person: boolean) {
   const attempt = crypto.randomUUID(), principal = person ? c.actor.role : 'scheduler'
   const name = await names(c.db, row.approver_id, row.recipient_id)
   const finish = async (status: string, provider: string | null, messageId: string | null, code: string | null) => {
+    await notificationOutcome(c.env, 'approval_reminder', id, status, provider, messageId)
     const token = status === 'cancelled' ? null : attempt
     const audit = auditSql({ ...c, commandId: id }, { action: `approval.${row!.kind === 'escalation' ? 'escalation' : 'reminder'}.${status}`, agreementId: row!.agreement_id, summary: summary(row!, status, name) }, principal)
     await c.db.batch([
@@ -84,6 +86,8 @@ export async function deliverReminder(c: Ctx, id: string, person: boolean) {
   }
   row = (await read(c.db, id))!
   if (row.attempt_id !== attempt) return reminderReceipt(row)
+  const routed = await routeNotification(c, {key:id,agreementId:row.agreement_id!,recipientId:row.recipient_id,kind:'approval',sourceKind:'approval_reminder',sourceId:id})
+  if (routed.status !== 'immediate') return finish('suppressed', null, null, routed.status === 'deferred' ? 'daily_digest' : 'notification_preferences')
   if (localMail(c.env)) return finish('suppressed', 'development', null, null)
   const sender = operatorMail(c.env)
   if (!sender || !c.env.MAIL_FROM) return finish('rejected', null, null, 'mail_unavailable')

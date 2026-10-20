@@ -72,7 +72,7 @@ test('RENEW-002 emails the four reminders at 9:00 Chicago time, escalates an und
   assert.ok(!('recipient_email' in sent[0]))
 })
 
-test('RENEW-002 uses the owner-configured offsets, reminds obligation owners in their own zone, batches a daily digest, stops once a renewal is decided and records complaints', async t => {
+test('RENEW-002 / NOTIFY-001 uses the owner-configured offsets, reminds obligation owners in their own zone, batches a daily digest, stops once a renewal is decided and records complaints', async t => {
   const key = webhookKey()
   const h = await installation({ bindings: { NOTICE_RESEND_WEBHOOK_SECRET: key } }); t.after(() => h.close())
   await h.setTime(at('2026-07-10T15:00:00Z'))
@@ -89,7 +89,7 @@ test('RENEW-002 uses the owner-configured offsets, reminds obligation owners in 
   const ob = await h.owner.command('obligation.add', { agreementId: a.id, description: 'Collect the insurance certificate', ownerId: rhea.id, dueDate: '2026-08-01', recurrence: 'none', citation: { quote: 'Supplier keeps insurance certificates current.' } })
   await h.owner.command('obligation.update', { agreementId: a.id, obligationId: ob.id, action: 'confirm' })
   await confirm(h.owner, b.id, [['end_date', '2026-09-30'], ['notice_days', '30']], 'Give 30 days notice.')
-  const digests = () => to(h, 'rhea@example.test').filter(m => m.subject.startsWith('Your Locket deadlines today'))
+  const digests = () => to(h, 'rhea@example.test').filter(m => m.subject === 'Your daily Locket notifications')
 
   // The obligation's 14-day reminder is due Jul 18 at 9:00 in Los Angeles (16:00 UTC), in Rhea's digest.
   await h.scheduled(at('2026-07-18T15:59:00Z'))
@@ -97,8 +97,8 @@ test('RENEW-002 uses the owner-configured offsets, reminds obligation owners in 
   await h.scheduled(at('2026-07-18T16:00:00Z'))
   await h.scheduled(at('2026-07-18T17:00:00Z'))
   assert.equal(digests().length, 1)
-  assert.equal(digests()[0].subject, 'Your Locket deadlines today (1)')
-  assert.ok(digests()[0].text.includes(`An obligation is due in 14 days: ${h.origin}/app#agreement/${a.id}/terms`))
+  assert.ok(digests()[0].text.includes(`${h.origin}/app#agreement/${a.id}/terms`))
+  assert.ok((await rhea.state()).notifications.items.some(n=>n.kind==='deadline' && n.agreement_id===a.id && n.email_status==='accepted'))
   assert.ok(!digests()[0].text.includes('insurance'))
   assert.equal(to(h, 'rhea@example.test', 'Obligation due in Locket').length, 0)
 
@@ -111,7 +111,7 @@ test('RENEW-002 uses the owner-configured offsets, reminds obligation owners in 
   assert.equal(digests().length, 3)
   let s = await h.owner.state()
   const inDigest = s.deadlineReminders.sent.filter(r => r.status === 'in_digest')
-  assert.deepEqual(inDigest.map(r => [r.subject_id, r.offset_days]).sort(), [[ob.id, 1], [ob.id, 14], [renewal.id, 14]].sort())
+  assert.deepEqual(inDigest.map(r => [r.subject_id, r.offset_days]).sort(), [[ob.id, 1], [ob.id, 14], [ob.id, -4], [renewal.id, 14]].sort())
   assert.ok(inDigest.every(r => s.deadlineReminders.sent.find(d => d.id === r.digest_id).status === 'accepted'))
 
   await h.setTime(at('2026-08-18T15:00:00Z'))
@@ -126,5 +126,5 @@ test('RENEW-002 uses the owner-configured offsets, reminds obligation owners in 
   s = await h.owner.state()
   assert.deepEqual(s.deadlineReminders.events.filter(e => e.reminder_id === digest.id).map(e => e.status), ['complained'])
   assert.equal(s.deadlineReminders.sent.filter(r => r.kind === 'alternate').length, 0)
-  assert.ok(s.audit.some(e => e.action === 'deadline.digest.accepted' && e.summary.includes('in their daily digest')))
+  assert.ok(s.audit.some(e => e.action === 'deadline.digest.accepted' && e.command_id === digest.id))
 })
