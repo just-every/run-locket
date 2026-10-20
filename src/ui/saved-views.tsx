@@ -2,6 +2,8 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { repositoryFields } from '../locket/repository-fields'
 import { fetchJson, type LocketState } from './api'
 import type { Locket } from './app'
+import type { SearchPassage } from '../locket/search-passages'
+import { PassageLinks } from './search-passages'
 import { Field } from './controls'
 
 type ViewDefinition = {
@@ -14,7 +16,7 @@ type SavedView = { id: string; name: string; definition: ViewDefinition; shared_
 type Results = {
   definition: ViewDefinition
   columns: { id: string; label: string; kind: string }[]
-  rows: { id: string; values: Record<string, string | number | null> }[]
+  rows: { id: string; matches: SearchPassage[]; values: Record<string, string | number | null> }[]
   evaluatedAt: number | string
   name?: string
 }
@@ -119,7 +121,7 @@ export function SavedViews({ state, locket, query, onActive }: { state: LocketSt
         <fieldset disabled={disabled} style={{ border: 0, padding: 0, minWidth: 0 }}>
           <div style={grid}>
             <Field label="View name"><input value={name} onChange={event => setName(event.target.value)} maxLength={160} /></Field>
-            <Field label="View query" hint="Search titles, references, counterparties and accessible version text."><input type="search" value={definition.query} onChange={event => setDefinition({ ...definition, query: event.target.value })} /></Field>
+            <Field label="View query" hint="Search standard metadata and all accessible version text."><input type="search" value={definition.query} onChange={event => setDefinition({ ...definition, query: event.target.value })} /></Field>
           </div>
           <FilterEditor definition={definition} onChange={setDefinition} />
           <div style={grid}>
@@ -206,6 +208,6 @@ function RepositoryResults({ results }: { results: Results }) {
         const display = value == null ? '—' : column.kind === 'money' ? usd.format(Number(value) / 100) : String(value)
         return <td key={column.id} data-label={column.label} style={cell}>{column.id === 'title' ? <a href={`#agreement/${row.id}`}>{display}</a> : display}</td>
       })}</tr>)}</tbody>
-    </table></>}
+    </table>{results.rows.filter(row => row.matches.length).map(row => <section key={row.id}><h4>{String(row.values.title ?? row.id)}</h4><PassageLinks agreementId={row.id} matches={row.matches} /></section>)}</>}
   </div>
 }

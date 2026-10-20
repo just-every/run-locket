@@ -9,6 +9,8 @@ import { Avatar, Badge, EmptyState, Icon } from './controls'
 import { can, currentVersion, deadline, money, partyName, personName, statusLabel } from './format'
 import { blockers, nextNotice } from './summary'
 import type { Locket } from './app'
+import type { SearchPassage } from '../locket/search-passages'
+import { PassageLinks } from './search-passages'
 import { SavedViews } from './saved-views'
 
 const columns = [
@@ -22,15 +24,16 @@ const columns = [
 export function Register({ state, locket, query, portfolioFilter = '' }: { state: LocketState; locket: Locket; query: string; portfolioFilter?: string }) {
   const [viewOpen, setViewOpen] = useState(false)
   const [status, setStatus] = useState('')
-  const [hits, setHits] = useState<{ id: string; match: { version: number; excerpt: string } | null }[] | null>(null)
+  const [hits, setHits] = useState<{ id: string; matches: SearchPassage[] }[] | null>(null)
   const [searchError, setSearchError] = useState('')
   useEffect(() => {
     if (!query.trim()) { setHits(null); return }
+    let current = true
     const timer = setTimeout(() => {
-      fetchJson<{ results: any[] }>(`/api/locket/search?q=${encodeURIComponent(query)}`).then(r => { setHits(r.results); setSearchError('') }).catch(e => setSearchError(e.message))
+      fetchJson<{ results: any[] }>(`/api/locket/search?q=${encodeURIComponent(query)}`).then(r => { if (current) { setHits(r.results); setSearchError('') } }).catch(e => { if (current) setSearchError(e.message) })
     }, 250)
-    return () => clearTimeout(timer)
-  }, [query])
+    return () => { current = false; clearTimeout(timer) }
+  }, [query, state])
   const tile = state.portfolio.tiles.find(t => t.id === portfolioFilter)
   const rows = useMemo(() => state.agreements.filter(a => (!hits || hits.some(h => h.id === a.id)) && (!tile || tile.agreementIds.includes(a.id))), [state.agreements, hits, tile])
   const count = (c: (typeof columns)[number]) => rows.filter(a => c.statuses.includes(a.status)).length
@@ -70,7 +73,7 @@ export function Register({ state, locket, query, portfolioFilter = '' }: { state
             return (
               <section key={c.id} className="lk-column" aria-label={c.title}>
                 <h2>{c.title} <span className="lk-count">{list.length}</span></h2>
-                {list.length === 0 ? <p className="lk-column-empty">Nothing here.</p> : list.map(a => <AgreementCard key={a.id} state={state} a={a} hit={hits?.find(h => h.id === a.id)?.match ?? null} />)}
+                {list.length === 0 ? <p className="lk-column-empty">Nothing here.</p> : list.map(a => <AgreementCard key={a.id} state={state} a={a} matches={hits?.find(h => h.id === a.id)?.matches ?? []} />)}
               </section>
             )
           })}
@@ -81,7 +84,7 @@ export function Register({ state, locket, query, portfolioFilter = '' }: { state
   )
 }
 
-function AgreementCard({ state, a, hit }: { state: LocketState; a: Row; hit: { version: number; excerpt: string } | null }) {
+function AgreementCard({ state, a, matches }: { state: LocketState; a: Row; matches: SearchPassage[] }) {
   const v = currentVersion(state, a), notice = nextNotice(state, a), blocked = blockers(state, a).length
   const owner = personName(state, a.owner_id)
   const projected = state.portfolio.lifecycle[a.id]
@@ -96,7 +99,7 @@ function AgreementCard({ state, a, hit }: { state: LocketState; a: Row; hit: { v
         {v && <span className="lk-version-tag">v{v.number}</span>}
         {a.status === 'imported' && <Badge value="imported" label={statusLabel.imported} />}
       </p>
-      {hit && <p className="lk-excerpt">v{hit.version}: …{hit.excerpt}…</p>}
+      {matches.length > 0 && <PassageLinks agreementId={a.id} matches={matches} />}
       {currentNotice ? <p className="lk-board-notice"><Icon name="calendar" /><span>{currentNotice.days} days left · {deadline(currentNotice.at, a.timezone)}</span></p> : projected?.status === 'not_executed' && notice ? <p className="lk-board-notice"><Icon name="calendar" /><span>Notice by {notice.text.split(',').slice(0, 2).join(',')}</span></p> : null}
       {blocked > 0 && <p className="lk-board-blocked"><Icon name="warn" /><span>{blocked} open {blocked === 1 ? 'item' : 'items'}</span></p>}
       <p className="lk-board-foot"><Avatar name={owner} /><span>{owner}</span><small>{a.reference}{a.restricted ? ' · restricted' : ''}</small></p>

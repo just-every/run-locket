@@ -39,8 +39,14 @@ export function notesFor(state: LocketState, a: Row, shown: Row, swapped: (start
   return notes
 }
 
-export function DocumentPage({ state, a, base, shown, locket }: { state: LocketState; a: Row; base: Row | null; shown: Row; locket: Locket }) {
+export function DocumentPage({ state, a, base, shown, passage, locket }: { state: LocketState; a: Row; base: Row | null; shown: Row; passage: { start: string; end: string }; locket: Locket }) {
   const marked = useRedline(base, shown)
+  const start = /^\d+$/.test(passage.start) ? Number(passage.start) : -1
+  const end = /^\d+$/.test(passage.end) ? Number(passage.end) : -1
+  const hit = start >= 0 && end > start && end <= (shown.text?.length ?? 0) ? { start, end } : null
+  useEffect(() => {
+    if (hit) paper.current?.querySelector('[data-search-hit]')?.scrollIntoView({ block: 'center' })
+  }, [shown.id, passage.start, passage.end, marked])
   const [opened, setOpened] = useState<Set<number>>(new Set())
   const paper = useRef<HTMLDivElement>(null)
   const [links, setLinks] = useState<{ d: string; tone: string }[]>([])
@@ -113,7 +119,8 @@ export function DocumentPage({ state, a, base, shown, locket }: { state: LocketS
   // Below 1100 px the sections before the open decision's, with nothing open in them, fold like unchanged ones.
   const openAt = wide ? -1 : marked.sections.findIndex(s => s.paragraphs.some(p => inPara(p).some(n => n.tone === 'open')))
   const settledBefore = (s: Section) => marked.sections.indexOf(s) < openAt && !s.paragraphs.some(p => inPara(p).some(n => n.tone === 'open' || n.tone === 'unsure'))
-  const quiet = (s: Section) => (folding && !s.paragraphs.some(p => p.changed || inPara(p).length)) || settledBefore(s)
+  const containsHit = (p: Paragraph) => !!hit && p.start < hit.end && p.end > hit.start
+  const quiet = (s: Section) => !s.paragraphs.some(containsHit) && ((folding && !s.paragraphs.some(p => p.changed || inPara(p).length)) || settledBefore(s))
   const runs: { sections: Section[]; index: number }[] = []
   marked.sections.forEach((s, index) => {
     const last = runs.at(-1)
@@ -122,11 +129,12 @@ export function DocumentPage({ state, a, base, shown, locket }: { state: LocketS
   })
   const render = (p: Paragraph, key: number) => {
     const here = inPara(p)
-    const marks = here.flatMap(n => [n.start, n.end])
+    const marks = [...here.flatMap(n => [n.start, n.end]), ...(hit ? [hit.start, hit.end] : [])]
     const text = cut(p.segments, marks).map((s, i) => {
       const ids = s.op === 'del' ? '' : here.filter(n => n.start < s.start + s.text.length && n.end > s.start).map(n => n.id).join(' ')
       const notes = ids || undefined
-      return s.op === 'add' ? <ins key={i} data-notes={notes}>{s.text}</ins> : s.op === 'del' ? <del key={i}>{s.text}</del> : <span key={i} data-notes={notes}>{s.text}</span>
+      const content = hit && s.op !== 'del' && s.start >= hit.start && s.start < hit.end ? <mark data-search-hit>{s.text}</mark> : s.text
+      return s.op === 'add' ? <ins key={i} data-notes={notes}>{content}</ins> : s.op === 'del' ? <del key={i}>{s.text}</del> : <span key={i} data-notes={notes}>{content}</span>
     })
     const ghost = here.find(n => n.kind === 'finding' && n.tone === 'open' && n.row.proposed_wording)
     const cards = here.map(n => (
@@ -157,7 +165,7 @@ export function DocumentPage({ state, a, base, shown, locket }: { state: LocketS
       run = []
     }
     section.paragraphs.forEach((p, i) => {
-      if (p.kind !== 'heading' && !p.changed && !inPara(p).length) { run.push(p); return }
+      if (p.kind !== 'heading' && !p.changed && !inPara(p).length && !containsHit(p)) { run.push(p); return }
       close(i)
       out.push(render(p, i))
     })

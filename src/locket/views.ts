@@ -105,27 +105,6 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
   }
 }
 
-/** Search titles, counterparties, references and version text the person may access. */
-export async function search(env: Bindings, actor: Actor, query: string) {
-  requireRole(actor, may.read, 'search agreements')
-  const q = query.trim().toLowerCase()
-  if (!q) return { results: [] }
-  const { agreements } = await visibleIds(env, actor)
-  const parties = new Map((await all(env.DB, 'SELECT id, name FROM lk_parties')).map(p => [p.id, p.name]))
-  const results = []
-  for (const a of agreements) {
-    const texts = await all<{ number: number; text: string | null }>(env.DB, 'SELECT number, text FROM lk_versions WHERE agreement_id=?', a.id)
-    const fields = [a.title, a.reference, parties.get(a.party_id) ?? ''].join(' ').toLowerCase()
-    const hit = texts.find(v => v.text?.toLowerCase().includes(q))
-    if (fields.includes(q) || hit) {
-      const at = hit?.text ? hit.text.toLowerCase().indexOf(q) : -1
-      results.push({ id: a.id, reference: a.reference, title: a.title, status: a.status, party: parties.get(a.party_id), match: hit && at >= 0 ? { version: hit.number, excerpt: hit.text!.slice(Math.max(0, at - 60), at + q.length + 60) } : null })
-    }
-  }
-  await recordReads(env, actor, results.filter(r => agreements.find(a => a.id === r.id)?.restricted).map(r => ({ action: 'agreement.view', agreementId: r.id, summary: 'Read restricted agreement in search results.' })))
-  return { results }
-}
-
 export async function compare(env: Bindings, actor: Actor, from: string, to: string) {
   requireRole(actor, may.read, 'compare versions')
   const { ids } = await visibleIds(env, actor)

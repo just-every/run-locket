@@ -173,7 +173,11 @@ People search the full text of every version they may access (DOCX text and OCR 
 
 *Acceptance:* a journey searches "limitation of liability" filtered to supplier agreements over $100,000 ending in the next 180 days, opens a hit at its passage, and a viewer without access to a restricted match does not see it. An auto-renewing agreement whose original end date is in 2023 but whose current term ends in the window is found, and filtering by lifecycle status "expired" returns only expired agreements.
 
-*Status:* partial. Permission-scoped search over titles, counterparties, references and version text with a status-filtered register ships (`src/locket/views.ts`, `src/ui/register.tsx`, `tests/api/flows.test.mjs`); OCR text, field, value and date filters and clause-level hits do not exist.
+Current scope and inheritance: every metadata field, confirmed term, version-text rendition, workflow stage and lifecycle state that exists today uses the permission-scoped repository executor shared with REPO-007. The board search and View settings search standard metadata and all accessible versions; View settings combines the query with typed filters. Filters intersect; USD uses exact cents and date bounds are inclusive calendar dates, with original dates distinct from derived current-term dates. Playbook deviations mean non-met findings on the current version, filterable by presence or clause key. Version-text search is a literal Unicode case-insensitive match and returns one link per matching paragraph per version, including older versions, with immutable version identity and exact original-text offsets. Following a link opens that version, unfolds the matching passage, highlights it and scrolls to it. Metadata-only matches have no invented passage.
+
+This clause is done for every capability that exists today. REPO-002 adds OCR renditions and page/position anchors to the same searchable, navigable path before shipping; REPO-004 adds newly extracted field values; REPO-005 adds custom fields; REPO-009 adds departments and applies field hiding before matching, filtering or returning excerpts; RENEW-007 adds its expanded lifecycle/current-term states to the same search and filters. Each asserts this inherited behavior before it ships.
+
+*Status:* done. Clause-named public-door API and 1440/390 browser journeys prove combined structured filters, original/current term separation, exact current and historical passage navigation and current-access restrictions (`src/locket/repository.ts`, `src/locket/search-passages.ts`, `tests/api/search.test.mjs`, `tests/browser/search.spec.ts`).
 
 #### REPO-007 — Saved views and columns.
 A person saves a repository view (query, filters, sort and chosen columns) as private or shared with named current roles, pins it personally, and exports it to CSV. The query searches standard metadata and accessible version text. Filters all match together and support case-insensitive text equality/containment and inclusive lower/upper bounds; USD amounts are entered as decimal dollars and compared as exact cents, dates as calendar dates (created/updated dates are UTC; current-term notice dates use each agreement's zone). Nulls sort last, with agreement identity breaking ties. Chosen columns retain their selected order in the screen and CSV, including value, owner, confirmed original terms and separately labelled derived current-term/notice fields. Original confirmed dates are never replaced by the projection.
@@ -912,8 +916,8 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 19 | 28 | 33 | 80 |
-| All | 38 | 28 | 33 | 99 |
+| Target and push further | 20 | 27 | 33 | 80 |
+| All | 39 | 27 | 33 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -946,7 +950,7 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | `REPO-003` | Bulk repository import with extraction | target | partial | `src/locket/imports/commands.ts`; `tests/api/move-in.test.mjs` | Generic PDF/DOCX bulk import, OCR, extraction and large-file streaming do not exist |
 | `REPO-004` | Built-in term and metadata extraction | target | partial | `src/locket/proposals.ts`; `src/locket/obligations.ts` | Built-in extraction and custom fields do not exist |
 | `REPO-005` | Custom metadata fields | target | missing |  | Agreement fields are fixed in the schema |
-| `REPO-006` | Search and structured filters | target | partial | `src/locket/views.ts`; `src/ui/register.tsx`; `tests/api/flows.test.mjs` | OCR text, field, value and date filters and clause-level hits do not exist |
+| `REPO-006` | Search and structured filters | target | done | `src/locket/repository.ts`; `src/locket/search-passages.ts`; `tests/api/search.test.mjs`; `tests/browser/search.spec.ts` | Current capabilities conform; REPO-002/004/005/009 and RENEW-007 inherit expanded rendition, field and lifecycle search before shipping |
 | `REPO-007` | Saved views and columns | target | done | `src/locket/saved-views.ts`; `src/locket/repository.ts`; `tests/api/saved-views.test.mjs`; `tests/browser/saved-views.spec.ts` |  |
 | `REPO-008` | Agreement families | target | done | `src/locket/families.ts`; `src/locket/family-projection.ts`; `src/ui/family.tsx`; `tests/api/families.test.mjs`; `tests/browser/families.spec.ts` | |
 | `REPO-009` | Groups, departments and field-level access | target | partial | `src/locket/access.ts`; `tests/api/security.test.mjs` | Groups, departments and field-level hiding do not exist |

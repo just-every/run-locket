@@ -37,12 +37,12 @@ import { entityHandlers } from './entities'
 import { installationHandlers } from './installation'
 import { counterpartyHandlers } from './counterparties'
 import { repositoryResult, repositoryCsv } from './repository'
-import { Problem } from './model'
+import { fail, Problem } from './model'
 import { obligationHandlers } from './obligations'
 import { peopleHandlers } from './people'
 import { proposalHandlers } from './proposals'
 import { reviewHandlers } from './review'
-import { compare, download, exportArchive, search, state } from './views'
+import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
   'version.edit': editVersion, 'comment.resolve': resolveComment,
@@ -129,7 +129,15 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     }
     if (request.method === 'GET' && path === '/portfolio') return reply(portfolio(await state(env, actor), url.searchParams.get('entityId')))
     if (request.method === 'GET' && path === '/state') { const workspace = await state(env, actor); return reply({ ...workspace, portfolio: portfolio(workspace) }) }
-    if (request.method === 'GET' && path === '/search') return reply(await search(env, actor, url.searchParams.get('q') ?? ''))
+    if (request.method === 'GET' && path === '/search') {
+      const params = new URLSearchParams(url.searchParams)
+      if (params.has('q')) {
+        if (params.has('definition') || params.has('viewId')) fail('INVALID', 'Choose q, definition or viewId.')
+        params.set('definition', JSON.stringify({ query: params.get('q'), filters: [], sort: { field: 'title', direction: 'asc' }, columns: ['title','reference','status','counterparty'] }))
+      }
+      const result = await repositoryResult(env, actor, params)
+      return reply({ results: result.rows.map(r => ({ id: r.id, title: r.values.title, reference: r.values.reference, status: r.values.status, party: r.values.counterparty, match: r.matches?.[0] ?? null, matches: r.matches })) })
+    }
     if (request.method === 'GET' && path === '/compare') return reply(await compare(env, actor, url.searchParams.get('from') ?? '', url.searchParams.get('to') ?? ''))
     if (request.method === 'GET' && path === '/export') {
       const archive = await exportArchive(env, actor)

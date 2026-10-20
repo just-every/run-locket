@@ -25,6 +25,8 @@ export const repositoryFields: RepositoryField[] = [
   { id: 'notice_days', label: 'Notice period (days)', kind: 'number' },
   { id: 'governing_law', label: 'Governing law', kind: 'text' },
   { id: 'payment_terms', label: 'Payment terms', kind: 'text' },
+  { id: 'has_deviations', label: 'Has playbook deviations (yes/no)', kind: 'text' },
+  { id: 'deviations', label: 'Playbook deviation keys', kind: 'text' },
   { id: 'lifecycle', label: 'Lifecycle', kind: 'text' },
   { id: 'current_term_start', label: 'Current term start', kind: 'date' },
   { id: 'current_term_end', label: 'Current term end', kind: 'date' },

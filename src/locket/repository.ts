@@ -6,8 +6,9 @@ import { fail, money, type Actor } from './model'
 import { repositoryFields, type RepositoryField } from './repository-fields'
 import { defaultViewDefinition, parseViewDefinition, savedViews, type ViewDefinition } from './saved-views'
 import { state } from './views'
+import { searchPassages, type SearchPassage } from './search-passages'
 
-export interface RepositoryRow { id: string; values: Record<string, string | number | null> }
+export interface RepositoryRow { id: string; matches?: SearchPassage[]; values: Record<string, string | number | null> }
 export interface RepositoryResult { definition: ViewDefinition; columns: RepositoryField[]; rows: RepositoryRow[]; evaluatedAt: number; name?: string }
 const compare = (a: string | number, b: string | number): number => typeof a === 'number' && typeof b === 'number' ? a - b : String(a).toLocaleLowerCase().localeCompare(String(b).toLocaleLowerCase(), 'en-US')
 export async function repositoryResult(env: Bindings, actor: Actor, params: URLSearchParams, scheduledReport?: ScheduledReportRead): Promise<RepositoryResult> {
@@ -35,8 +36,12 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
   for (const a of s.agreements) {
     const current = lifecycle(a, s.terms, s.renewals, s.notices, evaluatedAt, s.settings.rollNoticeDeadlines)
     const terms = Object.fromEntries(s.terms.filter(t => t.agreement_id === a.id && t.status === 'confirmed').map(t => [t.key, t.value]))
+    const matches = searchPassages(s.versions.filter(v => v.agreement_id === a.id), definition.query)
+    const deviations = s.deviations.filter(d => d.version_id === a.current_version_id && d.result !== 'met')
     const values: RepositoryRow['values'] = {
       reference: a.reference, title: a.title, type: a.type, status: a.status,
+      deviations: deviations.map(d => d.clause_key).join(', '),
+      has_deviations: deviations.length ? 'yes' : 'no',
       counterparty: parties.get(a.party_id) ?? null, entity: entities.get(a.entity_id) ?? null, value: a.value_cents, currency: a.currency,
       owner: people.get(a.owner_id) ?? null, requester: people.get(a.requester_id) ?? null,
       restricted: a.restricted ? 'yes' : 'no', needed_by: a.needed_by, start_date: a.start_date,
@@ -50,7 +55,7 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
       lifecycle: current.status, current_term_start: current.start, current_term_end: current.end,
       current_term: current.term, notice_deadline: current.deadline?.date ?? null,
     }
-    if (query && !Object.values(values).some(v => v !== null && String(v).toLocaleLowerCase().includes(query)) && !s.versions.some(v => v.agreement_id === a.id && v.text?.toLocaleLowerCase().includes(query))) continue
+    if (query && !Object.values(values).some(v => v !== null && String(v).toLocaleLowerCase().includes(query)) && !matches.length) continue
     if (!filters.every(f => {
       const actual = values[f.field]
       if (actual === null || actual === undefined) return false
@@ -58,7 +63,7 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
       const order = compare(actual, f.expected)
       return f.operator === 'eq' ? order === 0 : f.operator === 'gte' ? order >= 0 : order <= 0
     })) continue
-    rows.push({ id: a.id, values })
+    rows.push({ id: a.id, matches, values })
   }
   rows.sort((a, b) => {
     const av = a.values[definition.sort.field], bv = b.values[definition.sort.field]
@@ -67,7 +72,7 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
     return order || a.id.localeCompare(b.id, 'en-US')
   })
   // Return only requested values; the executor alone sees the full projection.
-  return { definition, columns: definition.columns.map(id => repositoryFields.find(f => f.id === id)!), rows: rows.map(r => ({ id: r.id, values: Object.fromEntries(definition.columns.map(id => [id, r.values[id] ?? null])) })), evaluatedAt, ...(name === undefined ? {} : { name }) }
+  return { definition, columns: definition.columns.map(id => repositoryFields.find(f => f.id === id)!), rows: rows.map(r => ({ id: r.id, matches: r.matches, values: Object.fromEntries(definition.columns.map(id => [id, r.values[id] ?? null])) })), evaluatedAt, ...(name === undefined ? {} : { name }) }
 }
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 export function repositoryCsv(result: RepositoryResult): string {
