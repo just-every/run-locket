@@ -38,6 +38,7 @@ for (const width of [1440, 390]) {
       await preferences.getByLabel('Time zone', { exact: true }).selectOption('America/Denver')
       await preferences.getByLabel('Daily digest: batch eligible notification and reminder mail into one daily email').check()
       await preferences.getByRole('button', { name: 'Save preferences', exact: true }).click()
+      await expect(page.getByRole('status')).toContainText('Saved.')
       expect((await rhea.state()).notifications.preferences).toMatchObject({ timezone: 'America/Denver', digest: true })
       await expect(preferences.getByLabel('Daily digest: batch eligible notification and reminder mail into one daily email')).toBeChecked()
       await screenshot('preferences')
