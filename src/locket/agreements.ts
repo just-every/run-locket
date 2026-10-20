@@ -304,13 +304,19 @@ const attachRendition: Handler = async (c, p) => {
 const addComment: Handler = async (c, p) => {
   requireRole(c.actor, may.review, 'comment')
   const a = await visibleAgreement(c, p.agreementId)
-  const v = await c.db.prepare('SELECT id, number FROM lk_versions WHERE id=? AND agreement_id=?').bind(p.versionId, a.id).first<any>()
+  const v = await c.db.prepare('SELECT id, number, text FROM lk_versions WHERE id=? AND agreement_id=?').bind(p.versionId, a.id).first<any>()
   if (!v) fail('NOT_FOUND', 'That version is not on this agreement.', 404)
   const mentionIds = [...new Set(list(p, 'mentionIds', 50).map(id => typeof id === 'string' && id ? id : fail('INVALID', 'Mentions name explicit operator identities.')))]
   const mentionChecks = mentionIds.flatMap(id => readerSql(c, a.id, id))
   for (const check of mentionChecks) if (!(await c.db.prepare(`SELECT CASE WHEN ${check.sql} THEN 1 ELSE 0 END AS ok`).bind(...check.params).first<{ok:number}>())?.ok) fail('RECIPIENT', 'A mentioned person must be an active human with current agreement access.', 400)
+  const parentId = optionalText(p, 'parentId', 100)
+  const parent = parentId ? await c.db.prepare('SELECT * FROM lk_comments WHERE id=? AND agreement_id=? AND version_id=? AND parent_id IS NULL').bind(parentId, a.id, v.id).first<any>() : null
+  if (parentId && !parent) fail('NOT_FOUND', 'Reply to a thread on this document version.', 404)
+  if (parent?.resolved_at) fail('RESOLVED', 'This thread is resolved.', 409)
+  const quote = parent ? null : optionalText(p, 'quote', 2000)
+  if (p.start !== undefined && (typeof p.start !== 'number' || typeof p.end !== 'number' || !quote || v.text?.slice(p.start, p.end) !== quote)) fail('CITATION', 'Select the passage again; its words or position changed.', 409)
   const id = crypto.randomUUID()
-  return { allowed: may.review, result: { agreementId: a.id, commentId: id }, writes: [sql('INSERT INTO lk_comments VALUES(?,?,?,?,?,?,?)', id, a.id, v.id, c.actor.id, text(p, 'body', 4000), optionalText(p, 'quote', 2000), c.now), ...mentionIds.flatMap(recipientId => notificationWrites(c, {key:id,agreementId:a.id,recipientId,kind:'mention'}))], checks: [...agreementGuards(c, a), ...mentionChecks], audit: [{ action: 'comment.add', agreementId: a.id, summary: `Commented on version ${v.number}; ${mentionIds.length} explicit mentions` }] }
+  return { allowed: may.review, result: { agreementId: a.id, commentId: id }, writes: [sql('INSERT INTO lk_comments(id,agreement_id,version_id,author_id,body,quote,at,parent_id) VALUES(?,?,?,?,?,?,?,?)', id, a.id, v.id, c.actor.id, text(p, 'body', 4000), quote, c.now, parentId), ...(parent ? [sql('UPDATE lk_comments SET revision=revision+1 WHERE id=?', parent.id)] : []), ...mentionIds.flatMap(recipientId => notificationWrites(c, {key:id,agreementId:a.id,recipientId,kind:'mention'}))], checks: [...agreementGuards(c, a), ...mentionChecks, ...(parent ? [sql('(SELECT revision FROM lk_comments WHERE id=?)=?', parent.id, parent.revision)] : [])], audit: [{ action: 'comment.add', agreementId: a.id, summary: `${parent ? 'Replied in a thread' : 'Commented'} on version ${v.number}; ${mentionIds.length} explicit mentions` }] }
 }
 
 /** Links an agreement into its family (MSA, amendment, order form). */

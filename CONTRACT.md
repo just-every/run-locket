@@ -273,11 +273,11 @@ An Office add-in for Word on Windows, Mac and the web, distributed through Micro
 *Status:* missing. No Word add-in exists.
 
 #### NEG-004 — Browser redlining and threaded comments.
-People edit a version in the browser with changes recorded as tracked changes, comment on a selected passage, @mention colleagues, reply in threads and resolve them. Saving creates a new version; mentions notify (`NOTIFY-001`).
+People edit a version in the browser with changes recorded as tracked changes, comment on a selected passage, @mention colleagues, reply in threads and resolve them. Saving creates a new version; mentions notify (`NOTIFY-001`). Browser revisions retain the base version, author, time and before/after line changes in the new version's identity, alongside its generated text PDF; comparison shows the edits without rewriting the earlier original. Replies and resolution stay on their root comment's document version; a changed thread revision must be reloaded before resolution. The existing document-edit and comment roles apply.
 
 *Acceptance:* a browser journey at 1440 and 390 pixels edits two clauses, comments on a third, mentions counsel, who replies and resolves; the saved version shows the tracked edits and the compare view lists exactly those changes.
 
-*Status:* partial. Line-by-line comparison of versions and comments with quoted passages ship (`src/locket/diff.ts`, `src/locket/agreements.ts`); in-browser editing, threads, mentions and resolution do not exist.
+*Status:* done. Attributed browser text revisions, selected-passage identity mentions, version-pinned replies and revision-guarded resolution are proven through the Worker and browser (`src/locket/browser-edits.ts`, `src/locket/comment-threads.ts`, `tests/api/browser-edits.test.mjs`, `tests/browser/browser-edits.spec.ts`).
 
 #### NEG-005 — Internal and external sides of a negotiation.
 Every comment and version is marked internal or external. Internal comments, findings, approvals and internal-only versions never appear in anything shared with the counterparty (downloads, emails, the secure link). A person sends the external view by choice; Locket warns when an outgoing DOCX still carries internal comments or metadata and strips them.
@@ -912,8 +912,8 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 18 | 29 | 33 | 80 |
-| All | 37 | 29 | 33 | 99 |
+| Target and push further | 19 | 28 | 33 | 80 |
+| All | 38 | 28 | 33 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -958,7 +958,7 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | `PLAY-002` | Playbooks drafted from templates and history | target | missing |  | Playbooks are authored by hand only |
 | `NEG-002` | Word tracked changes round-trip | target | partial | `src/locket/docx.ts`; `src/locket/diff.ts` | Tracked changes and comments are not read or written |
 | `NEG-003` | Locket for Word add-in | target | missing |  | No Word add-in exists |
-| `NEG-004` | Browser redlining and threaded comments | target | partial | `src/locket/diff.ts`; `src/locket/agreements.ts` | In-browser editing, threads, mentions and resolution do not exist |
+| `NEG-004` | Browser redlining and threaded comments | target | done | `src/locket/browser-edits.ts`; `src/locket/comment-threads.ts`; `tests/api/browser-edits.test.mjs`; `tests/browser/browser-edits.spec.ts`; `tests/browser/browser-edits-live.mjs` |  |
 | `NEG-005` | Internal and external sides of a negotiation | target | partial | `src/locket/agreements.ts` | Internal and external marking, sharing and stripping do not exist |
 | `NEG-006` | Counterparty exchange by email and secure link | target | missing |  | Exchange with counterparties happens outside Locket |
 | `REVIEW-002` | Built-in playbook review | target | partial | `src/locket/review.ts`; `src/locket/proposals.ts`; `tests/api/flows.test.mjs` | The built-in model run does not exist |

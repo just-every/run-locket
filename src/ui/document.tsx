@@ -32,7 +32,7 @@ export function notesFor(state: LocketState, a: Row, shown: Row, swapped: (start
     const tone = findingTone(state, a, d)
     if (d.result !== 'met' || swapped(d.start_offset, d.end_offset)) notes.push({ id: `f-${d.id}`, kind: 'finding', tone, start: d.start_offset, end: d.end_offset, row: d })
   }
-  for (const c of state.comments.filter(x => x.version_id === shown.id && x.quote)) {
+  for (const c of state.comments.filter(x => x.version_id === shown.id && !x.parent_id && x.quote)) {
     const start = shown.text.indexOf(c.quote)
     if (start >= 0) notes.push({ id: `c-${c.id}`, kind: 'comment', tone: 'internal', start, end: start + c.quote.length, row: c })
   }

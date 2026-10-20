@@ -1,3 +1,5 @@
+import { editVersion } from './browser-edits'
+import { resolveComment } from './comment-threads'
 import { noticeAgentHandlers } from './notice-agent'
 import { notificationHandlers } from './notifications'
 import { reportHandlers, previewReport } from './reports'
@@ -43,6 +45,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, search, state } from './views'
 
 export const handlers: Record<string, Handler> = {
+  'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,
   ...savedViewHandlers, ...reportHandlers,
   ...entityHandlers,

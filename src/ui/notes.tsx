@@ -103,7 +103,7 @@ function CommentCard({ note, state, zone }: { note: Note; state: LocketState; zo
     <article className="lk-note-card lk-tone-internal" aria-label={`Internal comment by ${personName(state, c.author_id)}`}>
       <div className="lk-note-head">
         <span className="lk-dot" aria-hidden="true" />
-        <h3>Internal</h3>
+        <h3>{c.resolved_at ? 'Resolved' : 'Internal'}</h3>
         <time>{stamp(c.at, { zone })}</time>
       </div>
       <div className="lk-note-by lk-note-by-top">
@@ -111,6 +111,7 @@ function CommentCard({ note, state, zone }: { note: Note; state: LocketState; zo
         <span><strong>{personName(state, c.author_id)}</strong> <span className="lk-muted">{role ? roleLabel[role] : ''}</span></span>
       </div>
       <p className="lk-note-quote">{c.body}</p>
+      {state.comments.some(reply => reply.parent_id === c.id) && <p className="lk-muted">{state.comments.filter(reply => reply.parent_id === c.id).length} {state.comments.filter(reply => reply.parent_id === c.id).length === 1 ? 'reply' : 'replies'} · see Comment threads below</p>}
     </article>
   )
 }

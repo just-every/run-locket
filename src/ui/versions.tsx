@@ -1,3 +1,5 @@
+import { BrowserEditor } from './browser-editor'
+import { CommentThread } from './comment-threads'
 // The version tools around the workspace page: the version chips and Compare
 // in the top bar, adding the next version (upload, template or signing PDF),
 // the required attachments and submitting for review, and the comment box.
@@ -49,6 +51,7 @@ export function AddVersion({ state, a, locket, onDone }: { state: LocketState; a
   return (
     <section className="lk-panel lk-add-version" aria-label={`Add v${next}`}>
       <div className="lk-panel-head"><h2>Add v{next}</h2><span className="lk-muted">Originals are kept untouched; each version keeps its own file and digest.</span></div>
+      {v && <BrowserEditor a={a} version={v} locket={locket} onDone={onDone} />}
       {v && <ClauseLibrary state={state} agreement={a} locket={locket} onInserted={onDone} />}
       <div className="lk-add-grid">
         <Form busy={busy} submit="Add version" onSubmit={async (data, form) => {
@@ -127,14 +130,16 @@ export function Attachments({ state, a, locket }: { state: LocketState; a: Row; 
 /** Comments on the shown version: the ones without a quoted passage, and the box to add one. */
 export function Comments({ state, a, shown, locket }: { state: LocketState; a: Row; shown: Row; locket: Locket }) {
   const { run, busy } = locket
-  const loose = state.comments.filter(c => c.version_id === shown.id && (!c.quote || !shown.text?.includes(c.quote)))
+  const [quote, setQuote] = useState('')
+  const roots = state.comments.filter(c => c.version_id === shown.id && !c.parent_id)
   return (
-    <section className="lk-panel lk-comments-card">
+    <section className="lk-panel lk-comments-card" aria-label="Comment threads">
       <div className="lk-panel-head"><h2>Comments</h2><span className="lk-muted">Internal: the counterparty never sees them. A comment that quotes a passage sits beside it.</span></div>
-      {loose.length > 0 && <ul className="lk-comments">{loose.map(c => <li key={c.id}><strong>{personName(state, c.author_id)}</strong> on v{shown.number}<small>{stamp(c.at, { zone: a.timezone })}</small>{c.quote && <q>{c.quote}</q>}<p>{c.body}</p></li>)}</ul>}
+      {roots.length > 0 && <ul className="lk-comments">{roots.map(root => <CommentThread key={root.id} root={root} state={state} a={a} locket={locket} />)}</ul>}
       {can(state, 'owner', 'counsel', 'approver', 'requester') && (
-        <Form busy={busy} submit="Comment" onSubmit={async (data, form) => { if (await run('comment.add', { agreementId: a.id, versionId: shown.id, body: value(data, 'body'), quote: value(data, 'quote') || undefined, mentionIds: data.getAll('mentionIds').map(String) })) form.reset() }}>
-          <Field label="Quoted passage (optional)"><input name="quote" /></Field>
+        <Form busy={busy} submit="Comment" onSubmit={async (data, form) => { if (await run('comment.add', { agreementId: a.id, versionId: shown.id, body: value(data, 'body'), quote: value(data, 'quote') || undefined, ...(quote && shown.text?.includes(quote) ? { start: shown.text.indexOf(quote), end: shown.text.indexOf(quote) + quote.length } : {}), mentionIds: data.getAll('mentionIds').map(String) })) { form.reset(); setQuote('') } }}>
+          <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => { const selected = window.getSelection()?.toString() ?? ''; if (selected && shown.text?.includes(selected)) setQuote(selected); else locket.setError('Select a passage from the shown document first.') }}>Use selected passage</button>
+          <Field label="Quoted passage (optional)"><input name="quote" value={quote} onChange={e => setQuote(e.target.value)} /></Field>
           <Field label={`Comment on v${shown.number}`}><textarea name="body" rows={2} required /></Field>
           <fieldset className="lk-fieldset">
             <legend>Mention people (optional)</legend>
