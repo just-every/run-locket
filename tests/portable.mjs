@@ -187,7 +187,10 @@ try {
   a = await agreement()
   await running.cmd('package.sent', { agreementId: a.id, version: a.version, packageId: pkg.packageId, envelopeId: 'ENV-PORTABLE' })
   a = await agreement()
-  await running.cmd('execution.record', { agreementId: a.id, version: a.version, envelopeId: 'ENV-PORTABLE', executedOn: '2026-08-01', documentConfirmed: true, signers: [{ name: 'Pat', email: 'pat@portable.example' }], signed: file('signed.pdf', pdf('Signed NDA')), certificate: file('Summary.pdf', pdf('Certificate')) })
+  const returned = Buffer.from(await (await running.request('/api/locket/files/' + pkg.pdfArtifactId)).arrayBuffer())
+  const execution = await running.cmd('execution.record', { agreementId: a.id, version: a.version, envelopeId: 'ENV-PORTABLE', executedOn: '2026-08-01', documentConfirmed: true, signers: [{ name: 'Pat', email: 'pat@portable.example' }], signed: file('signed.pdf', returned), certificate: file('Summary.pdf', pdf('Certificate')) })
+  assert.equal(execution.status, 'reconciled', 'AGENT-006 clean text-PDF execution precedes archive export')
+  assert.equal(execution.checks.find(check => check.check === 'text').ok, true)
   for (const [key, value, quote] of [['end_date', '2028-08-01', 'Obligations last 3 years.'], ['notice_days', '45', 'NDA with Portable Co.']]) {
     const term = await running.cmd('term.propose', { agreementId: a.id, key, value, citation: { quote } })
     await running.cmd('term.decide', { agreementId: a.id, termId: term.id, decision: 'confirm' })
