@@ -66,7 +66,9 @@ export async function isReader(c: Ctx, agreementId: string | null, id: string) {
 }
 
 export async function preferenceOf(db: D1Database, id: string) {
-  return db.prepare('SELECT timezone, digest, alternate_id FROM lk_person_preferences WHERE operator_id=?').bind(id).first<{ timezone: string; digest: number; alternate_id: string | null }>()
+  return db.prepare(`SELECT p.timezone,COALESCE(p.digest,0) AS digest,r.alternate_id FROM oa_operators o
+    LEFT JOIN lk_person_preferences p ON p.operator_id=o.id LEFT JOIN lk_reminder_routing r ON r.operator_id=o.id WHERE o.id=?`)
+    .bind(id).first<{ timezone: string | null; digest: number; alternate_id: string | null }>()
 }
 export const dueAt = (deadlineDate: string, offset: number, zone: string) => zonedInstant(addDays(deadlineDate, -offset), '09:00:00', zone)
 

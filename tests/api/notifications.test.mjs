@@ -93,11 +93,34 @@ test('NOTIFY-001 assignments, explicit mentions, approval requests and signature
   assert.equal((await snapshot(people.counsel)).items.filter(n=>n.kind==='signature'&&n.agreement_id===a.id).length,4)
 })
 
-test('NOTIFY-001 own channel preferences, 9am local daily batching, current access and uncertain outcomes govern every send',async t=>{
+test('NOTIFY-001 / APPROVE-004 self-only cross-door preferences and routing snapshots, own channel preferences, 9am local daily batching, current access and uncertain outcomes govern every send',async t=>{
   const h=await installation();t.after(()=>h.close())
   await h.setTime(at('2026-10-20T16:00:00Z')) // 09:00 Los Angeles
   const counsel=await h.invite('counsel@example.test','counsel'),viewer=await h.invite('viewer@example.test','viewer'),agent=await h.invite('agent@example.test','agent')
   await prefs(counsel,{digest:true,timezone:'America/Los_Angeles'})
+  const personal={inApp:true,email:true,digest:true,timezone:'America/Los_Angeles'}
+  await h.owner.command('preferences.set',{operatorId:counsel.id,timezone:'America/Chicago',digest:true},{error:'FORBIDDEN'})
+  await h.owner.command('preferences.set',{operatorId:counsel.id,timezone:personal.timezone,digest:false},{error:'FORBIDDEN'})
+  await h.owner.command('notification.preferences',{operatorId:counsel.id,...personal},{error:'FORBIDDEN'})
+  await h.owner.command('preferences.set',{operatorId:counsel.id,timezone:personal.timezone,digest:true,alternateId:viewer.id})
+  assert.deepEqual((await snapshot(counsel)).preferences,personal)
+  const routingOnly=await h.invite('routing-only@example.test','approver')
+  const defaults=(await snapshot(routingOnly)).preferences
+  await h.owner.command('preferences.set',{operatorId:routingOnly.id,timezone:defaults.timezone,digest:defaults.digest,delegateId:(await h.owner.state()).actor.id,alternateId:viewer.id})
+  let records=(await(await h.owner.request('/api/locket/export')).json()).records
+  assert.ok(!records.lk_person_preferences.some(p=>p.operator_id===routingOnly.id))
+  assert.equal(records.lk_reminder_routing.find(p=>p.operator_id===routingOnly.id).alternate_id,viewer.id)
+  assert.deepEqual((await snapshot(routingOnly)).preferences,defaults)
+  const [routingRace]=await Promise.all([
+    h.owner.request('/api/locket/commands',{method:'POST',body:{commandId:randomUUID(),type:'preferences.set',payload:{operatorId:counsel.id,timezone:personal.timezone,digest:true,alternateId:viewer.id}}}),
+    prefs(counsel,{timezone:'America/Chicago',digest:false}),
+  ])
+  const race=await routingRace.json()
+  if(!race.ok)assert.ok(['FORBIDDEN','STALE'].includes(race.error.code),JSON.stringify(race))
+  assert.equal((await snapshot(counsel)).preferences.timezone,'America/Chicago')
+  assert.equal((await snapshot(counsel)).preferences.digest,false)
+  await counsel.command('preferences.set',{operatorId:counsel.id,timezone:personal.timezone,digest:true,alternateId:viewer.id})
+  assert.deepEqual((await snapshot(counsel)).preferences,personal)
   const first=await draft(h.owner,counsel.id)
   let a=await find(h.owner,first.id)
   const count=h.mails.length

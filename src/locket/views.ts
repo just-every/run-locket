@@ -160,7 +160,7 @@ export async function exportArchive(env: Bindings, actor: Actor) {
   const db = env.DB
   const tables = ['lk_entities', 'lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations', 'lk_notice_letters', 'lk_notice_dispatches', 'lk_notice_events', 'lk_notice_tracking', 'lk_saved_views', 'lk_view_pins', 'lk_approval_reminder_settings', 'lk_person_preferences', 'lk_deadline_reminder_settings', 'lk_deadline_reminders', 'lk_deadline_reminder_events', 'lk_approval_reminders', 'lk_installation_settings', 'lk_reports', 'lk_report_deliveries', 'lk_notifications', 'lk_notification_deliveries']
   const records: Record<string, unknown[]> = {}
-  for (const t of tables) records[t] = await all(db, `SELECT * FROM ${t}`)
+  for (const t of [...tables, 'lk_reminder_routing']) records[t] = await all(db, `SELECT * FROM ${t}`)
   const files = []
   for (const a of await all(db, 'SELECT * FROM lk_artifacts ORDER BY uploaded_at')) files.push({ ...a, base64: encodeBase64(await readArtifactBytes(db, a.id)) })
   return { format: 'locket-archive/1', exportedAt: new Date().toISOString(), records, files }

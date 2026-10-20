@@ -66,7 +66,7 @@ async function eligible(c: Ctx, agreementId: string, id: string, email: string) 
 export type Reason = 'approver' | 'delegate' | 'escalation_contact' | 'owner'
 /** The approver's delegate, else the escalation contact, else the owner: the first who may decide this agreement. */
 export async function escalationTarget(c: Ctx, p: Pending, s: Settings): Promise<{ id: string; email: string; reason: Reason } | null> {
-  const delegate = (await c.db.prepare('SELECT delegate_id FROM lk_person_preferences WHERE operator_id=?').bind(p.approverId).first<{ delegate_id: string | null }>())?.delegate_id ?? null
+  const delegate = (await c.db.prepare('SELECT delegate_id FROM lk_reminder_routing WHERE operator_id=?').bind(p.approverId).first<{ delegate_id: string | null }>())?.delegate_id ?? null
   const owner = (await c.db.prepare("SELECT id FROM oa_operators WHERE role='owner' AND status='active' ORDER BY created_at LIMIT 1").first<{ id: string }>())?.id ?? null
   for (const [id, reason] of [[delegate, 'delegate'], [s.escalationContactId, 'escalation_contact'], [owner, 'owner']] as [string | null, Reason][]) {
     if (!id || id === p.approverId) continue
@@ -126,7 +126,9 @@ export const approvalReminderHandlers: Record<string, Handler> = {
 /** What the workspace shows: settings, preferences, and each visible pending approval's schedule. */
 export async function approvalReminderState(env: Bindings, actor: Actor, visible: Set<string>, now: number) {
   const db = env.DB, settings = await reminderSettings(db)
-  const preferences = (await db.prepare('SELECT operator_id, timezone, delegate_id, digest, alternate_id FROM lk_person_preferences').all<any>()).results
+  const preferences = (await db.prepare(`SELECT o.id AS operator_id,p.timezone,COALESCE(p.digest,0) AS digest,r.delegate_id,r.alternate_id
+    FROM oa_operators o LEFT JOIN lk_person_preferences p ON p.operator_id=o.id LEFT JOIN lk_reminder_routing r ON r.operator_id=o.id
+    WHERE p.operator_id IS NOT NULL OR r.operator_id IS NOT NULL`).all<any>()).results
   const pending = []
   for (const p of (await pendingApprovals(db)).filter(x => visible.has(x.agreementId))) {
     const zone = preferences.find(x => x.operator_id === p.approverId)?.timezone ?? defaultZone

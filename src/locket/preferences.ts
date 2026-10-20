@@ -1,13 +1,14 @@
 // Each person's reminder preferences: their US time zone (approval business days
 // under APPROVE-004, reminder times under RENEW-002), a delegate for approval
 // escalations (owners and approvers only), a daily digest and an alternate
-// recipient for bounced deadline reminders. People set their own; the owner may
-// set anyone's.
+// recipient for bounced deadline reminders. Personal delivery choices are
+// self-only; the owner may configure other people's delegate and alternate.
 import { requireRole } from './access'
 import { commercialSql } from './approval-reminders'
 import { usZones } from './business-days'
 import type { Handler } from './commands'
 import { bool, fail, oneOf, optionalText, sql, text, type Role } from './model'
+import { notificationPreferences, notificationZoneSql, preferenceSql } from './notifications'
 
 const people: Role[] = ['owner', 'counsel', 'approver', 'requester', 'viewer']
 const member = (id: string) => sql(`EXISTS(SELECT 1 FROM oa_operators o WHERE o.id=? AND o.status='active' AND (SELECT CASE WHEN o.role='owner' THEN 'owner' ELSE COALESCE((SELECT r.role FROM lk_roles r WHERE r.operator_id=o.id),'viewer') END)<>'agent')`, id)
@@ -18,6 +19,10 @@ const setPreferences: Handler = async (c, p) => {
   const operatorId = text(p, 'operatorId', 100)
   if (c.actor.role !== 'owner' && operatorId !== c.actor.id) fail('FORBIDDEN', 'Only the owner sets another person’s preferences.', 403)
   const zone = oneOf(p, 'timezone', usZones), digest = bool(p, 'digest')
+  const own = operatorId === c.actor.id
+  const personal = await notificationPreferences(c.db, operatorId)
+  if (!own && (zone !== personal.timezone || digest !== personal.digest)) fail('FORBIDDEN', 'Only the person may change their time zone or daily digest.', 403)
+  const zoneSnapshot = notificationZoneSql(operatorId), digestSnapshot = preferenceSql(operatorId, 'digest')
   const delegate = optionalText(p, 'delegateId', 100), alternate = optionalText(p, 'alternateId', 100)
   for (const [id, field] of [[delegate, 'delegateId'], [alternate, 'alternateId']] as const)
     if (id === operatorId) fail('INVALID', 'Choose someone else.', 400, { field })
@@ -35,9 +40,12 @@ const setPreferences: Handler = async (c, p) => {
   return {
     allowed: people,
     result: { operatorId, timezone: zone, delegateId: delegate, digest, alternateId: alternate },
-    writes: [sql('INSERT INTO lk_person_preferences(operator_id,timezone,delegate_id,updated_by,updated_at,digest,alternate_id) VALUES(?,?,?,?,?,?,?) ON CONFLICT(operator_id) DO UPDATE SET timezone=excluded.timezone, delegate_id=excluded.delegate_id, digest=excluded.digest, alternate_id=excluded.alternate_id, updated_by=excluded.updated_by, updated_at=excluded.updated_at', operatorId, zone, delegate, c.actor.id, c.now, digest ? 1 : 0, alternate)],
-    checks: [member(operatorId), ...(delegate ? [commercial(operatorId), commercial(delegate)] : []), ...(alternate ? [member(alternate)] : [])],
-    audit: [{ action: 'preferences.set', summary: `${name(operatorId)}: time zone ${zone}; delegate ${name(delegate)}; ${digest ? 'daily digest' : 'one email per reminder'}; alternate ${name(alternate)}.` }],
+    writes: [
+      ...(own ? [sql('INSERT INTO lk_person_preferences(operator_id,timezone,updated_by,updated_at,digest) VALUES(?,?,?,?,?) ON CONFLICT(operator_id) DO UPDATE SET timezone=excluded.timezone,digest=excluded.digest,updated_by=excluded.updated_by,updated_at=excluded.updated_at', operatorId, zone, c.actor.id, c.now, Number(digest))] : []),
+      sql('INSERT INTO lk_reminder_routing VALUES(?,?,?,?,?) ON CONFLICT(operator_id) DO UPDATE SET delegate_id=excluded.delegate_id,alternate_id=excluded.alternate_id,updated_by=excluded.updated_by,updated_at=excluded.updated_at', operatorId, delegate, alternate, c.actor.id, c.now),
+    ],
+    checks: [member(operatorId), ...(!own ? [sql(`(${zoneSnapshot.sql})=? AND (${digestSnapshot.sql})=?`, ...zoneSnapshot.params, zone, ...digestSnapshot.params, Number(digest))] : []), ...(delegate ? [commercial(operatorId), commercial(delegate)] : []), ...(alternate ? [member(alternate)] : [])],
+    audit: [{ action: 'preferences.set', summary: `${name(operatorId)}: ${own ? `time zone ${zone}; ${digest ? 'daily digest' : 'one email per reminder'}` : 'personal time zone and daily digest unchanged'}; delegate ${name(delegate)}; alternate ${name(alternate)}.` }],
   }
 }
 

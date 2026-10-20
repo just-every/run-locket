@@ -35,6 +35,8 @@ export async function notificationCheck(db: D1Database, checks: Sql[]): Promise<
 
 export const preferenceSql = (id: string, field: 'email' | 'digest' | 'in_app'): Sql =>
   sql(`COALESCE((SELECT ${field} FROM lk_person_preferences WHERE operator_id=?),${field === 'digest' ? 0 : 1})`, id)
+export const notificationZoneSql = (id: string): Sql => sql(`COALESCE((SELECT timezone FROM lk_person_preferences WHERE operator_id=?),
+  (SELECT timezone FROM lk_installation_settings WHERE id='installation'),?)`, id, defaultZone)
 export async function notificationPreferences(db: D1Database, id: string): Promise<NotificationPreferences> {
   const row = await db.prepare(`SELECT p.in_app,p.email,p.digest,COALESCE(p.timezone,s.timezone,?) AS timezone
     FROM oa_operators o LEFT JOIN lk_person_preferences p ON p.operator_id=o.id

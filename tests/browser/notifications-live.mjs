@@ -28,7 +28,8 @@ try {
  console.log('Real rer dev ready; private entry retained only in memory.')
  // The runner may isolate installer HOME; the Node process launching Chromium uses the real OS account home.
  console.log(redact(await command(join(workspace,'node_modules/.bin/playwright'),['test','--config',join(workspace,'tests/browser/playwright.config.ts'),'notifications.spec.ts','--workers=1'],workspace,{HOME:userInfo().homedir,LOCKET_NOTIFICATION_LIVE:'1',LOCKET_BASE_URL:new URL(ready.url).origin,LOCKET_OPEN:ready.openUrl,LOCKET_SCREENSHOTS:screenshots,LOCKET_BROWSER_OUTPUT:evidence})))
- console.log('Real notification screens at 1440 and 390 passed. Screenshots: '+screenshots)
+ console.log(redact(await command(join(workspace,'node_modules/.bin/playwright'),['test','--config',join(workspace,'tests/browser/playwright.config.ts'),'notifications-policy.spec.ts','approval-reminders.spec.ts','--workers=1'],workspace,{HOME:userInfo().homedir,LOCKET_SCREENSHOTS:screenshots,LOCKET_BROWSER_OUTPUT:evidence})))
+ console.log('Real notification and personal-policy screens at 1440 and 390 passed. Screenshots: '+screenshots)
 }catch(error){failure=error}finally{
  if(runtime?.process.exitCode===null){runtime.process.kill('SIGTERM');await Promise.race([runtime.done,new Promise(r=>setTimeout(r,20000))]);if(runtime.process.exitCode===null){runtime.process.kill('SIGKILL');await runtime.done}}
  await rm(parent,{recursive:true,force:true})

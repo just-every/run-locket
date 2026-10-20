@@ -3,11 +3,10 @@
 import type { Bindings } from '../auth.server'
 import { operatorMail } from '../mail.server.mjs'
 import { auditSql, guardSql, type Ctx } from './commands'
-import { defaultZone } from './business-days'
 import { sql, type Actor, type Sql } from './model'
 import { notificationSourceChecks, notificationSourceOutcome } from './notification-sources'
 import { activeHumanSql, notificationBatch, notificationCheck, notificationLink, notificationPreferences,
-  notificationReaderSql, notificationWrites, preferenceSql, type NotificationInput, type NotificationRow, type NotificationSource } from './notifications'
+  notificationReaderSql, notificationWrites, notificationZoneSql, preferenceSql, type NotificationInput, type NotificationRow, type NotificationSource } from './notifications'
 
 const scheduler: Actor = { id: 'locket-scheduler', name: 'Locket scheduler', email: '', role: 'viewer', sessionId: '', operatorVersion: 0 }
 const localMail = (env: Bindings) => env.AUTH_LOCAL === 'true' || (env as { RER_DEMO?: string }).RER_DEMO === '1'
@@ -45,8 +44,6 @@ export async function notificationOutcome(env: Bindings, sourceKind: Notificatio
 interface Candidate { row: NotificationRow; checks: Sql[] }
 interface Delivery { id: string; recipient_id: string; recipient_email: string; kind: 'immediate' | 'digest'; local_date: string | null; timezone: string; attempt_id: string }
 
-const zoneSql = (recipient: string) => sql(`COALESCE((SELECT timezone FROM lk_person_preferences WHERE operator_id=?),
-  (SELECT timezone FROM lk_installation_settings WHERE id='installation'),?)`, recipient, defaultZone)
 function localDay(now: number, zone: string) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit' })
     .formatToParts(new Date(now)).map(p => [p.type, p.value]))
@@ -120,7 +117,7 @@ async function send(c: Ctx, recipient: string, kind: 'immediate' | 'digest', tim
   const person = await c.db.prepare("SELECT email FROM oa_operators WHERE id=? AND status='active'").bind(recipient).first<{ email: string }>()
   if (!person) return
   const delivery: Delivery = { id: crypto.randomUUID(), recipient_id: recipient, recipient_email: person.email, kind, local_date: date, timezone, attempt_id: crypto.randomUUID() }
-  const zone = zoneSql(recipient), digest = preferenceSql(recipient, 'digest'), email = preferenceSql(recipient, 'email')
+  const zone = notificationZoneSql(recipient), digest = preferenceSql(recipient, 'digest'), email = preferenceSql(recipient, 'email')
   const checks = [activeHumanSql(recipient), sql("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND email=?)", recipient, person.email),
     sql(`(${zone.sql})=?`, ...zone.params, timezone), sql(`(${email.sql})=1 AND (${digest.sql})=?`, ...email.params, ...digest.params, Number(kind === 'digest')),
     ...(kind === 'digest' ? [sql("NOT EXISTS(SELECT 1 FROM lk_notification_deliveries WHERE recipient_id=? AND local_date=? AND kind='digest')", recipient, date),
