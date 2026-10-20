@@ -9,7 +9,7 @@ test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_Yo
 const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10)
 
 for (const width of [1440, 390]) {
-  test(`RENEW-002 sets offsets and a digest preference, shows the sent reminder, its bounce and the alternate retry on the deadline at ${width}px`, async ({ page }) => {
+  test(`RENEW-002 / NOTIFY-001 sets offsets and a personal digest preference, shows the sent reminder, its bounce and the alternate retry on the deadline at ${width}px`, async ({ page }) => {
     const key = webhookKey()
     const p = await productPage(page, { width, bindings: { NOTICE_RESEND_WEBHOOK_SECRET: key } })
     const { h, origin, command, state } = p
@@ -31,15 +31,18 @@ for (const width of [1440, 390]) {
       await expect(page.getByRole('status')).toContainText('Saved.')
       expect((await state()).deadlineReminders.offsets).toEqual([60, 30, 7])
 
+      await page.context().addCookies(rhea.cookie.split('; ').map((pair: string) => { const i = pair.indexOf('='); return { name: pair.slice(0,i), value: pair.slice(i+1), url: origin, secure: true, httpOnly: true, sameSite: 'Lax' as const } }))
       await page.goto(`${origin}/app#activity`)
       const preferences = page.getByRole('region', { name: 'Reminder preferences', exact: true })
-      await preferences.getByLabel('Person', { exact: true }).selectOption(rhea.id)
+      await expect(preferences.getByLabel('Time zone', { exact: true })).toBeEnabled()
       await preferences.getByLabel('Time zone', { exact: true }).selectOption('America/Denver')
-      await preferences.getByLabel('Daily digest: one email a day with every deadline reminder that came due').check()
+      await preferences.getByLabel('Daily digest: batch eligible notification and reminder mail into one daily email').check()
       await preferences.getByRole('button', { name: 'Save preferences', exact: true }).click()
-      await expect(preferences.getByText(/Mountain · delegate none · daily digest · alternate default/)).toBeVisible()
+      expect((await rhea.state()).notifications.preferences).toMatchObject({ timezone: 'America/Denver', digest: true })
+      await expect(preferences.getByLabel('Daily digest: batch eligible notification and reminder mail into one daily email')).toBeChecked()
       await screenshot('preferences')
-      await command('preferences.set', { operatorId: rhea.id, timezone: 'America/Denver', digest: false })
+      await rhea.command('preferences.set', { operatorId: rhea.id, timezone: 'America/Denver', digest: false })
+      await page.context().addCookies(h.owner.cookie.split('; ').map((pair: string) => { const i = pair.indexOf('='); return { name: pair.slice(0,i), value: pair.slice(i+1), url: origin, secure: true, httpOnly: true, sameSite: 'Lax' as const } }))
 
       const end = iso(Date.now() + 70 * 86_400_000)
       const a = await command('legacy.import', { title: `Courier supply ${tag}`, type: 'supplier', ownerId: rhea.id, party: { name: `Courier ${tag}`, kind: 'supplier' }, sourceSystem: 'Archive', sourceId: crypto.randomUUID(), file: file('signed.pdf', pdf(`Give 30 days notice ${tag}.`)), text: `Give 30 days notice ${tag}.`, signed: true })
