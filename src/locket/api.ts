@@ -1,3 +1,4 @@
+import { noticeAgentHandlers } from './notice-agent'
 import { notificationHandlers } from './notifications'
 import { reportHandlers, previewReport } from './reports'
 import { reportCsv, reportPdf } from './report-output'
@@ -42,7 +43,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, search, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...notificationHandlers,
+  ...notificationHandlers, ...noticeAgentHandlers,
   ...savedViewHandlers, ...reportHandlers,
   ...entityHandlers,
   ...installationHandlers,

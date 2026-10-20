@@ -1,3 +1,4 @@
+import { NoticeAgentSource } from './notice-agent'
 import { BulkReminders } from './bulk-reminders'
 import { NoticeDelivery } from './notice-delivery'
 import { DeadlineReminderLog, DeadlineReminderSettings } from './deadline-reminders'
@@ -94,6 +95,7 @@ function Steps({ state, r, a, locket }: { state: LocketState; r: Row; a: Row; lo
         <h3>2. Notice</h3>
         {notices.length === 0 && <p className="lk-muted">No notice drafted.</p>}
         {notices.map(n => <NoticeDelivery key={n.id} state={state} notice={n} renewal={r} locket={locket} />)}
+        <NoticeAgentSource state={state} renewal={r} agreement={a} locket={locket} />
         {r.decision && can(state, 'owner', 'counsel', 'approver', 'requester') && (
           <details className="lk-disclosure">
             <summary>Draft a notice</summary>

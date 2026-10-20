@@ -1,3 +1,4 @@
+import { agentDraft, preparedNoticeText, sourceOf, sourceChecks } from './notice-agent'
 // Agent work: an agent (or any preparer) records an evidence-backed proposal;
 // a person with the matching authority approves or rejects it. Approval applies
 // it through the same checks as the person doing the work themselves, and the
@@ -28,6 +29,11 @@ const prepare: Handler = async (c, p) => {
   requireRole(c.actor, may.prepare, 'prepare proposals')
   const kind = oneOf(p, 'kind', kinds)
   const payload = object(p.payload, 'payload')
+  if (kind === 'renewal' && (c.actor.role === 'agent' || payload.sourceId)) {
+    const { s } = await sourceOf(c, payload.sourceId)
+    const r = await c.db.prepare('SELECT end_date FROM lk_renewals WHERE id=?').bind(s.renewal_id).first<any>()
+    Object.assign(payload, { sourceId:s.id,renewalId:s.renewal_id,recipient:s.recipient,body:preparedNoticeText(s,r.end_date) })
+  }
   const evidence = list(p, 'evidence', 50).map(e => (typeof e === 'string' && e.trim() ? e.trim().slice(0, 4000) : fail('INVALID', 'Evidence entries must be text.')))
   if (!evidence.length) fail('INVALID', 'A proposal states its evidence (where each value came from).')
   const assumptions = typeof p.assumptions === 'string' ? p.assumptions.slice(0, 4000) : ''
@@ -77,6 +83,11 @@ async function apply(c: Ctx, kind: Kind, payload: Record<string, unknown>, propo
       audit: [{ action: 'term.confirm', agreementId: a.id, summary: `Confirmed from proposal: ${proposed.map(t => `${termLabel[t.key].toLowerCase()}: ${termValue(t.key, String(t.write.params[3]))}`).join('; ')}${confirm.summary ? '; ' + confirm.summary : ''}` }],
     }
   }
+  if (payload.sourceId) {
+    const { s, a } = await sourceOf(c,payload.sourceId)
+    const { n, writes } = await agentDraft(c,s,'email',null,proposalId)
+    return {allowed:deciders.renewal,result:{noticeId:n.id,status:'draft'},writes:[...writes,bump(c,a)],checks:[...sourceChecks(s),sql('(SELECT version FROM lk_agreements WHERE id=?)=?',a.id,a.version)],audit:[{action:'notice.prepare',agreementId:a.id,summary:'Accepted cited prepared draft; exact schedule approval still required.'}]}
+  }
   const n = await noticeDraft(c, payload.renewalId, payload, proposalId)
   return { allowed: deciders.renewal, result: { noticeId: n.id, status: 'draft' }, writes: [...n.writes, bump(c, n.a)], checks: [sql('(SELECT version FROM lk_agreements WHERE id=?)=?', n.a.id, n.a.version)], audit: [{ action: 'notice.prepare', agreementId: n.a.id, summary: `Accepted prepared ${n.r.decision} notice draft; it still needs sending approval` }] }
 }
@@ -95,7 +106,12 @@ const decide: Handler = async (c, p) => {
   const pending = sql("(SELECT status FROM lk_proposals WHERE id=?)='pending'", proposal.id)
   if (decision === 'reject')
     return { allowed: deciders[kind], result: { id: proposal.id, status: 'rejected' }, writes: [sql("UPDATE lk_proposals SET status='rejected', decided_by=?, decided_at=?, decision_reason=? WHERE id=?", c.actor.id, c.now, reason, proposal.id)], checks: [pending], audit: [{ action: 'proposal.reject', agreementId: proposal.agreement_id, summary: `Rejected ${kind} proposal` }] }
-  const out = await apply(c, kind, parse(proposal.payload), proposal.id)
+  const payload = parse(proposal.payload)
+  if (kind === 'renewal' && !payload.sourceId) {
+    const preparer = await c.db.prepare('SELECT role FROM lk_roles WHERE operator_id=?').bind(proposal.prepared_by).first<{role:string}>()
+    if (preparer?.role === 'agent') fail('CITATION','Prepare a new notice from a person-selected source before accepting it.',409)
+  }
+  const out = await apply(c, kind, payload, proposal.id)
   // An approved intake now belongs to the agreement it created, and is seen exactly as that agreement is.
   const agreementId = kind === 'intake' ? (out.result as { id: string }).id : proposal.agreement_id
   return {

@@ -46,6 +46,8 @@ export interface LocketState {
   renewals: Row[]
   reminderSchedules: Row[]
   reminderOperations: import('../locket/bulk-reminder-operations').ReminderOperation[]
+  noticeSources: Row[]
+  noticePlans: Row[]
   noticeLetters: Row[]
   noticeDispatches: Row[]
   noticeEvents: Row[]

@@ -313,9 +313,14 @@ test('11 the renewal queue computes notice deadlines in the agreement time zone 
   await tm.requester.command('notice.prepare', { renewalId: r1.id, recipient: 'legal@a.example', body: 'x' }, { error: 'NO_DECISION' })
   await tm.requester.command('renewal.decide', { renewalId: r1.id, decision: 'terminate' }, { error: 'FORBIDDEN' })
   await tm.approver.command('renewal.decide', { renewalId: r1.id, decision: 'terminate', reason: 'Moving supplier' })
-  const prepared = await agent.command('proposal.prepare', { kind: 'renewal', payload: { renewalId: r1.id, recipient: 'legal@a.example', body: 'We give notice that the agreement ends on December 1, 2026 and will not renew.' }, evidence: ['Confirmed end date 2026-12-01', 'Confirmed notice period 30 days'] })
+  const party=s.parties.find(p=>p.id===s.agreements.find(a=>a.id===after).party_id)
+  await tm.owner.command('party.save',{id:party.id,version:party.version,name:party.name,kind:'supplier',email:'legal@a.example',noticeAddress:'A Co Legal, 10 Main St, NY',contacts:[],signatories:[]})
+  const source=await tm.owner.command('notice.source',{agreementId:after,quote:'Goods: Packaging.'})
+  const prepared = await agent.command('proposal.prepare', { kind: 'renewal', payload: { sourceId:source.id }, evidence: ['Person-selected executed passage and confirmed decision/deadline'] })
   const accepted = await tm.approver.command('proposal.decide', { proposalId: prepared.id, decision: 'approve' })
-  const noticeId = accepted.outcome.noticeId
+  await tm.owner.command('notice.approve',{noticeId:accepted.outcome.noticeId},{error:'APPROVAL'})
+  const manual=await tm.approver.command('notice.prepare',{renewalId:r1.id,recipient:'legal@a.example',body:'We give notice of termination at the end of the current term.'})
+  const noticeId = manual.id
   await tm.requester.command('notice.sent', { noticeId, method: 'email', sentAt: '2026-09-20T01:00:00Z' }, { error: 'STATUS' })
   await tm.approver.command('notice.approve', { noticeId }, { error: 'SELF_APPROVAL' })
   await tm.owner.command('notice.approve', { noticeId })

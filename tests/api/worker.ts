@@ -1,3 +1,4 @@
+import { runNoticeAgent } from '../../src/locket/notice-agent-runtime'
 import { runNotifications } from '../../src/locket/notification-dispatch'
 import { runReports } from '../../src/locket/report-dispatch'
 import { locketResponse } from '../../src/locket/api'
@@ -12,9 +13,11 @@ export default {
     return (await locketResponse(request, env)) ?? (await authResponse(request, env)) ?? new Response('Not found', { status: 404 })
   },
   async scheduled(controller: ScheduledController, env: any) {
+    Date.now = env.TEST_NOW ? () => Number(env.TEST_NOW) : systemNow
     await runApprovalReminders(env, controller.scheduledTime)
     await runDeadlineReminders(env, controller.scheduledTime)
     await runNotifications(env, controller.scheduledTime)
+    await runNoticeAgent(env, controller.scheduledTime)
     await runReports(env, controller.scheduledTime)
   },
 }

@@ -799,15 +799,15 @@ Agents serve the job beyond what today's up-and-comers ship: they connect what w
 *Status:* missing. No service-level comparison exists.
 
 #### AGENT-003 — Renewal decision to verified notice delivery.
-*What the agent does:* from the executed notice clause, confirmed deadline, authorized notice recipients and address (`REPO-010`) and the decision recorded under `RENEW-001`, it prepares the notice, schedules the approved send with margin before the deadline (`RENEW-006`), watches for delivery failures and missing acknowledgment, and chases through the approved alternate method (courier, second address) until delivery evidence exists or the decision-maker is told it does not.
+*What the agent does:* a person selects an exact passage from the executed text rendition, with the confirmed deadline and recorded renewal decision (`RENEW-001`), and the counterparty's recorded email and courier notice address (`REPO-010`). The agent prepares a frozen PDF notice from those facts, labelled "prepared draft, not legal advice or proof of service". It does not infer legal wording or decide adequacy. `REPO-002` inherits selection from future OCR renditions. Sending uses `RENEW-006`'s installation mail door (Resend with signed Svix callbacks today); Postmark and any other provider are configurations of that same door, not separate integrations, and `INT-004` inherits its obligations.
 
-*Data:* executed text, confirmed terms, counterparty notice details, mail and tracking events.
+*Human control:* the owner or an approver reviews the exact PDF digest, recipient, proposed method and local send time in the agreement's time zone, with the lead margin shown, and approves strictly before the deadline. The time must be future with more than one hour of margin for the hourly scheduler. A nonexistent local clock time is refused; repeated times use their earlier occurrence. The scheduler claims an email once at its first run at or after that time, strictly before the deadline, rechecking the active approver and role, access, agreement revision, source version, recorded addresses, decision/deadline and frozen PDF. Changed authority or records cancel the send. An uncertain or interrupted send is never resent automatically. A scheduled courier method becomes due for a person to record actual sending and tracking; scheduling is never evidence of sending.
 
-*Human control:* an authorized legal or commercial owner approves the content, method, recipients and send time; delivery evidence is shown as evidence, not as a claim of legally effective notice, and counsel decides whether more is needed.
+*Delivery watch:* a signed failure triggers immediately; otherwise the watch runs one day after the approved send, or one hour before the deadline when sooner. Missing delivery evidence or recipient acknowledgment creates a persistent decision-maker alert on the notice and a notification through their existing preferences. Alert creation and actual mail outcomes are separate; suppressed or uncertain email is never called delivered. A failure or missing acknowledgment prepares a separate courier draft to the frozen recorded notice address when its source and authority remain current; it requires another human approval of PDF, recipient, method and time. It never reuses the first notice's dispatch. The watch continues on the alternate, preserving tracking and separately recorded acknowledgment. Provider delivery, manual delivery evidence and acknowledgment remain distinct; counsel judges whether they are adequate or legally effective notice.
 
-*Acceptance:* a journey decides to terminate a supplier agreement 45 days before its deadline; the agent's notice is approved, sent by the Postmark fake, bounces, and the agent proposes the courier route to the notice address; after approval the tracking number is recorded and the deadline shows delivered evidence before 23:59:59 local time.
+*Acceptance:* clause-named `tests/api/notices.test.mjs` and `tests/browser/notice-agent.spec.ts` decide to terminate 45 days before the confirmed deadline, select the executed notice passage, prepare the labelled draft, review the PDF/digest and margin, approve the exact schedule, and send its identical bytes through the installation-provider fake. The signed bounce creates the decision-maker alert and a courier proposal; no courier sending is possible until a new approval. Its tracking and manually recorded delivered evidence precede 23:59:59 local time. API assertions cover one-use concurrent schedules, no early sending, invalid passages, PDF mismatch, deadline bounds, agent refusal, missing acknowledgment alerts, uncertain-send nonretry, stale decision/authority cancellation, restricted evidence and complete archive retention. Browser journeys show each state at 1440/390, and real `rer dev` exercises selected-source preparation and frozen schedule approval at both widths.
 
-*Status:* partial. Renewal decisions, notice approval and separately recorded sending evidence exist (`src/locket/obligations.ts`); sending, delivery tracking and chasing do not exist.
+*Status:* done. Cited preparation, exact human schedule approval, guarded one-use dispatch, delivery watches, alternate approval and tracked evidence ship (`src/locket/notice-agent.ts`, `src/locket/notice-agent-runtime.ts`, `tests/api/notices.test.mjs`, `tests/browser/notice-agent.spec.ts`).
 
 #### AGENT-004 — Authorized renegotiation to an executed amendment.
 *What the agent does:* under a written mandate from the decision-maker (target price, acceptable term, walk-away and which playbook positions may be offered), it drafts the counterparty email and the amendment from the template and playbook, sends each round only after approval, reads the counterparty's replies and markups (`NEG-006`, `NEG-002`), proposes the next response within the mandate, and stops at execution: the amendment is approved under `APPROVE-001`, signed under `SIGN-002`, and the family's governing terms updated under `AGENT-005`.
@@ -912,8 +912,8 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 17 | 30 | 33 | 80 |
-| All | 36 | 30 | 33 | 99 |
+| Target and push further | 18 | 29 | 33 | 80 |
+| All | 37 | 29 | 33 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1009,7 +1009,7 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | `MOVE-007` | Ironclad Clickwrap acceptance history | target | missing |  | No clickwrap import exists |
 | `AGENT-001` | Invoices reconciled against signed terms | push-further | partial | `src/locket/obligations.ts` | Invoice and PO reconciliation does not exist |
 | `AGENT-002` | Service levels and supplier performance | push-further | missing |  | No service-level comparison exists |
-| `AGENT-003` | Renewal decision to verified notice delivery | push-further | partial | `src/locket/obligations.ts` | Sending, delivery tracking and chasing do not exist |
+| `AGENT-003` | Renewal decision to verified notice delivery | push-further | done | `src/locket/notice-agent.ts`; `src/locket/notice-agent-runtime.ts`; `tests/api/notices.test.mjs`; `tests/browser/notice-agent.spec.ts`; `tests/browser/notice-agent-live.spec.ts` | |
 | `AGENT-004` | Authorized renegotiation to an executed amendment | push-further | missing |  | No negotiation agent exists |
 | `AGENT-005` | Governing terms across a contract family | push-further | partial | `src/locket/agreements.ts`; `src/locket/proposals.ts` | Conflict detection and governing-term propagation do not exist |
 | `AGENT-006` | Signed document matches the approved version | push-further | partial | `src/locket/execution.ts` | Text comparison of the signed document does not exist |

@@ -20,3 +20,22 @@ export function signedEvent(key, messageId, { id = crypto.randomUUID(), type = '
   return { raw, headers: { 'content-type': 'application/json', 'svix-id': id, 'svix-timestamp': String(timestamp), 'svix-signature': `v1,${signature}` } }
 }
 export const postEvent = (h, event) => h.mf.dispatchFetch(h.origin + '/api/locket/notice-events/resend', { method: 'POST', headers: event.headers, body: event.raw })
+
+export const localMinute = (at, zone) => {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(at).map(p => [p.type,p.value]))
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`
+}
+export async function agentFixture(h, tag = 'Agent notice', restricted = false) {
+  // Decision exactly 45 days before November 1, 23:59:59 Eastern.
+  const deadline = Date.parse('2026-11-02T04:59:59Z'), now = deadline - 45 * 86400000
+  await h.setTime(now)
+  const f = await noticeFixture(h.owner, tag, { restricted })
+  const s = await h.owner.state(), a = s.agreements.find(a=>a.id===f.agreementId), party=s.parties.find(p=>p.id===a.party_id)
+  await h.owner.command('party.save',{id:party.id,version:party.version,name:party.name,kind:'supplier',email:'notices@cardinal.example',noticeAddress:'Cardinal Legal, 10 Main St, Raleigh NC',noticeMethod:'email',contacts:[],signatories:[]})
+  const source=await h.owner.command('notice.source',{agreementId:a.id,quote:'Give 60 days notice.'})
+  return {...f,sourceId:source.id,deadline,now,timezone:a.timezone}
+}
+export async function approveAgent(owner, id, at) {
+  const s=await owner.state(),plan=s.noticePlans.find(p=>p.id===id),letter=s.noticeLetters.find(l=>l.id===id),a=s.agreements.find(a=>a.id===plan.agreement_id)
+  return owner.command('notice.schedule',{noticeId:id,pdfDigest:letter.sha256,recipient:letter.recipient,method:plan.method,sendLocal:localMinute(at,a.timezone)})
+}

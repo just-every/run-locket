@@ -96,7 +96,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     ])
   } catch (error) {
     // A concurrent retry of the same command may have won the race.
-    if (!(error instanceof Problem) && String((error as Error)?.message).includes('lk_commands.id')) {
+    if (!(error instanceof Problem) && String((error as Error)?.message).includes('UNIQUE constraint failed')) {
       const won = await env.DB.prepare('SELECT digest, actor_id, result FROM lk_commands WHERE id=?').bind(commandId).first<{ digest: string; actor_id: string; result: string }>()
       if (won?.digest === digest && won.actor_id === actor.id) return completed(JSON.parse(won.result))
     }

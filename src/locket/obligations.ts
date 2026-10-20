@@ -1,3 +1,4 @@
+import { sourceChecks } from './notice-agent'
 import { notificationWrites } from './notifications'
 // Confirmed terms and obligations from the executed document, the renewal
 // queue and notices (clauses 10 and 11). Nothing an agent or importer
@@ -215,10 +216,11 @@ async function noticeOf(c: Ctx, id: unknown) {
   return { n, a: await visibleAgreement(c, n.agreement_id) }
 }
 
-const approveNotice: Handler = async (c, p) => {
+export const approveNotice = async (c: Ctx, p: Record<string, unknown>, scheduled = false) => {
   requireRole(c.actor, may.renewalDecision, 'approve notices for sending')
   const { n, a } = await noticeOf(c, p.noticeId)
   if (n.status !== 'draft') fail('STATUS', `This notice is already ${n.status}.`, 409)
+  if (!scheduled && await c.db.prepare('SELECT id FROM lk_notice_plans WHERE id=?').bind(n.id).first()) fail('APPROVAL', 'Approve this prepared draft with its exact method, PDF and local schedule.', 409)
   // The drafter is whoever prepared the text: the proposal's preparer when it came through one.
   const drafter = n.proposal_id ? (await c.db.prepare('SELECT prepared_by FROM lk_proposals WHERE id=?').bind(n.proposal_id).first<{ prepared_by: string }>())?.prepared_by : null
   if (c.actor.role !== 'owner' && (n.prepared_by === c.actor.id || drafter === c.actor.id)) fail('SELF_APPROVAL', 'Another approver or the owner must approve a notice you prepared.', 403)
@@ -232,10 +234,13 @@ const recordSent: Handler = async (c, p) => {
   requireRole(c.actor, may.signature, 'record that a notice was sent')
   const { n, a } = await noticeOf(c, p.noticeId)
   if (n.status !== 'approved') fail('STATUS', n.status === 'draft' ? 'Approve the notice before recording that it was sent.' : 'This notice is already recorded as sent.', 409)
+  const plan = await c.db.prepare('SELECT * FROM lk_notice_plans WHERE id=?').bind(n.id).first<any>()
+  const source = plan ? await c.db.prepare('SELECT * FROM lk_notice_sources WHERE id=?').bind(plan.source_id).first<any>() : null
   const sentAt = text(p, 'sentAt', 40)
   const at = Date.parse(sentAt)
   if (Number.isNaN(at)) fail('INVALID', 'sentAt must be a date and time.', 400)
   const method = oneOf(p, 'method', ['email', 'post', 'courier', 'hand', 'portal'] as const)
+  if (plan && (plan.status !== 'ready' || method !== plan.method || at < plan.send_at || at > c.now || at >= source.deadline_at)) fail('APPROVAL', 'Record only the approved method after its scheduled time and before the deadline.', 409)
   const writes: Sql[] = initialTracking(c, p, n, method)
   let evidenceId: string | null = null
   if (p.evidence) {
@@ -244,7 +249,7 @@ const recordSent: Handler = async (c, p) => {
     evidenceId = stored.id
   }
   writes.push(sql("UPDATE lk_notices SET status='sent', sent_method=?, sent_at=?, sent_recorded_by=?, evidence_artifact_id=? WHERE id=?", method, at, c.actor.id, evidenceId, n.id), bump(c, a))
-  return { allowed: may.signature, result: { id: n.id, status: 'sent' }, writes, checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", n.id), sql('NOT EXISTS(SELECT 1 FROM lk_notice_dispatches WHERE notice_id=?)', n.id)], audit: [{ action: 'notice.sent', agreementId: a.id, summary: `Recorded notice sent by ${method} on ${zoned(at, a.timezone)}${evidenceId ? ' with evidence' : ''}` }] }
+  return { allowed: may.signature, result: { id: n.id, status: 'sent' }, writes, checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", n.id), sql('NOT EXISTS(SELECT 1 FROM lk_notice_dispatches WHERE notice_id=?)', n.id), ...(source ? sourceChecks(source) : [])], audit: [{ action: 'notice.sent', agreementId: a.id, summary: `Recorded notice sent by ${method} on ${zoned(at, a.timezone)}${evidenceId ? ' with evidence' : ''}` }] }
 }
 
 export const obligationHandlers: Record<string, Handler> = {

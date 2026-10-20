@@ -1,3 +1,4 @@
+import { runNoticeAgent } from './notice-agent-runtime'
 import type { Bindings } from '../auth.server'
 import { verifyWebhook } from '../modules/mail/src/events/verify.mjs'
 import { fail, object, sha256, text } from './model'
@@ -34,6 +35,7 @@ export async function noticeEventResponse(request: Request, env: Bindings): Prom
     env.DB.prepare("INSERT INTO lk_audit SELECT ?,?,'provider:resend','Resend','provider','notice.delivery',?,?,? WHERE NOT EXISTS(SELECT 1 FROM lk_notice_events WHERE id=?)").bind(crypto.randomUUID(), now, row.agreement_id, `Provider reported notice ${status}; not a legal-service determination.`, id, id),
     env.DB.prepare("INSERT INTO lk_notice_events VALUES(?,?,?,?,?,'provider',?,?,?) ON CONFLICT(id) DO UPDATE SET fingerprint=CASE WHEN fingerprint=excluded.fingerprint THEN fingerprint ELSE NULL END").bind(id, row.notice_id, row.agreement_id, status, occurred, detail, fingerprint, now),
   ])
+  await runNoticeAgent(env, now)
   return Response.json({ ok: true }, { headers: { 'cache-control': 'no-store' } })
 }
 
