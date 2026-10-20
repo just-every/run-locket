@@ -1,7 +1,7 @@
 // NOTIFY-001: install and use the real rer dev product; stop only its owned foreground PID.
 import { mkdtemp, mkdir, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { tmpdir } from 'node:os'
+import { tmpdir, userInfo } from 'node:os'
 import { pathToFileURL } from 'node:url'
 const workspace=process.cwd()
 const {freshCopy,child,command,freePort,redact}=await import(pathToFileURL(join(workspace,'tests/browser/runtime.mjs')))
@@ -26,7 +26,8 @@ try {
  }
  if(!ready)throw Error('Owned dev did not become ready in ten minutes.')
  console.log('Real rer dev ready; private entry retained only in memory.')
- console.log(redact(await command(join(workspace,'node_modules/.bin/playwright'),['test','--config',join(workspace,'tests/browser/playwright.config.ts'),'notifications.spec.ts','--workers=1'],workspace,{LOCKET_NOTIFICATION_LIVE:'1',LOCKET_BASE_URL:new URL(ready.url).origin,LOCKET_OPEN:ready.openUrl,LOCKET_SCREENSHOTS:screenshots,LOCKET_BROWSER_OUTPUT:evidence})))
+ // The runner may isolate installer HOME; the Node process launching Chromium uses the real OS account home.
+ console.log(redact(await command(join(workspace,'node_modules/.bin/playwright'),['test','--config',join(workspace,'tests/browser/playwright.config.ts'),'notifications.spec.ts','--workers=1'],workspace,{HOME:userInfo().homedir,LOCKET_NOTIFICATION_LIVE:'1',LOCKET_BASE_URL:new URL(ready.url).origin,LOCKET_OPEN:ready.openUrl,LOCKET_SCREENSHOTS:screenshots,LOCKET_BROWSER_OUTPUT:evidence})))
  console.log('Real notification screens at 1440 and 390 passed. Screenshots: '+screenshots)
 }catch(error){failure=error}finally{
  if(runtime?.process.exitCode===null){runtime.process.kill('SIGTERM');await Promise.race([runtime.done,new Promise(r=>setTimeout(r,20000))]);if(runtime.process.exitCode===null){runtime.process.kill('SIGKILL');await runtime.done}}
