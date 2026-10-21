@@ -1,3 +1,4 @@
+import { IntakeSnapshot } from './intake-snapshot'
 // One agreement: the document workspace (its default), and the review,
 // approval, signature, execution, terms and access tabs under the same head.
 import { AgreementMetadata } from './agreement-metadata'
@@ -71,6 +72,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, passage, loc
           <div><dt>Last updated</dt><dd>{stamp(a.updated_at, { zone: a.timezone })}</dd></div>
         </dl>
       </div>
+      <IntakeSnapshot state={state} id={a.id} />
       <div className="lk-doc-bar">
         <nav className="lk-tabs" aria-label="Agreement sections">
           {tabs.map(t => <a key={t.id} href={`#agreement/${a.id}/${t.id}`} className={t.id === selected ? 'lk-selected' : undefined} aria-current={t.id === selected ? 'page' : undefined}>{t.title}</a>)}

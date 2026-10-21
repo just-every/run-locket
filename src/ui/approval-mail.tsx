@@ -7,7 +7,8 @@ import { liveApprovals } from './summary'
 export function ApprovalMail({ state, a, locket }: { state: LocketState; a: Row; locket: Locket }) {
   const v = currentVersion(state, a)
   if (!v || a.status !== 'in_review' || !can(state, 'owner', 'counsel', 'approver', 'requester') || liveApprovals(state, a).some(d => d.kind === 'commercial')) return null
-  const recipients = state.operators.filter(p => p.status === 'active' && ['owner', 'approver'].includes(p.role) && (p.role === 'owner' || p.id !== a.requester_id) && (!a.restricted || p.role === 'owner' || p.id === a.owner_id || state.access.some(g => g.agreement_id === a.id && g.operator_id === p.id)))
+  const roles = state.routes[a.id]?.find(r => r.kind === 'commercial')?.roles ?? ['owner','approver']
+  const recipients = state.operators.filter(p => p.status === 'active' && roles.includes(p.role) && (p.role === 'owner' || p.id !== a.requester_id) && (!a.restricted || ['owner','counsel'].includes(p.role) || p.id === a.owner_id || state.access.some(g => g.agreement_id === a.id && g.operator_id === p.id)))
   return <section className="lk-panel" aria-label="Email approval link">
     <div className="lk-panel-head"><h2>Email approval link</h2></div>
     <p className="lk-muted">Send a sign-in link to a commercial approver. They review the current version in Locket before deciding.</p>

@@ -1,3 +1,4 @@
+import { routedCommercialSql } from './intake-route'
 // APPROVE-004: who is waiting on which approval, when they are reminded and to
 // whom it escalates. A pending approval is a non-cancelled approval request
 // (MOBILE-001) naming an active commercial approver, on the agreement's current
@@ -33,7 +34,7 @@ export const commercialSql = `(SELECT CASE WHEN o.role='owner' THEN 'owner' ELSE
 export async function pendingApprovals(db: D1Database, agreementId: string | null = null): Promise<Pending[]> {
   const rows = await db.prepare(`SELECT m.agreement_id, m.version_id, m.version_digest, m.recipient_id, o.email, MIN(m.created_at) AS requested_at
     FROM lk_approval_mail m JOIN lk_agreements a ON a.id=m.agreement_id JOIN lk_versions v ON v.id=a.current_version_id JOIN oa_operators o ON o.id=m.recipient_id
-    WHERE m.status<>'cancelled' AND a.status='in_review' AND v.id=m.version_id AND v.digest=m.version_digest AND o.status='active' AND ${commercialSql}
+    WHERE m.status<>'cancelled' AND a.status='in_review' AND v.id=m.version_id AND v.digest=m.version_digest AND o.status='active' AND ${routedCommercialSql}
       AND NOT EXISTS(SELECT 1 FROM lk_approvals x WHERE x.agreement_id=a.id AND x.version_id=v.id AND x.version_digest=v.digest AND x.kind='commercial' AND x.invalidated_at IS NULL)
       AND (? IS NULL OR m.agreement_id=?)
     GROUP BY m.agreement_id, m.version_id, m.version_digest, m.recipient_id, o.email ORDER BY requested_at`).bind(agreementId, agreementId).all<any>()
@@ -43,7 +44,7 @@ export async function pendingApprovals(db: D1Database, agreementId: string | nul
 /** SQL: this pending approval still waits (same version, in review, undecided, approver still commercial). */
 export function stillPendingSql(p: Pick<Pending, 'agreementId' | 'versionId' | 'versionDigest' | 'approverId'>): Sql {
   return sql(`EXISTS(SELECT 1 FROM lk_agreements a JOIN lk_versions v ON v.id=a.current_version_id JOIN oa_operators o ON o.id=?
-    WHERE a.id=? AND a.status='in_review' AND v.id=? AND v.digest=? AND o.status='active' AND ${commercialSql}
+    WHERE a.id=? AND a.status='in_review' AND v.id=? AND v.digest=? AND o.status='active' AND ${routedCommercialSql}
       AND EXISTS(SELECT 1 FROM lk_approval_mail m WHERE m.agreement_id=a.id AND m.version_id=v.id AND m.recipient_id=o.id AND m.status<>'cancelled')
       AND NOT EXISTS(SELECT 1 FROM lk_approvals x WHERE x.agreement_id=a.id AND x.version_id=v.id AND x.version_digest=v.digest AND x.kind='commercial' AND x.invalidated_at IS NULL))`,
     p.approverId, p.agreementId, p.versionId, p.versionDigest)

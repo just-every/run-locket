@@ -1,3 +1,4 @@
+import { routeRoleSql } from './intake-route'
 // Compatibility with the existing approval and deadline outboxes. Their own
 // one-use sender owns immediate delivery; only deferred originals enter here.
 import { roleSql } from './access'
@@ -67,7 +68,7 @@ async function pendingNotificationApproval(c: Ctx, event: NotificationRow): Prom
     AND (SELECT json_group_array(json_object('id',id,'result',result)) FROM
       (SELECT id,result FROM lk_deviations WHERE version_id=v.id AND result!='met' ORDER BY id))=?
     AND (
-      ((${role}) IN ('owner','approver') AND NOT EXISTS(SELECT 1 FROM lk_approvals x
+      ((${role}) IN ('owner',${routeRoleSql()}) AND NOT EXISTS(SELECT 1 FROM lk_approvals x
         WHERE x.agreement_id=a.id AND x.version_id=v.id AND x.version_digest=v.digest AND x.context_digest=?
           AND x.kind='commercial' AND x.invalidated_at IS NULL))
       OR EXISTS(SELECT 1 FROM lk_deviations d WHERE d.version_id=v.id AND d.result!='met'

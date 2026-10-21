@@ -20,7 +20,8 @@ export async function activePlaybook(c: Pick<Ctx, 'db'>) {
 
 /** The approvals the current version needs: commercial sign-off plus each open exception. */
 export async function routing(db: D1Database, a: AgreementRow): Promise<Requirement[]> {
-  const required: Requirement[] = [{ kind: 'commercial', deviationId: null, label: 'Commercial approval', roles: ['owner', 'approver'] }]
+  const form = await db.prepare('SELECT approval_role FROM lk_request_forms WHERE agreement_id=?').bind(a.id).first<{approval_role:'approver'|'counsel'}>()
+  const required: Requirement[] = [{ kind: 'commercial', deviationId: null, label: form?.approval_role === 'counsel' ? 'Counsel approval' : 'Commercial approval', roles: ['owner', form?.approval_role ?? 'approver'] }]
   if (!a.current_version_id) return required
   const deviations = (await db.prepare("SELECT id, clause_key, result, authority FROM lk_deviations WHERE version_id=? AND result!='met' ORDER BY created_at").bind(a.current_version_id).all<any>()).results
   for (const d of deviations)

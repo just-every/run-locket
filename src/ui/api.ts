@@ -11,6 +11,10 @@ export interface LocketState {
   settings: { timezone: string; rollNoticeDeadlines: boolean; version: number }
   customFields: (Row & import('../locket/repository-fields').CustomRepositoryDefinition)[]
   customValues: Row[]
+  intakeForms: (Row & import('./intake-form-designer').IntakeFormRecord & {canLaunch:boolean})[]
+  intakeFormTypes: string[]
+  intakeAudiences: import('../locket/intake-audiences').IntakeAudience[]
+  requestForms: Row[]
   agreements: Row[]
   workflowHistory: Row[]
   routes: Record<string, { kind: string; deviationId: string | null; label: string; roles: string[] }[]>

@@ -238,3 +238,10 @@ for (const width of [1440, 390]) {
     expect(errors, errors.join('\n')).toEqual([])
   })
 }
+
+for (const width of [1440, 390]) test(`INTAKE-002 supplier form previews, publishes, freezes routes and limits launching at ${width}px`, async ({ page }) => {
+  const { metadataPage } = await import('./metadata-page.mjs')
+  const { intakeFormJourney } = await import('./intake-form-journey.mjs')
+  const p = await metadataPage(page, width)
+  try { await intakeFormJourney(page, width, p) } finally { await p.close() }
+})

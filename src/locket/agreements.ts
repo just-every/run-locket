@@ -1,3 +1,4 @@
+import { launchForm, formSnapshotWrites } from './intake-form-launch'
 import { approvalNotifications } from './notification-events'
 import { routing } from './review'
 import { customValueWrites, requiredCustomFields } from './custom-values'
@@ -146,12 +147,13 @@ const createRequest: Handler = async (c, p) => {
   requireRole(c.actor, may.intake, 'create requests')
   const title = text(p, 'title', 200), type = oneOf(p, 'type', agreementTypes)
   const party = await partyFor(c, p)
-  const ownerId = typeof p.ownerId === 'string' && p.ownerId ? p.ownerId : c.actor.id
-  await operatorExists(c, ownerId)
   const value = amount(c, p)
+  const form = await launchForm(c, p, type, value.valueCents)
+  const ownerId = form?.route.ownerId ?? (typeof p.ownerId === 'string' && p.ownerId ? p.ownerId : c.actor.id)
+  await operatorExists(c, ownerId)
   const parentId = typeof p.parentId === 'string' && p.parentId ? p.parentId : null
   if (needsParent.has(type) && !parentId) fail('PARENT_REQUIRED', 'An amendment or order form must name the agreement it belongs to.', 400, { field: 'parentId' })
-  const checks: Sql[] = []
+  const checks: Sql[] = [...(form?.checks ?? [])]
   if (parentId) {
     await visibleAgreement(c, parentId)
     checks.push(sql('EXISTS(SELECT 1 FROM lk_agreements WHERE id=?)', parentId))
@@ -175,10 +177,14 @@ const createRequest: Handler = async (c, p) => {
     ),
   )
   if (version) writes.push(...version.writes)
+  if (form) {
+    writes.push(...await formSnapshotWrites(c, id, form))
+    if(form.route.reviewerId !== ownerId) writes.push(...notificationWrites(c,{key:c.commandId,agreementId:id,recipientId:form.route.reviewerId,kind:'assignment'}))
+  }
   writes.push(...custom.writes)
   writes.push(...notificationWrites(c,{key:c.commandId,agreementId:id,recipientId:ownerId,kind:'assignment'}))
-  const labels = [...defaultRequirements[type], ...list(p, 'requirements', 20).map(x => (typeof x === 'string' && x.trim() ? x.trim().slice(0, 200) : fail('INVALID', 'Requirement labels must be text.')))]
-  for (const label of [...new Set(labels)]) writes.push(sql('INSERT INTO lk_requirements VALUES(?,?,?,?,?,?,?)', crypto.randomUUID(), id, label, null, null, null, c.now))
+  const labels = [...defaultRequirements[type], ...(form?.requirements ?? []), ...list(p, 'requirements', 20).map(x => (typeof x === 'string' && x.trim() ? x.trim().slice(0, 200) : fail('INVALID', 'Requirement labels must be text.')))]
+  for (const label of [...new Set(labels)].filter(label => !form?.fields.some(f => f.kind==='file' && f.label===label && form.answers[f.key]))) writes.push(sql('INSERT INTO lk_requirements VALUES(?,?,?,?,?,?,?)', crypto.randomUUID(), id, label, null, null, null, c.now))
   return {
     allowed: may.intake,
     result: { id, reference, versionId: version?.id ?? null },
@@ -195,6 +201,7 @@ const updateRequest: Handler = async (c, p) => {
   const title = p.title === undefined ? a.title : text(p, 'title', 200)
   const value = p.value === undefined && p.currency === undefined && p.usdRate === undefined ? null : amount(c, p, a)
   const ownerId = typeof p.ownerId === 'string' && p.ownerId ? p.ownerId : a.owner_id
+  if (ownerId !== a.owner_id && await c.db.prepare('SELECT 1 FROM lk_request_forms WHERE agreement_id=?').bind(a.id).first()) fail('FORM_ROUTE', 'The responsible person is pinned to the request form version.', 409)
   if (ownerId !== a.owner_id) await operatorExists(c, ownerId)
   const neededBy = p.neededBy === undefined ? a.needed_by : optionalDate(p, 'neededBy')
   const restricted = p.restricted === undefined ? a.restricted : bool(p, 'restricted') ? 1 : 0

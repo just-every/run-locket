@@ -1,3 +1,5 @@
+import { intakeFormHandlers } from './intake-forms'
+import { intakeAudienceHandlers } from './intake-audiences'
 import { editVersion } from './browser-edits'
 import { workflowAnalytics } from './analytics'
 import { resolveComment } from './comment-threads'
@@ -48,6 +50,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
+  ...intakeFormHandlers, ...intakeAudienceHandlers,
   ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,

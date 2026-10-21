@@ -1,3 +1,5 @@
+import { evaluateForm } from '../locket/intake-form-definition'
+import { IntakeFormFields, formVisibleFields, readIntakeFormAnswers, type IntakeAnswers } from './intake-form-fields'
 import { useState } from 'react'
 import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
@@ -46,8 +48,20 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
   const { run, busy } = locket
   const [type, setType] = useState('customer')
   const [source, setSource] = useState('template')
+  const [formId, setFormId] = useState('')
+  const [answers, setAnswers] = useState<IntakeAnswers>({})
+  const [requestValue, setRequestValue] = useState('')
+  const [usdRate, setUsdRate] = useState('')
+  const forms = state.intakeForms.filter(f=>f.published && f.canLaunch)
+  const form = forms.find(f=>f.id===formId)?.published
   const [entityId, setEntityId] = useState(state.entities[0]?.id ?? '')
   const [currency, setCurrency] = useState('USD')
+  const dollarValue = currency === 'USD' ? requestValue : requestValue && usdRate ? (Number(requestValue)*Number(usdRate)).toFixed(2) : ''
+  const formAnswers = {...answers,value:dollarValue}
+  const visibleFields = form ? formVisibleFields(form.definition, formAnswers) : []
+  const route = form ? evaluateForm(form.definition, formAnswers, dollarValue || null) : null
+  const availableTypes = Object.entries(typeLabel).filter(([key])=> form ? key===form.definition.type : !state.intakeFormTypes.includes(key))
+  const requestType = form?.definition.type ?? (availableTypes.some(([key])=>key===type) ? type : availableTypes[0]?.[0] ?? '')
   // US-001: the entity's zone, else the installation's; the request may name another.
   const inherited = state.entities.find(e => e.id === entityId)?.timezone ?? state.settings.timezone
   const [chosenZone, setZone] = useState<string | null>(null)
@@ -64,7 +78,8 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
     <div className="lk-intake">
       <a className="lk-back" href="#agreements"><Icon name="back" />Back to agreements</a>
       <div className="lk-titlebar"><div><h1>New agreement request</h1><p className="lk-muted">Capture the deal, choose an approved template or attach the draft, and list what must be attached before review.</p></div></div>
-      <Form busy={busy} submit="Create request" className="lk-intake-form" onSubmit={async data => {
+      {forms.length>0 && <section className="lk-panel"><Field label="Request form"><select value={formId} onChange={e=>{setFormId(e.target.value);setAnswers({});setCurrency('USD')}}><option value="">Standard request</option>{forms.map(f=><option key={f.id} value={f.id}>{f.published!.definition.name} · v{f.published!.number}</option>)}</select></Field></section>}
+      {!requestType ? <p className="lk-empty">No request forms are available to your current role or memberships.</p> : <Form busy={busy} submit="Create request" className="lk-intake-form" onSubmit={async data => {
         const file = data.get('file') as File | null
         const fields: Record<string, string> = {}, clauseChoices: Record<string, string> = {}
         for (const [k, v] of data.entries()) {
@@ -72,7 +87,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
           if (k.startsWith('clause.')) clauseChoices[k.slice(7)] = String(v)
         }
         const result = await run('request.create', {
-          title: value(data, 'title'), type, customValues: readCustomValues(data, customFieldsFor(state, type)), ...party(data), ...(entityId ? { entityId } : {}), value: value(data, 'value') || undefined, currency, ...(currency !== 'USD' ? { usdRate: value(data, 'usdRate') } : {}), timezone: zone, ownerId: value(data, 'ownerId'),
+          title: value(data, 'title'), type: requestType, ...(form ? {formVersionId:form.id,formAnswers:await readIntakeFormAnswers(formAnswers,visibleFields)} : {}), customValues: readCustomValues(data, customFieldsFor(state, requestType)), ...party(data), ...(entityId ? { entityId } : {}), value: value(data, 'value') || undefined, currency, ...(currency !== 'USD' ? { usdRate: value(data, 'usdRate') } : {}), timezone: zone, ownerId: value(data, 'ownerId'),
           neededBy: value(data, 'neededBy') || undefined, startDate: value(data, 'startDate') || undefined, restricted: data.get('restricted') === 'on',
           parentId: value(data, 'parentId') || undefined, requirements: value(data, 'requirements').split('\n').map(s => s.trim()).filter(Boolean),
           ...(source === 'template' && template ? { templateVersionId: template.id, fields, clauseChoices } : {}),
@@ -85,19 +100,27 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
             <div className="lk-panel-head"><h2>Request details</h2></div>
             <Field label="Agreement title *"><input name="title" required /></Field>
             <div className="lk-grid2">
-              <Field label="Request type *"><select value={type} onChange={e => setType(e.target.value)}>{Object.entries(typeLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
+              <Field label="Request type *"><select value={requestType} disabled={!!form} onChange={e => setType(e.target.value)}>{availableTypes.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
               <Field label="Currency" hint="Values are in US dollars unless the agreement is in another currency."><input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} pattern="[A-Za-z]{3}" required /></Field>
-              <Field label={`Agreement value (${currency})`} hint="Total contract value, excluding sales tax."><input name="value" inputMode="decimal" placeholder="48000" /></Field>
-              {currency !== 'USD' && currency.length === 3 && <Field label={`US dollars per 1 ${currency} *`} hint="The rate you record; Locket shows the USD equivalent at this rate and fetches none."><input name="usdRate" inputMode="decimal" placeholder="1.27" required /></Field>}
+              <Field label={`Agreement value (${currency})`} hint="Total contract value, excluding sales tax."><input name="value" inputMode="decimal" placeholder="48000" value={requestValue} onChange={e=>setRequestValue(e.target.value)} /></Field>
+              {currency !== 'USD' && currency.length === 3 && <Field label={`US dollars per 1 ${currency} *`} hint="The rate you record; Locket shows the USD equivalent at this rate and fetches none."><input name="usdRate" inputMode="decimal" placeholder="1.27" value={usdRate} onChange={e=>setUsdRate(e.target.value)} required /></Field>}
               <Field label="Time zone" hint="Notice deadlines fall at 11:59 pm in this zone."><select value={zone} onChange={e => setZone(e.target.value)}>{zoneOptions.map(([id, label]) => <option key={id} value={id}>{label} ({id})</option>)}</select></Field>
-              <Field label="Responsible person *"><select name="ownerId" defaultValue={state.actor.id}>{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+              <Field label="Responsible person *"><select name="ownerId" value={route?.route.ownerId} disabled={!!form} defaultValue={form ? undefined : state.actor.id}>{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
               <Field label="Needed by"><input type="date" name="neededBy" /></Field>
               <Field label="Proposed start date"><input type="date" name="startDate" /></Field>
-              {['amendment', 'order_form'].includes(type) && <Field label="Belongs to agreement *"><select name="parentId" required>{state.agreements.map(x => <option key={x.id} value={x.id}>{x.reference} {x.title}</option>)}</select></Field>}
+              {['amendment', 'order_form'].includes(requestType) && <Field label="Belongs to agreement *"><select name="parentId" required>{state.agreements.map(x => <option key={x.id} value={x.id}>{x.reference} {x.title}</option>)}</select></Field>}
             </div>
             {state.entities.length > 0 && <EntitySelect state={state} value={entityId} onChange={id => { setEntityId(id); setZone(null) }} />}
             <PartyField state={state} />
-            <CustomFieldInputs state={state} fields={customFieldsFor(state, type)} stage="draft" />
+            <CustomFieldInputs state={state} fields={customFieldsFor(state, requestType)} stage="draft" />
+            {form && <fieldset className="lk-fieldset"><legend>{form.definition.name} questions</legend>
+              <div className="lk-grid2">
+                <Field label="Request department"><select value={String(answers.department ?? '')} onChange={e=>setAnswers(a=>({...a,department:e.target.value}))}><option value="">No department</option>{state.intakeAudiences.filter(a=>a.kind==='department' && a.memberIds.includes(state.actor.id)).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+                <Field label="Request region"><input value={String(answers.region ?? '')} onChange={e=>setAnswers(a=>({...a,region:e.target.value}))} /></Field>
+              </div>
+              <IntakeFormFields state={state} fields={visibleFields} answers={formAnswers} onChange={(key,answer)=>setAnswers(a=>({...a,[key]:answer}))} />
+              {route && <p role="status">{route.matchedRule ?? 'Default route'} · Reviewer: {people.find(p=>p.id===route.route.reviewerId)?.name} · {route.route.approvalRole === 'counsel' ? 'Counsel' : 'Commercial'} approval</p>}
+            </fieldset>}
             <label className="lk-check"><input type="checkbox" name="restricted" /> Restricted agreement (visible to owner, counsel, you, the responsible person and people granted access)</label>
           </section>
           <section className="lk-panel">
@@ -120,11 +143,11 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
               </>
             )}
             <div className="lk-panel-head"><h2>Required attachments</h2></div>
-            <ul className="lk-checklist">{defaults[type].map(l => <li key={l}><span className="lk-missing">!</span><span>{l}<small>Required for {typeLabel[type].toLowerCase()} requests; attach before review</small></span></li>)}</ul>
+            <ul className="lk-checklist">{[...new Set([...defaults[requestType],...(route?.requirements ?? [])])].map(l => <li key={l}><span className="lk-missing">!</span><span>{l}<small>Required for {typeLabel[requestType].toLowerCase()} requests; attach before review</small></span></li>)}</ul>
             <Field label="Also require (one per line)"><textarea name="requirements" rows={2} placeholder="e.g. Pricing schedule" /></Field>
           </section>
         </div>
-      </Form>
+      </Form>}
     </div>
   )
 }
