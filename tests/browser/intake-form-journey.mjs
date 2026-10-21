@@ -10,8 +10,10 @@ export async function intakeFormJourney(page,width,p) {
   const counsel=p.h ? await p.h.invite(`counsel-${tag}@example.test`,'counsel') : null
   const reviewerId=counsel?.id ?? ownerId
   const shot=async name=>{
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
+    await page.evaluate(()=>window.scrollTo(0,0))
     if(process.env.LOCKET_SCREENSHOTS) {await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-INTAKE-002-${name}.png`),fullPage:true})}
+    const overflow=await page.evaluate(()=>[...document.querySelectorAll('main *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1).slice(-6).map(e=>({tag:e.tagName,class:e.className,right:e.getBoundingClientRect().right})))
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),name+': '+JSON.stringify(overflow)).toBe(true)
   }
   const run=async action=>{
     const response=page.waitForResponse(r=>r.url()===p.origin+'/api/locket/commands'&&r.request().method()==='POST')
