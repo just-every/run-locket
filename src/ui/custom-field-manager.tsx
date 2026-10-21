@@ -14,7 +14,7 @@ export function CustomFieldManager({ state, locket }: { state: LocketState; lock
   const field = state.customFields.find(f => f.id === selected)
   return <section className="lk-panel" aria-label="Custom metadata settings">
     <div className="lk-panel-head"><h2>Custom metadata fields</h2></div>
-    <p className="lk-muted">Define fields by agreement type, when they are required and which people may edit them.</p>
+    <p className="lk-muted">Define fields by agreement type, when they become required and which roles may edit them. A required field remains required at later stages.</p>
     <details className="lk-disclosure"><summary>Manage custom fields</summary>
       <Field label="Field to configure"><select value={selected} onChange={event => setSelected(event.target.value)}><option value="">New field</option>{state.customFields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select></Field>
       <FieldDefinition key={`${field?.id ?? 'new'}:${field?.version ?? 0}`} field={field} locket={locket} onSaved={setSelected} />

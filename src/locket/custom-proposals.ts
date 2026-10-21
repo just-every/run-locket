@@ -21,7 +21,7 @@ export async function prepareCustomFields(c: Ctx, payload: Record<string, unknow
     await normalizedValue(c, f, value, checks)
     definitions.push({ id, version: f.version })
   }
-  return { ...payload, agreementId: a.id, versionId: v.id, versionDigest: v.digest, expectedVersion: a.version, definitions, citation: { versionId: v.id, quote, start, end } }
+  return { ...payload, agreementId: a.id, versionId: v.id, versionDigest: v.digest, expectedVersion: a.version, definitions, citation: { source: 'custom-field-passage', versionId: v.id, versionNumber: v.number, quote, start, end } }
 }
 export async function applyCustomFields(c: Ctx, payload: Record<string, unknown>, proposalId: string, corrections?: unknown): Promise<Outcome> {
   const a = await visibleAgreement(c, payload.agreementId), v = await currentVersion(c, a)

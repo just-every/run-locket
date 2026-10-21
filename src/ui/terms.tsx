@@ -10,7 +10,7 @@ import { RiskLabel } from './counterparty'
 
 const keys = ['effective_date', 'end_date', 'auto_renew', 'renewal_term_months', 'notice_days', 'governing_law', 'payment_terms']
 const unread = (c: any) => (c.signedText === 'unreadable' ? ' (the signed PDF has no readable text; not checked against it)' : '')
-const cite = (c: any) => (c.source === 'import-manifest' ? `Import manifest row ${c.row} (not yet checked against the signed PDF)`
+const cite = (c: any) => (c.source === 'custom-field-passage' ? `Document v${c.versionNumber}: “${c.quote}” (characters ${c.start}–${c.end})` : c.source === 'import-manifest' ? `Import manifest row ${c.row} (not yet checked against the signed PDF)`
   : c.source === 'signed-pdf-text' ? `Signed PDF page ${c.page}: “${c.quote}” (found in the signed text)`
   : c.source === 'signed-pdf-page' ? `Signed PDF page ${c.page}: “${c.quote}”${unread(c)}` : `Executed text: “${c.quote}”${c.page ? ` (page ${c.page})` : ''}${unread(c)}`)
 

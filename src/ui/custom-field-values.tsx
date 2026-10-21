@@ -70,7 +70,7 @@ export function CustomFieldInputs({ state, fields, values = {}, stage, stored = 
       : field.kind === 'counterparty' ? state.parties.filter(p => !p.merged_into).map(p => ({ id: p.id, label: p.name })) : null
     return <Field key={field.id} label={`${field.name}${field.kind === 'money' ? ' (USD)' : ''}${required ? ' *' : ''}`} hint={hint || undefined}>
       {choices ? <select {...common}><option value="">Not set</option>{selected && !choices.some(choice => choice.id === selected) && <option value={selected} disabled>Previously selected value</option>}{choices.map(choice => <option key={choice.id} value={choice.id}>{choice.label}</option>)}</select>
-        : <input {...common} type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'} step={field.kind === 'number' ? 'any' : undefined} inputMode={['number', 'money'].includes(field.kind) ? 'decimal' : undefined} pattern={field.kind === 'money' ? '-?[0-9]+([.][0-9]{1,2})?' : undefined} />}
+        : <input {...common} type={field.kind === 'date' ? 'date' : field.kind === 'number' ? 'number' : 'text'} step={field.kind === 'number' ? 'any' : undefined} inputMode={['number', 'money'].includes(field.kind) ? 'decimal' : undefined} pattern={field.kind === 'money' ? '[0-9]+([.][0-9]{1,2})?' : undefined} />}
     </Field>
   })}</>
 }
