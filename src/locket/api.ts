@@ -1,4 +1,5 @@
 import { editVersion } from './browser-edits'
+import { workflowAnalytics } from './analytics'
 import { resolveComment } from './comment-threads'
 import { noticeAgentHandlers } from './notice-agent'
 import { notificationHandlers } from './notifications'
@@ -92,6 +93,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     const clickwrap = await publicClickwrapResponse(request, env)
     if (clickwrap) return clickwrap
     const actor = await currentActor(request, env)
+    if (request.method === 'GET' && path === '/analytics') return reply(workflowAnalytics(await state(env, actor), url.searchParams))
     if (request.method === 'GET' && path === '/clickwrap/acceptances') {
       const rows = await acceptanceRecords(env, actor, url.searchParams)
       if (url.searchParams.get('format') === 'csv') {

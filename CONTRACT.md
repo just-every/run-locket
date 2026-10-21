@@ -657,7 +657,11 @@ Dashboards show requests opened and completed by type and team, median and 90th-
 
 *Acceptance:* a journey drives 20 fixture agreements through stages with a controlled clock and sees the stage medians, the slowest approver and the service-level breach count match the fixture's known values.
 
-*Status:* missing. No analytics exist.
+Observed-workflow slice: the portfolio shows request throughput grouped by current agreement type and our entity, completed workflow-stage visits with elapsed-hour median and nearest-rank P90, and longest current approval and signature waits with links to their records. Recording starts with this capability: each observed status change is retained inside the same guarded business transaction and command retries add nothing. Existing stages without a recorded start remain unknown; no history is inferred from last-updated timestamps. Imported agreements are excluded. Repeat stage visits count separately; an open visit does not enter duration statistics. A request completes on its first observed execution. Period bounds are inclusive UTC calendar days: opened counts by creation, completed by execution, visits by exit, and current waits by approval-request or dispatch time; waiting duration continues to the current evaluation time. The median averages the two middle durations for an even sample, and P90 selects the nearest rank. All reads use current agreement visibility, including history, source links and entity filters, and restricted reads retain AUDIT-001 events. PORT-001 archives the observed transitions. These are the current workflow statuses (draft, in review, approved awaiting dispatch, out for signature), not a claim that separate intake/drafting/negotiation stages, teams or SLA rules exist.
+
+*Acceptance for this slice:* `tests/api/analytics.test.mjs` drives twenty requests through public commands with a controlled clock, asserts known stage medians/P90s and period throughput, repeat visits, current waiting work, identical retries, refusals, access grants/revocation, restricted-read audit and archived transitions. `tests/browser/analytics.spec.ts` and `tests/browser/analytics-live.mjs` assert workflow figures, entity and period filters, empty/error states and pending-approval navigation at 1440/390. The existing archive-restore journey retains the new history table.
+
+*Status:* partial. Observed-stage timing, type/entity throughput, inclusive period filters and current approval/signature waits ship (`src/locket/analytics.ts`, `src/locket/workflow-history.ts`, `src/ui/workflow-analytics.tsx`). Separate intake/drafting/negotiation stage instrumentation, teams, SLA breaches, canceled-by-reason/stage reporting and the full clause's slowest-approver/SLA fixture remain open under INTAKE-006 and REPORT-001.
 
 #### REPORT-002 — Custom and scheduled reports.
 A person builds a report from a saved view (`REPO-007`) with grouping and totals (value in USD by counterparty, renewals by month) and schedules it weekly or monthly by email as CSV or PDF to chosen active people, who receive only the rows they may see. Each human role manages its own reports; agents read but cannot create or stop schedules. The report freezes the saved-view definition when created; every preview, download and scheduled attachment executes that definition again with the current reader or recipient's agreement access. Grouping a date uses its calendar month and a USD amount uses formatted dollars; missing grouping values are explicitly unrecorded, and absent USD values are counted separately from the total. Reports also filter and group by our contracting entity (`ENTITY-001`) through the same saved-view executor. CSV contains grouped totals followed by the matching detailed rows, with `REPO-007`'s spreadsheet-safe quoting; PDF contains those same figures.
@@ -921,15 +925,15 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 
 ## Status
 
-Judged from the code and tests at commit `07df8ba54e70378b9671786aa7c358cede73c077` (21 October 2026).
+Judged from the code and tests at commit `38f2153858c8bf650e580014080f2b24f6729450` (21 October 2026).
 
 Target rows updated through 21 October 2026, with clause-named public-door evidence below.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 20 | 27 | 33 | 80 |
-| All | 39 | 27 | 33 | 99 |
+| Target and push further | 20 | 28 | 32 | 80 |
+| All | 39 | 28 | 32 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1012,7 +1016,7 @@ Target rows updated through 21 October 2026, with clause-named public-door evide
 | `ERASE-001` | Personal-data erasure with legal hold | target | missing |  | No erasure, hold or retention capability exists |
 | `ENTITY-001` | Our contracting entities | target | done | `src/locket/entities.ts`; `tests/api/entities.test.mjs`; `tests/browser/entities.spec.ts` |  |
 | `OPS-001` | Self-hosted install, updates and security answers | target | partial | `OPERATIONS.md`; `deploy.json`; `tests/portable.mjs` | The release cadence, the one-command update with an automatic export and the security questionnaire do not exist |
-| `REPORT-001` | Cycle time, throughput and bottlenecks | target | missing |  | No analytics exist |
+| `REPORT-001` | Cycle time, throughput and bottlenecks | target | partial | `src/locket/analytics.ts`; `src/locket/workflow-history.ts`; `src/ui/workflow-analytics.tsx`; `tests/api/analytics.test.mjs`; `tests/browser/analytics.spec.ts`; `tests/browser/analytics-live.mjs`; `tests/portable.mjs` | Observed-stage timing, type/entity/period throughput and current approval/signature waits ship; separate intake/drafting/negotiation stages, teams, SLA breaches and canceled-by-reason/stage reporting remain |
 | `REPORT-002` | Custom and scheduled reports | target | done | `tests/api/reports.test.mjs`; `tests/browser/reports.spec.ts`; `src/locket/reports.ts`; `src/locket/report-output.ts`; `src/locket/report-dispatch.ts`; `src/locket/report-read-authority.ts`; `src/locket/report-schedule.ts`; `src/ui/reports.tsx` |  |
 | `REPORT-003` | Portfolio dashboard | target | done | `src/locket/portfolio.ts`; `src/locket/lifecycle.ts`; `tests/api/portfolio.test.mjs`; `tests/browser/portfolio.spec.ts` |  |
 | `MOBILE-001` | Phone-width web app | target | done | `tests/browser/journey.spec.ts`; `tests/browser/mobile-approval.spec.ts`; `tests/api/approval-mail.test.mjs`; `src/locket/approval-mail.ts` |  |

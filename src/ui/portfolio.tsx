@@ -1,4 +1,5 @@
 import type { LocketState } from './api'
+import { WorkflowAnalytics } from './workflow-analytics'
 import { day, deadline, money } from './format'
 import type { PortfolioTile } from '../locket/portfolio'
 
@@ -24,5 +25,6 @@ export function Portfolio({ state }: { state: LocketState }) {
       })}</ul>}
     </section>
     <p className="lk-muted">Missing key terms means effective date, end date, auto-renewal, notice period, governing law, payment terms, or an auto-renewal term has not been confirmed. Current terms are projected from confirmed values; scheduled roll-forward history is not yet available.</p>
+    <WorkflowAnalytics state={state} />
   </div>
 }

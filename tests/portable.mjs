@@ -203,6 +203,7 @@ try {
   assert.ok(notification, 'NOTIFY-001 has a current event before export')
   await running.cmd('notification.read', { id: notification.id })
   const before = await (await running.request('/api/locket/export')).json()
+  assert.ok(before.records.lk_workflow_history.some(e => e.agreement_id === a.id && e.to_status === 'executed'), 'REPORT-001 observed execution is archived')
   assert.ok(before.records.lk_notifications.some(n => n.id === notification.id && n.read_at), 'NOTIFY-001 read state is archived')
   assert.ok(before.records.lk_notification_deliveries.some(n => n.status === 'suppressed'), 'NOTIFY-001 retains honest local suppression')
   assert.equal(before.records.lk_agreements.length, 2)

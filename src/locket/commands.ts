@@ -1,4 +1,5 @@
 import { commandNotifications } from './notification-events'
+import { workflowWrites } from './workflow-history'
 import { runNotifications } from './notification-dispatch'
 // One consequential write = one D1 batch: guard (session, role, record
 // versions) → writes → durable command outcome → audit → guard release.
@@ -87,9 +88,11 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   }
   const out = await handlers[type](c, payload)
   const notifications = await commandNotifications(c, type, payload, out)
+  const workflow = await workflowWrites(c, out.audit)
   try {
     await commit(c, out.allowed, out.checks ?? [], [
       ...out.writes,
+      ...workflow,
       ...notifications,
       sql('INSERT INTO lk_commands VALUES(?,?,?,?,?,?)', commandId, type, actor.id, digest, json(out.result), c.now),
       ...out.audit.map(entry => auditSql(c, entry)),

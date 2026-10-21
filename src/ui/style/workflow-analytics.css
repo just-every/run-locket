@@ -1,0 +1,13 @@
+.lk-workflow { min-width: 0; }
+.lk-workflow-filters, .lk-workflow-stages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.lk-workflow-groups { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.lk-workflow-groups > li, .lk-workflow-stages > article { border: 1px solid var(--lk-rule); border-radius: 6px; padding: 16px; min-width: 0; overflow-wrap: anywhere; }
+.lk-workflow-stages h4 { margin: 0; }
+.lk-workflow-stages dd { margin: 0 0 12px; }
+.lk-workflow-stages dt { color: var(--lk-ink-2); font-size: 12px; }
+.lk-workflow-links { display: flex; flex-direction: column; gap: 8px; }
+.lk-workflow-waits { padding-left: 24px; }
+.lk-workflow-waits li { padding: 8px 0; overflow-wrap: anywhere; }
+.lk-workflow-waits span { display: block; font-size: 13px; }
+@media (max-width: 900px) { .lk-workflow-filters, .lk-workflow-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 550px) { .lk-workflow-filters, .lk-workflow-stages, .lk-workflow-groups { grid-template-columns: minmax(0, 1fr); } }

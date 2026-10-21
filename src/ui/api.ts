@@ -10,6 +10,7 @@ export interface LocketState {
   entities: Row[]
   settings: { timezone: string; rollNoticeDeadlines: boolean; version: number }
   agreements: Row[]
+  workflowHistory: Row[]
   routes: Record<string, { kind: string; deviationId: string | null; label: string; roles: string[] }[]>
   requirements: Row[]
   versions: Row[]
