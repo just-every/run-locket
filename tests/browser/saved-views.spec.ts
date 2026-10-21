@@ -103,7 +103,9 @@ for (const width of [1440, 390]) test(`REPO-005 defines typed fields, blocks inc
     return body.result
   }
   try {
-    await page.goto(p.origin + '/app#library')
+    let initial = await p.owner.state()
+    for (const f of initial.customFields) if (JSON.parse(f.required_stages).length) await p.owner.command('field.save', { id: f.id, version: f.version, name: f.name, kind: f.kind, agreementTypes: JSON.parse(f.agreement_types), helpText: f.help_text, requiredStages: [], editRoles: JSON.parse(f.edit_roles), options: JSON.parse(f.options) })
+    await page.goto(p.origin + '/app#library'); await page.reload()
     const manager = page.getByRole('region', { name: 'Custom metadata settings', exact: true })
     await manager.getByText('Manage custom fields', { exact: true }).click()
     for (const [name, kind] of [[names.yes, 'yes_no'], [names.cost, 'pick_list']]) {
@@ -152,7 +154,7 @@ for (const width of [1440, 390]) test(`REPO-005 defines typed fields, blocks inc
     await expect(page.getByRole('alert')).toContainText(names.cost)
     await shot('approval-refused')
     await page.goto(p.origin + `/app#agreement/${created.id}/details`)
-    const metadata = page.getByRole('region', { name: 'Agreement custom metadata', exact: true })
+    const metadata = page.getByRole('region', { name: 'Agreement custom metadata', exact: true }).locator('form').first()
     await metadata.getByLabel(names.cost, { exact: true }).selectOption('Operations')
     await runUi(() => metadata.getByRole('button', { name: 'Save custom metadata', exact: true }).click())
     await expect(metadata.getByLabel(names.cost, { exact: true })).toHaveValue('Operations')

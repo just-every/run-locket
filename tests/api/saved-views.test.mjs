@@ -222,3 +222,32 @@ test('REPO-005 REPO-008 cited custom proposals require human acceptance and pres
   await h.owner.command('proposal.decide', { proposalId: stale.id, decision: 'approve' }, { error: 'STALE' })
   await agent.command('proposal.prepare', { kind: 'custom_fields', payload: { ...payload, citation: { ...payload.citation, quote: 'Invented passage' } }, evidence: ['No matching source'] }, { error: 'CITATION' })
 })
+
+test('REPO-005 required metadata fences review, signature handoff and reconciled execution atomically', async t => {
+  const h = await installation(); t.after(() => h.close())
+  const review = (await h.owner.command('field.save', fieldSpec('Review owner note', 'text', { requiredStages: ['in_review'] }))).id
+  const signature = (await h.owner.command('field.save', fieldSpec('Signing code', 'text', { requiredStages: ['out_for_signature'] }))).id
+  const execution = (await h.owner.command('field.save', fieldSpec('Filing code', 'text', { requiredStages: ['executed'] }))).id
+  const a = await metadataAgreement(h.owner)
+  const row = async () => (await h.owner.state()).agreements.find(x => x.id === a.id)
+  const set = async values => h.owner.command('field.values.set', { agreementId: a.id, expectedVersion: (await row()).version, values })
+  await h.owner.command('agreement.submit', { agreementId: a.id, version: (await row()).version }, { error: 'FIELDS' })
+  await set({ [review]: 'Reviewed' })
+  await h.owner.command('agreement.submit', { agreementId: a.id, version: (await row()).version })
+  const approve = async () => h.owner.command('approval.decide', { agreementId: a.id, version: (await row()).version, versionId: a.versionId, kind: 'commercial', decision: 'approved' })
+  await approve()
+  const prepare = async () => h.owner.command('package.prepare', { agreementId: a.id, version: (await row()).version, provider: 'docusign', recipients: [{ name: 'Olive Owner', email: 'owner@example.test', action: 'sign' }] })
+  let pkg = await prepare()
+  const send = async error => h.owner.command('package.sent', { agreementId: a.id, version: (await row()).version, packageId: pkg.packageId, envelopeId: 'synthetic-locket-1' }, error ? { error } : {})
+  await send('FIELDS')
+  assert.equal((await h.owner.state()).packages.find(p => p.id === pkg.packageId).status, 'prepared')
+  await set({ [signature]: 'Approved signing' })
+  await approve(); pkg = await prepare(); await send()
+  const bytes = Buffer.from(await (await h.owner.request('/api/locket/files/' + pkg.pdfArtifactId)).arrayBuffer())
+  const execute = async error => h.owner.command('execution.record', { agreementId: a.id, version: (await row()).version, envelopeId: 'synthetic-locket-1', executedOn: '2026-10-17', documentConfirmed: true, signers: [{ name: 'Olive Owner', email: 'owner@example.test' }], signed: file('signed.pdf', bytes), certificate: file('certificate.pdf', pdf('Completion certificate')) }, error ? { error } : {})
+  await execute('FIELDS')
+  assert.equal((await h.owner.state()).executions.length, 0)
+  await set({ [execution]: 'Archived' })
+  assert.equal((await execute()).status, 'reconciled')
+  assert.equal((await row()).status, 'executed')
+})
