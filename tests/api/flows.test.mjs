@@ -228,7 +228,8 @@ test('09 execution ingests the signed file and certificate and reconciles envelo
   let s = await tm.owner.state()
   const e = s.executions.find(x => x.agreement_id === id)
   assert.equal(s.agreements.find(x => x.id === id).status, 'executed')
-  assert.deepEqual(JSON.parse(e.checks).map(c => [c.check, c.ok]), [['envelope', true], ['signers', true], ['document', true], ['text', true], ['certificate', true]])
+  assert.deepEqual(JSON.parse(e.checks).map(c => [c.check, c.ok]), [['envelope', true], ['signers', true], ['document', true], ['text', true], ['signature_fields', true], ['certificate', true]])
+  assert.deepEqual(JSON.parse(e.checks).find(c => c.check === 'signature_fields').inspection, { status: 'not_detected', fields: [] })
   assert.equal(s.artifacts.find(f => f.id === e.certificate_artifact_id).role, 'certificate')
   // A mismatched return stays unsigned until owner or counsel accepts it with a reason.
   const other = await outForSignature(h, tm, lib, { title: 'Second', party: 'Second Co' })
