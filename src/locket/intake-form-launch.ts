@@ -1,3 +1,4 @@
+import { agreementAccessSql } from './access'
 // The same evaluator serves manager previews and real request launches.
 import { roleSql } from './access'
 import { fileInput, storeArtifact } from './artifacts'
@@ -38,7 +39,7 @@ async function typedAnswers(c:Ctx,def:FormDefinition,input:unknown,value:string|
       const s=text({value:v},'value',f.kind==='text'?4000:200)
       if(f.kind==='pick_list' && !f.options.includes(s)) fail('INVALID',`${f.label} must be a configured option.`)
       if(f.kind==='person' || f.kind==='counterparty') {
-        const check=f.kind==='person' ? sql("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active')",s) : sql("EXISTS(SELECT 1 FROM lk_parties p WHERE p.id=? AND p.merged_into IS NULL AND (NOT EXISTS(SELECT 1 FROM lk_agreements a WHERE a.party_id=p.id) OR EXISTS(SELECT 1 FROM lk_agreements a WHERE a.party_id=p.id AND (a.restricted=0 OR a.requester_id=? OR a.owner_id=? OR EXISTS(SELECT 1 FROM lk_access g WHERE g.agreement_id=a.id AND g.operator_id=?) OR ("+roleSql+") IN ('owner','counsel')))))",s,c.actor.id,c.actor.id,c.actor.id,c.actor.id)
+        const check=f.kind==='person' ? sql("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active')",s) : sql("EXISTS(SELECT 1 FROM lk_parties p WHERE p.id=? AND p.merged_into IS NULL AND (NOT EXISTS(SELECT 1 FROM lk_agreements a WHERE a.party_id=p.id) OR EXISTS(SELECT 1 FROM lk_agreements a WHERE a.party_id=p.id AND ("+agreementAccessSql(c.actor.id).sql+"))))",s,...agreementAccessSql(c.actor.id).params)
         if(!(await c.db.prepare(`SELECT ${check.sql} AS ok`).bind(...check.params).first<{ok:number}>())?.ok) fail('INVALID',`${f.label} must name a current accessible record.`)
         checks.push(check)
       }

@@ -1,3 +1,4 @@
+import { AgreementDepartment } from './repository-access'
 import { IntakeSnapshot } from './intake-snapshot'
 // One agreement: the document workspace (its default), and the review,
 // approval, signature, execution, terms and access tabs under the same head.
@@ -51,7 +52,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, passage, loc
   const comments = shown ? state.comments.filter(c => c.version_id === shown.id).length : 0
   const docx = original?.filename?.toLowerCase().endsWith('.docx')
   return (
-    <div className="lk-agreement">
+    <div className="lk-agreement">{state.fieldAccess.documentsWithheld&&<p className="lk-note">Unredacted documents and some fields are withheld from your role.</p>}
       <TopTools><VersionChips state={state} a={a} shown={shown} base={base} onBase={n => setBaseNumber(n)} adding={adding} onAdding={setAdding} /></TopTools>
       {shown && <AgentPlace><AgentReply state={state} a={a} shown={shown} original={original} /></AgentPlace>}
       <div className="lk-doc-head">
@@ -66,7 +67,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, passage, loc
         <dl className="lk-doc-meta">
           <div><dt>Needed by</dt><dd>{day(a.needed_by)}</dd></div>
           <div><dt>Counterparty</dt><dd><a href={`#counterparty/${a.party_id}`}>{partyName(state, a.party_id)}</a></dd></div>
-          <div><dt>Value</dt><dd><AgreementValue state={state} a={a} /></dd></div>
+          {!state.fieldAccess.hidden.includes('value')&&<div><dt>Value</dt><dd><AgreementValue state={state} a={a} /></dd></div>}
           {state.entities.length > 0 && <div><dt>Our entity</dt><dd>{entityName(state, a.entity_id)}<AssignEntity state={state} a={a} locket={locket} /></dd></div>}
           <div><dt>Owner</dt><dd><Person name={personName(state, a.owner_id)} /></dd></div>
           <div><dt>Last updated</dt><dd>{stamp(a.updated_at, { zone: a.timezone })}</dd></div>
@@ -129,7 +130,7 @@ function Details({ state, a, locket }: { state: LocketState; a: Row; locket: Loc
   const audit = state.audit.filter(x => x.agreement_id === a.id)
   const editable = can(state, 'owner', 'counsel', 'approver', 'requester') && ['draft', 'in_review', 'approved'].includes(a.status)
   return (
-    <div className="lk-tab-page">
+    <div className="lk-tab-page"><AgreementDepartment state={state} a={a} locket={locket}/>
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Request details</h2></div>
         {editable ? (

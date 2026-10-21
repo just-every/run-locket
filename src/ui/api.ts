@@ -14,6 +14,9 @@ export interface LocketState {
   intakeForms: (Row & import('./intake-form-designer').IntakeFormRecord & {canLaunch:boolean})[]
   intakeFormTypes: string[]
   intakeAudiences: import('../locket/intake-audiences').IntakeAudience[]
+  fieldAccess: {hidden:string[];documentsWithheld:boolean}
+  repositoryPolicy: import('../locket/repository-access').RepositoryPolicy|null
+  agreementDepartments: Row[]
   requestQueue: {rules:Row[];work:Row[];cancellations:Row[]}
   requestForms: Row[]
   agreements: Row[]

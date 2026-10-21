@@ -1,3 +1,4 @@
+import { agreementAccessSql } from './access'
 // Bulk schedules track the existing lifecycle projection. RENEW-002 delivers from a
 // schedule whose deadline matches the current one; its messages are the delivery record.
 import { installationSettings } from './installation'
@@ -57,7 +58,8 @@ async function projection(c: Ctx, ids: string[], days: number[]) {
 }
 // One JSON parameter keeps a 100-agreement guard below D1's bind limit.
 function selectionGuard(actorId: string, agreements: AgreementRow[]): Sql {
-  return sql(`NOT EXISTS(SELECT 1 FROM json_each(?) j LEFT JOIN lk_agreements a ON a.id=json_extract(j.value,'$.id') WHERE a.id IS NULL OR a.version<>json_extract(j.value,'$.version') OR NOT (a.restricted=0 OR ${roleSql} IN ('owner','counsel') OR a.requester_id=? OR a.owner_id=? OR EXISTS(SELECT 1 FROM lk_access g WHERE g.agreement_id=a.id AND g.operator_id=?)))`, json(agreements.map(a => ({ id: a.id, version: a.version }))), actorId, actorId, actorId, actorId)
+  const access=agreementAccessSql(actorId)
+  return sql(`NOT EXISTS(SELECT 1 FROM json_each(?) j LEFT JOIN lk_agreements a ON a.id=json_extract(j.value,'$.id') WHERE a.id IS NULL OR a.version<>json_extract(j.value,'$.version') OR NOT(${access.sql}))`,json(agreements.map(a=>({id:a.id,version:a.version}))),...access.params)
 }
 function ownerGuard(id: string, version: number, agreements: AgreementRow[]) {
   const access = selectionGuard(id, agreements)

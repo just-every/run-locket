@@ -12,7 +12,7 @@ type ViewDefinition = {
   sort: { field: string; direction: 'asc' | 'desc' }
   columns: string[]
 }
-type SavedView = { id: string; name: string; definition: ViewDefinition; shared_roles: string[]; version: number; created_by: string; pinned: boolean }
+type SavedView = { id: string; name: string; definition: ViewDefinition; shared_roles: string[]; shared_groups:string[]; version: number; created_by: string; pinned: boolean }
 type Results = {
   definition: ViewDefinition
   columns: { id: string; label: string; kind: string }[]
@@ -30,10 +30,11 @@ const definitionRequest = (definition: ViewDefinition) => `definition=${encodeUR
 
 export function SavedViews({ state, locket, query, onActive }: { state: LocketState; locket: Locket; query: string; onActive: (active: boolean) => void }) {
   const views = state.savedViews as SavedView[]
-  const repositoryFields = repositoryFieldsFor(state.customFields)
+  const repositoryFields = repositoryFieldsFor(state.customFields).filter(f=>!state.fieldAccess.hidden.includes(f.id))
   const [selectedId, setSelectedId] = useState('')
   const [name, setName] = useState('')
   const [definition, setDefinition] = useState<ViewDefinition>(() => blank(query))
+  const [sharedGroups,setSharedGroups]=useState<string[]>([])
   const [sharedRoles, setSharedRoles] = useState<string[]>([])
   const [editing, setEditing] = useState(false)
   const [request, setRequest] = useState('')
@@ -62,7 +63,7 @@ export function SavedViews({ state, locket, query, onActive }: { state: LocketSt
   function choose(id: string) {
     setSelectedId(id); setError('')
     const view = views.find(item => item.id === id)
-    setName(view?.name ?? ''); setDefinition(view ? structuredClone(view.definition) : blank(query)); setSharedRoles(view ? [...view.shared_roles] : [])
+    setName(view?.name ?? ''); setDefinition(view ? structuredClone(view.definition) : blank(query)); setSharedRoles(view ? [...view.shared_roles] : []);setSharedGroups(view?[...view.shared_groups]:[])
   }
   function preview() {
     if (!definition.columns.length) { setError('Choose at least one result column.'); return }
@@ -73,7 +74,7 @@ export function SavedViews({ state, locket, query, onActive }: { state: LocketSt
     if (!definition.columns.length) { setError('Choose at least one result column.'); return }
     setError('')
     try {
-      const result = await locket.run('view.save', { ...(!asNew && selected ? { id: selected.id, version: selected.version } : {}), name: name.trim(), definition, sharedRoles })
+      const result = await locket.run('view.save', { ...(!asNew && selected ? { id: selected.id, version: selected.version } : {}), name: name.trim(), definition, sharedRoles, sharedGroups })
       if (result) {
         setSelectedId(result.id); setRequest(`viewId=${encodeURIComponent(result.id)}`)
       }
@@ -134,6 +135,7 @@ export function SavedViews({ state, locket, query, onActive }: { state: LocketSt
             <legend>Share view definition</legend>
             <label><input type="checkbox" checked={!sharedRoles.length} onChange={() => setSharedRoles([])} /> Private to me</label>
             <div style={wrap}>{roles.map(role => <label key={role} className="lk-check"><input aria-label={`Shared with ${role}`} type="checkbox" checked={sharedRoles.includes(role)} onChange={event => setSharedRoles(event.target.checked ? [...sharedRoles, role] : sharedRoles.filter(item => item !== role))} /> {role[0].toUpperCase() + role.slice(1)}</label>)}</div>
+            <div>{state.intakeAudiences.filter(g=>g.kind==='group').map(g=><label className="lk-check" key={g.id}><input aria-label={`Shared with group ${g.name}`} type="checkbox" checked={sharedGroups.includes(g.id)} onChange={e=>setSharedGroups(e.target.checked?[...sharedGroups,g.id]:sharedGroups.filter(id=>id!==g.id))}/>{g.name}</label>)}</div>
             <p className="lk-muted">Sharing a view never grants access to agreements. Pins are personal.</p>
           </fieldset>
           <div className="lk-form-actions" style={wrap}>

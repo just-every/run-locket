@@ -54,8 +54,8 @@ export function Counterparty({ state, id, locket }: { state: LocketState; id: st
       <section className="lk-panel" aria-labelledby="lk-party-value">
         <div className="lk-panel-head"><h2 id="lk-party-value">Contracted value and deadlines</h2></div>
         <dl className="lk-obligation-facts">
-          <div><dt>Total contracted</dt><dd data-party-total>{money(summary?.totalCents ?? 0)} USD</dd></div>
-          <div><dt>Annual contracted</dt><dd data-party-annual>{money(summary?.annualCents ?? 0)} USD</dd></div>
+          <div><dt>Total contracted</dt><dd data-party-total>{state.fieldAccess.hidden.includes('value')?'Hidden':money(summary?.totalCents??0)+' USD'}</dd></div>
+          <div><dt>Annual contracted</dt><dd data-party-annual>{state.fieldAccess.hidden.includes('value')?'Hidden':money(summary?.annualCents??0)+' USD'}</dd></div>
           <div><dt>Next notice deadline</dt><dd data-party-deadline>{summary?.nextDeadline ? <a href={`#agreement/${summary.nextDeadline.agreementId}/terms`}>{deadline(summary.nextDeadline.at, summary.nextDeadline.timezone)}</a> : 'None open'}</dd></div>
         </dl>
         {summary && summary.unvalued.length + summary.undated.length > 0 && <p className="lk-muted">{summary.unvalued.length ? `Not counted (no value): ${title(summary.unvalued)}. ` : ''}{summary.undated.length ? `Not in the annual figure (no confirmed effective and end dates): ${title(summary.undated)}.` : ''}</p>}

@@ -28,6 +28,9 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
   }
   // Saved definitions also pass the current catalogue on every execution.
   definition = parseViewDefinition(definition, s.customFields)
+  const hidden=new Set(s.fieldAccess.hidden)
+  if(hidden.has(definition.sort.field)||definition.filters.some(f=>hidden.has(f.field)))fail('FIELD_ACCESS','This view filters or sorts a field hidden from your role.',403)
+  definition={...definition,columns:definition.columns.filter(id=>!hidden.has(id))}
   const people = new Map(s.operators.map(o => [o.id, o.name]))
   const parties = new Map(s.parties.map(p => [p.id, p.name]))
   const entities = new Map(s.entities.map(e => [e.id, e.legal_name]))
@@ -51,7 +54,7 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
       reference: a.reference, title: a.title, type: a.type, status: a.status,
       deviations: deviations.map(d => d.clause_key).join(', '),
       has_deviations: deviations.length ? 'yes' : 'no',
-      counterparty: parties.get(a.party_id) ?? null, entity: entities.get(a.entity_id) ?? null, value: a.value_cents, currency: a.currency,
+      counterparty: parties.get(a.party_id) ?? null, entity: entities.get(a.entity_id) ?? null, value: a.value_cents ?? null, currency: a.currency,
       owner: people.get(a.owner_id) ?? null, requester: people.get(a.requester_id) ?? null,
       restricted: a.restricted ? 'yes' : 'no', needed_by: a.needed_by, start_date: a.start_date,
       timezone: a.timezone, origin: a.origin,

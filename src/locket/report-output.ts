@@ -1,3 +1,4 @@
+import { requireFullFields } from './repository-access'
 import type { ScheduledReportRead } from './report-read-authority'
 import type { Bindings } from '../auth.server'
 import { fail, type Actor } from './model'
@@ -7,6 +8,7 @@ import { textPdf } from './pdf'
 
 export interface ReportSpec { name: string; definition: ViewDefinition; group_field: string }
 export async function reportOutput(env: Bindings, actor: Actor, spec: ReportSpec, scheduledReport?: ScheduledReportRead) {
+  await requireFullFields(env.DB,actor)
   const columns = [...new Set([...spec.definition.columns, spec.group_field, 'value'])]
   const result = await repositoryResult(env, actor, new URLSearchParams({ definition: JSON.stringify({ ...spec.definition, columns }) }), scheduledReport)
   const field = result.columns.find(f => f.id === spec.group_field)

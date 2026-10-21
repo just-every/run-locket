@@ -47,29 +47,46 @@ export interface Visible {
   id: string
 }
 export function canSee(actor: Actor, agreement: Visible, grants: Set<string>): boolean {
+  const scoped=(grants as Set<string>&{visible?:Set<string>}).visible
+  if(scoped)return scoped.has(agreement.id)
   if (!agreement.restricted || fullReaders.includes(actor.role)) return true
   return agreement.requester_id === actor.id || agreement.owner_id === actor.id || grants.has(agreement.id)
 }
-/** SQL twin of canSee for one agreement, evaluated inside the write batch. */
-export function visibleSql(actor: Actor, agreementId: string): Sql {
-  return sql(
-    `EXISTS(SELECT 1 FROM lk_agreements a WHERE a.id=? AND (a.restricted=0 OR ${roleSql} IN ('owner','counsel') OR a.requester_id=? OR a.owner_id=? OR EXISTS(SELECT 1 FROM lk_access g WHERE g.agreement_id=a.id AND g.operator_id=?)))`,
-    agreementId,
-    actor.id,
-    actor.id,
-    actor.id,
-    actor.id,
-  )
+/** One SQL predicate is shared by reads, commands, notification claims and exports.
+ * Group access intersects ACCESS-001. Explicit restricted grants never bypass it. */
+export function agreementAccessSql(id:string, alias='a'):Sql{
+ const role=roleSql
+ return sql(`((${role}) IN ('owner','counsel') OR (
+   (${alias}.restricted=0 OR ${alias}.requester_id=? OR ${alias}.owner_id=? OR EXISTS(SELECT 1 FROM lk_access explicit WHERE explicit.agreement_id=${alias}.id AND explicit.operator_id=?))
+   AND (NOT EXISTS(SELECT 1 FROM lk_repository_policy p WHERE p.id='installation' AND p.enabled=1)
+     OR EXISTS(SELECT 1 FROM lk_repository_policy p,json_each(p.grants) g
+       JOIN lk_intake_members member ON member.audience_id=json_extract(g.value,'$.audienceId')
+       WHERE p.id='installation' AND p.enabled=1 AND member.operator_id=?
+         AND EXISTS(SELECT 1 FROM json_each(json_extract(g.value,'$.types')) type WHERE type.value=${alias}.type)
+         AND (json_array_length(json_extract(g.value,'$.departmentIds'))=0 OR EXISTS(SELECT 1 FROM json_each(json_extract(g.value,'$.departmentIds')) department
+           WHERE department.value=COALESCE((SELECT d.department_id FROM lk_agreement_departments d WHERE d.agreement_id=${alias}.id),(SELECT json_extract(f.answers,'$.department') FROM lk_request_forms f WHERE f.agreement_id=${alias}.id))))))))`,id,id,id,id,id)
 }
-/** The same current-role visibility check for a set, with a fixed parameter count. */
+/** Same configured policy for a new agreement before its insert exists. */
+export function newAgreementPolicySql(id:string,type:string,department:string):Sql{
+ return sql(`((${roleSql}) IN ('owner','counsel') OR NOT EXISTS(SELECT 1 FROM lk_repository_policy p WHERE p.id='installation' AND p.enabled=1)
+ OR EXISTS(SELECT 1 FROM lk_repository_policy p,json_each(p.grants) g JOIN lk_intake_members m ON m.audience_id=json_extract(g.value,'$.audienceId')
+ WHERE p.id='installation' AND p.enabled=1 AND m.operator_id=? AND EXISTS(SELECT 1 FROM json_each(json_extract(g.value,'$.types')) t WHERE t.value=?)
+ AND (json_array_length(json_extract(g.value,'$.departmentIds'))=0 OR EXISTS(SELECT 1 FROM json_each(json_extract(g.value,'$.departmentIds')) d WHERE d.value=?))))`,id,id,type,department)
+}
+export function visibleSql(actor: Actor, agreementId: string): Sql {
+ const access=agreementAccessSql(actor.id)
+ return sql(`EXISTS(SELECT 1 FROM lk_agreements a WHERE a.id=? AND (${access.sql}))`,agreementId,...access.params)
+}
 export function visibleSetSql(actor: Actor, ids: string[]): Sql {
-  return sql(`NOT EXISTS(SELECT 1 FROM json_each(?) selected LEFT JOIN lk_agreements a ON a.id=selected.value
-    WHERE a.id IS NULL OR NOT(a.restricted=0 OR ${roleSql} IN ('owner','counsel') OR a.requester_id=? OR a.owner_id=?
-      OR EXISTS(SELECT 1 FROM lk_access g WHERE g.agreement_id=a.id AND g.operator_id=?)))`, JSON.stringify(ids), actor.id, actor.id, actor.id, actor.id)
+ const access=agreementAccessSql(actor.id)
+ return sql(`NOT EXISTS(SELECT 1 FROM json_each(?) selected LEFT JOIN lk_agreements a ON a.id=selected.value WHERE a.id IS NULL OR NOT(${access.sql}))`,JSON.stringify(ids),...access.params)
 }
 export async function grantsFor(env: Bindings, actor: Actor): Promise<Set<string>> {
-  const rows = await env.DB.prepare('SELECT agreement_id FROM lk_access WHERE operator_id=?').bind(actor.id).all<{ agreement_id: string }>()
-  return new Set(rows.results.map(r => r.agreement_id))
+ const access=agreementAccessSql(actor.id)
+ const rows=await env.DB.prepare(`SELECT a.id FROM lk_agreements a WHERE ${access.sql}`).bind(...access.params).all<{id:string}>()
+ const grants=new Set<string>() as Set<string>&{visible:Set<string>}
+ grants.visible=new Set(rows.results.map(r=>r.id))
+ return grants
 }
 
 // Write permissions by command family. Agents never appear outside proposal.prepare.

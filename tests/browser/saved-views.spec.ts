@@ -246,3 +246,11 @@ for (const width of [1440, 390]) test(`REPO-005 defines typed fields, blocks inc
     await shot('confirmed-custom-term')
   } finally { await p.close() }
 })
+
+
+for(const width of [1440,390])test(`REPO-009 Sales visibility, hidden value and current group shares at ${width}px`,async({page})=>{
+ const {repositoryAccessJourney}=await import('./repository-access-journey.mjs')
+ const {metadataPage}=await import('./metadata-page.mjs')
+ const p=await metadataPage(page,width)
+ try{await repositoryAccessJourney(page,width,p)}finally{await p.close()}
+})

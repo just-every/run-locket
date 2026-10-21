@@ -1,6 +1,6 @@
 // Request work is recorded in the business batch. Team membership grants no access.
 import type { Bindings } from '../auth.server'
-import { fullReaders, may, requireRole, roleSql, visibleSql } from './access'
+import { fullReaders, may, newAgreementPolicySql, requireRole, roleSql, visibleSql } from './access'
 import { addBusinessDays } from './business-days'
 import { auditSql, guardSql, type Ctx, type Handler } from './commands'
 import { fail, integer, oneOf, optionalText, sql, text, type Actor, type Sql } from './model'
@@ -29,15 +29,21 @@ const configure: Handler = async(c,p) => {
 
 /** Stable ID order with a guarded cursor. Stale concurrent creates retry explicitly.
  * Restricted requests skip anyone who lacks their existing reading authority. */
-export async function newRequestWork(c:Ctx,a:Pick<AgreementRow,'id'|'type'|'restricted'|'owner_id'|'requester_id'|'timezone'>){
+export async function newRequestWork(c:Ctx,a:Pick<AgreementRow,'id'|'type'|'restricted'|'owner_id'|'requester_id'|'timezone'>&{department?:string}){
  const rule=await c.db.prepare('SELECT * FROM lk_queue_rules WHERE type=?').bind(a.type).first<any>()
  let assignee=a.owner_id,lead=a.owner_id,team=null,days=a.type==='nda'?2:5
  const checks:Sql[]=[],writes:Sql[]=[]
  if(rule){
   const audience=await c.db.prepare('SELECT version FROM lk_intake_audiences WHERE id=?').bind(rule.audience_id).first<{version:number}>()
-  const candidates=(await c.db.prepare(`SELECT o.id,CASE WHEN o.role='owner' THEN 'owner' ELSE COALESCE((SELECT r.role FROM lk_roles r WHERE r.operator_id=o.id),'viewer') END AS role FROM lk_intake_members m JOIN oa_operators o ON o.id=m.operator_id WHERE m.audience_id=? AND o.status='active' ORDER BY o.id`).bind(rule.audience_id).all<{id:string;role:string}>()).results.filter(o=>may.intake.includes(o.role as any)&&(!a.restricted||fullReaders.includes(o.role as any)||o.id===a.owner_id||o.id===a.requester_id))
+  let candidates=(await c.db.prepare(`SELECT o.id,CASE WHEN o.role='owner' THEN 'owner' ELSE COALESCE((SELECT r.role FROM lk_roles r WHERE r.operator_id=o.id),'viewer') END AS role FROM lk_intake_members m JOIN oa_operators o ON o.id=m.operator_id WHERE m.audience_id=? AND o.status='active' ORDER BY o.id`).bind(rule.audience_id).all<{id:string;role:string}>()).results.filter(o=>may.intake.includes(o.role as any)&&(!a.restricted||fullReaders.includes(o.role as any)||o.id===a.owner_id||o.id===a.requester_id))
+  const permitted=(await c.db.prepare(`SELECT json_extract(person.value,'$.id') AS id FROM json_each(?) person WHERE
+    json_extract(person.value,'$.role') IN ('owner','counsel') OR NOT EXISTS(SELECT 1 FROM lk_repository_policy p WHERE p.id='installation' AND p.enabled=1)
+    OR EXISTS(SELECT 1 FROM lk_repository_policy p,json_each(p.grants) g JOIN lk_intake_members m ON m.audience_id=json_extract(g.value,'$.audienceId')
+      WHERE p.id='installation' AND p.enabled=1 AND m.operator_id=json_extract(person.value,'$.id') AND EXISTS(SELECT 1 FROM json_each(json_extract(g.value,'$.types')) t WHERE t.value=?)
+      AND (json_array_length(json_extract(g.value,'$.departmentIds'))=0 OR EXISTS(SELECT 1 FROM json_each(json_extract(g.value,'$.departmentIds')) d WHERE d.value=?)))`).bind(JSON.stringify(candidates),a.type,a.department??'').all<{id:string}>()).results
+  candidates=candidates.filter(person=>permitted.some(p=>p.id===person.id))
   if(!audience||!candidates.length)fail('ASSIGNMENT','This request team has no active member permitted to read this request.',409)
-  assignee=candidates[rule.cursor%candidates.length].id;lead=rule.lead_id;team=rule.audience_id;days=rule.business_days
+  assignee=candidates[rule.cursor%candidates.length].id;checks.push(newAgreementPolicySql(assignee,a.type,a.department??''));lead=rule.lead_id;team=rule.audience_id;days=rule.business_days
   checks.push(sql('EXISTS(SELECT 1 FROM lk_queue_rules WHERE type=? AND version=? AND cursor=?)',a.type,rule.version,rule.cursor),sql('(SELECT version FROM lk_intake_audiences WHERE id=?)=?',team,audience.version),member(assignee),member(lead))
   // Preserve the selected membership/role snapshot, including the candidate order.
   checks.push(sql(`NOT EXISTS(SELECT 1 FROM json_each(?) expected LEFT JOIN oa_operators o ON o.id=json_extract(expected.value,'$.id') WHERE o.id IS NULL OR o.status<>'active' OR (CASE WHEN o.role='owner' THEN 'owner' ELSE COALESCE((SELECT r.role FROM lk_roles r WHERE r.operator_id=o.id),'viewer') END)<>json_extract(expected.value,'$.role'))`,JSON.stringify(candidates)))

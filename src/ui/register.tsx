@@ -1,3 +1,4 @@
+import { RepositoryAccess } from './repository-access'
 import { Reports } from './reports'
 // Agreements as a board: one column per stage, each agreement a small page
 // card with its counterparty, value, version, owner and next notice deadline.
@@ -54,6 +55,8 @@ export function Register({ state, locket, query, portfolioFilter = '' }: { state
       </div>
       <p><a className="lk-button" href="#queue">Request queue</a></p>
       <details className="lk-disclosure"><summary>Custom reports</summary><Reports state={state} locket={locket} /></details>
+      <details className="lk-disclosure"><summary>Repository access rules</summary><RepositoryAccess state={state} locket={locket}/></details>
+      {state.fieldAccess.documentsWithheld&&<p className="lk-note">Some fields and unredacted documents are hidden from your role.</p>}
       <SavedViews state={state} locket={locket} query={query} onActive={setViewOpen} />
       {tile && <p><a href="#portfolio">Back to portfolio</a> · <a href="#agreements">Clear portfolio filter</a> · {rows.length} agreements · {money(rows.reduce((sum, a) => sum + (a.value_cents ?? 0), 0))} USD</p>}
       {!viewOpen && <>
@@ -96,7 +99,7 @@ function AgreementCard({ state, a, matches }: { state: LocketState; a: Row; matc
       {state.portfolio.lifecycle[a.id]?.status !== 'not_executed' && <p className="lk-meta">{state.portfolio.lifecycle[a.id]?.status.replaceAll('_', ' ')}</p>}
       <p className="lk-board-party">{partyName(state, a.party_id)}</p>
       <p className="lk-board-facts">
-        <span>{money(a.value_cents)}</span>
+        {!state.fieldAccess.hidden.includes('value')&&<span>{money(a.value_cents)}</span>}
         {v && <span className="lk-version-tag">v{v.number}</span>}
         {a.status === 'imported' && <Badge value="imported" label={statusLabel.imported} />}
       </p>

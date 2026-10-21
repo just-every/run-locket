@@ -2,8 +2,8 @@ import type { LocketState, Row } from './api'
 import { Field } from './controls'
 import { money, parse, partyName, personName, statusLabel, termLabel, termValue, words } from './format'
 
-export const customFieldsFor = (state: LocketState, type: string) => state.customFields.filter(f => parse<string[]>(f.agreement_types).includes(type))
-export const mayEditField = (state: LocketState, field: Row) => state.actor.role !== 'agent' && parse<string[]>(field.edit_roles).includes(state.actor.role)
+export const customFieldsFor = (state: LocketState, type: string) => state.customFields.filter(f => !state.fieldAccess.hidden.includes('custom:'+f.id)&&parse<string[]>(f.agreement_types).includes(type))
+export const mayEditField = (state: LocketState, field: Row) => !state.fieldAccess.documentsWithheld && state.actor.role !== 'agent' && parse<string[]>(field.edit_roles).includes(state.actor.role)
 export const storedCustomValues = (state: LocketState, agreementId: string) => Object.fromEntries(state.customValues.filter(v => v.agreement_id === agreementId).map(v => [v.field_id, parse(v.value)]))
 export function customValueLabel(state: LocketState, field: Row, value: unknown, stored = true): string {
   if (value == null || value === '') return '—'

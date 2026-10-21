@@ -1,7 +1,7 @@
 // Person-scoped notifications. The business command inserts its events in the
 // same guarded batch as the change; readers and senders repeat current access.
 import type { Bindings } from '../auth.server'
-import { authority, requireRole, visibleSql } from './access'
+import { agreementAccessSql, authority, requireRole, visibleSql } from './access'
 import { defaultZone, usZones } from './business-days'
 import type { Ctx, Handler } from './commands'
 import { bool, fail, oneOf, sql, text, type Actor, type Role, type Sql } from './model'
@@ -102,14 +102,12 @@ export async function notificationState(env: Bindings, actor: Actor) {
   requireRole(actor, notificationPeople, 'read notifications')
   if (!(await notificationCheck(env.DB, [authority(actor, notificationPeople)]))) fail('AUTHORITY', 'Sign in with a current human session.', 403)
   const preferences = await notificationPreferences(env.DB, actor.id)
-  const auth = authority(actor, notificationPeople)
+  const auth = authority(actor, notificationPeople),access=agreementAccessSql(actor.id)
   const items = (await notificationBind(env.DB, sql(`SELECT n.id,n.agreement_id,n.kind,n.created_at,n.read_at,n.email_status
     FROM lk_notifications n JOIN lk_agreements a ON a.id=n.agreement_id
     WHERE n.recipient_id=? AND n.in_app=1 AND COALESCE((SELECT in_app FROM lk_person_preferences WHERE operator_id=?),1)=1
-    AND (${auth.sql}) AND (a.restricted=0 OR (SELECT CASE WHEN o.role='owner' THEN 'owner' ELSE COALESCE(r.role,'viewer') END
-      FROM oa_operators o LEFT JOIN lk_roles r ON r.operator_id=o.id WHERE o.id=?) IN ('owner','counsel')
-      OR a.requester_id=? OR a.owner_id=? OR EXISTS(SELECT 1 FROM lk_access g WHERE g.agreement_id=a.id AND g.operator_id=?))
-    ORDER BY n.created_at DESC,n.id`, actor.id, actor.id, ...auth.params, actor.id, actor.id, actor.id, actor.id))
+    AND (${auth.sql}) AND (${access.sql})
+    ORDER BY n.created_at DESC,n.id`, actor.id, actor.id, ...auth.params, ...access.params))
     .all<Pick<NotificationRow, 'id' | 'agreement_id' | 'kind' | 'created_at' | 'read_at' | 'email_status'>>()).results
   return { preferences, items: items.map(row => ({ ...row, link: notificationLink(env, row) })) }
 }

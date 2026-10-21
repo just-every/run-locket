@@ -177,7 +177,7 @@ const createRequest: Handler = async (c, p) => {
       value.originalCents, value.rate, value.rateBy, value.rateAt,
     ),
   )
-  const work = await newRequestWork(c, {id,type,restricted:bool(p,'restricted')?1:0,owner_id:ownerId,requester_id:c.actor.id,timezone:zone})
+  const work = await newRequestWork(c, {id,type,restricted:bool(p,'restricted')?1:0,owner_id:ownerId,requester_id:c.actor.id,timezone:zone,department:String(form?.answers.department??'')})
   checks.push(...work.checks); writes.push(...work.writes)
   if (version) writes.push(...version.writes)
   if (form) {

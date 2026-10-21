@@ -1,3 +1,4 @@
+import { repositoryAccessHandlers } from './repository-access'
 import { queueHandlers } from './request-queue'
 import { intakeFormHandlers } from './intake-forms'
 import { intakeAudienceHandlers } from './intake-audiences'
@@ -51,7 +52,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
+  ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
   ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,

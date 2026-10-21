@@ -27,7 +27,7 @@ export const versionsOf = (state: LocketState, agreementId: string) => state.ver
 export const currentVersion = (state: LocketState, a: Row) => state.versions.find(v => v.id === a.current_version_id) ?? null
 export const renewalOf = (state: LocketState, agreementId: string) => state.renewals.find(r => r.agreement_id === agreementId) ?? null
 export const parse = <T = any>(value: unknown): T => (typeof value === 'string' ? JSON.parse(value) : (value as T))
-export const can = (state: LocketState, ...roles: string[]) => roles.includes(state.actor.role)
+export const can = (state: LocketState, ...roles: string[]) => !state.fieldAccess?.documentsWithheld && roles.includes(state.actor.role)
 
 /** A label cut to about `max` characters at a word, for chips and seals; the element's title carries it whole. */
 export function brief(label: string, max = 24) {
