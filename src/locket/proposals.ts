@@ -1,5 +1,5 @@
 import { agentDraft, preparedNoticeText, sourceOf, sourceChecks } from './notice-agent'
-import { prepareCustomFields, applyCustomFields } from './custom-proposals'
+import { prepareCustomFields, applyCustomFields, customProposalAuthority } from './custom-proposals'
 // Agent work: an agent (or any preparer) records an evidence-backed proposal;
 // a person with the matching authority approves or rejects it. Approval applies
 // it through the same checks as the person doing the work themselves, and the
@@ -101,20 +101,22 @@ const decide: Handler = async (c, p) => {
   if (proposal.agreement_id) await visibleAgreement(c, proposal.agreement_id)
   else if (!seesIntake(c.actor, proposal)) fail('NOT_FOUND', 'No such proposal.', 404)
   const kind = proposal.kind as Kind
-  requireRole(c.actor, deciders[kind], `decide ${kind} proposals`)
+  const customAuthority = kind === 'custom_fields' ? await customProposalAuthority(c, parse(proposal.payload)) : null
+  const allowed = customAuthority?.allowed ?? deciders[kind]
+  requireRole(c.actor, allowed, `decide ${kind} proposals`)
   if (proposal.status !== 'pending') fail('STATUS', `This proposal is already ${proposal.status}.`, 409)
   if (proposal.prepared_by === c.actor.id && c.actor.role !== 'owner') fail('SELF_APPROVAL', 'Someone other than the preparer must decide this proposal.', 403)
   const decision = oneOf(p, 'decision', ['approve', 'reject'] as const)
   const reason = typeof p.reason === 'string' ? p.reason.slice(0, 2000) : null
   const pending = sql("(SELECT status FROM lk_proposals WHERE id=?)='pending'", proposal.id)
   if (decision === 'reject')
-    return { allowed: deciders[kind], result: { id: proposal.id, status: 'rejected' }, writes: [sql("UPDATE lk_proposals SET status='rejected', decided_by=?, decided_at=?, decision_reason=? WHERE id=?", c.actor.id, c.now, reason, proposal.id)], checks: [pending], audit: [{ action: 'proposal.reject', agreementId: proposal.agreement_id, summary: `Rejected ${kind} proposal` }] }
+    return { allowed, result: { id: proposal.id, status: 'rejected' }, writes: [sql("UPDATE lk_proposals SET status='rejected', decided_by=?, decided_at=?, decision_reason=? WHERE id=?", c.actor.id, c.now, reason, proposal.id)], checks: [pending, ...(customAuthority?.checks ?? [])], audit: [{ action: 'proposal.reject', agreementId: proposal.agreement_id, summary: `Rejected ${kind} proposal` }] }
   const payload = parse(proposal.payload)
   if (kind === 'renewal' && !payload.sourceId) {
     const preparer = await c.db.prepare('SELECT role FROM lk_roles WHERE operator_id=?').bind(proposal.prepared_by).first<{role:string}>()
     if (preparer?.role === 'agent') fail('CITATION','Prepare a new notice from a person-selected source before accepting it.',409)
   }
-  const out = kind === 'custom_fields' ? await applyCustomFields(c, payload, proposal.id, p.values) : await apply(c, kind, payload, proposal.id)
+  const out = kind === 'custom_fields' ? await applyCustomFields(c, payload, proposal.id, proposal.prepared_by, p.values) : await apply(c, kind, payload, proposal.id)
   // An approved intake now belongs to the agreement it created, and is seen exactly as that agreement is.
   const agreementId = kind === 'intake' ? (out.result as { id: string }).id : proposal.agreement_id
   return {

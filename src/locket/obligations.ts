@@ -37,7 +37,7 @@ async function signedDocument(c: Ctx, a: AgreementRow) {
 /** A citation points into the executed agreement. AGENT-006: when Locket recorded the
  *  execution and the signed PDF has readable text, the quote must be in that signed text,
  *  so a term or obligation never rests on approved wording the signed document changed. */
-async function citation(c: Ctx, a: AgreementRow, value: unknown) {
+export async function citation(c: Ctx, a: AgreementRow, value: unknown) {
   const cite = object(value, 'citation')
   const quote = text(cite, 'quote', 4000)
   const page = cite.page === undefined || cite.page === null ? null : integer(cite, 'page', 1, 5000)

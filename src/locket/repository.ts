@@ -91,6 +91,7 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
 /** Reference identities never substitute for a label outside the scoped state. */
 function customValue(field: CustomRepositoryDefinition, stored: string, people: Map<string, string>, parties: Map<string, string>): string | number | null {
   const value: unknown = JSON.parse(stored)
+  if (value === null) return null
   if (field.kind === 'number' || field.kind === 'money') {
     if (typeof value !== 'number' || !Number.isFinite(value) || (field.kind === 'money' && !Number.isSafeInteger(value))) fail('INVALID', 'A custom numeric value is invalid.')
     return value

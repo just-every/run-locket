@@ -157,7 +157,7 @@ test('REPO-005 REPO-006 REPO-007 typed custom queries, ordering, scoped CSV and 
   const values = { [ids.yes]: true, [ids.cost]: 'Operations', [number]: -2.5, [budget]: '100.25', [date]: '2027-01-31', [memo]: '=special\nmetadata' }
   const visible = await metadataAgreement(h.owner, { title: 'Visible processing', values })
   const hidden = await metadataAgreement(h.owner, { title: 'Hidden processing', values: { ...values, [number]: 3 }, restricted: true })
-  const missing = await metadataAgreement(h.owner, { title: 'Unfilled processing' })
+  const missing = await metadataAgreement(h.owner, { title: 'Unfilled processing', values: { [number]: null } })
   const definition = { ...customDefinition(ids), filters: [...customDefinition(ids).filters, { field: customKey(number), operator: 'gte', value: '-2.5' }, { field: customKey(budget), operator: 'lte', value: '100.25' }, { field: customKey(date), operator: 'eq', value: '2027-01-31' }], sort: { field: customKey(number), direction: 'desc' }, columns: [customKey(ids.cost), customKey(budget), 'title', customKey(ids.yes), customKey(number), customKey(memo)] }
   const view = await h.owner.command('view.save', { name: 'Processing fields', definition, sharedRoles: ['viewer'] })
   assert.deepEqual((await get(h.owner, { viewId: view.id })).rows.map(r => r.id), [hidden.id, visible.id])

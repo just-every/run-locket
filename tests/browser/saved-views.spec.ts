@@ -170,7 +170,7 @@ for (const width of [1440, 390]) test(`REPO-005 defines typed fields, blocks inc
     for (const [index, field, filter] of [[1, yes, 'yes'], [2, cost, 'Operations']] as const) {
       await panel.getByRole('button', { name: 'Add filter', exact: true }).click()
       await panel.getByLabel(`Filter field ${index}`, { exact: true }).selectOption(customKey(field))
-      await panel.getByLabel(`Filter value ${index}`, { exact: true }).fill(filter)
+      await panel.getByLabel(`Filter value ${index}`, { exact: true }).selectOption(filter)
     }
     await panel.getByLabel('Sort field', { exact: true }).selectOption(customKey(cost))
     for (const name of ['Value (USD)','Owner','Notice deadline']) await panel.getByLabel(`Column ${name}`, { exact: true }).uncheck()
