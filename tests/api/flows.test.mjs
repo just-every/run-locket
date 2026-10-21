@@ -520,7 +520,15 @@ test('configurable supplier forms preview conditions and routes, publish immutab
   assert.equal(stored.seats,'25.5');assert.equal(stored.budget,'1200.50');assert.equal(stored.day,'2027-02-01');assert.equal(stored.steward,tm.approver.id);assert.equal(stored.affiliate,answers.affiliate)
   assert.deepEqual(await download(tm.owner,stored.evidence.artifactId),pdf('Exact supporting evidence'))
   assert.ok(s.requirements.some(r=>r.agreement_id===typedRequest.id && r.label==='Risk assessment'))
+  const privateRequest=await tm.requester.command('request.create',req('Restricted typed answers','60000',{restricted:true,formVersionId:nextPub.versionId,formAnswers:answers}))
+  const hidden=await outsider.state()
+  assert.ok(!hidden.requestForms.some(f=>f.agreement_id===privateRequest.id))
+  const privateAnswers=JSON.parse((await tm.owner.state()).requestForms.find(f=>f.agreement_id===privateRequest.id).answers)
+  assert.equal((await outsider.request('/api/locket/files/'+privateAnswers.evidence.artifactId)).status,404)
   const archive=await (await tm.owner.request('/api/locket/export')).json()
+  for(const [action,actorId,role] of [['audience.save',after.actor.id,'owner'],['form.save',tm.counsel.id,'counsel'],['form.preview',tm.counsel.id,'counsel'],['form.publish',tm.counsel.id,'counsel']]) {
+    assert.ok(archive.records.lk_audit.some(row=>row.action===action && row.actor_id===actorId && row.actor_role===role && row.at>0 && row.summary),action+' retains attributed audit evidence')
+  }
   assert.ok(archive.records.lk_intake_form_versions.some(v=>v.id===first.versionId))
   assert.deepEqual(archive.records.lk_request_forms.find(f=>f.agreement_id===typedRequest.id).answers,snapshot.answers)
   await tm.owner.command('audience.save',{id:group.id,version:group.version,name:'Procurement',kind:'group',memberIds:[]})
