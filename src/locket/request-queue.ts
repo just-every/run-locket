@@ -108,7 +108,7 @@ export async function requestQueue(db:D1Database,agreements:AgreementRow[],now:n
  * reopening, edits and concurrent cron invocations. The shared dispatcher owns mail. */
 export async function runQueueEscalations(env:Bindings,now:number){
  const actor:Actor={id:'locket-scheduler',name:'Locket scheduler',email:'',role:'viewer',sessionId:'',operatorVersion:0}
- const rows=(await env.DB.prepare("SELECT w.*,a.version,a.status FROM lk_request_work w JOIN lk_agreements a ON a.id=w.agreement_id WHERE a.status IN ('draft','in_review','approved','out_for_signature') AND w.warning_at<=?").bind(now).all<any>()).results
+ const rows=(await env.DB.prepare("SELECT w.*,a.version,a.status FROM lk_request_work w JOIN lk_agreements a ON a.id=w.agreement_id WHERE w.team_id IS NOT NULL AND a.status IN ('draft','in_review','approved','out_for_signature') AND w.warning_at<=?").bind(now).all<any>()).results
  for(const w of rows)for(const kind of ['due_soon','overdue']){
  if(kind==='overdue'&&now<w.due_at)continue
  const c:Ctx={env,db:env.DB,actor,now,commandId:`queue:${w.agreement_id}:${w.generation}:${kind}`},guard=crypto.randomUUID()
