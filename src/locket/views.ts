@@ -62,7 +62,7 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
     intakeForms: await intakeForms(db, actor),
     intakeFormTypes: (await all(db, `SELECT DISTINCT json_extract(v.definition,'$.type') AS type FROM lk_intake_forms f JOIN lk_intake_form_versions v ON v.id=f.published_version_id`)).map(f=>f.type),
     intakeAudiences: await intakeAudiences(db, actor),
-    requestForms: mine(await all(db, `SELECT r.*,v.number AS form_number,json_extract(v.definition,'$.name') AS form_name FROM lk_request_forms r JOIN lk_intake_form_versions v ON v.id=r.form_version_id`), ids),
+    requestForms: mine(await all(db, `SELECT r.*,v.number AS form_number,json_extract(v.definition,'$.name') AS form_name,json_extract(v.definition,'$.fields') AS form_fields FROM lk_request_forms r JOIN lk_intake_form_versions v ON v.id=r.form_version_id`), ids),
     customFields: await customFields(db),
     customValues: mine(await all(db, 'SELECT * FROM lk_custom_values ORDER BY field_id'), ids),
     reports: await reports(env, actor),

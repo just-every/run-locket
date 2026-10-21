@@ -105,6 +105,7 @@ export async function intakeFormJourney(page,width,p) {
     const snapshot=page.getByRole('region',{name:'Published request route',exact:true})
     await expect(snapshot).toContainText('v2')
     await expect(snapshot).toContainText(role==='counsel'?'Counsel':'Approver')
+    if(role==='counsel') await expect(snapshot.getByRole('definition').filter({hasText:'Enhanced review'})).toContainText(['Enhanced review'])
     // Required files are attached through the same request's ordinary public attachment commands.
     const s=await owner.state()
     expect(s.requestForms.find(f=>f.agreement_id===created.id).form_version_id).toBe(published.versionId)
