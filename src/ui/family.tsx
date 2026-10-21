@@ -1,9 +1,10 @@
+import { metadataTermLabel, metadataTermValue } from './custom-field-values'
 import { family } from '../locket/family-projection'
 import { relations } from '../locket/family-relations'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Field, Form, value } from './controls'
-import { can, day, deadline, parse, termLabel, termValue, words } from './format'
+import { can, day, deadline, parse, words } from './format'
 
 export function Family({ state, a, locket }: { state: LocketState; a: Row; locket: Locket }) {
   const f = family(state, a.id)
@@ -22,11 +23,11 @@ export function Family({ state, a, locket }: { state: LocketState; a: Row; locke
       <p className="lk-muted">Different recorded values in the executed or imported documents you can access. Counsel must review their scope and precedence. This analysis does not change deadlines or block obligations.</p>
       {!f.conflicts.length && <p>No differences among the confirmed values available to you. Unrecorded terms and document text have not been compared.</p>}
       {f.conflicts.map(conflict => <article key={conflict.key} className="lk-family-term">
-        <h3>{termLabel[conflict.key] ?? words(conflict.key)}</h3>
+        <h3>{metadataTermLabel(state, conflict.key)}</h3>
         {conflict.candidates.map(({ term, source, noticeDeadline }) => {
           const citation = parse<any>(term.citation)
           return <div key={term.id}>
-            <p><strong>{termValue(conflict.key, term.value)}</strong> · <a href={`#agreement/${source.id}/terms`}>{source.reference} · {source.title}</a></p>
+            <p><strong>{metadataTermValue(state, conflict.key, term.value)}</strong> · <a href={`#agreement/${source.id}/terms`}>{source.reference} · {source.title}</a></p>
             <blockquote>{citation.quote}{citation.page ? ` (page ${citation.page})` : ''}</blockquote>
             {noticeDeadline && <p>Candidate notice deadline: <time dateTime={new Date(noticeDeadline.at).toISOString()}>{deadline(noticeDeadline.at, noticeDeadline.timezone)}</time> · using the parent’s current term end, {day(noticeDeadline.endDate)}, in {noticeDeadline.timezone}. This is an alternative for review, not a scheduled deadline.</p>}
           </div>
@@ -40,7 +41,7 @@ export function Family({ state, a, locket }: { state: LocketState; a: Row; locke
       {f.governing.map(g => {
         const citation = parse<any>(g.term.citation)
         return <article key={g.key} className="lk-family-term" data-governing-key={g.key}>
-          <h3>{termLabel[g.key] ?? words(g.key)}: {termValue(g.key, g.term.value)}</h3>
+          <h3>{metadataTermLabel(state, g.key)}: {metadataTermValue(state, g.key, g.term.value)}</h3>
           {g.stale && <p role="status">Source changed — review and select a currently confirmed term.</p>}
           <p><a href={`#agreement/${g.source.id}/terms`}>{g.source.reference} · {g.source.title}</a></p>
           <blockquote>{citation.quote}{citation.page ? ` (page ${citation.page})` : ''}</blockquote>
@@ -49,7 +50,7 @@ export function Family({ state, a, locket }: { state: LocketState; a: Row; locke
       {edit && f.candidates.length > 0 && <Form busy={locket.busy} submit="Select governing term" onSubmit={data => void locket.run('family.term', { agreementId: f.root.id, version: f.root.version, termId: value(data, 'termId') })}>
         <Field label="Confirmed source term"><select name="termId">{f.candidates.map(t => {
           const source = f.members.find(m => m.id === t.agreement_id)!
-          return <option key={t.id} value={t.id}>{termLabel[t.key] ?? words(t.key)} · {termValue(t.key, t.value)} · {source.reference} {source.title}</option>
+          return <option key={t.id} value={t.id}>{metadataTermLabel(state, t.key)} · {metadataTermValue(state, t.key, t.value)} · {source.reference} {source.title}</option>
         })}</select></Field>
       </Form>}
     </section>

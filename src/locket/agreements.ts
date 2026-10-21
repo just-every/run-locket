@@ -1,5 +1,6 @@
 import { approvalNotifications } from './notification-events'
 import { routing } from './review'
+import { customValueWrites, requiredCustomFields } from './custom-values'
 import { notificationWrites } from './notifications'
 import { readerSql } from './deadline-reminders'
 // Intake, parties, required attachments, versions, comments, family links,
@@ -157,6 +158,8 @@ const createRequest: Handler = async (c, p) => {
   }
   const entity = await entityForNewAgreement(c, p)
   const id = crypto.randomUUID(), reference = agreementReference(id)
+  const custom = await customValueWrites(c, id, type, p.customValues, 'draft', false)
+  checks.push(...custom.checks)
   const zone = await zoneFor(c, p, entity)
   const relation = parentId ? (type === 'amendment' ? 'amends' : type === 'order_form' ? 'order_under' : oneOf(p, 'relation', relations)) : null
   const writes: Sql[] = [...party.writes]
@@ -172,6 +175,7 @@ const createRequest: Handler = async (c, p) => {
     ),
   )
   if (version) writes.push(...version.writes)
+  writes.push(...custom.writes)
   writes.push(...notificationWrites(c,{key:c.commandId,agreementId:id,recipientId:ownerId,kind:'assignment'}))
   const labels = [...defaultRequirements[type], ...list(p, 'requirements', 20).map(x => (typeof x === 'string' && x.trim() ? x.trim().slice(0, 200) : fail('INVALID', 'Requirement labels must be text.')))]
   for (const label of [...new Set(labels)]) writes.push(sql('INSERT INTO lk_requirements VALUES(?,?,?,?,?,?,?)', crypto.randomUUID(), id, label, null, null, null, c.now))
@@ -235,13 +239,14 @@ const submit: Handler = async (c, p) => {
   requireStatus(a, ['draft'], 'be submitted')
   if (!a.current_version_id) fail('NO_VERSION', 'Add a document version before submitting for review.', 409)
   const open = (await c.db.prepare('SELECT label FROM lk_requirements WHERE agreement_id=? AND artifact_id IS NULL AND waived_reason IS NULL').bind(a.id).all<{ label: string }>()).results
+  const customChecks = await requiredCustomFields(c, a.id, a.type, 'in_review')
   if (open.length) fail('MISSING_ATTACHMENTS', `Missing required attachments: ${open.map(r => r.label).join(', ')}.`, 409, { missing: open.map(r => r.label) })
   return {
     allowed: may.intake,
     result: { id: a.id, status: 'in_review' },
     writes: [bump(c, a, "status='in_review'"), ...await approvalNotifications(c,a,[...new Set((await routing(c.db,a)).flatMap(r=>r.roles))],c.commandId)],
     // Nothing may be detached between our read and this write.
-    checks: [...agreementGuards(c, a, p), sql('NOT EXISTS(SELECT 1 FROM lk_requirements WHERE agreement_id=? AND artifact_id IS NULL AND waived_reason IS NULL)', a.id)],
+    checks: [...agreementGuards(c, a, p), ...customChecks, sql('NOT EXISTS(SELECT 1 FROM lk_requirements WHERE agreement_id=? AND artifact_id IS NULL AND waived_reason IS NULL)', a.id)],
     audit: [{ action: 'agreement.submit', agreementId: a.id, summary: 'Submitted for review' }],
   }
 }
@@ -364,6 +369,7 @@ const importLegacy: Handler = async (c, p) => {
   await operatorExists(c, ownerId)
   const id = crypto.randomUUID(), versionId = crypto.randomUUID(), reference = agreementReference(id)
   const title = text(p, 'title', 200), type = oneOf(p, 'type', agreementTypes), value = amount(c, p)
+  const custom = await customValueWrites(c, id, type, p.customValues, 'imported', false)
   let body = optionalText(p, 'text', 400_000), source = body ? 'person' : 'none'
   if (!body && isDocx(file)) { body = await docxText(file.bytes); source = 'docx' }
   const provenance = { sourceSystem, sourceId, originalFilename: file.filename, importedBy: c.actor.id, importedAt: new Date(c.now).toISOString(), signedStatus: bool(p, 'signed') ? 'stated signed by importer' : 'not stated' }
@@ -377,8 +383,9 @@ const importLegacy: Handler = async (c, p) => {
       sql(agreementInsert, id, reference, title, type, party.id, value.valueCents, value.currency, ownerId, c.actor.id, 'imported', bool(p, 'restricted') ? 1 : 0, null, optionalDate(p, 'startDate'), await zoneFor(c, p, entity), null, null, 'legacy', versionId, c.now, c.now, entity?.id ?? null, value.originalCents, value.rate, value.rateBy, value.rateAt),
       ...artifact.writes,
       sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', versionId, id, 1, 'legacy', `Imported from ${sourceSystem}`, null, null, body, source, vdigest, c.actor.id, c.now),
+      ...custom.writes,
     ],
-    checks: [sql('NOT EXISTS(SELECT 1 FROM lk_artifacts WHERE sha256=? AND role IN (\'original\',\'signed\'))', digest), entity ? sql('EXISTS(SELECT 1 FROM lk_entities WHERE id=?)', entity.id) : sql('NOT EXISTS(SELECT 1 FROM lk_entities)')],
+    checks: [...custom.checks, sql('NOT EXISTS(SELECT 1 FROM lk_artifacts WHERE sha256=? AND role IN (\'original\',\'signed\'))', digest), entity ? sql('EXISTS(SELECT 1 FROM lk_entities WHERE id=?)', entity.id) : sql('NOT EXISTS(SELECT 1 FROM lk_entities)')],
     audit: [{ action: 'legacy.import', agreementId: id, summary: `Imported ${file.filename} from ${sourceSystem} ${sourceId}` }],
   }
 }

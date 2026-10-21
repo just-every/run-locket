@@ -1,8 +1,9 @@
+import { metadataTermLabel, metadataTermValue } from './custom-field-values'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, Field, Form, Person, value, When } from './controls'
 import { DeadlineReminderLog } from './deadline-reminders'
-import { can, day, deadline, parse, personName, renewalOf, termLabel, termValue, words } from './format'
+import { can, day, deadline, parse, personName, renewalOf, termLabel, words } from './format'
 import { usJurisdictions } from '../locket/us-defaults'
 import { fileToPayload } from './api'
 import { RiskLabel } from './counterparty'
@@ -29,10 +30,10 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
         <table className="lk-table">
           <thead><tr><th>Term</th><th>Value</th><th>Evidence</th><th>Status</th><th><span className="lk-visually-hidden">Actions</span></th></tr></thead>
           <tbody>
-            {keys.flatMap(k => terms.filter(t => t.key === k).sort((x, y) => y.created_at - x.created_at)).map(t => (
+            {[...keys, ...state.customFields.map(f => `custom:${f.id}`)].flatMap(k => terms.filter(t => t.key === k).sort((x, y) => y.created_at - x.created_at)).map(t => (
               <tr key={t.id} className={['superseded', 'rejected'].includes(t.status) ? 'lk-faded' : undefined}>
-                <td data-label="Term">{termLabel[t.key]}</td>
-                <td data-label="Value">{termValue(t.key, t.value)}</td>
+                <td data-label="Term">{metadataTermLabel(state, t.key)}</td>
+                <td data-label="Value">{metadataTermValue(state, t.key, t.value)}</td>
                 <td data-label="Evidence" className="lk-evidence">{cite(parse(t.citation))}<small>{t.confirmed_by ? <>{t.status === 'rejected' ? 'Rejected' : 'Confirmed'} by {personName(state, t.confirmed_by)} <When at={t.confirmed_at} /></> : `Proposed by ${personName(state, t.proposed_by)}`}</small></td>
                 <td data-label="Status"><Badge value={t.status} />{t.proposal_id && <small>agent proposal</small>}</td>
                 <td>{t.status === 'proposed' && confirmer && <span className="lk-row-actions"><button type="button" className="lk-small lk-primary" disabled={busy} onClick={() => void run('term.decide', { agreementId: a.id, termId: t.id, decision: 'confirm' })}>Confirm</button><button type="button" className="lk-small" disabled={busy} onClick={() => void run('term.decide', { agreementId: a.id, termId: t.id, decision: 'reject', reason: window.prompt('Why reject this value?') ?? undefined })}>Reject</button></span>}</td>

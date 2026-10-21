@@ -4,7 +4,7 @@ import type { Bindings } from '../auth.server'
 import { authority, may, requireRole, roleSql } from './access'
 import type { Handler } from './commands'
 import { date, fail, integer, json, list, money, object, oneOf, sql, text, type Actor, type Role } from './model'
-import { repositoryFields } from './repository-fields'
+import { repositoryDefinitions, repositoryFieldChecks, repositoryFieldsFor, type CustomRepositoryDefinition } from './repository-fields'
 
 export interface ViewDefinition {
   query: string
@@ -14,7 +14,8 @@ export interface ViewDefinition {
 }
 const humans: Role[] = ['owner', 'counsel', 'approver', 'requester', 'viewer']
 export const defaultViewDefinition: ViewDefinition = { query: '', filters: [], sort: { field: 'title', direction: 'asc' }, columns: ['title', 'counterparty', 'value', 'owner', 'notice_deadline'] }
-export function parseViewDefinition(value: unknown): ViewDefinition {
+export function parseViewDefinition(value: unknown, definitions: readonly CustomRepositoryDefinition[] = []): ViewDefinition {
+  const repositoryFields = repositoryFieldsFor(definitions)
   const p = object(value, 'definition')
   if (typeof p.query !== 'string' || p.query.length > 2000) fail('INVALID', 'query must be text of at most 2000 characters.')
   const field = (id: unknown) => {
@@ -29,7 +30,8 @@ export function parseViewDefinition(value: unknown): ViewDefinition {
     if (catalogue.kind !== 'text' && operator === 'contains') fail('INVALID', 'contains requires a text field.')
     if (catalogue.kind === 'date') date({ value: valueText }, 'value')
     if (catalogue.kind === 'money') money({ value: valueText }, 'value')
-    if (catalogue.kind === 'number' && (!/^\d+(\.\d+)?$/.test(valueText) || !Number.isFinite(Number(valueText)))) fail('INVALID', 'Number filters need a finite nonnegative number.')
+    if (catalogue.kind === 'number' && (!(catalogue.customKind ? /^-?\d+(\.\d+)?$/ : /^\d+(\.\d+)?$/).test(valueText) || !Number.isFinite(Number(valueText)))) fail('INVALID', 'Number filters need a finite number.')
+    if (catalogue.customKind === 'yes_no' && !['yes', 'no'].includes(valueText.toLocaleLowerCase())) fail('INVALID', 'Yes/no filters need yes or no.')
     return { field: catalogue.id, operator, value: valueText }
   })
   const sort = object(p.sort, 'sort')
@@ -45,7 +47,8 @@ export async function savedViews(env: Bindings, actor: Actor): Promise<SavedView
   requireRole(actor, may.read, 'read saved views')
   const auth = authority(actor, may.read), access = readable(actor)
   const rows = await env.DB.prepare(`SELECT v.*, EXISTS(SELECT 1 FROM lk_view_pins p WHERE p.view_id=v.id AND p.operator_id=?) AS pinned FROM lk_saved_views v WHERE ${auth.sql} AND ${access.sql} ORDER BY pinned DESC, lower(v.name), v.id`).bind(actor.id, ...auth.params, ...access.params).all<StoredView>()
-  return rows.results.map(v => ({ ...v, definition: parseViewDefinition(JSON.parse(v.definition)), shared_roles: JSON.parse(v.shared_roles), pinned: Boolean(v.pinned) }))
+  const definitions = await repositoryDefinitions(env.DB)
+  return rows.results.map(v => ({ ...v, definition: parseViewDefinition(JSON.parse(v.definition), definitions), shared_roles: JSON.parse(v.shared_roles), pinned: Boolean(v.pinned) }))
 }
 async function own(db: D1Database, actor: Actor, id: string, version: number) {
   const v = await db.prepare('SELECT * FROM lk_saved_views WHERE id=? AND created_by=?').bind(id, actor.id).first<StoredView>()
@@ -57,13 +60,15 @@ const ownCheck = (id: string, version: number, actor: Actor) => sql('EXISTS(SELE
 export const savedViewHandlers: Record<string, Handler> = {
   'view.save': async (c, p) => {
     requireRole(c.actor, humans, 'manage saved views')
-    const name = text(p, 'name', 160), definition = parseViewDefinition(p.definition)
+    const definitions = await repositoryDefinitions(c.db)
+    const name = text(p, 'name', 160), definition = parseViewDefinition(p.definition, definitions)
+    const fieldChecks = repositoryFieldChecks(definitions, [...definition.columns, definition.sort.field, ...definition.filters.map(f => f.field)])
     const sharedRoles = list(p, 'sharedRoles', may.read.length).map(role => oneOf({ role }, 'role', may.read))
     if (new Set(sharedRoles).size !== sharedRoles.length) fail('INVALID', 'Share roles must not repeat.')
     const id = p.id === undefined ? crypto.randomUUID() : text(p, 'id', 100)
     const version = p.id === undefined ? 0 : integer(p, 'version', 1)
     if (version) await own(c.db, c.actor, id, version)
-    return { allowed: humans, result: { id, version: version + 1 }, checks: version ? [ownCheck(id, version, c.actor)] : [], writes: version
+    return { allowed: humans, result: { id, version: version + 1 }, checks: [...fieldChecks, ...(version ? [ownCheck(id, version, c.actor)] : [])], writes: version
       ? [sql('UPDATE lk_saved_views SET name=?, definition=?, shared_roles=?, version=version+1, updated_at=? WHERE id=?', name, json(definition), json(sharedRoles), c.now, id)]
       : [sql('INSERT INTO lk_saved_views(id,name,definition,shared_roles,version,created_by,created_at,updated_at) VALUES(?,?,?,?,1,?,?,?)', id, name, json(definition), json(sharedRoles), c.actor.id, c.now, c.now)], audit: [{ action: 'view.save', summary: `${version ? 'Updated' : 'Created'} own saved view; revision ${version + 1}.` }] }
   },

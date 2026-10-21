@@ -3,11 +3,12 @@ import type { LocketState } from './api'
 import { fetchJson } from './api'
 import type { Locket } from './app'
 import { Field, Form, value } from './controls'
-import { repositoryFields } from '../locket/repository-fields'
+import { repositoryFieldsFor } from '../locket/repository-fields'
 import type { ReportOutput } from '../locket/report-output'
 import { money, personName } from './format'
 
 export function Reports({state,locket}:{state:LocketState;locket:Locket}){
+  const repositoryFields = repositoryFieldsFor(state.customFields)
   const [preview,setPreview]=useState<ReportOutput|null>(null),[error,setError]=useState('')
   return <section className="lk-panel" aria-label="Custom reports"><h2>Custom reports</h2>
     <p className="lk-muted">Group a saved-view snapshot and total its USD values. Dates group by calendar month. Each emailed attachment is generated with its recipient’s current access. Weekly and monthly schedules keep the installation’s time zone at creation; month-end dates clamp to the last day.</p>

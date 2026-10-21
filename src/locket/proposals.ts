@@ -1,4 +1,5 @@
 import { agentDraft, preparedNoticeText, sourceOf, sourceChecks } from './notice-agent'
+import { prepareCustomFields, applyCustomFields } from './custom-proposals'
 // Agent work: an agent (or any preparer) records an evidence-backed proposal;
 // a person with the matching authority approves or rejects it. Approval applies
 // it through the same checks as the person doing the work themselves, and the
@@ -13,11 +14,12 @@ import { termLabel, termValue } from './display'
 import { deviationOutcome } from './review'
 import { seesIntake } from './views'
 
-const kinds = ['intake', 'review', 'family', 'terms', 'renewal'] as const
+const kinds = ['intake', 'review', 'family', 'terms', 'renewal', 'custom_fields'] as const
 type Kind = (typeof kinds)[number]
 
 /** Who may approve each kind of prepared work. */
 export const deciders: Record<Kind, Role[]> = {
+  custom_fields: ['owner', 'counsel', 'approver', 'requester', 'viewer'],
   intake: ['owner', 'counsel', 'approver', 'requester'],
   review: ['owner', 'counsel'],
   family: ['owner', 'counsel'],
@@ -28,7 +30,8 @@ export const deciders: Record<Kind, Role[]> = {
 const prepare: Handler = async (c, p) => {
   requireRole(c.actor, may.prepare, 'prepare proposals')
   const kind = oneOf(p, 'kind', kinds)
-  const payload = object(p.payload, 'payload')
+  let payload = object(p.payload, 'payload')
+  if (kind === 'custom_fields') payload = await prepareCustomFields(c, payload)
   if (kind === 'renewal' && (c.actor.role === 'agent' || payload.sourceId)) {
     const { s } = await sourceOf(c, payload.sourceId)
     const r = await c.db.prepare('SELECT end_date FROM lk_renewals WHERE id=?').bind(s.renewal_id).first<any>()
@@ -111,11 +114,11 @@ const decide: Handler = async (c, p) => {
     const preparer = await c.db.prepare('SELECT role FROM lk_roles WHERE operator_id=?').bind(proposal.prepared_by).first<{role:string}>()
     if (preparer?.role === 'agent') fail('CITATION','Prepare a new notice from a person-selected source before accepting it.',409)
   }
-  const out = await apply(c, kind, payload, proposal.id)
+  const out = kind === 'custom_fields' ? await applyCustomFields(c, payload, proposal.id, p.values) : await apply(c, kind, payload, proposal.id)
   // An approved intake now belongs to the agreement it created, and is seen exactly as that agreement is.
   const agreementId = kind === 'intake' ? (out.result as { id: string }).id : proposal.agreement_id
   return {
-    allowed: deciders[kind],
+    allowed: kind === 'custom_fields' ? out.allowed : deciders[kind],
     result: { id: proposal.id, status: 'approved', outcome: out.result },
     writes: [...out.writes, sql("UPDATE lk_proposals SET status='approved', decided_by=?, decided_at=?, decision_reason=?, outcome=?, agreement_id=? WHERE id=?", c.actor.id, c.now, reason, json(out.result), agreementId, proposal.id)],
     checks: [pending, ...(out.checks ?? [])],

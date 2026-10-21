@@ -57,6 +57,7 @@ export async function commit(c: Ctx, allowed: readonly Role[], checks: Sql[], st
     await c.db.batch(batch.map(s => bind(c.db, s)))
   } catch (error) {
     const message = String((error as Error)?.message ?? error)
+    if (message.includes('LOCKET_REQUIRED_FIELDS')) fail('FIELDS', 'Fill all custom fields required at this stage before continuing.', 409)
     if (!message.includes('LOCKET_GUARD') && !message.includes('CHECK constraint')) throw error
     const auth = authority(c.actor, allowed)
     const ok = await c.db.prepare(`SELECT CASE WHEN ${auth.sql} THEN 1 ELSE 0 END AS ok`).bind(...auth.params).first<{ ok: number }>()

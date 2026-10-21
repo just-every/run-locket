@@ -1,5 +1,6 @@
 // One agreement: the document workspace (its default), and the review,
 // approval, signature, execution, terms and access tabs under the same head.
+import { AgreementMetadata } from './agreement-metadata'
 import { ClauseProvenance } from './clause-library'
 import { useState } from 'react'
 import type { LocketState, Row } from './api'
@@ -92,7 +93,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, passage, loc
       {selected === 'execution' && <Execution state={state} a={a} locket={locket} />}
       {selected === 'terms' && <Terms state={state} a={a} locket={locket} />}
       {selected === 'family' && <Family state={state} a={a} locket={locket} />}
-      {selected === 'details' && <Details state={state} a={a} locket={locket} />}
+      {selected === 'details' && <><AgreementMetadata state={state} a={a} locket={locket} /><Details state={state} a={a} locket={locket} /></>}
     </div>
   )
 }

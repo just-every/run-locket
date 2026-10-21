@@ -9,6 +9,8 @@ export interface LocketState {
   parties: Row[]
   entities: Row[]
   settings: { timezone: string; rollNoticeDeadlines: boolean; version: number }
+  customFields: (Row & import('../locket/repository-fields').CustomRepositoryDefinition)[]
+  customValues: Row[]
   agreements: Row[]
   workflowHistory: Row[]
   routes: Record<string, { kind: string; deviationId: string | null; label: string; roles: string[] }[]>

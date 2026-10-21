@@ -1,5 +1,13 @@
 // One catalogue for validation, the repository screen and its CSV export.
-export interface RepositoryField { id: string; label: string; kind: 'text' | 'number' | 'money' | 'date' }
+export type CustomRepositoryKind = 'text' | 'number' | 'money' | 'date' | 'pick_list' | 'yes_no' | 'person' | 'counterparty'
+export interface CustomRepositoryDefinition {
+  id: string
+  name: string
+  kind: CustomRepositoryKind
+  agreement_types: string
+  version: number
+}
+export interface RepositoryField { id: string; label: string; kind: 'text' | 'number' | 'money' | 'date'; customKind?: CustomRepositoryKind }
 export const repositoryFields: RepositoryField[] = [
   { id: 'reference', label: 'Reference', kind: 'text' },
   { id: 'title', label: 'Agreement', kind: 'text' },
@@ -33,3 +41,28 @@ export const repositoryFields: RepositoryField[] = [
   { id: 'current_term', label: 'Current term number', kind: 'number' },
   { id: 'notice_deadline', label: 'Notice deadline', kind: 'date' },
 ]
+
+/** The same pure catalogue serves server validation and the workspace controls. */
+export function repositoryFieldsFor(definitions: readonly CustomRepositoryDefinition[]): RepositoryField[] {
+  return [...repositoryFields, ...definitions.map(d => ({
+    id: `custom:${d.id}`, label: d.name,
+    kind: d.kind === 'number' || d.kind === 'money' || d.kind === 'date' ? d.kind : 'text' as const,
+    customKind: d.kind,
+  }))]
+}
+
+export async function repositoryDefinitions(db: D1Database): Promise<CustomRepositoryDefinition[]> {
+  return (await db.prepare('SELECT id,name,kind,agreement_types,version FROM lk_custom_fields ORDER BY name,id').all<CustomRepositoryDefinition>()).results
+}
+
+/** Guard the definition revisions used to validate an explicitly selected field. */
+export function repositoryFieldChecks(definitions: readonly CustomRepositoryDefinition[], fieldIds: readonly string[]) {
+  const selected = new Set(fieldIds)
+  const revisions = definitions.filter(d => selected.has(`custom:${d.id}`)).map(d => ({ id: d.id, version: d.version }))
+  return revisions.length ? [{
+    sql: `NOT EXISTS(SELECT 1 FROM json_each(?) snapshot
+      LEFT JOIN lk_custom_fields f ON f.id=json_extract(snapshot.value,'$.id')
+      WHERE f.id IS NULL OR f.version<>json_extract(snapshot.value,'$.version'))`,
+    params: [JSON.stringify(revisions)],
+  }] : []
+}

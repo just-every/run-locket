@@ -3,7 +3,7 @@ import type { ScheduledReportRead } from './report-read-authority'
 import type { Bindings } from '../auth.server'
 import { lifecycle } from './lifecycle'
 import { fail, money, type Actor } from './model'
-import { repositoryFields, type RepositoryField } from './repository-fields'
+import { repositoryFieldsFor, type CustomRepositoryDefinition, type RepositoryField } from './repository-fields'
 import { defaultViewDefinition, parseViewDefinition, savedViews, type ViewDefinition } from './saved-views'
 import { state } from './views'
 import { searchPassages, type SearchPassage } from './search-passages'
@@ -12,6 +12,9 @@ export interface RepositoryRow { id: string; matches?: SearchPassage[]; values: 
 export interface RepositoryResult { definition: ViewDefinition; columns: RepositoryField[]; rows: RepositoryRow[]; evaluatedAt: number; name?: string }
 const compare = (a: string | number, b: string | number): number => typeof a === 'number' && typeof b === 'number' ? a - b : String(a).toLocaleLowerCase().localeCompare(String(b).toLocaleLowerCase(), 'en-US')
 export async function repositoryResult(env: Bindings, actor: Actor, params: URLSearchParams, scheduledReport?: ScheduledReportRead): Promise<RepositoryResult> {
+  const s = await state(env, actor, scheduledReport), evaluatedAt = s.now
+  const repositoryFields = repositoryFieldsFor(s.customFields)
+  const customFields = s.customFields.map(field => ({ ...field, types: new Set<string>(JSON.parse(field.agreement_types)) }))
   let definition: ViewDefinition = defaultViewDefinition, name: string | undefined
   if (params.has('viewId') && params.has('definition')) fail('INVALID', 'Choose a saved view or an ad hoc definition.')
   if (params.has('viewId')) {
@@ -21,9 +24,10 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
   } else if (params.has('definition')) {
     let parsed: unknown
     try { parsed = JSON.parse(params.get('definition')!) } catch { fail('INVALID', 'definition must be valid JSON.') }
-    definition = parseViewDefinition(parsed)
+    definition = parseViewDefinition(parsed, s.customFields)
   }
-  const s = await state(env, actor, scheduledReport), evaluatedAt = s.now
+  // Saved definitions also pass the current catalogue on every execution.
+  definition = parseViewDefinition(definition, s.customFields)
   const people = new Map(s.operators.map(o => [o.id, o.name]))
   const parties = new Map(s.parties.map(p => [p.id, p.name]))
   const entities = new Map(s.entities.map(e => [e.id, e.legal_name]))
@@ -32,6 +36,11 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
     const kind = repositoryFields.find(c => c.id === f.field)!.kind
     return { ...f, expected: kind === 'money' ? money({ value: f.value }, 'value')! : kind === 'number' ? Number(f.value) : f.value }
   })
+  const customValues = new Map<string, Map<string, string>>()
+  for (const v of s.customValues) {
+    if (!customValues.has(v.agreement_id)) customValues.set(v.agreement_id, new Map())
+    customValues.get(v.agreement_id)!.set(v.field_id, v.value)
+  }
   const rows: RepositoryRow[] = []
   for (const a of s.agreements) {
     const current = lifecycle(a, s.terms, s.renewals, s.notices, evaluatedAt, s.settings.rollNoticeDeadlines)
@@ -55,6 +64,11 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
       lifecycle: current.status, current_term_start: current.start, current_term_end: current.end,
       current_term: current.term, notice_deadline: current.deadline?.date ?? null,
     }
+    for (const field of customFields) {
+      const stored = customValues.get(a.id)?.get(field.id)
+      values[`custom:${field.id}`] = stored === undefined || !field.types.has(a.type)
+        ? null : customValue(field, stored, people, parties)
+    }
     if (query && !Object.values(values).some(v => v !== null && String(v).toLocaleLowerCase().includes(query)) && !matches.length) continue
     if (!filters.every(f => {
       const actual = values[f.field]
@@ -73,6 +87,22 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
   })
   // Return only requested values; the executor alone sees the full projection.
   return { definition, columns: definition.columns.map(id => repositoryFields.find(f => f.id === id)!), rows: rows.map(r => ({ id: r.id, matches: r.matches, values: Object.fromEntries(definition.columns.map(id => [id, r.values[id] ?? null])) })), evaluatedAt, ...(name === undefined ? {} : { name }) }
+}
+/** Reference identities never substitute for a label outside the scoped state. */
+function customValue(field: CustomRepositoryDefinition, stored: string, people: Map<string, string>, parties: Map<string, string>): string | number | null {
+  const value: unknown = JSON.parse(stored)
+  if (field.kind === 'number' || field.kind === 'money') {
+    if (typeof value !== 'number' || !Number.isFinite(value) || (field.kind === 'money' && !Number.isSafeInteger(value))) fail('INVALID', 'A custom numeric value is invalid.')
+    return value
+  }
+  if (field.kind === 'yes_no') {
+    if (typeof value !== 'boolean') fail('INVALID', 'A custom yes/no value is invalid.')
+    return value ? 'yes' : 'no'
+  }
+  if (typeof value !== 'string') fail('INVALID', 'A custom text or reference value is invalid.')
+  if (field.kind === 'person') return people.get(value) ?? null
+  if (field.kind === 'counterparty') return parties.get(value) ?? null
+  return value
 }
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 export function repositoryCsv(result: RepositoryResult): string {

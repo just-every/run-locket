@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { repositoryFields } from '../locket/repository-fields'
+import { repositoryFieldsFor, type RepositoryField } from '../locket/repository-fields'
 import { fetchJson, type LocketState } from './api'
 import type { Locket } from './app'
 import type { SearchPassage } from '../locket/search-passages'
@@ -30,6 +30,7 @@ const definitionRequest = (definition: ViewDefinition) => `definition=${encodeUR
 
 export function SavedViews({ state, locket, query, onActive }: { state: LocketState; locket: Locket; query: string; onActive: (active: boolean) => void }) {
   const views = state.savedViews as SavedView[]
+  const repositoryFields = repositoryFieldsFor(state.customFields)
   const [selectedId, setSelectedId] = useState('')
   const [name, setName] = useState('')
   const [definition, setDefinition] = useState<ViewDefinition>(() => blank(query))
@@ -123,12 +124,12 @@ export function SavedViews({ state, locket, query, onActive }: { state: LocketSt
             <Field label="View name"><input value={name} onChange={event => setName(event.target.value)} maxLength={160} /></Field>
             <Field label="View query" hint="Search standard metadata and all accessible version text."><input type="search" value={definition.query} onChange={event => setDefinition({ ...definition, query: event.target.value })} /></Field>
           </div>
-          <FilterEditor definition={definition} onChange={setDefinition} />
+          <FilterEditor definition={definition} onChange={setDefinition} repositoryFields={repositoryFields} state={state} />
           <div style={grid}>
-            <Field label="Sort field"><select value={definition.sort.field} onChange={event => setDefinition({ ...definition, sort: { ...definition.sort, field: event.target.value } })}>{repositoryFields.map(field => <option key={field.id} value={field.id}>{field.label}</option>)}</select></Field>
+            <Field label="Sort field"><select value={definition.sort.field} onChange={event => setDefinition({ ...definition, sort: { ...definition.sort, field: event.target.value } })}>{!repositoryFields.some(f => f.id === definition.sort.field) && <option value={definition.sort.field} disabled>Unavailable field</option>}{repositoryFields.map(field => <option key={field.id} value={field.id}>{field.label}</option>)}</select></Field>
             <Field label="Sort direction"><select value={definition.sort.direction} onChange={event => setDefinition({ ...definition, sort: { ...definition.sort, direction: event.target.value as 'asc' | 'desc' } })}><option value="asc">Ascending</option><option value="desc">Descending</option></select></Field>
           </div>
-          <ColumnEditor definition={definition} onChange={setDefinition} />
+          <ColumnEditor definition={definition} onChange={setDefinition} repositoryFields={repositoryFields} />
           <fieldset className="lk-fieldset" style={{ minWidth: 0 }}>
             <legend>Share view definition</legend>
             <label><input type="checkbox" checked={!sharedRoles.length} onChange={() => setSharedRoles([])} /> Private to me</label>
@@ -159,7 +160,7 @@ export function SavedViews({ state, locket, query, onActive }: { state: LocketSt
   </section>
 }
 
-function FilterEditor({ definition, onChange }: { definition: ViewDefinition; onChange: (definition: ViewDefinition) => void }) {
+function FilterEditor({ definition, onChange, repositoryFields, state }: { definition: ViewDefinition; onChange: (definition: ViewDefinition) => void; repositoryFields: RepositoryField[]; state: LocketState }) {
   function update(index: number, change: Partial<ViewDefinition['filters'][number]>) {
     onChange({ ...definition, filters: definition.filters.map((filter, at) => at === index ? { ...filter, ...change } : filter) })
   }
@@ -167,10 +168,12 @@ function FilterEditor({ definition, onChange }: { definition: ViewDefinition; on
     <legend>Filters (all must match)</legend>
     {definition.filters.map((filter, index) => {
       const field = repositoryFields.find(item => item.id === filter.field)
+      const custom = state.customFields.find(item => `custom:${item.id}` === filter.field)
+      const choices = custom?.kind === 'yes_no' ? ['yes', 'no'] : custom?.kind === 'pick_list' ? JSON.parse(custom.options) as string[] : custom?.kind === 'person' ? state.operators.filter(o => o.status === 'active' && o.role !== 'agent').map(o => o.name as string) : custom?.kind === 'counterparty' ? state.parties.filter(p => !p.merged_into).map(p => p.name as string) : null
       return <div key={index} style={{ ...grid, marginBottom: 12 }}>
-        <Field label={`Filter field ${index + 1}`}><select value={filter.field} onChange={event => update(index, { field: event.target.value })}>{repositoryFields.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></Field>
-        <Field label={`Filter operator ${index + 1}`}><select value={filter.operator} onChange={event => update(index, { operator: event.target.value as typeof filter.operator })}><option value="eq">Equals</option><option value="contains">Contains</option><option value="gte">At least / on or after</option><option value="lte">At most / on or before</option></select></Field>
-        <Field label={`Filter value ${index + 1}`} hint={field?.kind === 'money' ? 'Amount in USD, for example 1000.25.' : undefined}><input type={field?.kind === 'date' ? 'date' : field?.kind === 'number' || field?.kind === 'money' ? 'number' : 'text'} step="any" value={filter.value} required onChange={event => update(index, { value: event.target.value })} /></Field>
+        <Field label={`Filter field ${index + 1}`}><select value={filter.field} onChange={event => update(index, { field: event.target.value, operator: 'eq', value: '' })}>{!field && <option value={filter.field} disabled>Unavailable field</option>}{repositoryFields.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></Field>
+        <Field label={`Filter operator ${index + 1}`}><select value={filter.operator} onChange={event => update(index, { operator: event.target.value as typeof filter.operator })}><option value="eq">Equals</option>{field?.kind === 'text' && <option value="contains">Contains</option>}<option value="gte">At least / on or after</option><option value="lte">At most / on or before</option></select></Field>
+        <Field label={`Filter value ${index + 1}`} hint={field?.kind === 'money' ? 'Amount in USD, for example 1000.25.' : undefined}>{choices ? <select value={filter.value} required onChange={event => update(index, { value: event.target.value })}><option value="">Choose a value</option>{filter.value && !choices.includes(filter.value) && <option value={filter.value}>{filter.value}</option>}{choices.map((choice, at) => <option key={`${choice}:${at}`} value={choice}>{choice}</option>)}</select> : <input type={field?.kind === 'date' ? 'date' : field?.kind === 'number' || field?.kind === 'money' ? 'number' : 'text'} step={field?.kind === 'money' ? '0.01' : 'any'} value={filter.value} required onChange={event => update(index, { value: event.target.value })} />}</Field>
         <button type="button" aria-label={`Remove filter ${index + 1}`} onClick={() => onChange({ ...definition, filters: definition.filters.filter((_, at) => at !== index) })}>Remove filter</button>
       </div>
     })}
@@ -178,7 +181,7 @@ function FilterEditor({ definition, onChange }: { definition: ViewDefinition; on
   </fieldset>
 }
 
-function ColumnEditor({ definition, onChange }: { definition: ViewDefinition; onChange: (definition: ViewDefinition) => void }) {
+function ColumnEditor({ definition, onChange, repositoryFields }: { definition: ViewDefinition; onChange: (definition: ViewDefinition) => void; repositoryFields: RepositoryField[] }) {
   function move(index: number, delta: number) {
     const columns = [...definition.columns]
     ;[columns[index], columns[index + delta]] = [columns[index + delta], columns[index]]
@@ -189,7 +192,7 @@ function ColumnEditor({ definition, onChange }: { definition: ViewDefinition; on
     <div style={grid}>{repositoryFields.map(field => <label key={field.id} className="lk-check"><input aria-label={`Column ${field.label}`} type="checkbox" checked={definition.columns.includes(field.id)} onChange={event => onChange({ ...definition, columns: event.target.checked ? [...definition.columns, field.id] : definition.columns.filter(id => id !== field.id) })} /> {field.label}</label>)}</div>
     <ol aria-label="Result column order" style={{ paddingLeft: 24 }}>
       {definition.columns.map((id, index) => {
-        const label = repositoryFields.find(field => field.id === id)?.label ?? id
+        const label = repositoryFields.find(field => field.id === id)?.label ?? 'Unavailable field'
         return <li key={id}><div style={wrap}><span>{label}</span><button type="button" disabled={index === 0} aria-label={`Move ${label} up`} onClick={() => move(index, -1)}>Move up</button><button type="button" disabled={index === definition.columns.length - 1} aria-label={`Move ${label} down`} onClick={() => move(index, 1)}>Move down</button></div></li>
       })}
     </ol>

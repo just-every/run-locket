@@ -26,7 +26,7 @@ const insert = (table: Table, row: Row) => q(`INSERT INTO ${table} (${columns[ta
 const exact = (table: Table, row: Row) => q(`(SELECT ${objectSql(table)} FROM ${table} WHERE id=?)=?`, row.id, ordered(table, row))
 
 /** Tables whose rows mean an imported agreement has been used since import. */
-const downstream = ['lk_requirements', 'lk_comments', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_access']
+const downstream = ['lk_custom_values', 'lk_requirements', 'lk_comments', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_access']
 
 export interface AgreementValue {
   agreement: Row

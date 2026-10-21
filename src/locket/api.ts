@@ -42,10 +42,13 @@ import { fail, Problem } from './model'
 import { obligationHandlers } from './obligations'
 import { peopleHandlers } from './people'
 import { proposalHandlers } from './proposals'
+import { customFieldHandlers } from './custom-fields'
+import { customValueHandlers } from './custom-values'
 import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
+  ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,
   ...savedViewHandlers, ...reportHandlers,

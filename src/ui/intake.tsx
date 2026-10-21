@@ -4,6 +4,7 @@ import type { Locket } from './app'
 import { Field, Form, Icon, value } from './controls'
 import { can, parse, typeLabel } from './format'
 import { EntitySelect } from './entities'
+import { CustomFieldInputs, customFieldsFor, readCustomValues } from './custom-field-values'
 import { zones } from './preferences'
 import { defaultRequirements as defaults } from '../locket/us-defaults'
 
@@ -71,7 +72,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
           if (k.startsWith('clause.')) clauseChoices[k.slice(7)] = String(v)
         }
         const result = await run('request.create', {
-          title: value(data, 'title'), type, ...party(data), ...(entityId ? { entityId } : {}), value: value(data, 'value') || undefined, currency, ...(currency !== 'USD' ? { usdRate: value(data, 'usdRate') } : {}), timezone: zone, ownerId: value(data, 'ownerId'),
+          title: value(data, 'title'), type, customValues: readCustomValues(data, customFieldsFor(state, type)), ...party(data), ...(entityId ? { entityId } : {}), value: value(data, 'value') || undefined, currency, ...(currency !== 'USD' ? { usdRate: value(data, 'usdRate') } : {}), timezone: zone, ownerId: value(data, 'ownerId'),
           neededBy: value(data, 'neededBy') || undefined, startDate: value(data, 'startDate') || undefined, restricted: data.get('restricted') === 'on',
           parentId: value(data, 'parentId') || undefined, requirements: value(data, 'requirements').split('\n').map(s => s.trim()).filter(Boolean),
           ...(source === 'template' && template ? { templateVersionId: template.id, fields, clauseChoices } : {}),
@@ -96,6 +97,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
             </div>
             {state.entities.length > 0 && <EntitySelect state={state} value={entityId} onChange={id => { setEntityId(id); setZone(null) }} />}
             <PartyField state={state} />
+            <CustomFieldInputs state={state} fields={customFieldsFor(state, type)} stage="draft" />
             <label className="lk-check"><input type="checkbox" name="restricted" /> Restricted agreement (visible to owner, counsel, you, the responsible person and people granted access)</label>
           </section>
           <section className="lk-panel">
@@ -129,6 +131,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
 
 export function LegacyImport({ state, locket }: { state: LocketState; locket: Locket }) {
   const { run, busy } = locket
+  const [type, setType] = useState('customer')
   const people = state.operators.filter(o => o.status === 'active')
   return (
     <div className="lk-intake">
@@ -137,17 +140,18 @@ export function LegacyImport({ state, locket }: { state: LocketState; locket: Lo
       <Form busy={busy} submit="Import file" onSubmit={async data => {
         const file = data.get('file') as File | null
         if (!file?.size) return locket.setError('Choose the PDF or DOCX to import.')
-        const result = await run('legacy.import', { title: value(data, 'title'), type: value(data, 'type'), ...party(data), ...(state.entities.length ? { entityId: value(data, 'entityId') } : {}), ownerId: value(data, 'ownerId'), sourceSystem: value(data, 'sourceSystem'), sourceId: value(data, 'sourceId'), signed: data.get('signed') === 'on', text: value(data, 'text') || undefined, restricted: data.get('restricted') === 'on', file: await fileToPayload(file) })
+        const result = await run('legacy.import', { title: value(data, 'title'), type, customValues: readCustomValues(data, customFieldsFor(state, type)), ...party(data), ...(state.entities.length ? { entityId: value(data, 'entityId') } : {}), ownerId: value(data, 'ownerId'), sourceSystem: value(data, 'sourceSystem'), sourceId: value(data, 'sourceId'), signed: data.get('signed') === 'on', text: value(data, 'text') || undefined, restricted: data.get('restricted') === 'on', file: await fileToPayload(file) })
         if (result) window.location.hash = `agreement/${result.id}`
       }}>
         <div className="lk-intake-grid">
           <section className="lk-panel">
             <Field label="File (PDF or DOCX) *"><input type="file" name="file" accept=".pdf,.docx" required /></Field>
             <Field label="Agreement title *"><input name="title" required /></Field>
-            <Field label="Type"><select name="type">{Object.entries(typeLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
+            <Field label="Type"><select name="type" value={type} onChange={event => setType(event.target.value)}>{Object.entries(typeLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
             <Field label="Responsible person"><select name="ownerId" defaultValue={state.actor.id}>{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
             {state.entities.length > 0 && <EntitySelect state={state} />}
             <PartyField state={state} />
+            <CustomFieldInputs state={state} fields={customFieldsFor(state, type)} />
           </section>
           <section className="lk-panel">
             <Field label="Where it came from *" hint="e.g. Shared drive, Adobe Acrobat Sign, Dropbox Sign"><input name="sourceSystem" required /></Field>

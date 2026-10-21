@@ -3,15 +3,14 @@ import type { Bindings } from '../auth.server'
 import { fail, type Actor } from './model'
 import { repositoryResult, repositoryCsv, type RepositoryResult } from './repository'
 import type { ViewDefinition } from './saved-views'
-import { repositoryFields } from './repository-fields'
 import { textPdf } from './pdf'
 
 export interface ReportSpec { name: string; definition: ViewDefinition; group_field: string }
 export async function reportOutput(env: Bindings, actor: Actor, spec: ReportSpec, scheduledReport?: ScheduledReportRead) {
-  const field = repositoryFields.find(f => f.id === spec.group_field)
-  if (!field) fail('INVALID', 'Choose a report grouping field.')
   const columns = [...new Set([...spec.definition.columns, spec.group_field, 'value'])]
   const result = await repositoryResult(env, actor, new URLSearchParams({ definition: JSON.stringify({ ...spec.definition, columns }) }), scheduledReport)
+  const field = result.columns.find(f => f.id === spec.group_field)
+  if (!field) fail('INVALID', 'Choose a report grouping field.')
   const groups = new Map<string, { group: string; count: number; value: number; missing: number }>()
   for (const row of result.rows) {
     const value = row.values[spec.group_field]
