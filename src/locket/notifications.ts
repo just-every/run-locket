@@ -62,7 +62,7 @@ export function notificationWrites(c: Ctx, input: NotificationInput): Sql[] {
 }
 
 export function notificationLink(env: Bindings, row: Pick<NotificationRow, 'agreement_id' | 'kind'>): string {
-  const section = /approval/.test(row.kind) ? 'review' : /signature/.test(row.kind) ? 'signature' : /obligation|deadline/.test(row.kind) ? 'terms' : 'versions'
+  const section = /approval/.test(row.kind) ? 'review' : /^queue_/.test(row.kind) ? 'versions' : /signature/.test(row.kind) ? 'signature' : /obligation|deadline/.test(row.kind) ? 'terms' : 'versions'
   return `${new URL(env.AUTH_ORIGIN).origin}/app#agreement/${encodeURIComponent(row.agreement_id)}/${section}`
 }
 

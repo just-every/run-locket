@@ -1,3 +1,4 @@
+import { queueHandlers } from './request-queue'
 import { intakeFormHandlers } from './intake-forms'
 import { intakeAudienceHandlers } from './intake-audiences'
 import { editVersion } from './browser-edits'
@@ -50,7 +51,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...intakeFormHandlers, ...intakeAudienceHandlers,
+  ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
   ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,

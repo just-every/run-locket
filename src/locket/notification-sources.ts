@@ -16,6 +16,7 @@ export const notificationSourceTables: Record<NotificationSource, string> = {
 }
 
 export async function notificationSourceChecks(c: Ctx, event: NotificationRow): Promise<{ ready: boolean; checks: Sql[] }> {
+  if (event.kind === 'queue_due_soon' || event.kind === 'queue_overdue' || event.kind === 'queue_assignment') return {ready:true,checks:[sql("EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND status IN ('draft','in_review','approved','out_for_signature'))",event.agreement_id)]}
   if (!event.source_kind) return { ready: true, checks: event.kind === 'approval' ? await pendingNotificationApproval(c, event) : [] }
   const table = notificationSourceTables[event.source_kind]
   const row = await c.db.prepare(`SELECT * FROM ${table} WHERE id=?`).bind(event.source_id).first<any>()

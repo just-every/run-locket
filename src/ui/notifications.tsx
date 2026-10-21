@@ -5,7 +5,7 @@ import { Badge, Empty, Field, Form, value } from './controls'
 import { stamp, words } from './format'
 import { zones } from './preferences'
 
-const kindLabel = { assignment: 'Assignment', mention: 'Comment mention', approval: 'Approval request', signature: 'Signature event', deadline: 'Deadline reminder' }
+const kindLabel: Record<string,string> = { queue_assignment:'Request assignment',queue_due_soon:'Queue due soon',queue_overdue:'Queue overdue',queue_canceled:'Request canceled',queue_reopened:'Request reopened', assignment: 'Assignment', mention: 'Comment mention', approval: 'Approval request', signature: 'Signature event', deadline: 'Deadline reminder' }
 const emailLabel: Record<string, string> = {
   pending: 'Email queued',
   queued: 'Email queued',

@@ -2,7 +2,7 @@
 import { fail } from './model'
 type Row = { id: string; [key: string]: any }
 type Workspace = {
-  now: number; agreements: Row[]; workflowHistory: Row[]; packages: Row[]
+  requestQueue?: {cancellations:Row[]}; now: number; agreements: Row[]; workflowHistory: Row[]; packages: Row[]
   approvalReminders: { pending: { agreementId: string; approverId: string; requestedAt: number }[] }
 }
 const statuses = ['draft', 'in_review', 'approved', 'out_for_signature']
@@ -55,6 +55,7 @@ export function workflowAnalytics(state: Workspace, params = new URLSearchParams
     return pkg && inside(pkg.sent_at) ? [{ agreementId: a.id, partyId: a.party_id, since: pkg.sent_at, elapsedMs: Math.max(0, state.now - pkg.sent_at) }] : []
   }).sort((a, b) => b.elapsedMs - a.elapsedMs || a.agreementId.localeCompare(b.agreementId))
   return {
+    canceled: [...(state.requestQueue?.cancellations ?? [])].filter(c=>ids.has(c.agreement_id)&&inside(c.canceled_at)).map(c=>({agreementId:c.agreement_id,reason:c.reason,stage:c.stage,canceledAt:c.canceled_at,reopenedAt:c.reopened_at})),
     evaluatedAt: state.now,
     groups: [...groups.values()].sort((a, b) => a.type.localeCompare(b.type) || (a.entityId ?? '').localeCompare(b.entityId ?? '')),
     stages: statuses.map(stage => {

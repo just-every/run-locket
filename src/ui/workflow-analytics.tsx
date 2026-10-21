@@ -15,7 +15,7 @@ export function WorkflowAnalytics({ state }: { state: LocketState }) {
   const links = (ids: string[]) => ids.map(id => <a key={id} href={`#agreement/${id}`}>{title(id)}</a>)
   return <section className="lk-panel lk-workflow" aria-label="Workflow performance">
     <h2>Workflow performance</h2>
-    <p className="lk-muted">Measured request activity and current waiting work. Imported history is excluded. Team service levels and cancellation reporting are not yet available.</p>
+    <p className="lk-muted">Measured request activity and current waiting work. Imported history is excluded. Cancellation events keep their reason and stage even after reopening.</p>
     <Form busy={false} submit="Apply performance filters" onSubmit={data => {
       setParams(new URLSearchParams(Object.fromEntries(['from', 'to', 'type', 'entity'].map(key => [key, value(data, key)]))))
     }}>
@@ -35,6 +35,9 @@ export function WorkflowAnalytics({ state }: { state: LocketState }) {
         <p>{group.opened} opened · {group.completed} completed</p>
         <details><summary>Source requests</summary><p>Opened</p><div className="lk-workflow-links">{links(group.openedIds)}</div><p>Completed</p><div className="lk-workflow-links">{links(group.completedIds)}</div></details>
       </li>)}</ul>
+      <h3>Canceled requests by reason and stage</h3>
+      <p>{result.canceled.length} cancellation events in this period.</p>
+      <ul>{[...new Set(result.canceled.map(c=>JSON.stringify([c.reason,c.stage])))].map(key=>{const [reason,stage]=JSON.parse(key);const rows=result!.canceled.filter(c=>c.reason===reason&&c.stage===stage);return <li key={key}>{reason.replaceAll('_',' ')} · {stage}: {rows.length}<div>{links(rows.map(c=>c.agreementId))}</div></li>})}</ul>
       <h3>Time in each workflow stage</h3>
       <p className="lk-muted">Elapsed hours per completed stage visit, including repeat visits. Median averages the middle two; P90 uses nearest rank. Open stages are excluded. History starts when transition recording is installed; {result.unknownStageStarts} current stage starts are unknown.</p>
       <div className="lk-workflow-stages">{result.stages.map(stage => <article key={stage.stage} aria-label={`${labels[stage.stage]} timing`}>

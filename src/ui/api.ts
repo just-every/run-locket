@@ -14,6 +14,7 @@ export interface LocketState {
   intakeForms: (Row & import('./intake-form-designer').IntakeFormRecord & {canLaunch:boolean})[]
   intakeFormTypes: string[]
   intakeAudiences: import('../locket/intake-audiences').IntakeAudience[]
+  requestQueue: {rules:Row[];work:Row[];cancellations:Row[]}
   requestForms: Row[]
   agreements: Row[]
   workflowHistory: Row[]
@@ -24,7 +25,7 @@ export interface LocketState {
   comments: Row[]
   notifications: {
     preferences: { inApp: boolean; email: boolean; digest: boolean; timezone: string }
-    items: { id: string; agreement_id: string; kind: 'assignment' | 'mention' | 'approval' | 'signature' | 'deadline'; created_at: number; read_at: number | null; email_status: string; link: string }[]
+    items: { id: string; agreement_id: string; kind: string; created_at: number; read_at: number | null; email_status: string; link: string }[]
   }
   templates: Row[]
   templateVersions: Row[]

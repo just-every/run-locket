@@ -52,6 +52,7 @@ export function Register({ state, locket, query, portfolioFilter = '' }: { state
           </div>
         )}
       </div>
+      <p><a className="lk-button" href="#queue">Request queue</a></p>
       <details className="lk-disclosure"><summary>Custom reports</summary><Reports state={state} locket={locket} /></details>
       <SavedViews state={state} locket={locket} query={query} onActive={setViewOpen} />
       {tile && <p><a href="#portfolio">Back to portfolio</a> · <a href="#agreements">Clear portfolio filter</a> · {rows.length} agreements · {money(rows.reduce((sum, a) => sum + (a.value_cents ?? 0), 0))} USD</p>}

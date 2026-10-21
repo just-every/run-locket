@@ -1,3 +1,4 @@
+import { runQueueEscalations } from '../../src/locket/request-queue'
 import { runNoticeAgent } from '../../src/locket/notice-agent-runtime'
 import { runNotifications } from '../../src/locket/notification-dispatch'
 import { runReports } from '../../src/locket/report-dispatch'
@@ -14,6 +15,7 @@ export default {
   },
   async scheduled(controller: ScheduledController, env: any) {
     Date.now = env.TEST_NOW ? () => Number(env.TEST_NOW) : systemNow
+    await runQueueEscalations(env, controller.scheduledTime)
     await runApprovalReminders(env, controller.scheduledTime)
     await runDeadlineReminders(env, controller.scheduledTime)
     await runNotifications(env, controller.scheduledTime)

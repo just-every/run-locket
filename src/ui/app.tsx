@@ -1,3 +1,4 @@
+import { RequestQueue } from './request-queue'
 import { Counterparty } from './counterparty'
 import { useEffect, useState } from 'react'
 import { useLocket } from './api'
@@ -16,7 +17,7 @@ import { money, partyName } from './format'
 import { sections, Shell } from './shell'
 import './style'
 
-const section = (view: string) => (['agreement', 'counterparty', 'new', 'import-signed'].includes(view) ? 'agreements' : view === 'clickwrap' ? 'library' : view)
+const section = (view: string) => (['agreement', 'counterparty', 'new', 'import-signed', 'queue'].includes(view) ? 'agreements' : view === 'clickwrap' ? 'library' : view)
 const pageTitle: Record<string, string> = { new: 'New request', 'import-signed': 'Import a signed file' }
 
 /** #view/id/tab/version: a section, or one agreement with its tab and the version shown. */
@@ -54,6 +55,7 @@ export function LocketApp() {
         {notice && <div className="lk-note" role="status">{notice}</div>}
         {!state ? <p className="lk-empty">{error ? 'Locket could not load your agreements. Sign in again if your session ended.' : 'Loading agreements…'}</p> : (
           <>
+            {route.view === 'queue' && <RequestQueue state={state} locket={locket} />}
             {route.view === 'portfolio' && <Portfolio state={state} />}
             {route.view === 'agreements' && <Register state={state} locket={locket} query={query} portfolioFilter={route.id === 'portfolio' ? route.tab : ''} />}
             {route.view === 'agreement' && <AgreementPage key={route.id} state={state} id={route.id} tab={route.tab} shown={route.shown} passage={{ start: route.start, end: route.end }} locket={locket} />}

@@ -133,7 +133,11 @@ Before shipping, these new events and channels inherit `NOTIFY-001` personal inb
 
 *Acceptance:* a browser journey at 1440 and 390 pixels creates three requests, sees them assigned round-robin, reassigns one, advances the clock past an NDA's 2-business-day service level and sees it flagged and the team lead notified. It cancels one request in negotiation as "deal lost": the request leaves the open queue, appears under Canceled with its reason, and is counted in `REPORT-001`'s canceled-by-reason figures. A viewer's cancel is refused, and counsel reopens the request with a reason.
 
-*Status:* partial. Responsible people, a status queue and an attributed activity feed ship (`src/locket/views.ts`, `tests/browser/journey.spec.ts`); assignees, assignment rules, service levels and escalation do not exist.
+The owner configures one current group, team lead and business-day interval per request type. Stable member-id order and a guarded cursor rotate new requests; inactive or non-working roles are skipped. Membership grants no agreement access: restricted requests use only existing permitted readers. Requester, responsible person, owner or counsel reassign with a reason; only owner/counsel reopen. New requests default to 2 business days for NDAs and 5 for other types until configured, using US-001 business days in the agreement zone; a warning starts one business day before the deadline. Each warning/breach is recorded once per request/reopening and uses NOTIFY-001's current-access, personal-channel and claimed-send path. Reopening starts a new service-level interval and never restores approvals or packages. Cancellation history and its original stage remain in period-filtered reporting after reopening.
+
+Every current signing door is manual: cancellation closes local packages and explicitly tells the person to void a manually sent envelope with its provider separately; it never claims a remote void. SIGN-002/003 inherit confirmed provider void and visible failed/uncertain outcomes before adding automatic envelopes. MOVE-006 and all future request-creation doors inherit the same queue snapshot and cancellation safeguards.
+
+*Status:* done. `tests/api/flows.test.mjs` — “INTAKE-006 rotates a guarded team queue, escalates once through personal notifications and preserves reasoned cancellations” proves rotation, reasons/authority, preserved history/files, withdrawn approvals/packages, stopped pending work, business-day warnings/breaches, one-use generic digest delivery and archive retention. `tests/browser/journey.spec.ts` — “INTAKE-006 request assignment, cancellation and service levels at 1440px/390px” proves queue filters/my work, assignments, reassignment, cancellation/reporting, reopening, SLA flags and team-lead inbox.
 
 #### INTAKE-007 — Third-party paper read at intake.
 When a counterparty's document arrives (upload, email or CRM), the built-in model (`REVIEW-005`) reads it and proposes the request details: agreement type, counterparty legal name, our entity, value, term, governing law and the template or playbook that applies, each citing the passage it came from. The requester confirms or corrects the proposal before the request is created.
@@ -940,8 +944,8 @@ REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 22 | 27 | 31 | 80 |
-| All | 41 | 27 | 31 | 99 |
+| Target and push further | 23 | 26 | 31 | 80 |
+| All | 42 | 26 | 31 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -968,7 +972,7 @@ REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence 
 | `INTAKE-003` | Email intake | target | missing |  | No inbound email path exists |
 | `INTAKE-004` | CRM intake and status writeback: Salesforce, HubSpot and Orbit | target | missing |  | No CRM connector exists |
 | `INTAKE-005` | Slack, Microsoft Teams and Nook intake and updates | target | missing |  | No chat connector exists |
-| `INTAKE-006` | Request queue, assignment and service levels | target | partial | `src/locket/views.ts`; `tests/browser/journey.spec.ts` | Assignees, assignment rules, service levels and escalation do not exist |
+| `INTAKE-006` | Request queue, assignment and service levels | target | done | `tests/api/flows.test.mjs` — INTAKE-006 rotates a guarded team queue, escalates once through personal notifications and preserves reasoned cancellations (assignment, authority, cancellation, SLA and notification safeguards); `tests/browser/journey.spec.ts` — INTAKE-006 request assignment, cancellation and service levels at 1440px/390px (queue, filters, reassignment, canceled report, reopening, flags and inbox) | None for current doors; SIGN-002/003 inherit actual provider void; future creation doors inherit queue snapshots |
 | `INTAKE-007` | Third-party paper read at intake | target | partial | `src/locket/proposals.ts` | Built-in extraction does not exist |
 | `REPO-002` | PDF text and OCR | target | partial | `src/locket/docx.ts` | PDF text extraction and OCR do not exist |
 | `REPO-003` | Bulk repository import with extraction | target | partial | `src/locket/imports/commands.ts`; `tests/api/move-in.test.mjs` | Generic PDF/DOCX bulk import, OCR, extraction and large-file streaming do not exist |

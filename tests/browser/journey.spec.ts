@@ -249,3 +249,14 @@ for (const width of [1440, 390]) test(`INTAKE-002 supplier form previews, publis
 })
 
 })
+
+
+test.describe('Request queue',()=>{
+ test.use({ignoreHTTPSErrors:true,actionTimeout:15000,timezoneId:'America/New_York'})
+ for(const width of [1440,390])test(`INTAKE-006 request assignment, cancellation and service levels at ${width}px`,async({page})=>{
+  const {metadataPage}=await import('./metadata-page.mjs')
+  const {queueJourney}=await import('./queue-journey.mjs')
+  const p=await metadataPage(page,width)
+  try{await queueJourney(page,width,p)}finally{await p.close()}
+ })
+})
