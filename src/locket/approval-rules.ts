@@ -9,6 +9,8 @@ import {decisionContext,routing,type Requirement} from './review'
 import {addBusinessDays} from './business-days'
 import {repositoryPolicy,policyVersionCheck,hiddenFields} from './repository-access'
 
+const commercialSetCheck=(ids:string[])=>sql(`NOT EXISTS(SELECT 1 FROM json_each(?) selected LEFT JOIN oa_operators o ON o.id=selected.value WHERE o.id IS NULL OR o.status<>'active' OR (CASE WHEN o.role='owner' THEN 'owner' ELSE COALESCE((SELECT r.role FROM lk_roles r WHERE r.operator_id=o.id),'viewer') END) NOT IN ('owner','approver'))`,JSON.stringify([...new Set(ids)]))
+
 export interface ApprovalRule {id:string;name:string;approverId:string;escalationId:string|null;order:number;when:{type:string|null;minimumCents:number|null;departmentId:string|null;risk:string|null;dataProcessing:boolean|null;findingKey:string|null}}
 interface Sample {type:string;valueCents:number|null;departmentId:string;risk:string;dataProcessing:boolean;findingKeys:string[]}
 const match=(r:ApprovalRule,s:Sample)=> (!r.when.type||r.when.type===s.type)&&(r.when.minimumCents===null||s.valueCents!==null&&s.valueCents>=r.when.minimumCents)&&(!r.when.departmentId||r.when.departmentId===s.departmentId)&&(!r.when.risk||r.when.risk===s.risk)&&(r.when.dataProcessing===null||r.when.dataProcessing===s.dataProcessing)&&(!r.when.findingKey||s.findingKeys.includes(r.when.findingKey))
@@ -45,16 +47,18 @@ const save:Handler=async(c,p)=>{
  const prior=await ruleDraft(c.db),version=integer(p,'version',0)
  if(version!==(prior?.version??0))fail('STALE','Approval rule draft changed. Reload.',409)
  const checks:Sql[]=[sql("COALESCE((SELECT version FROM lk_approval_rule_drafts WHERE id='installation'),0)=?",version)]
+ const commercialIds:string[]=[],departments:{id:string;version:number}[]=[]
  const rules:ApprovalRule[]=[]
  for(const value of list(p,'rules',50)){
   const r=object(value),when=object(r.when??{}),approverId=text(r,'approverId',100),escalationId=optionalText(r,'escalationId',100)
-  await requireCommercial(c.db,approverId,'approverId');checks.push(commercialCheck(approverId))
-  if(escalationId){await requireCommercial(c.db,escalationId,'escalationId');checks.push(commercialCheck(escalationId))}
+  await requireCommercial(c.db,approverId,'approverId');commercialIds.push(approverId)
+  if(escalationId){await requireCommercial(c.db,escalationId,'escalationId');commercialIds.push(escalationId)}
   const departmentId=optionalText(when,'departmentId',100)
-  if(departmentId){const d=await c.db.prepare("SELECT version FROM lk_intake_audiences WHERE id=? AND kind='department'").bind(departmentId).first<{version:number}>();if(!d)fail('INVALID','Choose a current department.');checks.push(sql('(SELECT version FROM lk_intake_audiences WHERE id=?)=?',departmentId,d.version))}
+  if(departmentId){const d=await c.db.prepare("SELECT version FROM lk_intake_audiences WHERE id=? AND kind='department'").bind(departmentId).first<{version:number}>();if(!d)fail('INVALID','Choose a current department.');departments.push({id:departmentId,version:d.version})}
   if(when.dataProcessing!==undefined&&when.dataProcessing!==null&&typeof when.dataProcessing!=='boolean')fail('INVALID','dataProcessing must be true, false or null.')
   rules.push({id:r.id===undefined?crypto.randomUUID():text(r,'id',100),name:text(r,'name',160),approverId,escalationId,order:integer(r,'order',1,50),when:{type:when.type?oneOf(when,'type',['customer','supplier','nda','amendment','order_form','other'] as const):null,minimumCents:money(when,'minimumValue'),departmentId,risk:when.risk?oneOf(when,'risk',['low','medium','high','unknown'] as const):null,dataProcessing:typeof when.dataProcessing==='boolean'?when.dataProcessing:null,findingKey:optionalText(when,'findingKey',100)}})
  }
+ checks.push(commercialSetCheck(commercialIds),sql(`NOT EXISTS(SELECT 1 FROM json_each(?) expected LEFT JOIN lk_intake_audiences d ON d.id=json_extract(expected.value,'$.id') WHERE d.id IS NULL OR d.kind<>'department' OR d.version<>json_extract(expected.value,'$.version'))`,JSON.stringify(departments)))
  if(new Set(rules.map(r=>r.id)).size!==rules.length)fail('INVALID','Rule identities must be distinct.')
  return {allowed:may.manageRoles,result:{version:version+1},checks,writes:[sql("INSERT INTO lk_approval_rule_drafts VALUES('installation',?,1,NULL,NULL) ON CONFLICT(id) DO UPDATE SET definition=excluded.definition,version=lk_approval_rule_drafts.version+1,previewed_version=NULL",json(rules))],audit:[{action:'approval.rules.save',summary:'Saved an owner approval-rule draft; publication unchanged.'}]}
 }
@@ -75,7 +79,7 @@ const publish:Handler=async(c,p)=>{
  if(draft.previewed_version!==version)fail('PREVIEW','Preview this revision before publishing.',409)
  const id=crypto.randomUUID(),number=(await c.db.prepare('SELECT COALESCE(MAX(number),0)+1 AS n FROM lk_approval_rule_versions').first<{n:number}>())!.n
  const rules=JSON.parse(draft.definition) as ApprovalRule[]
- return {allowed:may.manageRoles,result:{id,number},checks:[sql("EXISTS(SELECT 1 FROM lk_approval_rule_drafts WHERE id='installation' AND version=? AND previewed_version=?)",version,version),...rules.flatMap(r=>[commercialCheck(r.approverId),...(r.escalationId?[commercialCheck(r.escalationId)]:[])])],writes:[sql('INSERT INTO lk_approval_rule_versions VALUES(?,?,?,?,?)',id,number,draft.definition,c.actor.id,c.now),sql("UPDATE lk_approval_rule_drafts SET published_id=? WHERE id='installation'",id)],audit:[{action:'approval.rules.publish',summary:`Published immutable approval rules v${number}; existing requests retain their captured version.`}]}
+ return {allowed:may.manageRoles,result:{id,number},checks:[sql("EXISTS(SELECT 1 FROM lk_approval_rule_drafts WHERE id='installation' AND version=? AND previewed_version=?)",version,version),commercialSetCheck(rules.flatMap(r=>[r.approverId,...(r.escalationId?[r.escalationId]:[])]))],writes:[sql('INSERT INTO lk_approval_rule_versions VALUES(?,?,?,?,?)',id,number,draft.definition,c.actor.id,c.now),sql("UPDATE lk_approval_rule_drafts SET published_id=? WHERE id='installation'",id)],audit:[{action:'approval.rules.publish',summary:`Published immutable approval rules v${number}; existing requests retain their captured version.`}]}
 }
 const inputs:Handler=async(c,p)=>{
  requireRole(c.actor,may.intake,'record approval routing answers')
@@ -95,7 +99,7 @@ const availability:Handler=async(c,p)=>{
  if(delegate){if(delegate===id)fail('INVALID','Choose another approver as delegate.');await requireCommercial(c.db,delegate,'delegateId')}
  const prior=await c.db.prepare('SELECT version FROM lk_approval_absences WHERE operator_id=?').bind(id).first<{version:number}>(),version=integer(p,'version',0)
  if((prior?.version??0)!==version)fail('STALE','Availability changed. Reload.',409)
- return {allowed:may.commercialApproval,result:{id,version:version+1},checks:[commercialCheck(id),...(delegate?[commercialCheck(delegate)]:[]),sql('COALESCE((SELECT version FROM lk_approval_absences WHERE operator_id=?),0)=?',id,version)],writes:[sql('INSERT INTO lk_approval_absences VALUES(?,?,?,1,?,?) ON CONFLICT(operator_id) DO UPDATE SET away=excluded.away,delegate_id=excluded.delegate_id,version=lk_approval_absences.version+1,updated_by=excluded.updated_by,updated_at=excluded.updated_at',id,Number(p.away),delegate,c.actor.id,c.now)],audit:[{action:'approval.availability',summary:'Recorded attributed approver availability and a named delegate; no agreement access was granted.'}]}
+ return {allowed:may.commercialApproval,result:{id,version:version+1},checks:[...(id!==c.actor.id?[sql(`(${roleSql})='owner'`,c.actor.id)]:[]),commercialCheck(id),...(delegate?[commercialCheck(delegate)]:[]),sql('COALESCE((SELECT version FROM lk_approval_absences WHERE operator_id=?),0)=?',id,version)],writes:[sql('INSERT INTO lk_approval_absences VALUES(?,?,?,1,?,?) ON CONFLICT(operator_id) DO UPDATE SET away=excluded.away,delegate_id=excluded.delegate_id,version=lk_approval_absences.version+1,updated_by=excluded.updated_by,updated_at=excluded.updated_at',id,Number(p.away),delegate,c.actor.id,c.now)],audit:[{action:'approval.availability',summary:'Recorded attributed approver availability and a named delegate; no agreement access was granted.'}]}
 }
 export const approvalRuleHandlers:Record<string,Handler>={'approval.rules.save':save,'approval.rules.preview':preview,'approval.rules.publish':publish,'approval.inputs':inputs,'approval.availability':availability,'approval.rule.remind':manualRuleReminder}
 
@@ -105,7 +109,8 @@ export async function ruleDecision(c:Ctx,a:AgreementRow,target:Requirement,requi
  if(earlier.some(r=>!counted.some(x=>x.deviation_id===r.deviationId&&x.decision==='approved')))fail('ORDER','Earlier approval steps must approve first.',409)
  const own=c.actor.id===target.approverId&&!target.away,delegated=target.away&&c.actor.id===target.delegateId,override=c.actor.role==='owner'
  if(!own&&!delegated&&!override)fail('FORBIDDEN','This approval belongs to its named approver or current away delegate.',403)
- const checks=[...(!override?[commercialCheck(target.approverId)]:[]),sql('COALESCE((SELECT version FROM lk_approval_absences WHERE operator_id=?),0)=?',target.approverId,target.absenceVersion??0)]
+ const original=commercialCheck(target.approverId)
+ const checks=[sql(`((${roleSql})='owner' OR (${original.sql}))`,c.actor.id,...original.params),...(!own&&!delegated?[sql(`(${roleSql})='owner'`,c.actor.id)]:[]),sql('COALESCE((SELECT version FROM lk_approval_absences WHERE operator_id=?),0)=?',target.approverId,target.absenceVersion??0)]
  if(delegated)checks.push(commercialCheck(c.actor.id),sql('EXISTS(SELECT 1 FROM lk_approval_absences WHERE operator_id=? AND away=1 AND delegate_id=? AND version=?)',target.approverId,c.actor.id,target.absenceVersion))
  return {checks,writes:[] as Sql[],actedAs:delegated?'delegate':override&&!own?'owner_override':'named_approver'}
 }

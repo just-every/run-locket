@@ -54,6 +54,7 @@ export async function newRequestWork(c:Ctx,a:Pick<AgreementRow,'id'|'type'|'rest
  return {checks,writes}
 }
 
+const workAuthorityCheck=(c:Ctx,a:AgreementRow)=>sql(`((${roleSql}) IN ('owner','counsel') OR ? IN (?,?))`,c.actor.id,c.actor.id,a.requester_id,a.owner_id)
 function workAuthority(c:Ctx,a:AgreementRow){
  requireRole(c.actor,may.intake,'manage request work')
  if(!fullReaders.includes(c.actor.role)&&c.actor.id!==a.owner_id&&c.actor.id!==a.requester_id)fail('FORBIDDEN','Only the requester, responsible person, owner or counsel can manage this request.',403)
@@ -62,21 +63,21 @@ const reassign:Handler=async(c,p)=>{
  const a=await visibleAgreement(c,p.agreementId);workAuthority(c,a);requireStatus(a,open,'be reassigned')
  const assignee=text(p,'assigneeId',100),reason=text(p,'reason',2000)
  if(!await check(c.db,member(assignee))||!await notificationCheck(c.db,notificationReaderSql(c.actor,a.id,assignee)))fail('INVALID','Choose an active colleague who can already read this agreement.')
- return {allowed:may.intake,result:{id:a.id,assigneeId:assignee},checks:[...agreementGuards(c,a,p),member(assignee),visibleSql({...c.actor,id:assignee},a.id)],
+ return {allowed:may.intake,result:{id:a.id,assigneeId:assignee},checks:[workAuthorityCheck(c,a),...agreementGuards(c,a,p),member(assignee),visibleSql({...c.actor,id:assignee},a.id)],
  writes:[sql('UPDATE lk_request_work SET assignee_id=? WHERE agreement_id=?',assignee,a.id),bump(c,a),...notificationWrites(c,{key:c.commandId,agreementId:a.id,recipientId:assignee,kind:'queue_assignment'})],
  audit:[{action:'request.reassign',agreementId:a.id,summary:'Reassigned request: '+reason}]}
 }
 const setStage:Handler=async(c,p)=>{
  const a=await visibleAgreement(c,p.agreementId);workAuthority(c,a);requireStatus(a,['draft','in_review'],'change its working stage')
  const stage=oneOf(p,'stage',['intake','drafting','negotiation','approval'] as const),reason=text(p,'reason',2000)
- return {allowed:may.intake,result:{id:a.id,stage},checks:agreementGuards(c,a,p),writes:[sql('UPDATE lk_request_work SET stage=? WHERE agreement_id=?',stage,a.id),bump(c,a)],audit:[{action:'request.stage',agreementId:a.id,summary:`Working stage: ${stage}; ${reason}`}]}
+ return {allowed:may.intake,result:{id:a.id,stage},checks:[workAuthorityCheck(c,a),...agreementGuards(c,a,p)],writes:[sql('UPDATE lk_request_work SET stage=? WHERE agreement_id=?',stage,a.id),bump(c,a)],audit:[{action:'request.stage',agreementId:a.id,summary:`Working stage: ${stage}; ${reason}`}]}
 }
 const cancel:Handler=async(c,p)=>{
  const a=await visibleAgreement(c,p.agreementId);workAuthority(c,a);requireStatus(a,open,'be canceled')
  const reason=oneOf(p,'reason',['deal_lost','no_longer_needed','duplicate','replaced','other'] as const),note=reason==='other'?text(p,'note',2000):optionalText(p,'note',2000)
  const work=await c.db.prepare('SELECT stage FROM lk_request_work WHERE agreement_id=?').bind(a.id).first<{stage:string}>()
  const stage=['approved','out_for_signature'].includes(a.status)?'signature':work?.stage??stages[a.status]
- return {allowed:may.intake,result:{id:a.id,status:'cancelled'},checks:agreementGuards(c,a,p),writes:[
+ return {allowed:may.intake,result:{id:a.id,status:'cancelled'},checks:[workAuthorityCheck(c,a),...agreementGuards(c,a,p)],writes:[
  sql('INSERT INTO lk_request_cancellations VALUES(?,?,?,?,?,?,?,?,NULL,NULL,NULL)',c.commandId,a.id,reason,note,stage,a.status,c.actor.id,c.now),
  invalidateApprovals(c,a.id,'Request canceled'),bump(c,a,"status='cancelled'"),
  sql("UPDATE lk_packages SET status='voided',void_reason='Request canceled; manual provider void must be recorded separately' WHERE agreement_id=? AND status IN ('prepared','sent')",a.id),

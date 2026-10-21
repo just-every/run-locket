@@ -1,7 +1,7 @@
 // Conservative field custody: structured projection is redacted; unredacted
 // documents and free-text evidence are withheld instead of rewriting originals.
 import type { Bindings } from '../auth.server'
-import { may, requireRole } from './access'
+import { may, requireRole, roleSql } from './access'
 import type { Handler } from './commands'
 import { fail, integer, json, list, object, oneOf, sql, text, type Actor } from './model'
 import { agreementGuards, bump, invalidateApprovals, statusAfterChange, visibleAgreement } from './records'
@@ -13,8 +13,9 @@ export async function repositoryPolicy(db:D1Database):Promise<RepositoryPolicy>{
  return r?{enabled:!!r.enabled,grants:JSON.parse(r.grants),hiddenFields:JSON.parse(r.hidden_fields),version:r.version}:{enabled:false,grants:[],hiddenFields:[],version:0}
 }
 export async function hiddenFields(db:D1Database,actor:Actor):Promise<string[]>{
- if(['owner','counsel'].includes(actor.role))return []
- return (await repositoryPolicy(db)).hiddenFields.find(h=>h.role===actor.role)?.fields??[]
+ const role=(await db.prepare(`SELECT ${roleSql} AS role`).bind(actor.id).first<{role:string}>())?.role??actor.role
+ if(['owner','counsel'].includes(role))return []
+ return (await repositoryPolicy(db)).hiddenFields.find(h=>h.role===role)?.fields??[]
 }
 export const policyVersionCheck=(version:number)=>sql("COALESCE((SELECT version FROM lk_repository_policy WHERE id='installation'),0)=?",version)
 const configure:Handler=async(c,p)=>{
@@ -24,7 +25,7 @@ const configure:Handler=async(c,p)=>{
  if(prior.version!==version)fail('STALE','Repository access changed. Reload before editing.',409)
  const types=['customer','supplier','nda','amendment','order_form','other'] as const
  const audiences=(await c.db.prepare('SELECT id,kind,version FROM lk_intake_audiences').all<any>()).results
- const checks=[policyVersionCheck(version)]
+ const checks=[policyVersionCheck(version)],revisions=new Map<string,number>()
  const grants=list(p,'grants',100).map(value=>{
   const g=object(value),audienceId=text(g,'audienceId',100),audience=audiences.find(a=>a.id===audienceId)
   if(!audience)fail('INVALID','Choose a current group or department.')
@@ -34,10 +35,11 @@ const configure:Handler=async(c,p)=>{
   for(const id of [audienceId,...departments]){
    const row=audiences.find(a=>a.id===id)
    if(!row||(id!==audienceId&&row.kind!=='department'))fail('INVALID','Choose current departments.')
-   checks.push(sql('(SELECT version FROM lk_intake_audiences WHERE id=?)=?',id,row.version))
+   revisions.set(id,row.version)
   }
   return {audienceId,types:selected,departmentIds:[...new Set(departments)]}
  })
+ checks.push(sql(`NOT EXISTS(SELECT 1 FROM json_each(?) expected LEFT JOIN lk_intake_audiences a ON a.id=json_extract(expected.value,'$.id') WHERE a.id IS NULL OR a.version<>json_extract(expected.value,'$.version'))`,JSON.stringify([...revisions].map(([id,version])=>({id,version})))))
  const definitions=await repositoryDefinitions(c.db)
  const allowed=['value','pricing_schedules',...definitions.map(d=>'custom:'+d.id)]
  const hidden=list(p,'hiddenFields',4).map(value=>{

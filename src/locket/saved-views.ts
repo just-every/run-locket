@@ -68,13 +68,14 @@ export const savedViewHandlers: Record<string, Handler> = {
     const sharedRoles = list(p, 'sharedRoles', may.read.length).map(role => oneOf({ role }, 'role', may.read))
     if (new Set(sharedRoles).size !== sharedRoles.length) fail('INVALID', 'Share roles must not repeat.')
     const groups=list(p,'sharedGroups',100).map(v=>text({v},'v',100))
-    const groupChecks=[]
+    const groupRevisions:{id:string;version:number}[]=[]
     for(const id of groups){
       const group=await c.db.prepare("SELECT version FROM lk_intake_audiences WHERE id=? AND kind='group'").bind(id).first<{version:number}>()
       if(!group)fail('INVALID','Share only to current groups.')
       if(c.actor.role!=='owner'&&!await c.db.prepare('SELECT 1 FROM lk_intake_members WHERE audience_id=? AND operator_id=?').bind(id,c.actor.id).first())fail('FORBIDDEN','Share only to a group you currently belong to.',403)
-      groupChecks.push(sql('(SELECT version FROM lk_intake_audiences WHERE id=?)=?',id,group.version))
+      groupRevisions.push({id,version:group.version})
     }
+    const groupChecks=[sql(`NOT EXISTS(SELECT 1 FROM json_each(?) expected LEFT JOIN lk_intake_audiences a ON a.id=json_extract(expected.value,'$.id') WHERE a.id IS NULL OR a.kind<>'group' OR a.version<>json_extract(expected.value,'$.version') OR NOT((${roleSql})='owner' OR EXISTS(SELECT 1 FROM lk_intake_members m WHERE m.audience_id=a.id AND m.operator_id=?)))`,JSON.stringify(groupRevisions),c.actor.id,c.actor.id)]
     const id = p.id === undefined ? crypto.randomUUID() : text(p, 'id', 100)
     const version = p.id === undefined ? 0 : integer(p, 'version', 1)
     if (version) await own(c.db, c.actor, id, version)
