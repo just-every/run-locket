@@ -7,6 +7,7 @@ import {approvalRuleFixture,ruleRequest} from '../api/approval-rule-fixture.mjs'
 export async function approvalRulesJourney(page,width,p){
  const owner=p.owner,tag=randomUUID().slice(0,6),ownerId=(await owner.state()).actor.id
  const f=p.h?await approvalRuleFixture(p.h):{ownerId,finance:{id:ownerId},security:{id:ownerId},cfo:{id:ownerId},requester:owner,delegate:null,department:await owner.command('audience.save',{name:'Operations '+tag,kind:'department',memberIds:[ownerId]})}
+ const snapshotsBefore=(await(await owner.request('/api/locket/export')).json()).records.lk_approval_rule_snapshots.filter(s=>s.ruleset_id===null).map(s=>s.agreement_id)
  const shot=async name=>{
   await page.evaluate(()=>window.scrollTo(0,0))
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
@@ -44,6 +45,8 @@ export async function approvalRulesJourney(page,width,p){
  await expect(preview).toContainText('Stage 1: Finance');await expect(preview).toContainText('Stage 2: Security');await expect(preview).toContainText('Stage 3: CFO')
  await shot('conditional-route-preview')
  await run(()=>designer.getByRole('button',{name:'Publish approval rules',exact:true}).click())
+ const retained=(await owner.state()).routes
+ for(const id of snapshotsBefore)expect((retained[id]??[]).some(step=>step.approverId)).toBe(false)
  await shot('published-rules')
  const id=await ruleRequest(owner,f.requester,f.department.id,{title:'Supplier '+tag})
  await page.goto(p.origin+`/app#agreement/${id}/approvals`);await page.reload()
