@@ -121,6 +121,16 @@ test('REPO-005 typed metadata enforces owner definitions, edit roles, stage requ
   let state = await h.owner.state()
   const recorded = Object.fromEntries(state.customValues.filter(v => v.agreement_id === a.id).map(v => [v.field_id, JSON.parse(v.value)]))
   assert.deepEqual(recorded, { [ids.yes]: false, [ids.cost]: 'Operations', [ids.text]: '=review\nthis', [ids.number]: 0, [ids.money]: 120050, [ids.date]: '2027-02-01', [ids.person]: own, [ids.counterparty]: current.party_id })
+  assert.equal(state.customFields.find(f => f.id === ids.yes).help_text, 'Record the value from the agreement.')
+  const partyName = state.parties.find(p => p.id === current.party_id).name
+  const typed = await get(h.owner, { definition: JSON.stringify({ query: '', filters: [
+    { field: customKey(ids.yes), operator: 'eq', value: 'no' }, { field: customKey(ids.cost), operator: 'eq', value: 'Operations' },
+    { field: customKey(ids.text), operator: 'contains', value: 'review' }, { field: customKey(ids.number), operator: 'eq', value: '0' },
+    { field: customKey(ids.money), operator: 'eq', value: '1200.50' }, { field: customKey(ids.date), operator: 'eq', value: '2027-02-01' },
+    { field: customKey(ids.person), operator: 'eq', value: state.actor.name }, { field: customKey(ids.counterparty), operator: 'eq', value: partyName },
+  ], sort: { field: customKey(ids.person), direction: 'asc' }, columns: [customKey(ids.person), customKey(ids.counterparty)] }) })
+  assert.deepEqual(typed.rows.map(r => r.id), [a.id])
+  assert.deepEqual(Object.values(typed.rows[0].values), [state.actor.name, partyName])
   await requester.command('field.values.set', { agreementId: a.id, expectedVersion: state.agreements.find(x => x.id === a.id).version, values: { [ids.text]: 'cannot' } }, { error: 'FORBIDDEN' })
   current = state.agreements.find(x => x.id === a.id)
   await h.owner.command('approval.decide', { ...decision, version: current.version })
@@ -184,6 +194,9 @@ test('REPO-005 REPO-006 REPO-007 typed custom queries, ordering, scoped CSV and 
   assert.match(reportCsv, /Cost center/); assert.match(reportCsv, /Visible processing/); assert.ok(!reportCsv.includes('Hidden processing'))
   const pdf = await viewer.request('/api/locket/reports/' + report.id + '?format=pdf')
   assert.equal(pdf.status, 200); assert.equal(pdf.headers.get('content-type'), 'application/pdf')
+  const { extractText } = await import('unpdf')
+  const pdfText = (await extractText(new Uint8Array(await pdf.arrayBuffer()), { mergePages: true })).text
+  assert.match(pdfText, /Cost center/); assert.match(pdfText, /Visible processing/); assert.ok(!pdfText.includes('Hidden processing'))
   await h.owner.command('access.set', { agreementId: hidden.id, operatorId: own, grant: 'grant' })
   assert.deepEqual((await get(viewer, { viewId: view.id })).rows.map(r => r.id), [hidden.id, visible.id])
   await h.owner.command('access.set', { agreementId: hidden.id, operatorId: own, grant: 'revoke' })

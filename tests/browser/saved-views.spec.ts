@@ -135,6 +135,7 @@ for (const width of [1440, 390]) test(`REPO-005 defines typed fields, blocks inc
     await page.getByLabel('Request type *', { exact: true }).selectOption('other')
     const intake = page.locator('.lk-intake-form')
     await intake.getByLabel(names.yes, { exact: true }).selectOption('true')
+    await expect(intake.getByText('Record the agreed processing requirements.', { exact: true })).toBeVisible()
     await intake.getByLabel(`Memo ${tag}`, { exact: true }).fill('Processing review')
     await intake.getByLabel(`Seats ${tag}`, { exact: true }).fill('25')
     await intake.getByLabel(`Budget ${tag} (USD)`, { exact: true }).fill('1200.50')
