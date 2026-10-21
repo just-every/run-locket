@@ -1,3 +1,4 @@
+import { captureRuleSet, ruleRequirements } from './approval-rules'
 import { newRequestWork } from './request-queue'
 import { launchForm, formSnapshotWrites } from './intake-form-launch'
 import { approvalNotifications } from './notification-events'
@@ -177,6 +178,8 @@ const createRequest: Handler = async (c, p) => {
       value.originalCents, value.rate, value.rateBy, value.rateAt,
     ),
   )
+  const approvalSnapshot=await captureRuleSet(c,{id})
+  checks.push(...approvalSnapshot.checks);writes.push(...approvalSnapshot.writes)
   const work = await newRequestWork(c, {id,type,restricted:bool(p,'restricted')?1:0,owner_id:ownerId,requester_id:c.actor.id,timezone:zone,department:String(form?.answers.department??'')})
   checks.push(...work.checks); writes.push(...work.writes)
   if (version) writes.push(...version.writes)
@@ -252,12 +255,13 @@ const submit: Handler = async (c, p) => {
   const open = (await c.db.prepare('SELECT label FROM lk_requirements WHERE agreement_id=? AND artifact_id IS NULL AND waived_reason IS NULL').bind(a.id).all<{ label: string }>()).results
   const customChecks = await requiredCustomFields(c, a.id, a.type, 'in_review')
   if (open.length) fail('MISSING_ATTACHMENTS', `Missing required attachments: ${open.map(r => r.label).join(', ')}.`, 409, { missing: open.map(r => r.label) })
+  const captured=await captureRuleSet(c,a),named=await ruleRequirements(c.db,a)
   return {
     allowed: may.intake,
     result: { id: a.id, status: 'in_review' },
-    writes: [bump(c, a, "status='in_review'"), ...await approvalNotifications(c,a,[...new Set((await routing(c.db,a)).flatMap(r=>r.roles))],c.commandId)],
+    writes: [...captured.writes,bump(c, a, "status='in_review'"), ...(named.length?[]:await approvalNotifications(c,a,[...new Set((await routing(c.db,a)).flatMap(r=>r.roles))],c.commandId))],
     // Nothing may be detached between our read and this write.
-    checks: [...agreementGuards(c, a, p), ...customChecks, sql('NOT EXISTS(SELECT 1 FROM lk_requirements WHERE agreement_id=? AND artifact_id IS NULL AND waived_reason IS NULL)', a.id)],
+    checks: [...captured.checks,...agreementGuards(c, a, p), ...customChecks, sql('NOT EXISTS(SELECT 1 FROM lk_requirements WHERE agreement_id=? AND artifact_id IS NULL AND waived_reason IS NULL)', a.id)],
     audit: [{ action: 'agreement.submit', agreementId: a.id, summary: 'Submitted for review' }],
   }
 }

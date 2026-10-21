@@ -1,3 +1,4 @@
+import { approvalRuleHandlers, ruleReminderReceipt } from './approval-rules'
 import { repositoryAccessHandlers } from './repository-access'
 import { queueHandlers } from './request-queue'
 import { intakeFormHandlers } from './intake-forms'
@@ -52,7 +53,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
+  ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
   ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,
@@ -165,7 +166,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
       }
       const result = await runCommand(env, actor, body, handlers, request)
       const input = body as { type: string; commandId: string }
-      return reply({ ok: true, result, ...(input.type === 'approval.email' ? { mailReceipt: await approvalMailReceipt(env, input.commandId) } : input.type === 'approval.remind' ? { mailReceipt: await reminderReceiptFor(env, input.commandId) } : {}) })
+      return reply({ ok: true, result, ...(input.type === 'approval.email' ? { mailReceipt: await approvalMailReceipt(env, input.commandId) } : input.type === 'approval.remind' ? { mailReceipt: await reminderReceiptFor(env, input.commandId) } : input.type==='approval.rule.remind'?{mailReceipt:await ruleReminderReceipt(env,input.commandId)}:{}) })
     }
     return reply({ ok: false, error: { code: 'NOT_FOUND', message: 'No such Locket endpoint.' } }, 404)
   } catch (error) {

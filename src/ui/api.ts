@@ -14,6 +14,12 @@ export interface LocketState {
   intakeForms: (Row & import('./intake-form-designer').IntakeFormRecord & {canLaunch:boolean})[]
   intakeFormTypes: string[]
   intakeAudiences: import('../locket/intake-audiences').IntakeAudience[]
+  approvalRules:Row|null
+  approvalInputs:Row[]
+  approvalAbsences:Row[]
+  ruleDecisions:Row[]
+  rulePending:Row[]
+  ruleReminders:Row[]
   fieldAccess: {hidden:string[];documentsWithheld:boolean}
   repositoryPolicy: import('../locket/repository-access').RepositoryPolicy|null
   agreementDepartments: Row[]
@@ -21,7 +27,7 @@ export interface LocketState {
   requestForms: Row[]
   agreements: Row[]
   workflowHistory: Row[]
-  routes: Record<string, { kind: string; deviationId: string | null; label: string; roles: string[] }[]>
+  routes: Record<string, { kind: string; deviationId: string | null; label: string; roles: string[];approverId?:string;delegateId?:string|null;away?:boolean;order?:number;absenceVersion?:number }[]>
   requirements: Row[]
   versions: Row[]
   artifacts: Row[]
@@ -38,7 +44,7 @@ export interface LocketState {
   approvalReminders: {
     settings: { firstAfterDays: number; repeatEveryDays: number; escalateAfterDays: number; escalationContactId: string | null }
     preferences: Row[]
-    pending: { agreementId: string; versionId: string; approverId: string; requestedAt: number; timezone: string; nextReminderAt: number; escalateAt: number; manualAvailableAt: number | null }[]
+    pending: { agreementId: string; versionId: string; approverId: string; requestedAt: number; timezone: string; nextReminderAt: number; escalateAt: number; manualAvailableAt: number | null;ruleStepId?:string;rulePendingId?:string }[]
     sent: Row[]
   }
   deadlineReminders: { offsets: number[]; overdueEscalationDays: number; sent: Row[]; events: Row[] }

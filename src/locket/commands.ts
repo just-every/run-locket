@@ -1,3 +1,4 @@
+import { syncRulePending } from './approval-rules'
 import { hiddenFields, policyVersionCheck, repositoryPolicy, requireFullFields } from './repository-access'
 import { commandNotifications } from './notification-events'
 import { workflowWrites } from './workflow-history'
@@ -75,6 +76,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const payload = object(input.payload)
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const completed = async (result: unknown) => {
+    await syncRulePending(env,c.now)
     if (type === 'renewal.bulk.preview') await authorizeBulkPreviewResult(c, result)
     if (type === 'approval.email') await dispatchApprovalMail(c)
     if (type === 'approval.remind') await deliverReminder(c, commandId, true)

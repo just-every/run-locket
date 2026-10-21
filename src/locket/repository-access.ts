@@ -4,7 +4,7 @@ import type { Bindings } from '../auth.server'
 import { may, requireRole } from './access'
 import type { Handler } from './commands'
 import { fail, integer, json, list, object, oneOf, sql, text, type Actor } from './model'
-import { agreementGuards, bump, visibleAgreement } from './records'
+import { agreementGuards, bump, invalidateApprovals, statusAfterChange, visibleAgreement } from './records'
 import { repositoryDefinitions } from './repository-fields'
 
 export interface RepositoryPolicy {enabled:boolean;grants:{audienceId:string;types:string[];departmentIds:string[]}[];hiddenFields:{role:string;fields:string[]}[];version:number}
@@ -55,7 +55,7 @@ const department:Handler=async(c,p)=>{
  const a=await visibleAgreement(c,p.agreementId),departmentId=text(p,'departmentId',100)
  const d=await c.db.prepare("SELECT version FROM lk_intake_audiences WHERE id=? AND kind='department'").bind(departmentId).first<{version:number}>()
  if(!d)fail('INVALID','Choose a current department.')
- return {allowed:may.manageRoles,result:{id:a.id,departmentId},checks:[...agreementGuards(c,a,p),sql('(SELECT version FROM lk_intake_audiences WHERE id=?)=?',departmentId,d.version)],writes:[sql('INSERT INTO lk_agreement_departments VALUES(?,?) ON CONFLICT(agreement_id) DO UPDATE SET department_id=excluded.department_id',a.id,departmentId),bump(c,a)],audit:[{action:'agreement.department',agreementId:a.id,summary:'Owner recorded the agreement department.'}]}
+ return {allowed:may.manageRoles,result:{id:a.id,departmentId},checks:[...agreementGuards(c,a,p),sql('(SELECT version FROM lk_intake_audiences WHERE id=?)=?',departmentId,d.version)],writes:[sql('INSERT INTO lk_agreement_departments VALUES(?,?) ON CONFLICT(agreement_id) DO UPDATE SET department_id=excluded.department_id',a.id,departmentId),invalidateApprovals(c,a.id,'Agreement department changed'),bump(c,a,'status=?',statusAfterChange(a))],audit:[{action:'agreement.department',agreementId:a.id,summary:'Owner recorded the agreement department.'}]}
 }
 export const repositoryAccessHandlers:Record<string,Handler>={'repository.access':configure,'agreement.department':department}
 
@@ -78,7 +78,7 @@ export function redactWorkspace<T extends Record<string,any>>(workspace:T,hidden
  // at redaction, mutate originals or reveal it through labels, quotes or history.
  w.versions=workspace.versions.map((v:any)=>({...v,text:null,fields:null,label:'Document version'}))
  for(const key of ['artifacts','comments','deviations','approvals','packages','executions','requestForms','proposals','noticeSources','noticePlans','noticeLetters','noticeDispatches','noticeEvents','noticeTracking','notices','audit','familyTerms'])w[key]=[]
- w.terms=[];w.routes={};w.reports=[];w.reportDeliveries=[]
+ w.terms=[];w.routes={};w.reports=[];w.reportDeliveries=[];w.approvalInputs=[];w.ruleDecisions=[];w.rulePending=[];w.ruleReminders=[]
  w.requestQueue={...workspace.requestQueue,cancellations:workspace.requestQueue.cancellations.map((c:any)=>({...c,note:null,reopen_reason:c.reopen_reason?'Details withheld':null}))}
  // State summaries contain derived dollar totals and are recalculated downstream.
  w.counterparties={}

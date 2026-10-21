@@ -1,3 +1,4 @@
+import { runRuleReminders } from './locket/approval-rules'
 import { runQueueEscalations } from './locket/request-queue'
 import { runNoticeAgent } from './locket/notice-agent-runtime'
 import { runNotifications } from './locket/notification-dispatch'
@@ -47,6 +48,7 @@ export default withDemo({
   },
   // APPROVE-004 approval and RENEW-002 deadline reminders, hourly (triggers.crons in wrangler.jsonc, crons in deploy.json).
   async scheduled(controller, env) {
+    await runRuleReminders(runtimeBindings(env), controller.scheduledTime)
     await runQueueEscalations(runtimeBindings(env), controller.scheduledTime)
     await runApprovalReminders(runtimeBindings(env), controller.scheduledTime)
     await runDeadlineReminders(runtimeBindings(env), controller.scheduledTime)

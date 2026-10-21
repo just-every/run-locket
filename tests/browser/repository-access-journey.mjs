@@ -17,6 +17,7 @@ export async function repositoryAccessJourney(page,width,p){
   await owner.command('agreement.department',{agreementId:a.id,version:a.version,departmentId:department.id})
  }
  const shot=async name=>{
+  await page.evaluate(()=>window.scrollTo(0,0))
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
   if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-REPO-009-${name}.png`),fullPage:true})}
  }

@@ -1,3 +1,4 @@
+import { rulePendingSql } from './approval-rules'
 import { routeRoleSql } from './intake-route'
 import { routeNotification, notificationOutcome } from './notification-dispatch'
 import type { Bindings } from '../auth.server'
@@ -6,21 +7,22 @@ import { may, requireRole, roleSql, visibleSql } from './access'
 import { auditSql, commit, type Ctx, type Handler } from './commands'
 import { fail, Problem, sql, text, type Sql } from './model'
 import { agreementGuards, currentVersion, requireStatus, visibleAgreement } from './records'
-import { decisionContext } from './review'
+import { decisionContext, routing } from './review'
 
 interface MailRow {
   id: string; agreement_id: string; agreement_version: number; version_id: string; version_digest: string
-  recipient_id: string; recipient_email: string; review_url: string; status: string
+  rule_pending_id?:string|null;recipient_id: string; recipient_email: string; review_url: string; status: string
   provider: string | null; provider_message_id: string | null; code: string | null; attempt_id: string | null
 }
 
 const localMail = (c: Ctx) => c.env.AUTH_LOCAL === 'true' || (c.env as { RER_DEMO?: string }).RER_DEMO === '1'
 
 /** The recipient must be able to make this agreement's commercial decision (also APPROVE-004 reminders). */
-export function recipientGuard(c: Ctx, agreementId: string, recipientId: string, email: string): Sql[] {
+export function recipientGuard(c: Ctx, agreementId: string, recipientId: string, email: string, rulePendingId?:string|null): Sql[] {
   return [
     sql(`EXISTS(SELECT 1 FROM oa_operators o JOIN lk_agreements a ON a.id=? WHERE o.id=? AND o.status='active' AND o.email=? AND ${roleSql} IN ('owner',${routeRoleSql()}) AND (${roleSql}='owner' OR a.requester_id<>o.id))`, agreementId, recipientId, email, recipientId, recipientId),
     visibleSql({ ...c.actor, id: recipientId }, agreementId),
+    ...(rulePendingId?[rulePendingSql(rulePendingId,agreementId,recipientId)]:[]),
   ]
 }
 
@@ -31,12 +33,17 @@ export const emailApproval: Handler = async (c, p) => {
   const v = await currentVersion(c, a)
   if (p.versionId !== v.id) fail('NOT_CURRENT', 'The version changed. Reload before emailing an approval link.', 409)
   const context = await decisionContext(c.db, a, v)
-  const decided = await c.db.prepare("SELECT id FROM lk_approvals WHERE agreement_id=? AND version_id=? AND version_digest=? AND context_digest=? AND kind='commercial' AND invalidated_at IS NULL").bind(a.id, v.id, v.digest, context.digest).first()
-  if (decided) fail('ALREADY_DECIDED', 'Commercial approval is already decided for this version.', 409)
+  const decided = await c.db.prepare("SELECT id FROM lk_approvals WHERE agreement_id=? AND version_id=? AND version_digest=? AND context_digest=? AND kind='commercial' AND deviation_id IS NULL AND invalidated_at IS NULL").bind(a.id, v.id, v.digest, context.digest).first()
   const recipientId = text(p, 'recipientId', 100)
   const recipient = await c.db.prepare('SELECT email FROM oa_operators WHERE id=?').bind(recipientId).first<{ email: string }>()
   if (!recipient) fail('RECIPIENT', 'Choose an active commercial approver with access to this agreement.', 400)
-  const recipientChecks = recipientGuard(c, a.id, recipientId, recipient.email)
+  const required=await routing(c.db,a),hasNamed=required.some(r=>r.approverId),hasBaseline=required.some(r=>r.kind==='commercial'&&!r.deviationId)
+  const role=(await c.db.prepare(`SELECT ${roleSql} AS role`).bind(recipientId).first<{role:string}>())?.role
+  const pending=hasNamed?(await c.db.prepare('SELECT id,recipient_id FROM lk_rule_pending WHERE agreement_id=? AND active=1 ORDER BY requested_at,id').bind(a.id).all<{id:string;recipient_id:string|null}>()).results:[]
+  const selected=pending.find(p=>p.recipient_id===recipientId)??(role==='owner'?pending[0]:undefined)
+  if(hasNamed&&!selected&&!(hasBaseline&&!decided&&required.find(r=>r.kind==='commercial'&&!r.deviationId)?.roles.includes(role as any)))fail('RECIPIENT','Choose the currently unlocked named approver or away delegate.',400)
+  if(decided&&!selected)fail('ALREADY_DECIDED','Commercial approval is already decided for this version.',409)
+  const recipientChecks = recipientGuard(c, a.id, recipientId, recipient.email,selected?.id)
   const eligible = await c.db.prepare(`SELECT CASE WHEN ${recipientChecks.map(s => `(${s.sql})`).join(' AND ')} THEN 1 ELSE 0 END AS ok`).bind(...recipientChecks.flatMap(s => s.params)).first<{ ok: number }>()
   if (!eligible?.ok) fail('RECIPIENT', 'Choose an active commercial approver with access to this agreement.', 400)
   if (!localMail(c) && (!operatorMail(c.env) || !c.env.MAIL_FROM)) fail('MAIL_UNAVAILABLE', 'Configure outbound mail before emailing an approval link.', 503)
@@ -45,7 +52,7 @@ export const emailApproval: Handler = async (c, p) => {
   return {
     allowed: may.review,
     result: { id: c.commandId, status: 'queued', recipientId, reviewUrl },
-    writes: [sql("INSERT INTO lk_approval_mail(id,agreement_id,agreement_version,version_id,version_digest,recipient_id,recipient_email,review_url,status,created_at) VALUES(?,?,?,?,?,?,?,?,'queued',?) ON CONFLICT(id) DO NOTHING", c.commandId, a.id, a.version, v.id, v.digest, recipientId, recipient.email, reviewUrl, c.now)],
+    writes: [sql("INSERT INTO lk_approval_mail(id,agreement_id,agreement_version,version_id,version_digest,recipient_id,recipient_email,review_url,status,created_at,rule_pending_id) VALUES(?,?,?,?,?,?,?,?,'queued',?,?) ON CONFLICT(id) DO NOTHING", c.commandId, a.id, a.version, v.id, v.digest, recipientId, recipient.email, reviewUrl, c.now,selected?.id??null)],
     checks: [...agreementGuards(c, a, p), ...recipientChecks, sql('(SELECT digest FROM lk_versions WHERE id=?)=?', v.id, v.digest)],
     audit: [{ action: 'approval.email.requested', agreementId: a.id, summary: `Requested an approval email for v${v.number}.` }],
   }
@@ -78,7 +85,7 @@ export async function dispatchApprovalMail(c: Ctx): Promise<unknown> {
     await commit(c, may.review, [
       visibleSql(c.actor, row.agreement_id),
       sql("EXISTS(SELECT 1 FROM lk_agreements a JOIN lk_versions v ON v.id=a.current_version_id WHERE a.id=? AND a.version=? AND a.status='in_review' AND v.id=? AND v.digest=?)", row.agreement_id, row.agreement_version, row.version_id, row.version_digest),
-      ...recipientGuard(c, row.agreement_id, row.recipient_id, row.recipient_email),
+      ...recipientGuard(c, row.agreement_id, row.recipient_id, row.recipient_email,row.rule_pending_id),
     ], [sql("UPDATE lk_approval_mail SET status='sending',attempted_at=?,attempt_id=? WHERE id=? AND status='queued'", Date.now(), attempt, c.commandId)])
   } catch (error) {
     if (!(error instanceof Problem)) throw error

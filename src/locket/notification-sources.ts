@@ -1,3 +1,4 @@
+import { rulePendingSql } from './approval-rules'
 import { routeRoleSql } from './intake-route'
 // Compatibility with the existing approval and deadline outboxes. Their own
 // one-use sender owns immediate delivery; only deferred originals enter here.
@@ -16,6 +17,11 @@ export const notificationSourceTables: Record<NotificationSource, string> = {
 }
 
 export async function notificationSourceChecks(c: Ctx, event: NotificationRow): Promise<{ ready: boolean; checks: Sql[] }> {
+  if(event.kind.startsWith('rule_approval')){
+    const eventRow=await c.db.prepare('SELECT pending_id FROM lk_rule_reminder_events WHERE id=?').bind(event.event_key).first<{pending_id:string}>()
+    const id=eventRow?.pending_id??event.event_key.slice(0,event.event_key.lastIndexOf(':'))
+    return {ready:true,checks:[rulePendingSql(id,event.agreement_id,event.recipient_id)]}
+  }
   if (event.kind === 'queue_due_soon' || event.kind === 'queue_overdue' || event.kind === 'queue_assignment') return {ready:true,checks:[sql("EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND status IN ('draft','in_review','approved','out_for_signature'))",event.agreement_id)]}
   if (!event.source_kind) return { ready: true, checks: event.kind === 'approval' ? await pendingNotificationApproval(c, event) : [] }
   const table = notificationSourceTables[event.source_kind]
@@ -26,7 +32,9 @@ export async function notificationSourceChecks(c: Ctx, event: NotificationRow): 
   if (!row || row.agreement_id !== event.agreement_id || row.recipient_id !== event.recipient_id)
     return { ready: true, checks: [sql('0')] }
   const checks = [sql(`EXISTS(SELECT 1 FROM ${table} WHERE id=? AND recipient_id=? AND agreement_id=? AND status='suppressed' AND code='daily_digest')`, row.id, event.recipient_id, event.agreement_id)]
-  if (event.source_kind === 'approval_mail') {
+  if (event.source_kind === 'approval_mail'&&row.rule_pending_id) {
+    checks.push(rulePendingSql(row.rule_pending_id,row.agreement_id,row.recipient_id),...recipientGuard(c,row.agreement_id,row.recipient_id,row.recipient_email,row.rule_pending_id))
+  } else if (event.source_kind === 'approval_mail') {
     checks.push(sql(`EXISTS(SELECT 1 FROM lk_agreements a JOIN lk_versions v ON v.id=a.current_version_id
       WHERE a.id=? AND a.version=? AND a.status='in_review' AND v.id=? AND v.digest=?
       AND NOT EXISTS(SELECT 1 FROM lk_approvals x WHERE x.agreement_id=a.id AND x.version_id=v.id AND x.version_digest=v.digest AND x.kind='commercial' AND x.invalidated_at IS NULL))`,

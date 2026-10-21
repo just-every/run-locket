@@ -1,3 +1,4 @@
+import { ruleDraft } from './approval-rules'
 import { hiddenFields, repositoryPolicy, redactWorkspace, requireFullFields } from './repository-access'
 import { requestQueue } from './request-queue'
 import { intakeForms } from './intake-forms'
@@ -61,6 +62,12 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
   if (scheduledReport) await recordReportReads(env, actor, agreements, scheduledReport)
   else await recordReads(env, actor, agreements.filter(a => a.restricted).map(a => ({ action: 'agreement.view', agreementId: a.id, summary: 'Read restricted agreement in workspace state.' })))
   return redactWorkspace({
+    approvalRules: actor.role==='owner'?await ruleDraft(db):null,
+    approvalInputs: mine(await all(db,'SELECT * FROM lk_approval_inputs'),ids),
+    approvalAbsences: (await all(db,'SELECT * FROM lk_approval_absences')).filter(r=>actor.role==='owner'||r.operator_id===actor.id),
+    ruleDecisions: (await all(db,'SELECT d.*,a.agreement_id FROM lk_approval_rule_decisions d JOIN lk_approvals a ON a.id=d.approval_id')).filter(r=>ids.has(r.agreement_id)),
+    rulePending: mine(await all(db,'SELECT * FROM lk_rule_pending WHERE active=1'),ids),
+    ruleReminders: mine(await all(db,'SELECT e.*,n.email_status FROM lk_rule_reminder_events e LEFT JOIN lk_notifications n ON n.event_key=e.id AND n.recipient_id=e.recipient_id ORDER BY e.at'),ids),
     fieldAccess: {hidden:[] as string[],documentsWithheld:false},
     repositoryPolicy: actor.role==='owner'?await repositoryPolicy(db):null,
     agreementDepartments: mine(await all(db,'SELECT * FROM lk_agreement_departments'),ids),
@@ -157,7 +164,7 @@ export async function download(env: Bindings, actor: Actor, id: string): Promise
 export async function exportArchive(env: Bindings, actor: Actor) {
   requireRole(actor, may.export, 'export the complete archive')
   const db = env.DB
-  const tables = ['lk_repository_policy','lk_agreement_departments','lk_view_groups','lk_queue_rules','lk_request_work','lk_request_cancellations','lk_queue_escalations','lk_intake_audiences', 'lk_intake_members', 'lk_intake_forms', 'lk_intake_form_versions', 'lk_request_forms', 'lk_custom_fields', 'lk_custom_values', 'lk_workflow_history', 'lk_notice_sources', 'lk_notice_plans', 'lk_entities', 'lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations', 'lk_notice_letters', 'lk_notice_dispatches', 'lk_notice_events', 'lk_notice_tracking', 'lk_saved_views', 'lk_view_pins', 'lk_approval_reminder_settings', 'lk_person_preferences', 'lk_deadline_reminder_settings', 'lk_deadline_reminders', 'lk_deadline_reminder_events', 'lk_approval_reminders', 'lk_installation_settings', 'lk_reports', 'lk_report_deliveries', 'lk_notifications', 'lk_notification_deliveries']
+  const tables = ['lk_approval_rule_drafts','lk_approval_rule_versions','lk_approval_rule_snapshots','lk_approval_inputs','lk_approval_absences','lk_approval_rule_decisions','lk_rule_pending','lk_rule_reminder_events','lk_repository_policy','lk_agreement_departments','lk_view_groups','lk_queue_rules','lk_request_work','lk_request_cancellations','lk_queue_escalations','lk_intake_audiences', 'lk_intake_members', 'lk_intake_forms', 'lk_intake_form_versions', 'lk_request_forms', 'lk_custom_fields', 'lk_custom_values', 'lk_workflow_history', 'lk_notice_sources', 'lk_notice_plans', 'lk_entities', 'lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations', 'lk_notice_letters', 'lk_notice_dispatches', 'lk_notice_events', 'lk_notice_tracking', 'lk_saved_views', 'lk_view_pins', 'lk_approval_reminder_settings', 'lk_person_preferences', 'lk_deadline_reminder_settings', 'lk_deadline_reminders', 'lk_deadline_reminder_events', 'lk_approval_reminders', 'lk_installation_settings', 'lk_reports', 'lk_report_deliveries', 'lk_notifications', 'lk_notification_deliveries']
   const records: Record<string, unknown[]> = {}
   for (const t of [...tables, 'lk_reminder_routing']) records[t] = await all(db, `SELECT * FROM ${t}`)
   const files = []

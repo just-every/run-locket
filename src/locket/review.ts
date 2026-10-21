@@ -1,3 +1,4 @@
+import { ruleRequirements, approvalSample, ruleDecision } from './approval-rules'
 import { approvalNotifications } from './notification-events'
 // Playbook review findings and exact-version approvals (clauses 6 and 7).
 import { may, requireRole } from './access'
@@ -12,6 +13,7 @@ export interface Requirement {
   deviationId: string | null
   label: string
   roles: Role[]
+  approverId?:string;delegateId?:string|null;away?:boolean;absenceVersion?:number;order?:number;escalationId?:string|null;escalationDelegateId?:string|null;rulesetId?:string
 }
 
 export async function activePlaybook(c: Pick<Ctx, 'db'>) {
@@ -22,6 +24,8 @@ export async function activePlaybook(c: Pick<Ctx, 'db'>) {
 export async function routing(db: D1Database, a: AgreementRow): Promise<Requirement[]> {
   const form = await db.prepare('SELECT approval_role FROM lk_request_forms WHERE agreement_id=?').bind(a.id).first<{approval_role:'approver'|'counsel'}>()
   const required: Requirement[] = [{ kind: 'commercial', deviationId: null, label: form?.approval_role === 'counsel' ? 'Counsel approval' : 'Commercial approval', roles: ['owner', form?.approval_role ?? 'approver'] }]
+  const named=await ruleRequirements(db,a)
+  if(named.length){if(form?.approval_role!=='counsel')required.splice(0,1);required.push(...named)}
   if (!a.current_version_id) return required
   const deviations = (await db.prepare("SELECT id, clause_key, result, authority FROM lk_deviations WHERE version_id=? AND result!='met' ORDER BY created_at").bind(a.current_version_id).all<any>()).results
   for (const d of deviations)
@@ -34,7 +38,9 @@ export async function decisionContext(db: D1Database, a: AgreementRow, v: Versio
   // A finding that a rule is met needs no approval and changes nothing a decision rests on (as in routing).
   const deviations = (await db.prepare("SELECT id, result FROM lk_deviations WHERE version_id=? AND result!='met' ORDER BY id").bind(v.id).all<any>()).results
   const customValues = (await db.prepare('SELECT field_id,value FROM lk_custom_values WHERE agreement_id=? ORDER BY field_id').bind(a.id).all()).results
-  const context = { versionDigest: v.digest, valueCents: a.value_cents, partyId: a.party_id, deviations, ...(customValues.length ? { customValues } : {}) }
+  const named=await ruleRequirements(db,a),sample=named.length?await approvalSample(db,a):null
+  const routeContext=named.length?{ruleRoute:named.map(r=>({id:r.deviationId,approverId:r.approverId,order:r.order,rulesetId:r.rulesetId})),routingAnswers:sample}:{}
+  const context = { ...routeContext, versionDigest: v.digest, valueCents: a.value_cents, partyId: a.party_id, deviations, ...(customValues.length ? { customValues } : {}) }
   return { context, digest: await sha256(canonical(context)) }
 }
 
@@ -87,7 +93,7 @@ const decide: Handler = async (c, p) => {
   const kind = oneOf(p, 'kind', ['commercial', 'exception'] as const)
   const decision = oneOf(p, 'decision', ['approved', 'rejected'] as const)
   const required = await routing(c.db, a)
-  const target = required.find(r => r.kind === kind && (kind === 'commercial' || r.deviationId === p.deviationId))
+  const target = required.find(r => r.kind === kind && (r.deviationId??null) === (p.deviationId??null))
   if (!target) fail('NOT_REQUIRED', 'That approval is not part of this agreement’s route.', 409)
   requireRole(c.actor, target.roles, `decide ${target.label.toLowerCase()}`)
   const customChecks = decision === 'approved' ? await requiredCustomFields(c, a.id, a.type, 'approved') : []
@@ -96,6 +102,7 @@ const decide: Handler = async (c, p) => {
   const live = (await c.db.prepare('SELECT kind, deviation_id, decision, context_digest FROM lk_approvals WHERE agreement_id=? AND version_id=? AND version_digest=? AND invalidated_at IS NULL').bind(a.id, v.id, v.digest).all<any>()).results
   const counted = live.filter(x => x.context_digest === digest)
   if (counted.some(x => x.kind === kind && (x.deviation_id ?? null) === (target.deviationId ?? null))) fail('ALREADY_DECIDED', `${target.label} is already decided for v${v.number}.`, 409)
+  const delegation=await ruleDecision(c,a,target,required,counted)
   const id = crypto.randomUUID()
   const after = [...counted, { kind, deviation_id: target.deviationId, decision }]
   const satisfied = required.every(r => after.some(x => x.kind === r.kind && (x.deviation_id ?? null) === (r.deviationId ?? null) && x.decision === 'approved'))
@@ -106,10 +113,11 @@ const decide: Handler = async (c, p) => {
     result: { id, status, versionId: v.id, versionDigest: v.digest },
     writes: [
       sql('INSERT INTO lk_approvals VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, a.id, v.id, v.digest, kind, target.deviationId, decision, c.actor.id, c.actor.role, json(context), digest, optionalText(p, 'reason', 2000), c.now, null, null),
+      ...(target.approverId?[sql('INSERT INTO lk_approval_rule_decisions VALUES(?,?,?,?,?)',id,target.deviationId,target.approverId,delegation.actedAs,target.absenceVersion??0)]:[]),
       bump(c, a, 'status=?', status),
     ],
-    checks: [...agreementGuards(c, a, p), ...customChecks, sql('(SELECT digest FROM lk_versions WHERE id=?)=?', v.id, v.digest)],
-    audit: [{ action: `approval.${decision}`, agreementId: a.id, summary: `${target.label} ${decision} on v${v.number}${status === 'approved' ? '; agreement approved' : ''}` }],
+    checks: [...agreementGuards(c, a, p), ...delegation.checks, ...customChecks, sql('(SELECT digest FROM lk_versions WHERE id=?)=?', v.id, v.digest)],
+    audit: [{ action: `approval.${decision}`, agreementId: a.id, summary: `${target.label} ${decision} on v${v.number}${delegation.actedAs==='delegate'?' as the named away delegate':delegation.actedAs==='owner_override'?' by the owner for the named approver':''}${status === 'approved' ? '; agreement approved' : ''}` }],
   }
 }
 

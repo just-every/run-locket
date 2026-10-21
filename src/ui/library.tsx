@@ -1,3 +1,4 @@
+import { ApprovalRules } from './approval-rules'
 import { IntakeFormDesigner } from './intake-form-designer'
 import { IntakeAudiences } from './intake-audiences'
 import { useState } from 'react'
@@ -52,6 +53,7 @@ export function Library({ state, locket }: { state: LocketState; locket: Locket 
     <div className="lk-library">
       <div className="lk-titlebar"><div><h1>Library</h1><p><a href="#clickwrap">Published terms and clickwrap acceptance</a></p><p className="lk-muted">Owner- and counsel-approved templates and the clause playbook reviews are measured against.</p></div></div>
       <InstallationDefaults state={state} locket={locket} />
+      <ApprovalRules state={state} locket={locket}/>
       <IntakeAudiences state={state} locket={locket} />
       <IntakeFormDesigner state={state} locket={locket} />
       <CustomFieldManager state={state} locket={locket} />

@@ -71,3 +71,11 @@ for (const width of [1440, 390]) {
     }
   })
 }
+
+
+for(const width of [1440,390])test(`APPROVE-002 publishes Finance Security CFO stages, delegates and withdraws changed-value decisions at ${width}px`,async({page})=>{
+ const {metadataPage}=await import('./metadata-page.mjs')
+ const {approvalRulesJourney}=await import('./approval-rules-journey.mjs')
+ const p=await metadataPage(page,width)
+ try{await approvalRulesJourney(page,width,p)}finally{await p.close()}
+})

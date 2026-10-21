@@ -1,3 +1,4 @@
+import { ApprovalRoutingInputs, ApprovalAvailability } from './approval-rules'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { ApprovalMail } from './approval-mail'
@@ -78,6 +79,8 @@ export function Approvals({ state, a, locket }: { state: LocketState; a: Row; lo
   const versions = versionsOf(state, a.id)
   return (
     <div className="lk-tab-page">
+      <ApprovalRoutingInputs state={state} a={a} locket={locket}/>
+      <ApprovalAvailability state={state} locket={locket}/>
       <ApprovalMail state={state} a={a} locket={locket} />
       <ApprovalReminders state={state} a={a} locket={locket} />
       <section className="lk-panel">
@@ -86,11 +89,13 @@ export function Approvals({ state, a, locket }: { state: LocketState; a: Row; lo
         <ul className="lk-route">
           {route.map(step => {
             const decided = live.find(x => x.kind === step.kind && (x.deviation_id ?? null) === (step.deviationId ?? null))
-            const allowed = step.roles.includes(state.actor.role) && (state.actor.role === 'owner' || a.requester_id !== state.actor.id)
+            const ordered = !step.approverId||!route.some(r=>r.approverId&&r.order!<step.order!&&!live.some(x=>x.deviation_id===r.deviationId&&x.decision==='approved'))
+            const named = !step.approverId||state.actor.role==='owner'||(!step.away&&step.approverId===state.actor.id)||(step.away&&step.delegateId===state.actor.id)
+            const allowed = !state.fieldAccess.documentsWithheld&&ordered&&named&&step.roles.includes(state.actor.role) && (state.actor.role === 'owner' || a.requester_id !== state.actor.id)
             return (
               <li key={step.label}>
-                <div><strong>{step.label}</strong><small>Decided by {step.roles.map(r => roleLabel[r]).join(' or ')}</small></div>
-                {decided ? <span><Badge value={decided.decision} /> <small>{personName(state, decided.actor_id)} · {when(decided.at)}{decided.reason ? ` · ${decided.reason}` : ''}</small></span> : a.status === 'in_review' && allowed ? (
+                <div><strong>{step.label}</strong><small>{step.approverId?`Stage ${step.order} · ${personName(state,step.approverId)}${step.away?' (away; delegate: '+personName(state,step.delegateId??'')+')':''}`:'Decided by '+step.roles.map(r=>roleLabel[r]).join(' or ')}</small>{!ordered&&<small>Waiting for earlier stages</small>}</div>
+                {decided ? <span>{state.ruleDecisions.some(d=>d.approval_id===decided.id&&d.acted_as==='delegate')&&<small>Acted as away delegate · </small>}{state.ruleDecisions.some(d=>d.approval_id===decided.id&&d.acted_as==='owner_override')&&<small>Owner approval for named approver · </small>}<Badge value={decided.decision} /> <small>{personName(state, decided.actor_id)} · {when(decided.at)}{decided.reason ? ` · ${decided.reason}` : ''}</small></span> : a.status === 'in_review' && allowed ? (
                   <Form busy={busy} submit="Record decision" className="lk-inline" onSubmit={data => void run('approval.decide', { agreementId: a.id, version: a.version, versionId: v!.id, kind: step.kind, deviationId: step.deviationId ?? undefined, decision: value(data, 'decision'), reason: value(data, 'reason') || undefined })}>
                     <select name="decision" aria-label={`Decision for ${step.label}`}><option value="approved">Approve v{v?.number}</option><option value="rejected">Reject</option></select>
                     <input name="reason" placeholder="Reason (optional)" aria-label="Reason" />

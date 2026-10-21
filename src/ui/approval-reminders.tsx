@@ -18,16 +18,17 @@ const receipt: Record<string, string> = {
 export function ApprovalReminders({ state, a, locket }: { state: LocketState; a: Row; locket: Locket }) {
   const pending = state.approvalReminders.pending.filter(p => p.agreementId === a.id)
   const sent = state.approvalReminders.sent.filter(r => r.agreement_id === a.id)
-  if (a.status !== 'in_review' && sent.length === 0) return null
+  const ruleSent=state.ruleReminders.filter(r=>r.agreement_id===a.id)
+  if (a.status !== 'in_review' && sent.length === 0 && ruleSent.length===0) return null
   const working = can(state, 'owner', 'counsel', 'approver', 'requester')
   return <section className="lk-panel" aria-label="Approval reminders">
     <div className="lk-panel-head"><h2>Approval reminders</h2></div>
     {pending.length === 0 ? <Empty>No approval request is waiting. Email an approval link to name an approver; Locket then reminds them on business days.</Empty> : (
       <ul className="lk-route">{pending.map(p => {
         const escalated = sent.find(r => r.kind === 'escalation' && r.approver_id === p.approverId && r.version_id === p.versionId)
-        const count = sent.filter(r => r.kind !== 'escalation' && r.approver_id === p.approverId && r.version_id === p.versionId).length
+        const count = p.rulePendingId?ruleSent.filter(r=>r.pending_id===p.rulePendingId&&r.kind!=='escalation').length:sent.filter(r => r.kind !== 'escalation' && r.approver_id === p.approverId && r.version_id === p.versionId).length
         const blocked = p.manualAvailableAt && p.manualAvailableAt > state.now
-        return <li key={p.approverId}>
+        return <li key={p.rulePendingId??p.approverId}>
           <div>
             <strong>Waiting on {personName(state, p.approverId)}</strong>
             <small>Requested {when(p.requestedAt)} · {plural(count, 'reminder')} so far</small>
@@ -36,13 +37,14 @@ export function ApprovalReminders({ state, a, locket }: { state: LocketState; a:
           </div>
           {working && (blocked ? <small>Reminded recently. Next manual reminder from {when(p.manualAvailableAt)}.</small> : (
             <button type="button" disabled={locket.busy} onClick={async () => {
-              const out = await locket.run('approval.remind', { agreementId: a.id, version: a.version, approverId: p.approverId })
+              const out = await locket.run(p.ruleStepId?'approval.rule.remind':'approval.remind', { agreementId: a.id, version: a.version, approverId: p.approverId,...(p.ruleStepId?{stepId:p.ruleStepId}:{}) })
               if (out) locket.setNotice(out.mailReceipt?.code === 'daily_digest' ? 'Waiting for the recipient’s daily digest. No reminder email has been sent yet.' : out.mailReceipt?.code === 'notification_preferences' ? 'Email is disabled in the recipient’s notification preferences. No reminder email was sent.' : receipt[out.mailReceipt?.status] ?? 'Reminder acceptance has not been confirmed.')
             }}>Remind approver</button>
           ))}
         </li>
       })}</ul>
     )}
+    {ruleSent.length>0&&<ul className="lk-log">{ruleSent.map(r=><li key={r.id}><time>{when(r.at)}</time><span>Rule {r.kind} to {personName(state,r.recipient_id)} · <Badge value={r.email_status??'not_recorded'} label={r.email_status==='accepted'?'Provider accepted; delivery unconfirmed':r.email_status==='suppressed'?'Email suppressed; no email sent':r.email_status==='digest'?'Waiting for daily digest':r.email_status==='uncertain'?'Outcome unknown; no automatic retry':r.email_status==='cancelled'?'Canceled; no email sent':r.email_status??'Notification not recorded'}/></span></li>)}</ul>}
     {sent.length > 0 && <ul className="lk-log">{sent.map(r => <li key={r.id}><time>{when(r.created_at)}</time><span>{r.kind === 'escalation' ? `Escalation to ${personName(state, r.recipient_id)} (${reason[r.recipient_reason]})` : `${r.kind === 'manual' ? 'Manual reminder' : `Reminder ${r.slot}`} to ${personName(state, r.recipient_id)}`} <Badge value={r.status} /></span></li>)}</ul>}
   </section>
 }

@@ -10,6 +10,7 @@ export async function queueJourney(page,width,p){
  const members=[ownerId,...(colleague?[colleague.id]:[])].sort()
  const group=await owner.command('audience.save',{name:'Legal '+tag,kind:'group',memberIds:members})
  const shot=async name=>{
+  await page.evaluate(()=>window.scrollTo(0,0))
   await expect(page.locator('main')).toHaveAttribute('aria-busy','false')
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
   if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-INTAKE-006-${name}.png`),fullPage:true})}
