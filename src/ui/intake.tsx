@@ -151,7 +151,7 @@ export function LegacyImport({ state, locket }: { state: LocketState; locket: Lo
             <Field label="Responsible person"><select name="ownerId" defaultValue={state.actor.id}>{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
             {state.entities.length > 0 && <EntitySelect state={state} />}
             <PartyField state={state} />
-            <CustomFieldInputs state={state} fields={customFieldsFor(state, type)} />
+            <CustomFieldInputs state={state} fields={customFieldsFor(state, type)} stage="imported" />
           </section>
           <section className="lk-panel">
             <Field label="Where it came from *" hint="e.g. Shared drive, Adobe Acrobat Sign, Dropbox Sign"><input name="sourceSystem" required /></Field>
