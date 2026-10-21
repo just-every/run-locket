@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { productPage } from './product-harness.mjs'
 import { portfolioFixture } from '../api/portfolio-fixture.mjs'
 
-test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
+test.use({ ignoreHTTPSErrors: true, actionTimeout: 15000, locale: 'en-US', timezoneId: 'America/New_York' })
 for (const width of [1440, 390]) {
   test(`REPO-007 saves ordered supplier renewal columns, shares to approvers, pins personally and exports only their visible rows at ${width}px`, async ({ page }) => {
     const p = await productPage(page, { width, bindings: { TEST_NOW: String(Date.parse('2026-10-17T12:00:00Z')) } })
@@ -188,6 +188,7 @@ for (const width of [1440, 390]) test(`REPO-005 defines typed fields, blocks inc
     expect(csv).toContain(`"Agreement","${names.yes}","${names.cost}"`)
     expect(csv).toContain(`Processing services ${tag}`)
     await shot('custom-saved-view')
+    await page.locator('summary').filter({ hasText: /^Custom reports$/ }).click()
     const reports = page.getByRole('region', { name: 'Custom reports', exact: true })
     await reports.getByText('Schedule a report', { exact: true }).click()
     await reports.getByLabel('Report name', { exact: true }).fill(`Processing by cost center ${tag}`)
@@ -215,7 +216,17 @@ for (const width of [1440, 390]) test(`REPO-005 defines typed fields, blocks inc
     await expect(page.locator(`[data-governing-key="${customKey(cost)}"]`)).toContainText('Operations')
     await expect(page.locator(`[data-governing-key="${customKey(cost)}"]`)).toContainText('Cost center: Operations.')
     await shot('cited-family')
-    const imported = await p.owner.command('legacy.import', { title: `Historical processing ${tag}`, type: 'other', partyId, sourceSystem: 'Archive', sourceId: `synthetic-locket-${tag}`, file: { filename: 'legacy.pdf', mediaType: 'application/pdf', base64: pdf(metadataText + tag).toString('base64') }, text: metadataText, customValues: { [yes]: true, [cost]: 'Operations' } })
+    await page.goto(p.origin + '/app#import-signed')
+    await page.getByLabel('Agreement title *', { exact: true }).fill(`Historical processing ${tag}`)
+    await page.getByLabel('Type', { exact: true }).selectOption('other')
+    await page.getByLabel('File (PDF or DOCX) *', { exact: true }).setInputFiles({ name: 'Historical processing.pdf', mimeType: 'application/pdf', buffer: pdf(metadataText + tag) })
+    await page.getByLabel('Where it came from *', { exact: true }).fill('Archive')
+    await page.getByLabel('Source ID *', { exact: true }).fill(`synthetic-locket-${width}`)
+    await page.getByLabel('Text (optional for PDF)', { exact: true }).fill(metadataText)
+    await page.getByLabel(names.yes, { exact: true }).selectOption('true')
+    await page.getByLabel(`${names.cost} *`, { exact: true }).selectOption('Operations')
+    await shot('typed-legacy-import')
+    const imported = await runUi(() => page.getByRole('button', { name: 'Import file', exact: true }).click())
     const importedState = await p.owner.state()
     const importedVersion = importedState.agreements.find((a: any) => a.id === imported.id).current_version_id
     const start = metadataText.indexOf('Cost center')
