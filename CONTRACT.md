@@ -935,13 +935,13 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 
 Judged from the code and tests at commit `38f2153858c8bf650e580014080f2b24f6729450` (21 October 2026).
 
-REPO-005 updated 22 October 2026 with named public-door evidence below; the remaining rows retain their recorded baseline.
+REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence below; the remaining rows retain their recorded baseline.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 21 | 28 | 31 | 80 |
-| All | 40 | 28 | 31 | 99 |
+| Target and push further | 22 | 27 | 31 | 80 |
+| All | 41 | 27 | 31 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
