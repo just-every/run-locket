@@ -20,6 +20,8 @@ export async function approvalRulesJourney(page,width,p){
  }
  await page.goto(p.origin+'/app#library');await page.reload()
  const designer=page.locator('section').filter({has:page.getByRole('heading',{name:'Conditional approval rules',exact:true})}).last()
+ await expect(designer).toBeVisible()
+ await expect(page.locator('main')).toHaveAttribute('aria-busy','false')
  // Start a new draft through the designer; the native second width retains the first draft.
  while(await designer.getByRole('button',{name:/Remove approval rule/}).count())await designer.getByRole('button',{name:/Remove approval rule/}).last().click()
  for(const [i,name,person,threshold]of [[1,'Finance',f.finance,'100000'],[2,'Security',f.security,''],[3,'CFO',f.cfo,'500000']]){
