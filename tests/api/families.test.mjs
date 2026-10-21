@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { installation } from './harness.mjs'
 import { familyFixture } from './family-fixture.mjs'
 import { find } from './setup.mjs'
+import { familyConflictFixture } from './family-conflict-fixture.mjs'
 
 test('REPO-008 six guarded family relations, date order, human-selected cited governing terms and agent proposals', async t => {
   const h = await installation(); t.after(() => h.close())
@@ -49,4 +50,58 @@ test('REPO-008 six guarded family relations, date order, human-selected cited go
   assert.equal(archive.records.lk_family_terms.length,1)
   assert.ok((await h.owner.state()).audit.some(a=>a.action==='family.term'&&a.agreement_id===ids.master))
   assert.equal((await h.request(`/api/locket/families/${ids.master}`)).status,401)
+})
+
+
+test('AGENT-005 family differences cite all confirmed notice periods and preview current-term alternatives without choosing precedence', async t => {
+  const h = await installation(); t.after(() => h.close())
+  await h.setTime(Date.parse('2026-10-17T16:00:00Z'))
+  const f = await familyConflictFixture(h.owner)
+  const get = async (client = h.owner, id = f.master.id) => {
+    const res = await client.request(`/api/locket/families/${id}`)
+    assert.equal(res.status, 200)
+    return res.json()
+  }
+  const before = await h.owner.state()
+  let result = await get()
+  assert.deepEqual(result.conflicts.map(c => c.key), ['notice_days']) // Equal payment terms are not a conflict.
+  const candidates = result.conflicts[0].candidates
+  assert.deepEqual(candidates.map(c => c.term.value).sort(), ['30', '60', '90'])
+  for (const a of [f.master, f.amendment, f.order]) {
+    const c = candidates.find(c => c.source.id === a.id)
+    assert.equal(JSON.parse(c.term.citation).quote, a.quote)
+    assert.equal(JSON.parse(c.term.citation).page, 1)
+    assert.equal(c.noticeDeadline.endDate, '2027-02-28') // Current term 5, never the imported 2023 end date.
+    assert.equal(c.noticeDeadline.timezone, 'America/New_York')
+  }
+  assert.equal(candidates.find(c => c.term.value === '90').noticeDeadline.date, '2026-11-30')
+  assert.equal(candidates.find(c => c.term.value === '60').noticeDeadline.at, Date.parse('2026-12-31T04:59:59Z'))
+  assert.equal(candidates.find(c => c.term.value === '30').noticeDeadline.date, '2027-01-29')
+  assert.deepEqual((await get(h.owner, f.order.id)).conflicts, result.conflicts)
+  assert.deepEqual((await h.owner.state()).renewals, before.renewals)
+  assert.deepEqual((await h.owner.state()).obligations, before.obligations)
+  assert.deepEqual((await h.owner.state()).familyTerms, [])
+
+  // Proposals cannot influence differences; correcting a confirmed term drops
+  // the superseded candidate immediately, while the original record survives.
+  await h.owner.command('term.propose', { agreementId: f.order.id, key: 'notice_days', value: '120', citation: { quote: f.order.quote, page: 1 } })
+  assert.deepEqual((await get()).conflicts[0].candidates.map(c => c.term.value).sort(), ['30', '60', '90'])
+  await f.confirm(f.order, 'notice_days', '60')
+  result = await get()
+  assert.deepEqual(result.conflicts[0].candidates.map(c => c.term.value).sort(), ['60', '60', '90'])
+  const archive = await (await h.owner.request('/api/locket/export')).json()
+  assert.equal(archive.records.lk_terms.find(t => t.id === f.order.noticeTermId).status, 'superseded')
+  await f.confirm(f.amendment, 'notice_days', '60')
+  assert.deepEqual((await get()).conflicts, [])
+
+  const hidden = await f.create('Confidential notice exception', 180, { restricted: true })
+  await f.confirm(hidden, 'notice_days', '180')
+  await h.owner.command('family.link', { agreementId: hidden.id, version: (await find(h.owner, hidden.id)).version, parentId: f.master.id, relation: 'amends' })
+  const viewer = await h.invite('conflict-viewer@example.test', 'viewer')
+  assert.equal((await get()).conflicts[0].candidates.length, 4)
+  const visible = await get(viewer)
+  assert.deepEqual(visible.conflicts, [])
+  assert.ok(!JSON.stringify(visible).includes('Confidential notice exception'))
+  assert.equal((await viewer.request(`/api/locket/families/${hidden.id}`)).status, 404)
+  assert.equal((await h.request(`/api/locket/families/${f.master.id}`)).status, 401)
 })

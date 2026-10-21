@@ -1,6 +1,7 @@
 import { fail } from './model'
+import { familyConflicts } from './family-conflicts'
 type Row = { id: string; [key: string]: any }
-type Workspace = { agreements: Row[]; terms: Row[]; familyTerms: Row[] }
+type Workspace = { now: number; agreements: Row[]; terms: Row[]; familyTerms: Row[]; renewals: Row[]; notices: Row[]; settings: { rollNoticeDeadlines: boolean } }
 
 /** Work only on already permission-scoped records; an inaccessible parent is
  * never traversed or described. */
@@ -29,6 +30,6 @@ export function family(workspace: Workspace, id: string) {
     if (!term || !source) return []
     return [{ ...choice, key: choice.key as string, term, source, stale: !ids.has(source.id) || term.status !== 'confirmed' || source.parent_id !== choice.source_parent_id || source.relation !== choice.source_relation }]
   })
-  return { root, members, candidates, governing }
+  return { root, members, candidates, governing, conflicts: familyConflicts(workspace, root, members) }
 }
 

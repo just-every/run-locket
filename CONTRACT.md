@@ -833,7 +833,9 @@ Agents serve the job beyond what today's up-and-comers ship: they connect what w
 
 *Acceptance:* a journey adds an amendment that changes the notice period from 60 to 90 days while an order form says 30; the agent flags the conflict with three citations, both candidate deadlines show, and counsel's choice updates the renewal deadline and clears the block.
 
-*Status:* partial. Family links and agent family proposals exist (`src/locket/agreements.ts`, `src/locket/proposals.ts`); conflict detection and governing-term propagation do not exist.
+Recorded-value analysis slice: the family API and page compare current confirmed terms in the executed or imported documents the viewer can access. Different exact stored values for the same key are listed with every source document and its recorded quote/page; proposed and superseded values are excluded. Equal values alone do not establish legal agreement, and differing values do not determine scope or precedence. For differing notice periods, candidate dates use the parent’s currently projected term end, its time zone and the installation’s existing US business-day option, at 23:59:59 local time. They are labelled alternatives for review and never create a schedule, change a deadline or block an obligation. When the parent has no current notice deadline, no candidate date is invented. Counsel’s existing governing-term selection remains a recorded choice, not operational propagation. The full target above remains unchanged.
+
+*Status:* partial. Public API and 1440/390 product and real rer dev journeys prove confirmed-value differences, three cited notice periods, current-term candidate deadlines, current visibility and no automatic propagation (`src/locket/family-conflicts.ts`, `tests/api/families.test.mjs`, `tests/browser/family-conflicts.spec.ts`). Comparing executed text for unrecorded conflicts, interpreting price/precedence clauses, proposing governing values, blocking derived obligations and counsel-controlled deadline/obligation propagation remain absent.
 
 #### AGENT-006 — Signed document matches the approved version.
 *What the agent does:* compares the approved version, the provider envelope, the signed document and the extracted terms; identifies edits made after approval, missing pages, missing signatures or initials and signers who differ from the routing; and refreshes obligations only from a confirmed execution.
@@ -919,9 +921,9 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 
 ## Status
 
-Judged from the code and tests at commit `60d8141678e03c5186ab053e58f0ed92e8c1074e` (17 October 2026).
+Judged from the code and tests at commit `07df8ba54e70378b9671786aa7c358cede73c077` (21 October 2026).
 
-Target rows updated through 20 October 2026, with clause-named public-door evidence below.
+Target rows updated through 21 October 2026, with clause-named public-door evidence below.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
@@ -1025,7 +1027,7 @@ Target rows updated through 20 October 2026, with clause-named public-door evide
 | `AGENT-002` | Service levels and supplier performance | push-further | missing |  | No service-level comparison exists |
 | `AGENT-003` | Renewal decision to verified notice delivery | push-further | done | `src/locket/notice-agent.ts`; `src/locket/notice-agent-runtime.ts`; `tests/api/notices.test.mjs`; `tests/browser/notice-agent.spec.ts`; `tests/browser/notice-agent-live.spec.ts` | |
 | `AGENT-004` | Authorized renegotiation to an executed amendment | push-further | missing |  | No negotiation agent exists |
-| `AGENT-005` | Governing terms across a contract family | push-further | partial | `src/locket/agreements.ts`; `src/locket/proposals.ts` | Conflict detection and governing-term propagation do not exist |
+| `AGENT-005` | Governing terms across a contract family | push-further | partial | `src/locket/family-conflicts.ts`; `src/locket/family-projection.ts`; `src/ui/family.tsx`; `tests/api/families.test.mjs`; `tests/browser/family-conflicts.spec.ts`; `tests/browser/family-conflicts-live.mjs` | Confirmed-value differences and current-term notice alternatives ship; executed-text/price/precedence analysis, governing proposals, derived-obligation blocking and counsel-controlled propagation remain |
 | `AGENT-006` | Signed document matches the approved version | push-further | partial | `src/locket/execution.ts`; `src/locket/execution-comparison.ts`; `src/locket/execution-fields.ts`; `src/locket/obligations.ts`; `tests/api/execution-comparison.test.mjs`; `tests/browser/execution-comparison.spec.ts` | Text/page comparison, signed-text citations and required structured signature/initial-field presence ship; optional/unlabelled or visual/flattened signature and initial detection and OCR remain open |
 | `AGENT-007` | Exceptions become measured playbook changes | push-further | partial | `src/locket/review.ts`; `src/locket/library.ts` | Exception analysis and recommendations do not exist |
 | `AGENT-008` | Obligation remediation to verified evidence | push-further | missing |  | No remediation agent exists |

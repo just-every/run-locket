@@ -3,7 +3,7 @@ import { relations } from '../locket/family-relations'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Field, Form, value } from './controls'
-import { can, day, parse, termLabel, termValue, words } from './format'
+import { can, day, deadline, parse, termLabel, termValue, words } from './format'
 
 export function Family({ state, a, locket }: { state: LocketState; a: Row; locket: Locket }) {
   const f = family(state, a.id)
@@ -16,6 +16,22 @@ export function Family({ state, a, locket }: { state: LocketState; a: Row; locke
       <ol className="lk-list">{f.members.map(m => <li key={m.id} data-family-member={m.id}>
         <div><a href={`#agreement/${m.id}/family`}>{m.reference} · {m.title}</a><p>{m.id === f.root.id ? 'Parent agreement' : words(m.relation ?? '')} · {day(m.start_date ?? new Date(m.created_at).toISOString().slice(0, 10))}</p></div>
       </li>)}</ol>
+    </section>
+    <section className="lk-panel" aria-label="Confirmed-term differences">
+      <div className="lk-panel-head"><h2>Confirmed-term differences</h2></div>
+      <p className="lk-muted">Different recorded values in the executed or imported documents you can access. Counsel must review their scope and precedence. This analysis does not change deadlines or block obligations.</p>
+      {!f.conflicts.length && <p>No differences among the confirmed values available to you. Unrecorded terms and document text have not been compared.</p>}
+      {f.conflicts.map(conflict => <article key={conflict.key} className="lk-family-term">
+        <h3>{termLabel[conflict.key] ?? words(conflict.key)}</h3>
+        {conflict.candidates.map(({ term, source, noticeDeadline }) => {
+          const citation = parse<any>(term.citation)
+          return <div key={term.id}>
+            <p><strong>{termValue(conflict.key, term.value)}</strong> · <a href={`#agreement/${source.id}/terms`}>{source.reference} · {source.title}</a></p>
+            <blockquote>{citation.quote}{citation.page ? ` (page ${citation.page})` : ''}</blockquote>
+            {noticeDeadline && <p>Candidate notice deadline: <time dateTime={new Date(noticeDeadline.at).toISOString()}>{deadline(noticeDeadline.at, noticeDeadline.timezone)}</time> · using the parent’s current term end, {day(noticeDeadline.endDate)}, in {noticeDeadline.timezone}. This is an alternative for review, not a scheduled deadline.</p>}
+          </div>
+        })}
+      </article>)}
     </section>
     <section className="lk-panel">
       <div className="lk-panel-head"><h2>Governing key terms</h2></div>
