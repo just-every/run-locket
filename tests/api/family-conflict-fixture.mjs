@@ -6,7 +6,7 @@ import { file, pdf } from './files.mjs'
 export async function familyConflictFixture(client) {
   const tag = randomUUID().slice(0, 8)
   const create = async (title, days, extra = {}) => {
-    const quote = `Notice requires ${days} days. Payment is due in 30 days. Effective March 1, 2022. Term ends February 28, 2023. Renews every 12 months.`
+    const quote = `Agreement ${tag}. Notice requires ${days} days. Payment is due in 30 days. Effective March 1, 2022. Term ends February 28, 2023. Renews every 12 months.`
     const a = await client.command('legacy.import', { title, type: 'other', party: { name: 'Northwind Services', kind: 'supplier' }, sourceSystem: 'Legal archive', sourceId: `${tag}-${days}`, file: file(`${days}-days.pdf`, pdf(quote)), text: quote, ...extra })
     return { id: a.id, quote }
   }
