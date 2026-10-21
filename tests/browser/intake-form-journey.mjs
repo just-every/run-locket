@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pdf, file } from '../api/files.mjs'
-import { supplierForm } from '../api/intake-form-fixture.mjs'
 
 export async function intakeFormJourney(page,width,p) {
   const tag=randomUUID().slice(0,6),owner=p.owner,state=await owner.state(),ownerId=state.actor.id
@@ -29,32 +28,41 @@ export async function intakeFormJourney(page,width,p) {
   const group=await run(()=>audiences.getByRole('button',{name:'Create group or department',exact:true}).click())
   await expect(audiences).toContainText(groupName)
   await shot('procurement-membership')
-  // A published first version creates an in-flight request; the browser authors its replacement.
   const formName=`Supplier procurement ${tag}`
-  const def=supplierForm({ownerId,reviewerId,audienceId:group.id,name:formName,highRole:'approver'})
-  const firstDraft=await owner.command('form.save',{definition:def})
-  const first=await owner.command('form.publish',firstDraft)
-  const early=await owner.command('request.create',{title:`In flight ${tag}`,type:'supplier',party:{name:`Existing supplier ${tag}`,kind:'supplier'},value:'60000',formVersionId:first.versionId,formAnswers:{security:'Enhanced review'},file:file('existing.pdf',pdf('Existing supplier agreement '+tag)),text:'Existing supplier agreement '+tag})
-  const original=(await owner.state()).requestForms.find(f=>f.agreement_id===early.id)
-  await page.reload()
   const designer=page.locator('section').filter({has:page.getByRole('heading',{name:'Request form designer',exact:true})}).last()
-  await designer.getByLabel('Form to configure',{exact:true}).selectOption(firstDraft.id)
+  await designer.getByLabel('Form to configure',{exact:true}).selectOption('')
   await designer.getByLabel('Form name',{exact:true}).fill(formName)
+  const defaultRoute=designer.getByRole('group',{name:'Default route',exact:true})
+  await defaultRoute.getByLabel('Responsible person',{exact:true}).selectOption(ownerId)
+  await defaultRoute.getByLabel('Reviewer',{exact:true}).selectOption(ownerId)
+  await designer.getByLabel('Required attachments',{exact:true}).fill('Pricing schedule')
+  await designer.getByRole('button',{name:'Add question',exact:true}).click()
   // Add and configure the conditional question through the visual designer.
   const question=designer.getByRole('group',{name:'Question 1',exact:true})
   await question.getByLabel('Question 1 label',{exact:true}).fill('Security questionnaire needed')
+  await question.getByLabel('Question 1 answer name',{exact:true}).fill('security')
   await question.getByLabel('Question 1 type',{exact:true}).selectOption('pick_list')
   await question.getByLabel('Question 1 options',{exact:true}).fill('Standard review\nEnhanced review')
   await question.getByLabel('Required when visible',{exact:true}).check()
+  await question.getByRole('button',{name:'Add condition',exact:true}).click()
   const condition=question.getByRole('group',{name:'Condition 1',exact:true})
   await condition.getByLabel('Answer to compare',{exact:true}).selectOption('value')
   await condition.getByLabel('Comparison',{exact:true}).selectOption('gt')
   await condition.getByLabel('Comparison value',{exact:true}).fill('50000')
+  await designer.getByRole('button',{name:'Add routing rule',exact:true}).click()
   const rule=designer.getByRole('group',{name:'Rule 1',exact:true})
-  await rule.getByLabel('Approval role',{exact:true}).selectOption('counsel')
+  await rule.getByLabel('Rule 1 name',{exact:true}).fill('High value counsel')
+  await rule.getByLabel('Approval role',{exact:true}).selectOption('approver')
   await rule.getByLabel('Reviewer',{exact:true}).selectOption(reviewerId)
   await rule.getByLabel('Rule 1 additional attachments',{exact:true}).fill('Security questionnaire')
   await designer.getByRole('group',{name:'Who can launch this form',exact:true}).getByLabel(`${groupName} (group)`,{exact:true}).check()
+  const firstDraft=await run(()=>designer.getByRole('button',{name:'Save draft',exact:true}).click())
+  await designer.getByLabel('Sample agreement value (USD)',{exact:true}).fill('60000')
+  await run(()=>designer.getByRole('button',{name:'Preview sample',exact:true}).click())
+  const first=await run(()=>designer.getByRole('button',{name:'Publish form',exact:true}).click())
+  const early=await owner.command('request.create',{title:`In flight ${tag}`,type:'supplier',party:{name:`Existing supplier ${tag}`,kind:'supplier'},value:'60000',formVersionId:first.versionId,formAnswers:{security:'Enhanced review'},file:file('existing.pdf',pdf('Existing supplier agreement '+tag)),text:'Existing supplier agreement '+tag})
+  const original=(await owner.state()).requestForms.find(f=>f.agreement_id===early.id)
+  await rule.getByLabel('Approval role',{exact:true}).selectOption('counsel')
   await run(()=>designer.getByRole('button',{name:'Save draft',exact:true}).click())
   await shot('draft-designer')
   await designer.getByLabel('Sample agreement value (USD)',{exact:true}).fill('49000')

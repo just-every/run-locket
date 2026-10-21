@@ -484,6 +484,8 @@ test('configurable supplier forms preview conditions and routes, publish immutab
     ids.push(id)
     let s=await tm.owner.state(),a=s.agreements.find(a=>a.id===id),snapshot=s.requestForms.find(f=>f.agreement_id===id)
     assert.equal(a.owner_id,tm.approver.id);assert.equal(snapshot.approval_role,expected)
+    await tm.requester.command('request.update',{agreementId:id,version:a.version,value:'90000'},{error:'FORM_ROUTE'})
+    await tm.requester.command('request.update',{agreementId:id,version:a.version,ownerId:outsider.id},{error:'FORM_ROUTE'})
     assert.deepEqual(s.routes[id][0].roles,['owner',expected])
     if(expected==='approver') assert.equal(JSON.parse(snapshot.answers).security,undefined)
     else assert.equal(JSON.parse(snapshot.answers).security,'Enhanced review')
