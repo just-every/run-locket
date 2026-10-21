@@ -2,6 +2,7 @@
 import { mkdtemp, mkdir, rm } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir, userInfo } from 'node:os'
+import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 const workspace=process.cwd()
 const {freshCopy,child,command,freePort,redact}=await import(pathToFileURL(join(workspace,'tests/browser/runtime.mjs')))
@@ -12,16 +13,24 @@ const screenshots=join(evidence,'screenshots')
 await mkdir(screenshots,{recursive:true})
 let runtime, failure
 try {
- await freshCopy(workspace,root)
+ await mkdir(root,{recursive:true})
+ execFileSync('tar',['-x','-C',root],{input:execFileSync('git',['archive','HEAD'],{cwd:workspace,maxBuffer:32*1024*1024})})
+ await command('corepack',['pnpm','install','--frozen-lockfile'],root)
  const port=await freePort()
  runtime=child(join(root,'node_modules/.bin/rer'),['dev','--foreground','--json','--port',String(port),'--no-queue'],root)
- let ready
+ let ready, retried=false
  const deadline=Date.now()+600000
  while(Date.now()<deadline){
   const events=runtime.output().split('\n').flatMap(line=>{try{return [JSON.parse(line)]}catch{return []}})
   ready=events.find(e=>e.event==='ready'&&e.openUrl)
   if(ready)break
-  if(runtime.process.exitCode!==null)throw Error(redact(runtime.output()).slice(-6000))
+  if(runtime.process.exitCode!==null){
+   if(!retried&&runtime.output().includes('command_failed')){
+    console.log('Initial setup stopped after owner creation; retrying rer dev once in the same owned installation as instructed by its progress message.')
+    retried=true;runtime=child(join(root,'node_modules/.bin/rer'),['dev','--foreground','--json','--port',String(port),'--no-queue'],root);continue
+   }
+   throw Error(redact(runtime.output()).slice(-6000))
+  }
   await new Promise(r=>setTimeout(r,200))
  }
  if(!ready)throw Error('Owned dev did not become ready in ten minutes.')
