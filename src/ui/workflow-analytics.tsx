@@ -42,7 +42,7 @@ export function WorkflowAnalytics({ state }: { state: LocketState }) {
       </article>)}</div>
       <h3>Longest pending approvals</h3>
       {!result.approvalWaits.length && <p>No pending approval requests in this period.</p>}
-      <ol className="lk-workflow-waits">{result.approvalWaits.map(p => <li key={`${p.agreementId}:${p.approverId}`}><a href={`#agreement/${p.agreementId}/review`}>{title(p.agreementId)}</a><span>{personName(state, p.approverId)} · {duration(p.elapsedMs)}</span></li>)}</ol>
+      <ol className="lk-workflow-waits">{result.approvalWaits.map(p => <li key={`${p.agreementId}:${p.approverId}`}><a href={`#agreement/${p.agreementId}/approvals`}>{title(p.agreementId)}</a><span>{personName(state, p.approverId)} · {duration(p.elapsedMs)}</span></li>)}</ol>
       <h3>Longest signature waits by counterparty</h3>
       {!result.signatureWaits.length && <p>No outstanding signature packages in this period.</p>}
       <ol className="lk-workflow-waits">{result.signatureWaits.map(p => <li key={p.agreementId}><a href={`#agreement/${p.agreementId}/signature`}>{title(p.agreementId)}</a><span>{partyName(state, p.partyId)} · {duration(p.elapsedMs)} since recorded dispatch</span></li>)}</ol>

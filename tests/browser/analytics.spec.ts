@@ -33,7 +33,7 @@ async function connect(page: any, width: number) {
 for (const width of [1440, 390]) test(`REPORT-001 measured workflow, entity/period filters and waiting-work links at ${width}px`, async ({ page }) => {
   const p = await connect(page, width)
   try {
-    const suffix = `${width}-${Date.now()}`
+    const suffix = width === 1440 ? 'US' : 'Canada'
     // Live runs share an installation; name each new entity explicitly.
     const existingEntity = (await p.state()).entities[0]?.id
     if ('h' in p) await timedRequests(p.h, 2)
@@ -66,6 +66,12 @@ for (const width of [1440, 390]) test(`REPORT-001 measured workflow, entity/peri
       await panel.screenshot({ path: join(process.env.LOCKET_SCREENSHOTS, `${width}-report-001-${name}.png`) })
     }
     await shot('workflow')
+    if (process.env.LOCKET_SCREENSHOTS) {
+      await page.evaluate(() => window.scrollTo(0, 0))
+      const y = await panel.evaluate(el => el.getBoundingClientRect().top + window.scrollY)
+      await page.evaluate(top => window.scrollTo(0, top - 100), y)
+      await page.screenshot({ path: join(process.env.LOCKET_SCREENSHOTS, `${width}-report-001-viewport.png`) })
+    }
     await panel.getByLabel('Performance entity').selectOption(entity.id)
     await panel.getByRole('button', { name: 'Apply performance filters' }).click()
     await expect(panel).toContainText('1 opened · 0 completed')
@@ -83,6 +89,7 @@ for (const width of [1440, 390]) test(`REPORT-001 measured workflow, entity/peri
     await panel.getByLabel('Performance from').fill(''); await panel.getByLabel('Performance through').fill('')
     await panel.getByRole('button', { name: 'Apply performance filters' }).click()
     await panel.getByRole('link', { name: `Insurance NDA ${suffix}`, exact: true }).last().click()
-    await expect(page.getByRole('heading', { name: 'Review & approvals', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Approval route for v1', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Record decision', exact: true })).toBeVisible()
   } finally { await p.close() }
 })
