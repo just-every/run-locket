@@ -7,6 +7,7 @@ import type { Ctx, Handler } from './commands'
 import { bool, date, fail, json, list, object, oneOf, optionalText, sha256, sql, text, type Sql } from './model'
 import { textPdf } from './pdf'
 import { compareExecutionPdf, comparisonCheck } from './execution-comparison'
+import { executionFieldsCheck, inspectExecutionFields } from './execution-fields'
 import { day, plural, providerName } from './display'
 import { agreementGuards, bump, currentVersion, requireStatus, visibleAgreement, type AgreementRow } from './records'
 import { decisionContext, routing } from './review'
@@ -156,6 +157,7 @@ const recordExecution: Handler = async (c, p) => {
     { check: 'signers', ok: expectedSigners.size === actualSigners.size && [...expectedSigners].every(e => actualSigners.has(e)), detail: `Package signers: ${[...expectedSigners].join(', ')}. Signed by: ${[...actualSigners].join(', ') || 'nobody listed'}.` },
     { check: 'document', ok: bool(p, 'documentConfirmed') && (expectedPages === null || actualPages === null || actualPages >= expectedPages), detail: `${bool(p, 'documentConfirmed') ? 'Recorder confirmed' : 'Recorder did not confirm'} the signed file is the packaged document${pagesNote(expectedPages, actualPages)}.` },
     comparisonCheck(comparison),
+    executionFieldsCheck(await inspectExecutionFields(packagePdf, signed.bytes)),
     { check: 'certificate', ok: certificate !== null, detail: certificate ? `Provider certificate kept as supplied (${certificate.filename}).` : 'No completion certificate supplied.' },
   ]
   const reconciled = checks.every(x => x.ok)

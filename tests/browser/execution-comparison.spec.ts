@@ -4,6 +4,7 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { productPage } from './product-harness.mjs'
 import { file, pdf } from '../api/files.mjs'
+import { executionFieldsPdf } from '../api/execution-fields-fixture.mjs'
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
 
@@ -94,4 +95,70 @@ for (const width of [1440, 390]) test(`AGENT-006 changed signed liability is vis
   } finally {
     await product.close()
   }
+})
+
+
+for (const width of [1440, 390]) test(`AGENT-006 empty initials hold matching text and field evidence persists after acceptance at ${width}px`, async ({ page }) => {
+  const product = await connection(page, width)
+  const { command, state, origin } = product
+  const shot = async (name: string) => {
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
+    if (process.env.LOCKET_SCREENSHOTS) {
+      await mkdir(process.env.LOCKET_SCREENSHOTS, { recursive: true })
+      await page.screenshot({ path: join(process.env.LOCKET_SCREENSHOTS, `${width}-agent-006-fields-${name}.png`), fullPage: true })
+    }
+  }
+  const click = async (label: string) => {
+    const pending = page.waitForResponse(response => response.url() === origin + '/api/locket/commands' && response.request().method() === 'POST')
+    await page.getByRole('button', { name: label, exact: true }).click()
+    const body = await (await pending).json()
+    expect(body.ok, JSON.stringify(body.error)).toBe(true)
+    await expect(page.locator('main')).toHaveAttribute('aria-busy', 'false')
+    return body.result
+  }
+  try {
+    for (const clean of [false, true]) {
+      const tag = randomUUID().slice(0, 8)
+      const text = `Agreement ${tag}. Liability cap is USD 100000.`
+      const approved = await executionFieldsPdf(text)
+      const returned = await executionFieldsPdf(text, { signature: 'present', initials: clean ? 'AP' : '' })
+      const request = await command('request.create', { title: `Structured signing ${tag}`, type: 'nda', party: { name: `Customer ${tag}`, kind: 'customer' }, file: file('approved-fields.pdf', approved), text })
+      const agreement = async () => (await state()).agreements.find((a: any) => a.id === request.id)
+      let a = await agreement()
+      await command('agreement.submit', { agreementId: a.id, version: a.version })
+      a = await agreement()
+      await command('approval.decide', { agreementId: a.id, version: a.version, versionId: a.current_version_id, kind: 'commercial', decision: 'approved' })
+      a = await agreement()
+      const pkg = await command('package.prepare', { agreementId: a.id, version: a.version, provider: 'docusign', recipients: [{ name: 'Alex', email: 'alex@example.test', action: 'sign' }] })
+      a = await agreement()
+      await command('package.sent', { agreementId: a.id, version: a.version, packageId: pkg.packageId, envelopeId: `ENV-${tag}` })
+      await page.goto(origin + `/app#agreement/${a.id}/execution`)
+      await page.reload()
+      await page.getByLabel('Signed PDF', { exact: true }).setInputFiles({ name: 'returned-fields.pdf', mimeType: 'application/pdf', buffer: returned })
+      await page.getByLabel('Certificate of completion (as issued by the provider)').setInputFiles({ name: 'certificate.pdf', mimeType: 'application/pdf', buffer: pdf(`Synthetic certificate ${tag}`) })
+      await page.getByLabel('Executed on', { exact: true }).fill('2026-10-20')
+      await page.getByRole('checkbox', { name: 'I checked that this signed file is the packaged document.' }).check()
+      const result = await click('Record execution')
+      expect(result.checks.find((c: any) => c.check === 'text').ok).toBe(true)
+      expect(result.status).toBe(clean ? 'reconciled' : 'needs_review')
+      const evidence = page.getByRole('region', { name: 'Signature and initials field evidence' })
+      await expect(evidence.getByRole('heading', { name: 'Signature and initials fields' })).toBeVisible()
+      await expect(evidence).toContainText('Customer.signature · page 1 · signature · value present, unverified')
+      await expect(evidence).toContainText(`Customer.initials · page 1 · initials · ${clean ? 'value present, unverified' : 'empty'}`)
+      expect((await agreement()).status).toBe(clean ? 'executed' : 'out_for_signature')
+      await shot(clean ? 'present' : 'held')
+      if (!clean) {
+        const reason = 'Counsel reviewed the missing initials and accepts the separately supplied execution evidence.'
+        page.once('dialog', dialog => dialog.accept(reason))
+        await click('Accept with reason')
+        await expect(page.getByText(reason, { exact: false })).toBeVisible()
+        expect((await agreement()).status).toBe('executed')
+        await page.reload()
+        await expect(evidence).toContainText('Customer.initials · page 1 · initials · empty')
+        await shot('accepted')
+      }
+      const execution = (await state()).executions.find((e: any) => e.id === result.executionId)
+      expect(await (await page.request.get(origin + '/api/locket/files/' + execution.signed_artifact_id)).body()).toEqual(returned)
+    }
+  } finally { await product.close() }
 })

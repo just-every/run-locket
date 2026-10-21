@@ -1,3 +1,4 @@
+import type { ExecutionFields } from '../locket/execution-fields'
 import type { PdfComparison } from '../locket/execution-comparison'
 
 // Keep both readings visible, with the differing span marked in context.
@@ -18,5 +19,15 @@ export function ExecutionComparison({ comparison }: { comparison: PdfComparison 
       <strong>Approved page {d.page}</strong><blockquote>{passage(d.approved, d.signed)}</blockquote>
       <strong>Returned page {d.page}</strong><blockquote>{passage(d.signed, d.approved)}</blockquote>
     </details>)}
+  </section>
+}
+
+export function ExecutionFieldEvidence({ inspection }: { inspection: ExecutionFields }) {
+  return <section className="lk-execution-comparison" aria-label="Signature and initials field evidence">
+    <h3>Signature and initials fields</h3>
+    <p className="lk-muted">Checks required PDF signature fields and required text fields named or labelled “initials”. A value records presence only. Signature validity, signer identity, flattened signatures and visual initials need separate review.</p>
+    {inspection.fields.length > 0 && <ul>{inspection.fields.map(f => <li key={f.name}>
+      <strong>{f.name}</strong>{f.page !== null && ` · page ${f.page}`} · {f.kind} · {f.state === 'present' ? 'value present, unverified' : f.state === 'empty' ? 'empty' : f.state === 'missing' ? 'missing from returned PDF' : 'could not be read'}
+    </li>)}</ul>}
   </section>
 }

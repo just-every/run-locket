@@ -3,7 +3,7 @@ import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, EnvelopeId, Field, Form, Icon, value } from './controls'
 import { signatories } from './entities'
-import { ExecutionComparison } from './execution-comparison'
+import { ExecutionComparison, ExecutionFieldEvidence } from './execution-comparison'
 import { can, currentVersion, day, parse, personName, providerName, providers, versionsOf, when } from './format'
 
 
@@ -101,6 +101,7 @@ export function Execution({ state, a, locket }: { state: LocketState; a: Row; lo
             <p className="lk-file-links">{file(e.signed_artifact_id) && <a href={`/api/locket/files/${e.signed_artifact_id}`} title={`sha256 ${file(e.signed_artifact_id)!.sha256}`} download><Icon name="file" /> Signed PDF</a>}{e.certificate_artifact_id && <a href={`/api/locket/files/${e.certificate_artifact_id}`} download><Icon name="file" /> Provider certificate</a>}</p>
             <ul className="lk-checks">{parse<any[]>(e.checks).map(c => <li key={c.check} className={c.ok ? 'lk-ok' : 'lk-missing'}><span>{c.ok ? '✓' : '!'}</span>{c.detail}</li>)}</ul>
             {parse<any[]>(e.checks).filter(c => c.comparison).map(c => <ExecutionComparison key={c.check} comparison={c.comparison} />)}
+            {parse<any[]>(e.checks).filter(c => c.inspection).map(c => <ExecutionFieldEvidence key={c.check} inspection={c.inspection} />)}
             {e.resolution && <p className="lk-muted">Accepted by {personName(state, e.resolved_by)}: {e.resolution}</p>}
             {e.status === 'needs_review' && can(state, 'owner', 'counsel') && <button type="button" disabled={busy} onClick={() => { const reason = window.prompt('Why is this execution acceptable despite the mismatch?'); if (reason) void run('execution.resolve', { agreementId: a.id, version: a.version, executionId: e.id, reason }) }}>Accept with reason</button>}
           </article>

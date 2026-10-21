@@ -2,12 +2,13 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { installation } from './harness.mjs'
 import { file, pdf } from './files.mjs'
+import { executionFieldsPdf } from './execution-fields-fixture.mjs'
 
 const agreement = async (client, id) => (await client.state()).agreements.find(a => a.id === id)
 const textCheck = result => result.checks.find(c => c.check === 'text')
-async function sent(h, label, { pages = 1, restricted = false } = {}) {
+async function sent(h, label, { pages = 1, restricted = false, makePdf = pdf } = {}) {
   const text = `Agreement ${label}. Liability cap is USD 100000.`
-  const approved = pdf(text, pages)
+  const approved = await makePdf(text, pages)
   const request = await h.owner.command('request.create', { title: label, type: 'nda', restricted, party: { name: `${label} counterparty`, kind: 'customer' }, file: file('approved.pdf', approved), text })
   let a = await agreement(h.owner, request.id)
   await h.owner.command('agreement.submit', { agreementId: a.id, version: a.version })
@@ -167,4 +168,55 @@ test('AGENT-006 authority, restricted evidence and stale revisions remain enforc
   assert.ok(!state.executions.some(e => e.id === held.executionId))
   const evidence = (await h.owner.state()).executions.find(e => e.id === held.executionId)
   assert.equal((await viewer.request(`/api/locket/files/${evidence.signed_artifact_id}`)).status, 404)
+})
+
+
+test('AGENT-006 required signature/initial fields hold incomplete returns and retain unverified structural evidence', async t => {
+  const h = await installation(); t.after(() => h.close())
+  const counsel = await h.invite('field-counsel@example.test', 'counsel')
+  const viewer = await h.invite('field-viewer@example.test', 'viewer')
+  const scenarios = [
+    ['Both empty', {}, {}, 'incomplete', ['empty', 'empty']],
+    ['Missing initials', {}, { signature: 'present' }, 'incomplete', ['present', 'empty']],
+    ['Missing signature', {}, { initials: 'AP' }, 'incomplete', ['empty', 'present']],
+    ['Removed fields', {}, { signature: null, initials: null }, 'incomplete', ['missing', 'missing']],
+    ['Required flags removed', {}, { required: false }, 'incomplete', ['empty', 'empty']],
+    ['Zero signature bytes', {}, { signature: 'zero', initials: 'AP' }, 'incomplete', ['empty', 'present']],
+    ['Malformed byte ranges', {}, { signature: 'malformed', initials: 'AP' }, 'incomplete', ['unreadable', 'present']],
+    ['New required fields', { signature: null, initials: null }, {}, 'incomplete', ['empty', 'empty']],
+    ['Unsupported XFA', {}, { xfa: true }, 'unavailable', []],
+    ['Duplicate names', {}, { duplicate: true }, 'unavailable', []],
+    ['Values present', {}, { signature: 'present', initials: 'AP' }, 'present', ['present', 'present']],
+    ['Optional fields only', { required: false }, { required: false }, 'not_detected', []],
+  ]
+  for (const [label, before, after, status, values] of scenarios) {
+    const f = await sent(h, label, { restricted: true, makePdf: text => executionFieldsPdf(text, before) })
+    const returned = await executionFieldsPdf(f.text, after)
+    const commandId = crypto.randomUUID()
+    const result = await h.owner.command('execution.record', f.payload(returned), { commandId })
+    assert.deepEqual(await h.owner.command('execution.record', f.payload(returned), { commandId }), result, label + ' replay')
+    const check = result.checks.find(c => c.check === 'signature_fields')
+    assert.equal(textCheck(result).ok, true, 'Text still matches: ' + label)
+    assert.equal(check.inspection.status, status, label)
+    assert.deepEqual(check.inspection.fields.map(f => f.state), values, label)
+    const clean = ['present', 'not_detected'].includes(status)
+    assert.equal(result.status, clean ? 'reconciled' : 'needs_review', label)
+    let a = await agreement(h.owner, f.a.id)
+    assert.equal(a.status, clean ? 'executed' : 'out_for_signature', label)
+    if (check.inspection.fields.length) assert.deepEqual(check.inspection.fields.map(f => [f.name, f.kind, f.page]), [['Customer.signature', 'signature', 1], ['Customer.initials', 'initials', 1]])
+    const execution = (await h.owner.state()).executions.find(e => e.id === result.executionId)
+    assert.deepEqual(Buffer.from(await (await h.owner.request('/api/locket/files/' + execution.signed_artifact_id)).arrayBuffer()), returned)
+    assert.ok(!(await viewer.state()).executions.some(e => e.id === execution.id))
+    assert.equal((await viewer.request('/api/locket/files/' + execution.signed_artifact_id)).status, 404)
+    if (!clean) {
+      await h.owner.command('term.propose', { agreementId: a.id, key: 'payment_terms', value: 'Agreed', citation: { quote: 'Liability cap' } }, { error: 'NOT_EXECUTED' })
+      await viewer.command('execution.resolve', { agreementId: a.id, version: a.version, executionId: execution.id, reason: 'Cannot accept' }, { error: 'FORBIDDEN' })
+      await counsel.command('execution.resolve', { agreementId: a.id, version: a.version, executionId: execution.id, reason: 'Counsel reviewed the original signature evidence separately.' })
+      a = await agreement(h.owner, a.id)
+      assert.equal(a.status, 'executed')
+    }
+    const archive = await (await h.owner.request('/api/locket/export')).json()
+    assert.deepEqual(JSON.parse(archive.records.lk_executions.find(e => e.id === execution.id).checks), result.checks)
+    assert.deepEqual(Buffer.from(archive.files.find(f => f.id === execution.signed_artifact_id).base64, 'base64'), returned)
+  }
 })

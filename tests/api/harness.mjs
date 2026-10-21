@@ -12,7 +12,7 @@ import assert from 'node:assert/strict'
 
 let bundled
 async function worker() {
-  bundled ??= (await build({ entryPoints: ['tests/api/worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', target: 'es2022', external: ['node:*', 'cloudflare:*'], loader: { '.css': 'text', '.svg': 'text' }, logLevel: 'silent' })).outputFiles[0].text
+  bundled ??= (await build({ entryPoints: ['tests/api/worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], target: 'es2022', external: ['node:*', 'cloudflare:*'], loader: { '.css': 'text', '.svg': 'text' }, logLevel: 'silent' })).outputFiles[0].text
   return bundled
 }
 
