@@ -86,6 +86,13 @@ for(const width of [1440,390])test(`NEG-006 sends external v2, receives counterp
   const p=await productPage(page,{width,bindings:{POSTMARK_SERVER_TOKEN:'synthetic-locket-1'}})
   let unhost=async()=>{}
   try{
+    const shot=async(name:string)=>{
+      const privateMain=page.locator('main[aria-busy]')
+      if(await privateMain.count())await expect(privateMain).toHaveAttribute('aria-busy','false')
+      await page.evaluate(()=>window.scrollTo(0,0))
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
+      if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-NEG-006-${name}.png`),fullPage:true})}
+    }
     const x=await exchangeFixture(p.h)
     await page.goto(p.origin+'/app#agreement/'+x.a.id)
     const panel=page.getByRole('region',{name:'Counterparty exchange',exact:true})
@@ -101,6 +108,7 @@ for(const width of [1440,390])test(`NEG-006 sends external v2, receives counterp
     expect(p.h.mails.filter(m=>m.text?.includes('/exchange#')).length).toBe(1)
     const link=await panel.getByRole('link',{name:'Open secure counterparty link'}).getAttribute('href')
     const token=new URL(link!).hash.slice(1)
+    await shot('sender-approval')
     expect(p.h.mails.find(m=>m.text?.includes('/exchange#'))?.text).toContain('/exchange#'+token)
     unhost=await hostExchange(page,p.origin)
     await page.context().clearCookies()
@@ -122,11 +130,12 @@ for(const width of [1440,390])test(`NEG-006 sends external v2, receives counterp
     expect(v3.number).toBe(3);expect(v3.kind).toBe('counterparty');expect(v3.digest).toBeTruthy()
     for(const action of ['exchange.sent','exchange.opened','exchange.uploaded'])expect(state.audit.some((a:any)=>a.action===action)).toBe(true)
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
-    if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-NEG-006-counterparty.png`),fullPage:true})}
+    await shot('counterparty')
     await p.h.setTime(Date.now()+2*86_400_000)
     await page.reload()
     await expect(page.getByRole('alert')).toContainText('unavailable')
     await expect(page.getByRole('region',{name:'Shared document'})).toHaveCount(0)
+    await shot('expired')
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
   }finally{await unhost();await p.close()}
 })
