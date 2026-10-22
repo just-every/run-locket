@@ -7,8 +7,9 @@ export interface DraftDisposition {id:string;version:number;held:boolean;files:{
 const escape=(s:string)=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
 /** Unicode word boundaries also protect Ann from Annual and address substrings. */
 export function privacyWords(needles:string[],replacement:(s:string)=>string){
- const patterns=[...new Set(needles)].filter(Boolean).sort((a,b)=>b.length-a.length).map(needle=>({needle,pattern:new RegExp(`(?<![\\p{L}\\p{N}_${needle.includes('@')?'@.+-':''}])${escape(needle)}(?![\\p{L}\\p{N}_${needle.includes('@')?'@+-':''}])`,'giu')}))
- return (value:string)=>patterns.reduce((next,{pattern})=>next.replace(pattern,match=>replacement(match)),value)
+ const alternatives=[...new Set(needles)].filter(Boolean).sort((a,b)=>b.length-a.length).map(needle=>needle.includes('@')?`(?<![\\p{L}\\p{N}_@.+-])${escape(needle)}(?![\\p{L}\\p{N}_@+-]|\\.[\\p{L}\\p{N}])`:`(?<![\\p{L}\\p{N}_])${escape(needle)}(?![\\p{L}\\p{N}_])`).join('|')
+ const pattern=new RegExp(alternatives,'giu')
+ return (value:string)=>value.replace(pattern,match=>replacement(match))
 }
 export async function erasurePlan(c:Ctx,email:string,token:string){
  const parties=(await c.db.prepare('SELECT * FROM lk_parties').all<any>()).results
