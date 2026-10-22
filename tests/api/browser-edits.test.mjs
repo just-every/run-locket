@@ -92,6 +92,10 @@ test('NEG-006 sends a clean external v2 through Postmark, accepts an exact v3 ma
   assert.equal(downloaded.headers.get('x-content-sha256'),createHash('sha256').update(bytes).digest('hex'))
   assert.ok(bytes.toString().includes('synthetic-locket-7 external question'))
   assert.ok(!bytes.toString().includes('private legal position'));assert.ok(!bytes.toString().includes('private approval note'))
+  assert.ok(!bytes.toString().includes('synthetic-locket-26'));assert.ok(!bytes.toString().includes('synthetic-locket-27'))
+  assert.ok(x.source.includes(Buffer.from('word/comments.xml')));assert.ok(x.source.includes(Buffer.from('docProps/core.xml')))
+  const sourceArtifact=(await h.owner.state()).artifacts.find(a=>a.version_id===x.version.versionId&&a.role==='original')
+  assert.deepEqual(Buffer.from(await(await h.owner.request('/api/locket/files/'+sourceArtifact.id)).arrayBuffer()),x.source)
   const commentId=randomUUID(),comment={commandId:commentId,payload:{body:'synthetic-locket-9 counterparty question',quote:'Invoices are due within 30 days.'}}
   const commented=await(await x.request('comment',comment)).json()
   assert.equal(commented.ok,true);assert.deepEqual(await(await x.request('comment',comment)).json(),commented)

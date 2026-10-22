@@ -98,6 +98,8 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
     workflowHistory: mine(await all(db, 'SELECT * FROM lk_workflow_history ORDER BY at,rowid'), ids),
     routes,
     requirements: mine(await all(db, 'SELECT * FROM lk_requirements ORDER BY created_at'), ids),
+    versionAudiences: mine(await all(db,'SELECT side.version_id AS id,v.agreement_id,side.audience FROM lk_version_audiences side JOIN lk_versions v ON v.id=side.version_id'),ids),
+    commentAudiences: mine(await all(db,'SELECT side.comment_id AS id,c.agreement_id,side.audience FROM lk_comment_audiences side JOIN lk_comments c ON c.id=side.comment_id'),ids),
     versions,
     artifacts,
     comments: mine(await all(db, 'SELECT * FROM lk_comments ORDER BY at'), ids),

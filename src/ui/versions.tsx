@@ -23,7 +23,7 @@ export function VersionChips({ state, a, shown, base, onBase, adding, onAdding }
         {versions.map(v => (
           <a key={v.id} className={v.id === shown?.id ? 'lk-chip lk-chip-active' : 'lk-chip'} href={versionHref(a, v.number)} aria-current={v.id === shown?.id ? 'page' : undefined} title={`v${v.number} ${versionName(state, v)} · version identity ${v.digest}`}>
             <span><b>v{v.number}</b> {brief(versionName(state, v))}</span>
-            <small>{stamp(v.created_at, { zone: a.timezone })}</small>
+            <small>{state.versionAudiences.some(side=>side.id===v.id&&side.audience==='external')?'External':'Internal'} · {stamp(v.created_at, { zone: a.timezone })}</small>
           </a>
         ))}
       </nav>
@@ -134,7 +134,7 @@ export function Comments({ state, a, shown, locket }: { state: LocketState; a: R
   const roots = state.comments.filter(c => c.version_id === shown.id && !c.parent_id)
   return (
     <section className="lk-panel lk-comments-card" aria-label="Comment threads">
-      <div className="lk-panel-head"><h2>Comments</h2><span className="lk-muted">Internal: the counterparty never sees them. A comment that quotes a passage sits beside it.</span></div>
+      <div className="lk-panel-head"><h2>Comments</h2><span className="lk-muted">Comments stay internal until owner or counsel explicitly shares them through Counterparty exchange. A quoted passage sits beside its comment.</span></div>
       {roots.length > 0 && <ul className="lk-comments">{roots.map(root => <CommentThread key={root.id} root={root} state={state} a={a} locket={locket} />)}</ul>}
       {can(state, 'owner', 'counsel', 'approver', 'requester') && (
         <Form busy={busy} submit="Comment" onSubmit={async (data, form) => { if (await run('comment.add', { agreementId: a.id, versionId: shown.id, body: value(data, 'body'), quote: value(data, 'quote') || undefined, ...(quote && shown.text?.includes(quote) ? { start: shown.text.indexOf(quote), end: shown.text.indexOf(quote) + quote.length } : {}), mentionIds: data.getAll('mentionIds').map(String) })) { form.reset(); setQuote('') } }}>

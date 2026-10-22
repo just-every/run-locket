@@ -42,11 +42,16 @@ function zip(entries) {
   return Buffer.concat([...locals, directory, end])
 }
 const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-export function docx(paragraphs) {
-  const body = paragraphs.map(p => `<w:p><w:r><w:t xml:space="preserve">${escape(p)}</w:t></w:r></w:p>`).join('')
-  return zip([
-    ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+export function docx(paragraphs, { internalComment, metadataAuthor } = {}) {
+  const body = paragraphs.map((p,i) => `<w:p>${internalComment&&i===0?'<w:commentRangeStart w:id="0"/>':''}<w:r><w:t xml:space="preserve">${escape(p)}</w:t></w:r>${internalComment&&i===0?'<w:commentRangeEnd w:id="0"/><w:r><w:commentReference w:id="0"/></w:r>':''}</w:p>`).join('')
+  const entries = [
+    ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>${internalComment?'<Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/>':''}${metadataAuthor?'<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>':''}</Types>`],
     ['word/document.xml', `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}</w:body></w:document>`],
-  ])
+  ]
+  if(internalComment)entries.push(['word/comments.xml',`<?xml version="1.0"?><w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:comment w:id="0" w:author="Internal"><w:p><w:r><w:t>${escape(internalComment)}</w:t></w:r></w:p></w:comment></w:comments>`],['word/_rels/document.xml.rels','<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="comments" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/></Relationships>'])
+  if(metadataAuthor)entries.push(['docProps/core.xml',`<?xml version="1.0"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:creator>${escape(metadataAuthor)}</dc:creator></cp:coreProperties>`])
+  if(internalComment||metadataAuthor)entries.push(['_rels/.rels',`<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="document" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>${metadataAuthor?'<Relationship Id="properties" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>':''}</Relationships>`])
+  return zip(entries)
 }
+
 export const file = (filename, bytes) => ({ filename, base64: Buffer.from(bytes).toString('base64') })

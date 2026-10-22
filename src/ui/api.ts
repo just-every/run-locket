@@ -34,6 +34,8 @@ export interface LocketState {
   workflowHistory: Row[]
   routes: Record<string, { kind: string; deviationId: string | null; label: string; roles: string[];approverId?:string;delegateId?:string|null;away?:boolean;order?:number;absenceVersion?:number }[]>
   requirements: Row[]
+  versionAudiences: Row[]
+  commentAudiences: Row[]
   versions: Row[]
   artifacts: Row[]
   comments: Row[]
