@@ -1,6 +1,7 @@
 import type { Ctx } from './commands'
 import { fail, list, object, oneOf, parse } from './model'
 import { agreementTypes } from './agreements'
+import { recommendationCredits } from './playbook-recommendation-credits'
 
 export interface RecommendationScope { agreementTypes: string[]; entityIds: string[] }
 export function recommendationScope(value: unknown): RecommendationScope {
@@ -43,6 +44,8 @@ export async function measuredPlaybookRecommendation(c: Ctx, source: any, clause
   const approvals = (await c.db.prepare(`SELECT p.* FROM lk_approvals p JOIN lk_negotiation_outcomes o ON o.agreement_id=p.agreement_id
     WHERE o.playbook_version_id=? AND o.clause_key=? GROUP BY p.id ORDER BY p.id`).bind(source.id, clauseKey).all<any>()).results
   const issues = (await c.db.prepare(`SELECT i.* FROM lk_playbook_issues i JOIN lk_negotiation_outcomes o ON o.id=i.outcome_id WHERE o.playbook_version_id=? AND o.clause_key=? ORDER BY i.recorded_at,i.id`).bind(source.id, clauseKey).all<any>()).results
+  const credits = await recommendationCredits(c, outcomes)
+  const laterIssues = (o: any) => [...issues.filter(i => i.outcome_id === o.id), ...credits.evidence.filter(i => i.outcomeId === o.id)]
   const citations = accepted.map(o => {
     const exception = approvals.find(p => p.id === o.approval_id)
     const commercial = approvals.filter(p => p.agreement_id === o.agreement_id && p.version_id === o.version_id && p.kind === 'commercial' && p.decision === 'approved' && p.at <= o.recorded_at && (p.invalidated_at === null || p.invalidated_at > o.recorded_at)).sort((a, b) => b.at - a.at)[0]
@@ -55,7 +58,7 @@ export async function measuredPlaybookRecommendation(c: Ctx, source: any, clause
       versionId: o.version_id, version: o.version_number, digest: o.version_digest, deviationId: o.deviation_id, approvalId: o.approval_id,
       start: o.start, end: o.end, quote: o.quote, evidence: o.evidence,
       timing: { stageEventId: stage?.id ?? null, closedEventId: closed?.id ?? null, approvalIntervalMs: stage && closed ? closed.at - stage.at : null, incrementalExceptionWaitMs: savedMs },
-      issues: issues.filter(i => i.outcome_id === o.id),
+      issues: laterIssues(o),
     }
   })
   const waits = citations.flatMap(c => c.timing.incrementalExceptionWaitMs === null ? [] : [c.timing.incrementalExceptionWaitMs])
@@ -66,12 +69,13 @@ export async function measuredPlaybookRecommendation(c: Ctx, source: any, clause
     clauseKey, title: rule.title, scope, wording,
     negotiations: outcomes.length, unrecordedExceptions, unknownNegotiationCount: new Set(unrecordedExceptions.map(d => d.agreement_id)).size, acceptedCount: accepted.length, rejectedCount: outcomes.filter(o => o.outcome === 'rejected').length,
     affectedAgreementIds: accepted.map(o => o.agreement_id), citations,
-    otherOutcomes: outcomes.filter(o => !accepted.includes(o)).map(o => ({ id: o.id, agreementId: o.agreement_id, versionId: o.version_id, approvalId: o.approval_id, outcome: o.outcome, quote: o.quote, evidence: o.evidence, issues: issues.filter(i => i.outcome_id === o.id) })),
+    otherOutcomes: outcomes.filter(o => !accepted.includes(o)).map(o => ({ id: o.id, agreementId: o.agreement_id, versionId: o.version_id, approvalId: o.approval_id, outcome: o.outcome, quote: o.quote, evidence: o.evidence, issues: laterIssues(o) })),
     cycleTime: { measuredCount: waits.length, unknownCount: accepted.length - waits.length, medianApprovalMs: median(intervals), predictedSavingMs: saving, affectedScenarioSavingMs: saving === null ? null : saving * waits.length,
       assumption: 'Scenario: standard wording removes the incremental wait for its exception approval after commercial approval. Observed elapsed workflow time includes parallel work; this is not a causal forecast. Missing workflow or commercial-approval evidence stays unknown.' },
+    creditEvidence: credits.evidence,
     operations: { observedAgreementCount: citations.filter(c => c.issues.length).length, unknownAgreementCount: citations.filter(c => !c.issues.length).length, issueCount: citations.reduce((n, c) => n + c.issues.filter(i => i.kind !== 'none_observed').length, 0), interpretation: 'Recorded later observations only; no observation means unknown. Counsel reviews disputes, credits and missed obligations before approval.' },
     // Snapshot source contents, not only aggregate counts, so counsel's decision is reviewable.
-    input: { unrecordedExceptionIds: unrecordedExceptions.map(d => d.id), agreements: outcomes.map(o => ({ id: o.agreement_id, version: o.agreement_version })), outcomes: outcomes.map(o => ({ id: o.id, recordedAt: o.recorded_at })), stageEventIds: allStages.filter(s => seen.has(s.agreement_id)).map(s => s.id), issueIds: issues.filter(i => outcomes.some(o => o.id === i.outcome_id)).map(i => i.id), approvals: approvals.filter(p => seen.has(p.agreement_id)).map(p => ({ id: p.id, invalidatedAt: p.invalidated_at })) },
+    input: { credits: credits.input, unrecordedExceptionIds: unrecordedExceptions.map(d => d.id), agreements: outcomes.map(o => ({ id: o.agreement_id, version: o.agreement_version })), outcomes: outcomes.map(o => ({ id: o.id, recordedAt: o.recorded_at })), stageEventIds: allStages.filter(s => seen.has(s.agreement_id)).map(s => s.id), issueIds: issues.filter(i => outcomes.some(o => o.id === i.outcome_id)).map(i => i.id), approvals: approvals.filter(p => seen.has(p.agreement_id)).map(p => ({ id: p.id, invalidatedAt: p.invalidated_at })) },
     evaluatedAt: c.now,
   }
 }

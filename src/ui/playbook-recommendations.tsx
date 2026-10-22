@@ -74,7 +74,10 @@ function Recommendation({ recommendation: r, state, locket }: Props & { recommen
     <details><summary>Affected agreements and exact citations ({analysis.citations.length})</summary><ul className="lk-rules">{analysis.citations.map((c: any) => <li key={c.outcomeId}>
       <a href={passage(c)}>{c.title} · v{c.version}</a><blockquote style={{ overflowWrap: 'anywhere' }}>{c.quote}</blockquote><p>{c.evidence}</p>
       <small>Incremental exception wait: {hours(c.timing.incrementalExceptionWaitMs)}. Exception approval recorded for this version.</small>
-      {c.issues.map((issue: any) => <p key={issue.id}>{issue.kind.replace(/_/g, ' ')}: {issue.description} · {issue.evidence}</p>)}
+      {c.issues.map((issue: any) => <div key={issue.id}><p>{issue.kind.replace(/_/g, ' ')}: {issue.description} · {issue.evidence}</p>
+        {issue.nativeKind && <><p>USD {(issue.amountCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} · {issue.amountBasis} {issue.sourceChanged ? 'Sources changed; retained historical evidence.' : 'Recorded source snapshot.'} {issue.dispatch ? `Message provider outcome: ${issue.dispatch.status}. Provider acceptance does not establish credit recovery.` : 'No supplier send recorded.'}</p>
+          <a href={`#agreement/${issue.citation.agreementId}/versions/${issue.citation.version}`}>Credit source · v{issue.citation.version}{issue.citation.page ? ` · page ${issue.citation.page}` : ''}</a><blockquote style={{ overflowWrap: 'anywhere' }}>{issue.citation.quote}</blockquote></>}
+      </div>)}
     </li>)}</ul></details>
     <details><summary>Other recorded negotiation outcomes ({analysis.otherOutcomes.length})</summary>{analysis.otherOutcomes.map((o: any) => <p key={o.id}>{o.outcome}: {o.quote} · {o.evidence}{o.issues.map((i: any) => ` · ${i.kind}: ${i.description}`).join('')}</p>)}</details>
     {r.status === 'proposed' && <Form busy={locket.busy} submit="Approve new playbook version" onSubmit={async data => { await locket.run('playbook.recommendation.decide', { recommendationId: r.id, decision: 'approve', scope: analysis.scope, reason: value(data, 'reason') }) }}>

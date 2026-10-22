@@ -1,4 +1,5 @@
 import { requireRole } from './access'
+import { creditSnapshotGuards } from './playbook-recommendation-credits'
 import type { Ctx, Handler } from './commands'
 import { requireEntitiesExist } from './entities'
 import { libraryHandlers } from './library'
@@ -33,6 +34,8 @@ async function evidenceGuards(c: Ctx, sourceId: string, clauseKey: string): Prom
 
 function snapshotGuards(input:any):Sql[] {
  return [
+  ...creditSnapshotGuards(input.credits),
+  ...((input.credits?.sources ?? []).map((s:any)=>sql('(SELECT version FROM lk_agreements WHERE id=?) IS ?',s.id,s.version))),
   sql(`NOT EXISTS(SELECT 1 FROM json_each(?) source LEFT JOIN lk_agreements a ON a.id=json_extract(source.value,'$.id') WHERE a.id IS NULL OR a.version IS NOT json_extract(source.value,'$.version'))`,json(input.agreements)),
   sql(`NOT EXISTS(SELECT 1 FROM json_each(?) source LEFT JOIN lk_approvals a ON a.id=json_extract(source.value,'$.id') WHERE a.id IS NULL OR a.invalidated_at IS NOT json_extract(source.value,'$.invalidatedAt'))`,json(input.approvals)),
  ]
