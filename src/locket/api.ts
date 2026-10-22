@@ -1,4 +1,6 @@
 import { requireFullFields } from './repository-access'
+import { repositoryBulkHandlers } from './repository-bulk'
+import { repositoryBulkResponse } from './repository-bulk-http'
 import { erasureHandlers } from './erasure'
 import { retentionHandlers } from './retention'
 import { approvalRuleHandlers, ruleReminderReceipt } from './approval-rules'
@@ -56,7 +58,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
+  ...repositoryBulkHandlers, ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
   ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,
@@ -105,6 +107,8 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     const clickwrap = await publicClickwrapResponse(request, env)
     if (clickwrap) return clickwrap
     const actor = await currentActor(request, env)
+    const bulk = await repositoryBulkResponse(request,env,actor)
+    if(bulk)return bulk
     if (request.method === 'GET' && path === '/analytics') { await requireFullFields(env.DB,actor); return reply(workflowAnalytics(await state(env, actor), url.searchParams)) }
     if (request.method === 'GET' && path === '/clickwrap/acceptances') {
       const rows = await acceptanceRecords(env, actor, url.searchParams)

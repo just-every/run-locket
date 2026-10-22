@@ -254,3 +254,9 @@ for(const width of [1440,390])test(`REPO-009 Sales visibility, hidden value and 
  const p=await metadataPage(page,width)
  try{await repositoryAccessJourney(page,width,p)}finally{await p.close()}
 })
+
+for(const width of [1440,390])test(`REPO-011 reviews filtered bulk changes, exact CSV differences and reversible history at ${width}px`,async({page})=>{
+ const {repositoryBulkBrowserJourney}=await import('./repository-bulk-journey.mjs')
+ const p=await productPage(page,{width})
+ try{await repositoryBulkBrowserJourney(page,width,p)}finally{await p.close()}
+})

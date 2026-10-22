@@ -58,13 +58,14 @@ export function agreementAccessSql(id:string, alias='a'):Sql{
  const role=roleSql
  return sql(`((${role}) IN ('owner','counsel') OR (
    (${alias}.restricted=0 OR ${alias}.requester_id=? OR ${alias}.owner_id=? OR EXISTS(SELECT 1 FROM lk_access explicit WHERE explicit.agreement_id=${alias}.id AND explicit.operator_id=?))
+   AND (NOT EXISTS(SELECT 1 FROM lk_agreement_groups ag WHERE ag.agreement_id=${alias}.id) OR EXISTS(SELECT 1 FROM lk_agreement_groups ag JOIN lk_intake_members gm ON gm.audience_id=ag.audience_id WHERE ag.agreement_id=${alias}.id AND gm.operator_id=?))
    AND (NOT EXISTS(SELECT 1 FROM lk_repository_policy p WHERE p.id='installation' AND p.enabled=1)
      OR EXISTS(SELECT 1 FROM lk_repository_policy p,json_each(p.grants) g
        JOIN lk_intake_members member ON member.audience_id=json_extract(g.value,'$.audienceId')
        WHERE p.id='installation' AND p.enabled=1 AND member.operator_id=?
          AND EXISTS(SELECT 1 FROM json_each(json_extract(g.value,'$.types')) type WHERE type.value=${alias}.type)
          AND (json_array_length(json_extract(g.value,'$.departmentIds'))=0 OR EXISTS(SELECT 1 FROM json_each(json_extract(g.value,'$.departmentIds')) department
-           WHERE department.value=COALESCE((SELECT d.department_id FROM lk_agreement_departments d WHERE d.agreement_id=${alias}.id),(SELECT json_extract(f.answers,'$.department') FROM lk_request_forms f WHERE f.agreement_id=${alias}.id))))))))`,id,id,id,id,id)
+           WHERE department.value=COALESCE((SELECT d.department_id FROM lk_agreement_departments d WHERE d.agreement_id=${alias}.id),(SELECT json_extract(f.answers,'$.department') FROM lk_request_forms f WHERE f.agreement_id=${alias}.id))))))))`,id,id,id,id,id,id)
 }
 /** Same configured policy for a new agreement before its insert exists. */
 export function newAgreementPolicySql(id:string,type:string,department:string):Sql{

@@ -13,6 +13,7 @@ import type { Locket } from './app'
 import type { SearchPassage } from '../locket/search-passages'
 import { PassageLinks } from './search-passages'
 import { SavedViews } from './saved-views'
+import { RepositoryBulk } from './repository-bulk'
 
 const columns = [
   { id: 'draft', title: 'Draft', statuses: ['draft'] },
@@ -56,6 +57,7 @@ export function Register({ state, locket, query, portfolioFilter = '' }: { state
       <p><a className="lk-button" href="#queue">Request queue</a></p>
       <details className="lk-disclosure"><summary>Custom reports</summary><Reports state={state} locket={locket} /></details>
       <details className="lk-disclosure"><summary>Repository access rules</summary><RepositoryAccess state={state} locket={locket}/></details>
+      <details className="lk-disclosure"><summary>Bulk repository actions</summary><RepositoryBulk state={state} locket={locket} rows={status ? rows.filter(a => columns.find(c => c.id === status)?.statuses.includes(a.status)) : rows} /></details>
       {state.fieldAccess.documentsWithheld&&<p className="lk-note">Some fields and unredacted documents are hidden from your role.</p>}
       <SavedViews state={state} locket={locket} query={query} onActive={setViewOpen} />
       {tile && <p><a href="#portfolio">Back to portfolio</a> · <a href="#agreements">Clear portfolio filter</a> · {rows.length} agreements · {money(rows.reduce((sum, a) => sum + (a.value_cents ?? 0), 0))} USD</p>}
