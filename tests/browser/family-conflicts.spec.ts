@@ -73,10 +73,20 @@ for (const width of [1440,390]) test(`AGENT-005 counsel resolves executed notice
   const f=await familyAnalysisFixture(p)
   const counsel=await p.h.invite('synthetic-locket-browser-counsel@example.test','counsel')
   const screenshot=async(name:string)=>{if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-agent-005-${name}.png`),fullPage:true})}expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)}
+  const as=async(client:any)=>{
+   await page.context().clearCookies()
+   await page.context().addCookies(client.cookie.split('; ').map((pair:string)=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:p.origin,secure:true,httpOnly:true,sameSite:'Lax' as const}}))
+   await page.reload()
+  }
   await page.goto(`${p.origin}/app#agreement/${f.master.id}/family`)
   const panel=page.getByRole('region',{name:'Governing family analysis',exact:true})
   await panel.getByRole('button',{name:'Prepare executed-family analysis',exact:true}).click()
   await expect(panel).toContainText('Derived actions blocked.')
+  await as(counsel)
+  await expect(panel.getByRole('button',{name:'Analyze approved snapshot',exact:true})).toHaveCount(0)
+  expect(calls).toHaveLength(0)
+  await screenshot('awaiting-owner-consent')
+  await as(p.h.owner)
   await panel.getByRole('checkbox').check()
   await panel.getByRole('button',{name:'Analyze approved snapshot',exact:true}).click()
   await expect(panel).toContainText('The MSA, amendment and order state different notice periods.')
