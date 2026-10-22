@@ -86,14 +86,21 @@ test('REPORT-001 measures twenty public request journeys, period throughput, rep
   const approver=await h.invite('synthetic-locket-slowest@example.test','approver')
   const slow=await request(h.owner,'synthetic-locket-slow-approval');await submit(h.owner,slow.id)
   row=await find(h.owner,slow.id)
+  const requestedAt=(await h.owner.state()).now
   await h.owner.command('approval.email',{agreementId:row.id,version:row.version,versionId:row.current_version_id,recipientId:approver.id})
+  const laterApprover=await h.invite('synthetic-locket-later@example.test','approver')
+  await h.setTime(requestedAt+5*minute)
+  const later=await request(h.owner,'synthetic-locket-later-approval');await submit(h.owner,later.id)
+  const laterRow=await find(h.owner,later.id)
+  await h.owner.command('approval.email',{agreementId:later.id,version:laterRow.version,versionId:laterRow.current_version_id,recipientId:laterApprover.id})
   const deadline=(await h.owner.state()).requestQueue.work.find(w=>w.agreement_id===slow.id).due_at
   // Continue the multi-day journey through a fresh public sign-in session.
   h.owner=await h.signIn('owner@example.test')
   await h.setTime(deadline+minute)
   out=await read()
   assert.equal(out.approvers[0].approverId,approver.id)
-  assert.ok(out.approvers[0].longestWaitMs>0)
+  assert.equal(out.approvers[0].longestWaitMs,deadline+minute-requestedAt)
+  assert.equal(out.approvers.find(p=>p.approverId===laterApprover.id).longestWaitMs,deadline+minute-requestedAt-5*minute)
   assert.ok(out.serviceLevels.intervals.find(s=>s.agreementId===slow.id).breached)
   const archive = await (await h.owner.request('/api/locket/export')).json()
   const events = archive.records.lk_workflow_history.filter(e => e.agreement_id === pending.id)
