@@ -1,3 +1,4 @@
+import { familyEvaluationApproved } from './family-evaluations'
 import { playbookRecommendationState } from './playbook-recommendations'
 import { selectScopedPlaybook } from './playbook-recommendation-analysis'
 import { reconciliationState } from './reconciliation-records'
@@ -82,7 +83,7 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
     ...await reconciliationState(env,actor),
     serviceLevels:await serviceLevelState(env,actor),
     ...await familyAnalysisState(env,agreements,terms),
-    familyModel: fullReaders.includes(actor.role)?{enabled:env.AI_ENABLED==='true'&&env.AI_TRAINING_PROHIBITED==='true',model:env.AI_MODEL??null,endpoint:(()=>{try{return new URL(env.MODELS_SERVICE??env.AI_BASE_URL??'https://api.openai.com/v1').origin}catch{return null}})()}:null,
+    familyModel: fullReaders.includes(actor.role)?{enabled:env.AI_ENABLED==='true'&&env.AI_TRAINING_PROHIBITED==='true'&&await familyEvaluationApproved(env),model:env.AI_MODEL??null,endpoint:(()=>{try{return new URL(env.MODELS_SERVICE??env.AI_BASE_URL??'https://api.openai.com/v1').origin}catch{return null}})()}:null,
     renewalBriefs,
     renewalBriefSettings: mine(await all(db,'SELECT * FROM lk_renewal_brief_settings'),ids),
     accountingLinks: mine(await all(db,'SELECT * FROM lk_accounting_links'),ids),

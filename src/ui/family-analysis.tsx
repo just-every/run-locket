@@ -17,20 +17,21 @@ export function FamilyAnalysis({state,root,locket}:{state:LocketState;root:Row;l
   <p>Compare executed text and confirmed terms. Counsel confirms precedence, effective terms and exactly which parent obligations use them.</p>
   {blocked&&<p role="status"><strong>Derived actions blocked.</strong> Renewal decisions, notices and obligation completion wait for counsel’s current resolution. <a href={`#agreement/${root.id}/family`}>Review this family</a>.</p>}
   {!latest&&<p>No executed-text analysis has been prepared.</p>}
-  {preparer&&!state.familyModel?.enabled&&<p>Family analysis is off. The owner must configure and enable a model connection under a contract prohibiting training on these texts first.</p>}
+  {preparer&&!state.familyModel?.enabled&&<p>Family analysis is off. The owner must configure and enable a model connection under a contract prohibiting training on these texts. A passing REVIEW-006 live evaluation for the exact provider, model and prompt is also required.</p>}
   {preparer&&state.familyModel?.enabled&&<p>Configured model: {state.familyModel.model} at {state.familyModel.endpoint}.</p>}
   {latest?.stale&&<p role="alert">Source family changed. Prepare a new analysis; previous choices no longer authorize derived actions.</p>}
-  {preparer&&(!latest||latest.stale||latest.status==='resolved')&&<button type="button" disabled={locket.busy||!state.familyModel?.enabled} onClick={()=>void locket.run('family.analysis.prepare',{agreementId:root.id})}>Prepare executed-family analysis</button>}
+  {preparer&&(!latest||latest.stale||latest.status==='resolved')&&<button type="button" disabled={locket.busy} onClick={()=>void locket.run('family.analysis.prepare',{agreementId:root.id})}>Prepare executed-family analysis</button>}
   {latest&&<>
    <p>Analysis {latest.revision} · {words(latest.status)} · prepared by {personName(state,latest.prepared_by)}</p>
    <details><summary>Exact source snapshot</summary>{parse<any[]>(latest.sources).map(s=><article key={s.agreementId}>
     <h3><a href={`#agreement/${s.agreementId}/document`}>{s.title}</a></h3>
     {s.pages.map((p:any,i:number)=><blockquote key={i}>{p.page?`Page ${p.page}: `:''}{p.text}</blockquote>)}
    </article>)}</details>
-   {latest.status==='prepared'&&!latest.stale&&runner&&<Form busy={locket.busy} submit="Analyze approved snapshot" onSubmit={data=>void locket.run('family.analysis.run',{analysisId:latest.id,sourceDigest:latest.source_digest,consent:data.has('consent')})}>
+   {latest.status==='prepared'&&!latest.stale&&runner&&state.familyModel?.enabled&&<Form busy={locket.busy} submit="Analyze approved snapshot" onSubmit={data=>void locket.run('family.analysis.run',{analysisId:latest.id,sourceDigest:latest.source_digest,consent:data.has('consent')})}>
     <p>The configured model receives only these executed texts and confirmed terms. Its interpretations remain proposals. One request; no automatic provider retry.</p>
     <Field label="I authorize this exact family snapshot to the configured model"><input type="checkbox" name="consent" required/></Field>
    </Form>}
+   {latest.status==='prepared'&&!state.familyModel?.enabled&&<p role="status">Live family evaluation required. No model request or governing change is available.</p>}
    {latest.status==='prepared'&&!latest.stale&&!runner&&<p>The owner must authorize sending this exact source snapshot to the configured model.</p>}
    {conflicts.map(conflict=><article key={conflict.key} className="lk-family-term">
     <h3>{words(conflict.key)}</h3><p>{conflict.summary}</p>
