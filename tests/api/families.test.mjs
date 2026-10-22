@@ -127,6 +127,7 @@ test('AGENT-005 executed family analysis requires exact consent, blocks derived 
  const analysis=await h.owner.command('family.analysis.prepare',{agreementId:f.master.id})
  const before=await h.owner.state()
  assert.ok(before.familyBlocks.includes(f.master.id));assert.equal(calls.length,0)
+ await counsel.command('family.analysis.run',{analysisId:analysis.id,sourceDigest:analysis.sourceDigest,consent:true},{error:'FORBIDDEN'})
  await h.owner.command('family.analysis.run',{analysisId:analysis.id,sourceDigest:analysis.sourceDigest,consent:false},{error:'CONSENT'})
  assert.equal(calls.length,0)
  await h.owner.command('notice.prepare',{renewalId:renewal.id,recipient:'synthetic-locket-notices@example.test',body:'Blocked draft'},{error:'FAMILY_BLOCKED'})

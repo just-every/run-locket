@@ -11,7 +11,7 @@ export function FamilyAnalysis({state,root,locket}:{state:LocketState;root:Row;l
  const latest=analyses[0],blocked=state.familyBlocks.includes(root.id)
  const conflicts=latest?parse<AnalysisConflict[]>(latest.conflicts):[]
  const current=lifecycle(root,state.terms,state.renewals,state.notices,state.now,state.settings.rollNoticeDeadlines)
- const preparer=can(state,'owner','counsel'),counsel=can(state,'counsel')
+ const preparer=can(state,'owner','counsel'),counsel=can(state,'counsel'),runner=can(state,'owner')
  return <section className="lk-panel" aria-label="Governing family analysis">
   <div className="lk-panel-head"><h2>Governing family analysis</h2></div>
   <p>Compare executed text and confirmed terms. Counsel confirms precedence, effective terms and exactly which parent obligations use them.</p>
@@ -27,10 +27,11 @@ export function FamilyAnalysis({state,root,locket}:{state:LocketState;root:Row;l
     <h3><a href={`#agreement/${s.agreementId}/document`}>{s.title}</a></h3>
     {s.pages.map((p:any,i:number)=><blockquote key={i}>{p.page?`Page ${p.page}: `:''}{p.text}</blockquote>)}
    </article>)}</details>
-   {latest.status==='prepared'&&!latest.stale&&preparer&&<Form busy={locket.busy} submit="Analyze approved snapshot" onSubmit={data=>void locket.run('family.analysis.run',{analysisId:latest.id,sourceDigest:latest.source_digest,consent:data.has('consent')})}>
+   {latest.status==='prepared'&&!latest.stale&&runner&&<Form busy={locket.busy} submit="Analyze approved snapshot" onSubmit={data=>void locket.run('family.analysis.run',{analysisId:latest.id,sourceDigest:latest.source_digest,consent:data.has('consent')})}>
     <p>The configured model receives only these executed texts and confirmed terms. Its interpretations remain proposals. One request; no automatic provider retry.</p>
     <Field label="I authorize this exact family snapshot to the configured model"><input type="checkbox" name="consent" required/></Field>
    </Form>}
+   {latest.status==='prepared'&&!latest.stale&&!runner&&<p>The owner must authorize sending this exact source snapshot to the configured model.</p>}
    {conflicts.map(conflict=><article key={conflict.key} className="lk-family-term">
     <h3>{words(conflict.key)}</h3><p>{conflict.summary}</p>
     {conflict.candidates.map((candidate,i)=>{

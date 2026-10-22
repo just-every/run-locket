@@ -26,12 +26,12 @@ const prepare:Handler=async(c,p)=>{
  return {allowed:['owner','counsel'],result:{id,sourceDigest:current.digest,status:'prepared'},checks:[...current.checks,sql('(SELECT COALESCE(MAX(revision),0) FROM lk_family_analyses WHERE root_id=?)=?',current.root.id,last.n)],writes:[sql("INSERT INTO lk_family_analyses(id,root_id,revision,facts,sources,source_digest,status,prepared_by,prepared_at) VALUES(?,?,?,?,?,?,'prepared',?,?)",id,current.root.id,revision,json(current.facts),json(current.sources),current.digest,c.actor.id,c.now)],audit:[{action:'family.analysis.prepare',agreementId:current.root.id,summary:'Prepared an exact executed-family snapshot; derived actions are blocked until counsel resolves it. No provider request made.'}]}
 }
 const run:Handler=async(c,p)=>{
- requireRole(c.actor,['owner','counsel'],'authorize a family model analysis')
+ requireRole(c.actor,['owner'],'authorize a family model analysis')
  const {analysis,current}=await analysisOf(c,p.analysisId)
  if(analysis.status!=='prepared')fail('STATUS','This analysis already ran. Prepare a new exact snapshot for another request.',409)
  if(p.consent!==true||p.sourceDigest!==analysis.source_digest)fail('CONSENT','Explicitly approve sending this exact family snapshot to the configured model.',409)
  const conflicts=await analyzeFamily(c,JSON.parse(analysis.sources) as FamilySource[])
- return {allowed:['owner','counsel'],result:{id:analysis.id,status:'pending'},checks:[...current.checks,sql("(SELECT status FROM lk_family_analyses WHERE id=?)='prepared'",analysis.id)],writes:[sql("UPDATE lk_family_analyses SET status='pending',conflicts=?,analyzed_at=? WHERE id=?",json(conflicts),c.now,analysis.id)],audit:[{action:'family.analysis.run',agreementId:current.root.id,summary:'Explicit consent to the configured model for the exact executed-family snapshot; verified candidate passages retained. No governing choice applied.'}]}
+ return {allowed:['owner'],result:{id:analysis.id,status:'pending'},checks:[...current.checks,sql("(SELECT status FROM lk_family_analyses WHERE id=?)='prepared'",analysis.id)],writes:[sql("UPDATE lk_family_analyses SET status='pending',conflicts=?,analyzed_at=? WHERE id=?",json(conflicts),c.now,analysis.id)],audit:[{action:'family.analysis.run',agreementId:current.root.id,summary:'Explicit consent to the configured model for the exact executed-family snapshot; verified candidate passages retained. No governing choice applied.'}]}
 }
 const resolve:Handler=async(c,p)=>{
  requireRole(c.actor,['counsel'],'confirm family precedence and operational scope')
