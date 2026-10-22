@@ -342,10 +342,11 @@ test('REPO-011 reviewed bulk changes preserve custody, reassign open work, round
   const o=await h.owner.command('obligation.add',{agreementId:id,description:'Deliver synthetic evidence',ownerId:own,dueDate:'2027-05-01',recurrence:'none',citation:{quote:'Agreed terms.'}})
   await h.owner.command('obligation.update',{agreementId:id,obligationId:o.id,action:'confirm'});obligations.push(o.id)
  }
- const terms={effective_date:'2026-01-01',end_date:'2027-12-31',auto_renew:'no',notice_days:'30'}
+ const terms={effective_date:'2026-01-01',end_date:'2027-12-31',auto_renew:'no',notice_days:'30',governing_law:'New York',payment_terms:'Net 30'}
  const termProposal=await h.owner.command('proposal.prepare',{kind:'terms',payload:{agreementId:ids[0],terms:Object.entries(terms).map(([key,value])=>({key,value,citation:{quote:'Agreed terms.'}}))},evidence:['Synthetic original, page 1']})
  await h.owner.command('proposal.decide',{proposalId:termProposal.id,decision:'approve'})
  const reminders=await h.owner.command('renewal.bulk.preview',{agreementIds:[ids[0]],ownerId:own,offsets:[7]})
+ assert.equal(reminders.tracked.length,1,'the fixture must have a live confirmed reminder before reassignment')
  await h.owner.command('renewal.bulk.apply',{previewId:reminders.id})
  const definition={query:'synthetic-locket-',filters:[{field:'status',operator:'eq',value:'imported'}],sort:{field:'title',direction:'asc'},columns:['title','type','owner']}
  const saved=await h.owner.command('view.save',{name:'Synthetic imported repository',definition,sharedRoles:[]})
