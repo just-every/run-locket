@@ -68,3 +68,42 @@ for (const width of [1440, 390]) {
     } finally { await product.close() }
   })
 }
+
+
+for(const width of [1440,390])test(`RENEW-005 reviews cited cap and accounting spend then opens an intake-routed renegotiation at ${width}px`,async({page})=>{
+ const {accountingBindings,accountingFake,renewalBriefFixture}=await import('../api/renewal-brief-fixture.mjs')
+ const product=await productPage(page,{width,bindings:{...accountingBindings,TEST_NOW:String(Date.parse('2026-10-17T14:00:00Z'))},outboundResponse:accountingFake([])})
+ const shot=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-renew-005-${name}.png`),fullPage:true})}}
+ const click=async(scope:any,name:string)=>{const pending=page.waitForResponse(r=>r.url()===product.origin+'/api/locket/commands'&&r.request().method()==='POST');await scope.getByRole('button',{name,exact:true}).click();const body=await(await pending).json();expect(body.ok,JSON.stringify(body.error)).toBe(true);await expect(page.locator('main')).toHaveAttribute('aria-busy','false')}
+ try{
+  const f=await renewalBriefFixture(product.h)
+  await page.goto(product.origin+'/app#renewals')
+  const section=page.getByRole('region',{name:'Renewal brief',exact:true})
+  await expect(section).toContainText('14 days before')
+  await section.getByText('Configure renewal brief and accounting',{exact:true}).click()
+  await expect(section.getByLabel('QuickBooks vendor id')).toHaveValue('42')
+  await click(section,'Save brief settings')
+  await shot('configured')
+  await product.h.setTime(f.due);await product.h.scheduled(f.due)
+  await page.reload()
+  await expect(section).toContainText('$84,000.00 USD')
+  await expect(section).toContainText(f.quote)
+  await expect(section).toContainText('Bill 8: $10500.00 USD')
+  await expect(section.getByRole('link',{name:'Download renewal brief PDF'})).toBeVisible()
+  await shot('brief')
+  await click(section,'Prepare current brief')
+  expect((await product.state()).renewalBriefs.length).toBe(1)
+  await section.getByLabel('Renewal option',{exact:true}).selectOption('renegotiate')
+  await section.getByLabel('Security review *',{exact:true}).selectOption('Enhanced review')
+  await click(section,'Open renewal request')
+  const state=await product.state(),request=state.agreements.find((a:any)=>a.relation==='renews')
+  await expect(page).toHaveURL(new RegExp(`#agreement/${request.id}`))
+  expect(request.parent_id).toBe(f.source.id)
+  expect(state.requestForms.find((r:any)=>r.agreement_id===request.id).approval_role).toBe('counsel')
+  await expect(page.getByRole('heading',{name:'Renewal: synthetic-locket supplier',exact:true})).toBeVisible()
+  await shot('linked-request')
+  await page.goto(product.origin+'/app#renewals')
+  await expect(section.getByRole('link',{name:'Open linked renewal request'})).toBeVisible()
+  await shot('recorded')
+ }finally{await product.close()}
+})

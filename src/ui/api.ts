@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type Row = { id: string; [key: string]: any }
 export interface LocketState {
+ renewalBriefs:Row[]
+ renewalBriefSettings:Row[]
+ accountingLinks:Row[]
   legalHolds: Row[]
   retentionRule: Row|null
   erasures: Row[]

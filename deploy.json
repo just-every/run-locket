@@ -57,6 +57,21 @@
       "binding": "POSTMARK_REPLY_DOMAIN",
       "environment": "POSTMARK_REPLY_DOMAIN",
       "optional": true
+    },
+    {
+      "binding": "QUICKBOOKS_ACCESS_TOKEN",
+      "environment": "QUICKBOOKS_ACCESS_TOKEN",
+      "optional": true
+    },
+    {
+      "binding": "QUICKBOOKS_REALM_ID",
+      "environment": "QUICKBOOKS_REALM_ID",
+      "optional": true
+    },
+    {
+      "binding": "QUICKBOOKS_SANDBOX",
+      "environment": "QUICKBOOKS_SANDBOX",
+      "optional": true
     }
   ],
   "crons": [

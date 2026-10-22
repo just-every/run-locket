@@ -13,8 +13,8 @@ async function assets() {
   return product
 }
 
-export async function productPage(page, { width = 1440, bindings = {} } = {}) {
-  const h = await installation({ bindings })
+export async function productPage(page, { width = 1440, bindings = {}, outboundResponse } = {}) {
+  const h = await installation({ bindings, outboundResponse })
   try {
     const built = await assets()
     const script = built.outputFiles.find(f => f.path.endsWith('.js')).text

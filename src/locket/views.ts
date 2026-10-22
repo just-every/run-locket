@@ -1,3 +1,4 @@
+import { canReadBrief } from './renewal-briefs'
 import { ruleDraft } from './approval-rules'
 import { hiddenFields, repositoryPolicy, redactWorkspace, requireFullFields } from './repository-access'
 import { requestQueue } from './request-queue'
@@ -49,7 +50,9 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
   const db = env.DB
   const { agreements, ids, hiddenParties } = await visibleIds(env, actor)
   const versions = mine(await all(db, 'SELECT id, agreement_id, number, kind, label, template_version_id, fields, text, text_source, digest, created_by, created_at FROM lk_versions ORDER BY number'), ids)
-  const artifacts = mine(await all(db, 'SELECT id, agreement_id, version_id, role, filename, media_type, size, sha256, source_system, source_id, provenance, imported, uploaded_by, uploaded_at FROM lk_artifacts ORDER BY uploaded_at'), ids)
+  const candidateArtifacts = mine(await all(db, 'SELECT id, agreement_id, version_id, role, filename, media_type, size, sha256, source_system, source_id, provenance, imported, uploaded_by, uploaded_at FROM lk_artifacts ORDER BY uploaded_at'), ids)
+  const artifacts=[]
+  for(const artifact of candidateArtifacts){const provenance=JSON.parse(artifact.provenance);if(provenance.kind!=='renewal_brief'||await canReadBrief(db,actor,{sources:JSON.stringify(provenance.sources)}))artifacts.push(artifact)}
   const routes: Record<string, unknown> = {}
   for (const a of agreements) if (['draft', 'in_review', 'approved'].includes(a.status)) routes[a.id] = await routing(db, a)
   const operators = await all(db, "SELECT o.id, o.display_name AS name, o.email, o.status, CASE WHEN o.role='owner' THEN 'owner' ELSE COALESCE(r.role,'viewer') END AS role FROM oa_operators o LEFT JOIN lk_roles r ON r.operator_id=o.id ORDER BY o.created_at")
@@ -61,7 +64,12 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
   const parties = (await all(db, 'SELECT * FROM lk_parties ORDER BY name')).filter(p => !hiddenParties.has(p.id))
   if (scheduledReport) await recordReportReads(env, actor, agreements, scheduledReport)
   else await recordReads(env, actor, agreements.filter(a => a.restricted).map(a => ({ action: 'agreement.view', agreementId: a.id, summary: 'Read restricted agreement in workspace state.' })))
+  const renewalBriefs=[]
+  for(const b of mine(await all(db,'SELECT * FROM lk_renewal_briefs ORDER BY prepared_at DESC'),ids)) if(await canReadBrief(db,actor,b))renewalBriefs.push(b)
   return redactWorkspace({
+    renewalBriefs,
+    renewalBriefSettings: mine(await all(db,'SELECT * FROM lk_renewal_brief_settings'),ids),
+    accountingLinks: mine(await all(db,'SELECT * FROM lk_accounting_links'),ids),
     legalHolds: mine(await all(db,'SELECT * FROM lk_legal_holds'),ids),
     retentionRule: actor.role==='owner' ? await db.prepare("SELECT * FROM lk_retention_rules WHERE id='installation'").first() : null,
     erasures: actor.role==='owner' ? await all(db,'SELECT * FROM lk_erasures ORDER BY at DESC') : [],
@@ -154,6 +162,7 @@ export async function download(env: Bindings, actor: Actor, id: string): Promise
   const artifact = await env.DB.prepare('SELECT * FROM lk_artifacts WHERE id=?').bind(id).first<any>()
   const { ids } = await visibleIds(env, actor)
   if (!artifact || (artifact.agreement_id && !ids.has(artifact.agreement_id))) fail('NOT_FOUND', 'No file you can access has that identity.', 404)
+  if(JSON.parse(artifact.provenance).kind==='renewal_brief') {const provenance=JSON.parse(artifact.provenance);if(!await canReadBrief(env.DB,actor,{sources:JSON.stringify(provenance.sources)}))fail('NOT_FOUND','The brief contains sources you cannot currently access.',404)}
   const bytes = await readArtifactBytes(env.DB, id)
   await recordReads(env, actor, [{ action: 'file.download', agreementId: artifact.agreement_id, summary: `Downloaded ${artifact.filename} (${artifact.id}, SHA-256 ${artifact.sha256}).` }])
   return new Response(bytes as BodyInit, {
@@ -171,7 +180,7 @@ export async function download(env: Bindings, actor: Actor, id: string): Promise
 export async function exportArchive(env: Bindings, actor: Actor) {
   requireRole(actor, may.export, 'export the complete archive')
   const db = env.DB
-  const tables = ['lk_repository_bulk','lk_repository_bulk_items','lk_agreement_groups','lk_exchanges','lk_exchange_commands','lk_version_audiences','lk_comment_audiences','lk_workflow_stages','lk_workflow_service_levels','lk_legal_holds','lk_erasure_previews','lk_erasure_blocks','lk_erasure_keys','lk_erasures','lk_retention_rules','lk_retention_previews','lk_approval_rule_drafts','lk_approval_rule_versions','lk_approval_rule_snapshots','lk_approval_inputs','lk_approval_absences','lk_approval_rule_decisions','lk_rule_pending','lk_rule_reminder_events','lk_repository_policy','lk_agreement_departments','lk_view_groups','lk_queue_rules','lk_request_work','lk_request_cancellations','lk_queue_escalations','lk_intake_audiences', 'lk_intake_members', 'lk_intake_forms', 'lk_intake_form_versions', 'lk_request_forms', 'lk_custom_fields', 'lk_custom_values', 'lk_workflow_history', 'lk_notice_sources', 'lk_notice_plans', 'lk_entities', 'lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations', 'lk_notice_letters', 'lk_notice_dispatches', 'lk_notice_events', 'lk_notice_tracking', 'lk_saved_views', 'lk_view_pins', 'lk_approval_reminder_settings', 'lk_person_preferences', 'lk_deadline_reminder_settings', 'lk_deadline_reminders', 'lk_deadline_reminder_events', 'lk_approval_reminders', 'lk_installation_settings', 'lk_reports', 'lk_report_deliveries', 'lk_notifications', 'lk_notification_deliveries']
+  const tables = ['lk_price_caps','lk_accounting_links','lk_renewal_brief_settings','lk_renewal_briefs','lk_repository_bulk','lk_repository_bulk_items','lk_agreement_groups','lk_exchanges','lk_exchange_commands','lk_version_audiences','lk_comment_audiences','lk_workflow_stages','lk_workflow_service_levels','lk_legal_holds','lk_erasure_previews','lk_erasure_blocks','lk_erasure_keys','lk_erasures','lk_retention_rules','lk_retention_previews','lk_approval_rule_drafts','lk_approval_rule_versions','lk_approval_rule_snapshots','lk_approval_inputs','lk_approval_absences','lk_approval_rule_decisions','lk_rule_pending','lk_rule_reminder_events','lk_repository_policy','lk_agreement_departments','lk_view_groups','lk_queue_rules','lk_request_work','lk_request_cancellations','lk_queue_escalations','lk_intake_audiences', 'lk_intake_members', 'lk_intake_forms', 'lk_intake_form_versions', 'lk_request_forms', 'lk_custom_fields', 'lk_custom_values', 'lk_workflow_history', 'lk_notice_sources', 'lk_notice_plans', 'lk_entities', 'lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations', 'lk_notice_letters', 'lk_notice_dispatches', 'lk_notice_events', 'lk_notice_tracking', 'lk_saved_views', 'lk_view_pins', 'lk_approval_reminder_settings', 'lk_person_preferences', 'lk_deadline_reminder_settings', 'lk_deadline_reminders', 'lk_deadline_reminder_events', 'lk_approval_reminders', 'lk_installation_settings', 'lk_reports', 'lk_report_deliveries', 'lk_notifications', 'lk_notification_deliveries']
   const records: Record<string, unknown[]> = {}
   for (const t of [...tables, 'lk_reminder_routing']) records[t] = await all(db, `SELECT * FROM ${t}`)
   const files = []

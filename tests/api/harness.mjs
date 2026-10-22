@@ -24,7 +24,7 @@ async function freePort() {
   return port
 }
 
-export async function installation({ bindings = {}, mailResponse } = {}) {
+export async function installation({ bindings = {}, mailResponse, outboundResponse } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'locket-api-'))
   const setup = randomBytes(32).toString('hex')
   // Production-shaped: local runtimes suppress mail, so invitation links leave
@@ -37,6 +37,7 @@ export async function installation({ bindings = {}, mailResponse } = {}) {
       host: '127.0.0.1', port: Number(new URL(origin).port), https: true, modules: true, script, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: ['DB'],
       bindings: workerBindings,
       outboundService: async request => {
+        if(outboundResponse && /^(sandbox-)?quickbooks\.api\.intuit\.com$/.test(new URL(request.url).hostname))return outboundResponse(request)
         if(request.url==='https://api.postmarkapp.com/email'){
           const raw=await request.json();mails.push({...raw,from:raw.From,to:[raw.To],subject:raw.Subject,text:raw.TextBody,html:raw.HtmlBody});
           return mailResponse ? mailResponse(mails.at(-1)) : Response.json({ErrorCode:0,MessageID:`synthetic-locket-postmark-${mails.length}`})

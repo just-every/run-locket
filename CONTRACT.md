@@ -529,7 +529,11 @@ At a configured lead time before each notice deadline, Locket prepares a renewal
 
 *Acceptance:* a journey with an accounting fake reaches the lead time on a supplier agreement; the brief cites the cap clause and shows spend to date; choosing renegotiate opens a linked renewal request routed under `INTAKE-002`.
 
-*Status:* partial. Renewal decisions and agent-prepared notice drafts ship (`src/locket/obligations.ts`, `src/locket/proposals.ts`); briefs and renewal-request creation do not exist.
+An owner configures the lead time and an active owner/approver decision-maker with current agreement access. The hourly scheduled run prepares one immutable brief per current deadline and source revision, using REPORT-003’s current-term projection; RENEW-007 inherits its expanded term types and durable history. The brief retains confirmed terms and their citations, person-confirmed price-increase caps, accessible amendments, obligations with their evidence and observed service-level history, unresolved comments/findings, and all three options with the current notice deadline. A read-only, owner-authorized QuickBooks vendor link adds dated USD bills incurred since the confirmed effective date (else recorded start, else installation record date). Bills are vendor-period spend, with outstanding balances shown separately; no allocation across contracts or payment total is inferred. Missing credentials, failed pages, non-USD data and oversized selections never produce a zero or partial total. No accounting write, renewal choice or supplier contact occurs automatically.
+
+Renew/renegotiate is an explicit decision by the named decision-maker or owner. It opens one request linked as `renews` through the same current published INTAKE-002 form, typed answers, launch audience, requirements, queue and frozen approval-rule snapshot as any request, preserving source restrictions and attaching the brief’s exact PDF bytes. Changed sources/configuration require a newly reviewed brief. State and downloads recheck access to every included source; roles with hidden fields receive no brief content. Original snapshots, decisions and accounting provenance remain in the owner archive. LINK-001 retains other accounting providers, payments and outbound proposed schedules.
+
+*Status:* done. `tests/api/notices.test.mjs` — “RENEW-005 prepares one cited accounting brief at lead time and opens the current intake-routed renewal with exact PDF custody” proves lead-time generation, concurrent/repeated one-use preparation, the QuickBooks network-edge fake’s eight bills/$84,000, cited cap/terms/amendment/obligation/open issue, decision options/deadline, current form routing, exact PDF attachment, replay and archive. “RENEW-005 refuses stale, inaccessible and unauthorized workflows; failed accounting never saves a zero-spend brief” proves provider/currency failure, denied roles/current access and stale sources. `tests/browser/notices.spec.ts` — “RENEW-005 reviews cited cap and accounting spend then opens an intake-routed renegotiation at 1440px/390px” proves settings, brief contents/download, explicit choice, current typed form and linked request.
 
 #### RENEW-006 — Send approved notices with delivery evidence.
 An approved notice (`RENEW-001`) is sent from Locket by email to the counterparty's approved notice address with the PDF letter attached, or exported as a letter for certified mail or courier with the tracking number recorded. The current email connection is the installation's mail provider (currently Resend); other notice providers added by `INT-004` inherit the same approved-recipient/PDF, single-send and authenticated-event obligations before shipping. Until `REPO-010` adds the counterparty notice-address directory, the preparer enters the notice address on each draft and the approver reviews that exact recipient. `REPO-010` inherits the same frozen recipient when its directory ships.
@@ -573,7 +577,7 @@ The owner connects Pantry, QuickBooks Online or NetSuite. Agreements link to the
 
 *Acceptance:* a journey with a QuickBooks Online fake links a supplier agreement to its vendor, reads 8 bills totaling $84,000 against a $100,000 contract, shows 84% consumed, and a Pantry fake receives a proposed payment schedule that stays pending until accepted there.
 
-*Status:* missing. No accounting connection exists.
+*Status:* partial. RENEW-005 ships an owner-authorized read-only QuickBooks Online vendor-period bill reader with network-edge proof. Pantry/NetSuite, payments/revenue, schedule comparison and outbound proposed schedules remain unbuilt; no live-account claim is made.
 
 #### LINK-002 — Procurement links: Purse and Coupa.
 A purchase request in Purse or Coupa that needs a contract opens a Locket request with supplier, amount and requester. On execution, Locket sends the supplier record the contract's key terms (value cap, dates, payment terms, renewal) so purchase orders draw down against it, and reads PO totals back to show remaining value.
@@ -962,8 +966,8 @@ REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 26 | 26 | 28 | 80 |
-| All | 45 | 26 | 28 | 99 |
+| Target and push further | 27 | 26 | 27 | 80 |
+| All | 46 | 26 | 27 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1030,10 +1034,10 @@ REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence 
 | `RENEW-002` | Delivered reminders and escalation by email | target | done | `src/locket/deadline-reminders.ts`; `src/locket/deadline-reminder-dispatch.ts`; `tests/api/deadline-reminders.test.mjs`; `tests/browser/deadline-reminders.spec.ts` |  |
 | `RENEW-003` | Deadlines on Google Calendar and Outlook | target | missing |  | No calendar connection exists |
 | `RENEW-004` | Bulk reminders for imported contracts | target | done | `src/locket/bulk-reminders.ts`; `src/locket/bulk-reminder-operations.ts`; `tests/api/bulk-reminders.test.mjs`; `tests/browser/bulk-reminders.spec.ts` | |
-| `RENEW-005` | Renewal briefs and renewal workflows | target | partial | `src/locket/obligations.ts`; `src/locket/proposals.ts` | Briefs and renewal-request creation do not exist |
+| `RENEW-005` | Renewal briefs and renewal workflows | target | done | `tests/api/notices.test.mjs` — RENEW-005 prepares one cited accounting brief at lead time and opens the current intake-routed renewal with exact PDF custody (lead time, cap/current terms/amendment/obligation/issue, QuickBooks fake spend, options/deadline, routing, PDF/replay/archive); RENEW-005 refuses stale, inaccessible and unauthorized workflows; failed accounting never saves a zero-spend brief (failures/access/staleness); `tests/browser/notices.spec.ts` — RENEW-005 reviews cited cap and accounting spend then opens an intake-routed renegotiation at 1440px/390px (settings, review, choice, form, linked request) | None for current fixed/auto-renewing terms; RENEW-007 inherits expanded types/history; LINK-001 retains wider accounting scope |
 | `RENEW-006` | Send approved notices with delivery evidence | target | done | `src/locket/notice-mail.ts`; `src/locket/notice-events.ts`; `src/locket/notice-tracking.ts`; `tests/api/notices.test.mjs`; `tests/browser/notices.spec.ts` |  |
 | `RENEW-007` | Auto-renewal roll-forward and lifecycle status | target | partial | `src/locket/obligations.ts`; `src/ui/renewals.tsx` | REPORT-003 projects recorded terms read-only; optional/evergreen types, limits, early termination, durable daily history, supersession and reminder/calendar parity remain absent |
-| `LINK-001` | Accounting links: Pantry, QuickBooks Online and NetSuite | target | missing |  | No accounting connection exists |
+| `LINK-001` | Accounting links: Pantry, QuickBooks Online and NetSuite | target | partial | `tests/api/notices.test.mjs` — RENEW-005 prepares one cited accounting brief at lead time and opens the current intake-routed renewal with exact PDF custody (read-only QuickBooks vendor-period bills) | Pantry/NetSuite, payments/revenue, contract schedule comparison and outbound proposed schedules remain |
 | `LINK-002` | Procurement links: Purse and Coupa | target | missing |  | No procurement connection exists |
 | `LINK-003` | Proposal and billing handoffs: Platter and Nectar | target | missing |  | No proposal or billing connection exists |
 | `INT-001` | Google Drive, OneDrive/SharePoint and Chest | target | missing |  | No storage connection exists |

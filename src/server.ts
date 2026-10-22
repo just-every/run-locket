@@ -1,3 +1,4 @@
+import { runRenewalBriefs } from './locket/renewal-briefs'
 import { runRetentionReminders } from './locket/retention-reminders'
 import { runRuleReminders } from './locket/approval-rules'
 import { runQueueEscalations } from './locket/request-queue'
@@ -53,6 +54,7 @@ export default withDemo({
     await runQueueEscalations(runtimeBindings(env), controller.scheduledTime)
     await runApprovalReminders(runtimeBindings(env), controller.scheduledTime)
     await runDeadlineReminders(runtimeBindings(env), controller.scheduledTime)
+    await runRenewalBriefs(runtimeBindings(env), controller.scheduledTime)
     await runRetentionReminders(runtimeBindings(env), controller.scheduledTime)
     await runNotifications(runtimeBindings(env), controller.scheduledTime)
     await runNoticeAgent(runtimeBindings(env), controller.scheduledTime)

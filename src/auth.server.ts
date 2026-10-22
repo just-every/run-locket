@@ -11,6 +11,9 @@ import branding from './branding.json'
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ QUICKBOOKS_ACCESS_TOKEN?: string
+ QUICKBOOKS_REALM_ID?: string
+ QUICKBOOKS_SANDBOX?: string
  /** Server-only HMAC key for customer-site clickwrap identity assertions. */
  CLICKWRAP_SIGNING_KEY?: string
  /** Resend endpoint signing key; never returned to a browser. */

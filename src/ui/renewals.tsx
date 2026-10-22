@@ -1,3 +1,4 @@
+import { RenewalBrief } from './renewal-brief'
 import { NoticeAgentSource } from './notice-agent'
 import { BulkReminders } from './bulk-reminders'
 import { NoticeDelivery } from './notice-delivery'
@@ -77,6 +78,7 @@ function Steps({ state, r, a, locket }: { state: LocketState; r: Row; a: Row; lo
   const notices = state.notices.filter(n => n.renewal_id === r.id).sort((x, y) => y.created_at - x.created_at)
   return (
     <div className="lk-steps">
+      <RenewalBrief state={state} a={a} locket={locket}/>
       <section className="lk-card lk-step">
         <h3>1. Decision</h3>
         {r.decision ? <p className="lk-decided"><Badge value="approved" label={capital(r.decision)} /> <span className="lk-muted">by {personName(state, r.decided_by)} <When at={r.decided_at} />{r.decision_reason ? ` — ${r.decision_reason}` : ''}</span></p> : can(state, 'owner', 'approver') ? (
