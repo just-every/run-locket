@@ -98,14 +98,14 @@ export async function mutateExchange(request:Request,env:Bindings,row:ExchangeRo
         const versionHash=await versionDigest({agreementId:a.id,number,files:[{role:'original',sha256:artifact.sha256}],text:content,fields:null})
         writes.push(...artifact.writes,sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',versionId,a.id,number,'counterparty','Counterparty markup',null,null,content,source,versionHash,c.actor.id,c.now),sql("INSERT INTO lk_version_audiences VALUES(?,'external',1,?,?)",versionId,c.actor.id,c.now))
         versions.push({versionId,number,digest:versionHash,artifactDigest:artifact.sha256})
-        audit.push({action:'exchange.uploaded',agreementId:a.id,summary:`Counterparty uploaded version ${number} through ${action==='reply'?'an authenticated email reply':'the secure link'}; original artifact ${artifact.id}; SHA-256 ${artifact.sha256}.`})
+        audit.push({action:'exchange.uploaded',agreementId:a.id,summary:`Counterparty uploaded version ${number} through ${action==='reply'?'a provider-authenticated reply (sender identity not verified)':'the secure link'}; original artifact ${artifact.id}; SHA-256 ${artifact.sha256}.`})
       }
       const last=versions.at(-1)!
       writes.push(bump(c,a,'current_version_id=?,status=?',last.versionId,a.status==='imported'?'draft':statusAfterChange(a)),invalidateApprovals(c,a.id,'Counterparty returned a new document version'))
       audit.push({action:'version.add',agreementId:a.id,summary:`Received ${versions.length} counterparty markup version(s); earlier approvals no longer count.`})
       writes.push(...await workflowWrites(c,audit))
     }
-    if(action==='reply')audit.push({action:'exchange.replied',agreementId:row.agreement_id,summary:`Authenticated Postmark reply recorded with ${versions.length} original attachment(s).`})
+    if(action==='reply')audit.push({action:'exchange.replied',agreementId:row.agreement_id,summary:`Provider-authenticated reply to the scoped address from the designated contact’s address; sender identity not verified. Recorded ${versions.length} original attachment(s).`})
     result=action==='reply'?{commentId,versions}:versions[0]
   }
   writes.push(sql('INSERT INTO lk_exchange_commands VALUES(?,?,?,?,?)',commandId,row.id,digest,json(result),c.now))

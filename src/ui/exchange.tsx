@@ -21,7 +21,7 @@ export function ExchangePanel({state,a,locket}:{state:LocketState;a:Row;locket:L
   return <section className="lk-panel" aria-label="Counterparty exchange">
     <div className="lk-panel-head"><h2>Counterparty exchange</h2></div>
     {error&&<p role="alert">{error}</p>}
-    <p className="lk-muted">Share a plain Word rendition with a recorded counterparty contact. Anyone holding the expiring link can view, download, comment and return a markup without signing in.</p>
+    <p className="lk-muted">Share a plain Word rendition with a recorded counterparty contact. Anyone holding the expiring link or the reply address can view, download, comment and return a markup without signing in. The reply address carries the same capability as the link; forwarding or copying it exposes that access. Possession and the sender address do not verify identity. Access ends when your sending session expires or you sign out, or when your role or agreement access ends.</p>
     {version&&['draft','in_review','approved','imported'].includes(a.status)&&<>
       <p>Version {version.number}: <strong>{external?'External':'Internal'}</strong></p>
       <details className="lk-disclosure"><summary>Review sharing permissions</summary>
@@ -56,7 +56,7 @@ export function ExchangePanel({state,a,locket}:{state:LocketState;a:Row;locket:L
       {!contacts.length&&<p>Add a counterparty contact before sharing.</p>}
     </>}
     {link&&<p style={{overflowWrap:'anywhere'}}><a href={link} target="_blank" rel="noreferrer">Open secure counterparty link</a><br/><span>{link}</span></p>}
-    <ul className="lk-clean-list">{view?.rows.map(row=><li key={row.id} style={{overflowWrap:'anywhere'}}><p>{row.recipient_name} · {row.recipient_email} · <Badge value={row.revoked_at?'revoked':row.status}/></p><p>Expires <When at={row.expires_at}/>{row.opened_at&&<> · Opened <When at={row.opened_at}/></>}</p>
+    <ul className="lk-clean-list">{view?.rows.map(row=><li key={row.id} style={{overflowWrap:'anywhere'}}><p>{row.recipient_name} · {row.recipient_email} · <Badge value={row.revoked_at?'revoked':row.status}/></p><p>Access depends on the sender’s active session, role and agreement access. The link and reply address grant the same access; sender identity is not verified.</p><p>Expires <When at={row.expires_at}/>{row.opened_at&&<> · Opened <When at={row.opened_at}/></>}</p>
       {!row.revoked_at&&<Form busy={locket.busy} submit="Revoke exchange" onSubmit={async data=>{if(await locket.run('exchange.revoke',{agreementId:a.id,version:a.version,exchangeId:row.id,reason:value(data,'reason')})){setLink('');await refresh()}}}><Field label="Reason to revoke"><input name="reason" required maxLength={1000}/></Field></Form>}
     </li>)}</ul>
   </section>

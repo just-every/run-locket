@@ -1,6 +1,8 @@
 import type { Ctx } from './commands'
+import { retainedOriginalSql } from './retained-originals'
 import { canonical, fail, json, parse, sha256, sql, type Sql } from './model'
 import { readArtifactBytes } from './artifacts'
+export const erasureFields:Record<string,string[]>={lk_comments:['body','quote','external_author_name','external_author_email'],lk_notices:['recipient','body'],lk_notice_letters:['recipient'],lk_notice_dispatches:['recipient','subject','message_text'],lk_notice_sources:['recipient','alternate_address'],lk_notice_plans:['recipient','acknowledgment'],lk_notice_events:['detail'],lk_notice_tracking:['detail'],lk_notification_deliveries:['recipient_email'],lk_approval_reminders:['recipient_email'],lk_deadline_reminders:['recipient_email'],lk_approval_mail:['recipient_email'],lk_exchanges:['recipient_name','recipient_email','contact_consent']}
 export interface KeptRecord {table:string;id:string;agreementId:string|null;reason:string;authorizer:string;holdReason?:string}
 export interface ErasurePatch {table:string;id:string;agreementId:string|null;before:Record<string,unknown>;after:Record<string,unknown>}
 export interface DraftDisposition {id:string;version:number;held:boolean;files:{id:string;role:string}[];versions:string[]}
@@ -44,13 +46,14 @@ export async function erasurePlan(c:Ctx,email:string,token:string){
    patch('lk_parties',r,{contacts:json(next),email:r.email?.toLowerCase()===email?null:r.email})
   }
  }
- const fields:Record<string,string[]>={lk_comments:['body','quote','external_author_name','external_author_email'],lk_notices:['recipient','body'],lk_notice_letters:['recipient'],lk_notice_dispatches:['recipient','subject','message_text'],lk_notice_sources:['recipient','alternate_address'],lk_notice_plans:['recipient','acknowledgment'],lk_notice_events:['detail'],lk_notice_tracking:['detail'],lk_notification_deliveries:['recipient_email'],lk_approval_reminders:['recipient_email'],lk_deadline_reminders:['recipient_email'],lk_approval_mail:['recipient_email'],lk_exchanges:['recipient_name','recipient_email','contact_consent']}
- for(const[table,columns]of Object.entries(fields)){
+
+ for(const[table,columns]of Object.entries(erasureFields)){
   const rows=(await c.db.prepare(`SELECT * FROM ${table}`).all<any>()).results
   scope.push([table,rows.length]);checks.push(sql(`(SELECT COUNT(*) FROM ${table})=?`,rows.length))
   for(const r of rows)patch(table,r,Object.fromEntries(columns.filter(k=>typeof r[k]==='string').map(k=>[k,scrub(r[k])])))
  }
  scope.push(['lk_parties',parties.length]);checks.push(sql('(SELECT COUNT(*) FROM lk_parties)=?',parties.length))
+ const contracted=new Set((await c.db.prepare(`SELECT a.id FROM lk_agreements a WHERE ${retainedOriginalSql()}`).all<{id:string}>()).results.map(a=>a.id))
  const drafts:DraftDisposition[]=[]
  const allVersions=(await c.db.prepare('SELECT * FROM lk_versions').all<any>()).results,artifacts=(await c.db.prepare('SELECT * FROM lk_artifacts').all<any>()).results
  for(const[table,rows]of [['lk_agreements',agreements],['lk_versions',allVersions],['lk_artifacts',artifacts]] as const){scope.push([table,rows.length]);checks.push(sql(`(SELECT COUNT(*) FROM ${table})=?`,rows.length))}
@@ -60,11 +63,11 @@ export async function erasurePlan(c:Ctx,email:string,token:string){
   if(!named&&a.status==='draft')for(const f of files){const body=new TextDecoder().decode(await readArtifactBytes(c.db,f.id));if(scrub(body)!==body){named=true;break}}
   if(!named)continue
   related.add(a.id)
-  if(a.status==='draft'){
+  if(a.status==='draft'&&!contracted.has(a.id)){
    if(holdById.has(a.id))for(const f of files)retain('lk_artifacts',f,[holdById.get(a.id)])
    drafts.push({id:a.id,version:a.version,held:holdById.has(a.id),files:files.map(f=>({id:f.id,role:f.role})),versions:versions.map(v=>v.id)})
    checks.push(sql('(SELECT version FROM lk_agreements WHERE id=?)=?',a.id,a.version))
-  }else if(['executed','imported'].includes(a.status)){
+  }else if(['executed','imported'].includes(a.status)||contracted.has(a.id)){
    for(const f of files)retained.push({table:'lk_artifacts',id:f.id,agreementId:a.id,reason:'retained_by_law',authorizer:c.actor.id})
    for(const e of(await c.db.prepare('SELECT id FROM lk_executions WHERE agreement_id=?').bind(a.id).all<{id:string}>()).results)retained.push({table:'lk_executions',id:e.id,agreementId:a.id,reason:'retained_by_law',authorizer:c.actor.id})
   }

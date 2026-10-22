@@ -1,7 +1,8 @@
 // Move-in commands: preview (dry run, nothing native written), apply through
 // the import-kit journal, and undo while nothing has used the imported records.
-import { applyD1ImportBatches, canonicalJson, createD1ImportJob, planD1Import, sha256 as kitSha256, undoD1Import, type D1ImportContext, type SourceBundle, type TargetEffect } from '../../modules/import-kit/src/d1/index'
+import { readD1ImportOriginals, applyD1ImportBatches, canonicalJson, createD1ImportJob, planD1Import, sha256 as kitSha256, undoD1Import, type D1ImportContext, type SourceBundle, type TargetEffect } from '../../modules/import-kit/src/d1/index'
 import { authority, may, requireRole } from '../access'
+import { refuseErasedAddress } from '../erasure-addresses'
 import { encodeBase64, PDF } from '../artifacts'
 import type { Ctx, Handler } from '../commands'
 import { agreementReference, fail, integer, json, oneOf, parse, sql, text, type Actor } from '../model'
@@ -25,7 +26,8 @@ export function importContext(c: Ctx, batchId: string): D1ImportContext {
       principalId: 'role:owner',
       predicate: () => {
         const a = authority(c.actor as Actor, may.imports)
-        return { sql: a.sql, params: a.params }
+        const checks=[a,...(c.erasureChecks??[])]
+        return {sql:checks.map(s=>`(${s.sql})`).join(' AND '),params:checks.flatMap(s=>s.params)}
       },
     },
   }
@@ -146,6 +148,8 @@ const applyImport: Handler = async (c, p) => {
   const batch = await batchOf(c, p)
   if (batch.status !== 'previewed') fail('STATUS', `This batch is already ${batch.status}.`, 409)
   if (p.fingerprint !== batch.fingerprint) fail('FINGERPRINT', 'Apply exactly the dry run you reviewed (its fingerprint did not match).', 409)
+  const originals=await readD1ImportOriginals(batch.job_id,importContext(c,batch.id))
+  c.erasureChecks=await refuseErasedAddress(c,'import.apply',{originals})
   const context = { ...importContext(c, batch.id), reviewedFingerprint: batch.fingerprint }
   const job = await applyD1ImportBatches(batch.job_id, context)
   if (job.state !== 'completed') fail('IMPORT_INCOMPLETE', `The import stopped at ${job.checkpoint} of ${job.total}; apply again to resume from the journal.`, 409)

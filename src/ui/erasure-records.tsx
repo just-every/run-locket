@@ -16,6 +16,7 @@ export function AgreementReference({state,id}:{state:LocketState;id:string|null}
 export function RetainedRecords({state,records}:{state:LocketState;records:RetainedRecord[]}){
  return <div><h3>Retained records</h3>{records.length?<ul>{records.map((r,i)=><li key={`${r.table}:${r.id}:${r.agreementId}:${i}`}>
   <strong>{words(r.table.replace(/^lk_/,''))}</strong> · {r.id}
+  {r.table==='lk_parties'&&r.reason==='legal_hold'&&<p>This person stays in current contacts because an agreement is held.</p>}
   <AgreementReference state={state} id={r.agreementId}/>
   <p>{words(r.reason)} · Authorizer: {state.operators.find(o=>o.id===r.authorizer)?.name??r.authorizer} ({r.authorizer}){r.holdReason&&<> · Hold reason: {r.holdReason}</>}</p>
  </li>)}</ul>:<p>No retained records in this request.</p>}</div>

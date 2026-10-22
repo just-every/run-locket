@@ -1,11 +1,13 @@
-// Delete only native, unexecuted drafts. Schema-derived dependencies keep every
+// Delete only unexecuted native or explicitly declared imported drafts. Schema-derived dependencies keep every
 // native child in the same transaction; audit/command outcomes remain history.
 import type { Ctx } from './commands'
+import { retainedOriginalSql } from './retained-originals'
 import { fail, json, sql, type Sql } from './model'
 import { agreementGuards, type AgreementRow } from './records'
 
 export async function draftDeletion(c: Ctx, a: AgreementRow): Promise<{writes:Sql[];checks:Sql[]}> {
-  if(a.status!=='draft') fail('STATUS','Only an unexecuted native draft can be deleted.',409)
+  if(await c.db.prepare(`SELECT 1 FROM lk_agreements a WHERE a.id=? AND ${retainedOriginalSql()}`).bind(a.id).first()) fail('RETAINED','Imported contracted originals and their negotiation history must be retained.',409)
+  if(a.status!=='draft') fail('STATUS','Only an unexecuted draft can be deleted.',409)
   if(await c.db.prepare('SELECT 1 FROM lk_executions WHERE agreement_id=?').bind(a.id).first()) fail('RETAINED','Execution evidence must be retained.',409)
   if(await c.db.prepare('SELECT 1 FROM lk_agreements WHERE parent_id=?').bind(a.id).first()) fail('LINKED','Unlink child agreements before deleting this draft.',409)
   if(await c.db.prepare('SELECT 1 FROM lk_legal_holds WHERE agreement_id=? AND active=1').bind(a.id).first()) fail('LEGAL_HOLD','Counsel must release the legal hold before deleting this draft or its files.',409)
@@ -33,5 +35,5 @@ export async function draftDeletion(c: Ctx, a: AgreementRow): Promise<{writes:Sq
   const writes=[sql('PRAGMA defer_foreign_keys=ON')]
   for(const [name,ids]of scopes)if(ids.size&&name!=='lk_agreements')writes.push(sql(`DELETE FROM ${name} WHERE rowid IN (SELECT value FROM json_each(?))`,json([...ids])))
   writes.push(sql('DELETE FROM lk_agreements WHERE id=?',a.id))
-  return {writes,checks:[...agreementGuards(c,a),sql("NOT EXISTS(SELECT 1 FROM lk_legal_holds WHERE agreement_id=? AND active=1) AND NOT EXISTS(SELECT 1 FROM lk_executions WHERE agreement_id=?) AND NOT EXISTS(SELECT 1 FROM lk_agreements WHERE parent_id=?)",a.id,a.id,a.id)]}
+  return {writes,checks:[...agreementGuards(c,a),sql(`NOT EXISTS(SELECT 1 FROM lk_agreements a WHERE a.id=? AND ${retainedOriginalSql()})`,a.id),sql("NOT EXISTS(SELECT 1 FROM lk_legal_holds WHERE agreement_id=? AND active=1) AND NOT EXISTS(SELECT 1 FROM lk_executions WHERE agreement_id=?) AND NOT EXISTS(SELECT 1 FROM lk_agreements WHERE parent_id=?)",a.id,a.id,a.id)]}
 }

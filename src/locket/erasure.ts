@@ -6,6 +6,7 @@ import { agreementGuards, visibleAgreement } from './records'
 import { draftDeletion } from './draft-erasure'
 import { erasurePlan } from './erasure-plan'
 import { sealErasedAddress } from './erasure-addresses'
+import { resealErasure } from './erasure-reseal'
 const owner=['owner'] as const, custodians=['owner','counsel'] as const
 function address(p:Record<string,unknown>){const email=text(p,'email',200).toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))fail('INVALID','Choose a contact email.');return email}
 function date(p:Record<string,unknown>,key:string){const value=text(p,key,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value))||new Date(value).toISOString().slice(0,10)!==value)fail('INVALID','Choose a valid calendar date.');return value}
@@ -75,4 +76,4 @@ const remove:Handler=async(c,p)=>{
  const a=await visibleAgreement(c,p.agreementId),out=await draftDeletion(c,a)
  return{allowed:owner,result:{id:a.id,deleted:true},...out,checks:[...out.checks,...agreementGuards(c,a,p)],audit:[{action:'draft.delete',agreementId:a.id,summary:`Deleted unexecuted draft and files: ${text(p,'reason',1000)}`} ]}
 }
-export const erasureHandlers:Record<string,Handler>={'person.erase.preview':preview,'person.erase':erase,'hold.set':hold,'draft.delete':remove}
+export const erasureHandlers:Record<string,Handler>={'erasure.reseal':resealErasure,'person.erase.preview':preview,'person.erase':erase,'hold.set':hold,'draft.delete':remove}

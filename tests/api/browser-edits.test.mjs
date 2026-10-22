@@ -130,7 +130,7 @@ test('NEG-006 sends a clean external v2 through Postmark, accepts an exact v3 ma
   assert.equal((await inboundRequest({...inbound,StrippedTextReply:'different reply content'})).status,409)
   const afterReply=await h.owner.state()
   assert.equal(afterReply.agreements.find(a=>a.id===x.a.id).current_version_id,replyResult.result.versions[1].versionId)
-  assert.ok(afterReply.audit.some(e=>e.action==='exchange.replied'))
+  assert.ok(afterReply.audit.some(e=>e.action==='exchange.replied'&&e.summary.includes('sender identity not verified')))
   for(const [i,version]of replyResult.result.versions.entries()){
     const stored=afterReply.artifacts.find(a=>a.version_id===version.versionId)
     assert.deepEqual(Buffer.from(await(await h.owner.request('/api/locket/files/'+stored.id)).arrayBuffer()),replyFiles[i])

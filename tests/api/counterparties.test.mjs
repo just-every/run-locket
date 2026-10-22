@@ -221,3 +221,139 @@ test('ERASE-001 verified contact erasure preserves execution and audit, counsel 
  await h.owner.command('hold.set',{agreementId:a.id,version:row.version,holdVersion:0,active:true,reason:'Owner preservation',reviewOn:'2026-12-31'})
  await h.owner.command('hold.set',{agreementId:a.id,version:row.version,holdVersion:1,active:false,reason:'Owner reviewed preservation obligation'})
 })
+
+
+test('Erasure re-entry checks match whole addresses and recheck reviewed imports before apply', async t => {
+ const h=await installation();t.after(()=>h.close())
+ const email='ann@example.test'
+ await h.owner.command('party.save',{name:'synthetic-locket-30',kind:'supplier',contacts:[{name:'Ann',email}]})
+ const manifest='Envelope ID,Subject,Status,Completed On,Recipient Email,Counterparty\nsynthetic-locket-31,synthetic-locket-31,Completed,2026-10-20,'+email+',synthetic-locket-31\n'
+ const input={kit:'docusign-archive',label:'synthetic-locket-31',dateFormat:'iso',manifest:{filename:'synthetic-locket-31.csv',base64:Buffer.from(manifest).toString('base64')},files:[{path:'synthetic-locket-31/contract.pdf',base64:pdf('synthetic-locket-31').toString('base64')}]}
+ const batch=await h.owner.command('import.preview',input)
+ assert.equal(batch.counts.import,1)
+ const preview=await h.owner.command('person.erase.preview',erasureRequest(email))
+ await h.owner.command('person.erase',erasureConfirmation(preview,email,[]))
+ const cases=[
+  ['party.save',{name:'synthetic-locket-32',kind:'supplier',contacts:[{name:'Ann',email}]}],
+  ['request.create',{title:'synthetic-locket-33',type:'nda',party:{name:'synthetic-locket-33',kind:'supplier',contacts:[{name:'Ann',email}]}}],
+  ['import.preview',input],
+  ['import.apply',{batchId:batch.batchId,version:1,fingerprint:batch.fingerprint}],
+ ]
+ for(const[type,payload]of cases)await t.test(type,async()=>{
+  await h.owner.command(type,payload,{error:'ERASED_CONTACT'})
+ })
+ for(const different of ['joann@example.test','ann@example.test.invalid','ann@example.test-extra.test']){
+  await h.owner.command('party.save',{name:'synthetic-locket-34 '+different,kind:'supplier',contacts:[{name:'Joann',email:different}]})
+  await h.owner.command('request.create',{title:'synthetic-locket-35 '+different,type:'nda',party:{name:'synthetic-locket-35 '+different,kind:'supplier',contacts:[{name:'Joann',email:different}]}})
+ }
+ assert.equal((await h.owner.state()).imports.find(b=>b.id===batch.batchId).status,'previewed')
+})
+
+test('Erased-address custody survives session-secret rotation and legacy replacement addresses become random',async t=>{
+ const secret='synthetic-locket-36-session-secret-before-rotation'
+ const h=await installation({bindings:{SESSION_SECRET:secret}});t.after(()=>h.close())
+ const email='synthetic-locket-36@example.test'
+ const party=await h.owner.command('party.save',{name:'synthetic-locket-36',kind:'supplier',contacts:[{name:'synthetic-locket-36',email}]})
+ const draft=await h.owner.command('request.create',{title:'synthetic-locket-36',type:'nda',partyId:party.id,file:file('synthetic-locket-36.pdf',pdf('synthetic-locket-36'))})
+ const prefix=createHash('sha256').update('synthetic-locket-37@example.test').digest('hex').slice(0,16),old='erased-'+prefix+'@invalid.example'
+ await h.owner.command('comment.add',{agreementId:draft.id,versionId:draft.versionId,body:'Legacy address '+old+' stays random after upgrade.'})
+ await h.owner.command('party.save',{name:'synthetic-locket-37',kind:'supplier',contacts:[{name:'[erased person]',email:old}]})
+ const preview=await h.owner.command('person.erase.preview',erasureRequest(email))
+ await h.owner.command('person.erase',erasureConfirmation(preview,email,preview.drafts.map(d=>({agreementId:d.id,action:'retain',reason:'business_retention'}))))
+ // A synthetic pre-upgrade encrypted block uses the old shipped format.
+ const {createCipheriv,randomBytes}=await import('node:crypto')
+ const legacyEmail='synthetic-locket-46@example.test',iv=randomBytes(12),key=createHash('sha256').update('locket-erasure-addresses:'+secret).digest()
+ const cipher=createCipheriv('aes-256-gcm',key,iv),encrypted=Buffer.concat([cipher.update(legacyEmail),cipher.final(),cipher.getAuthTag()])
+ await h.db.prepare('INSERT INTO lk_erasure_blocks VALUES(?,?,?)').bind('synthetic-locket-46',iv.toString('base64')+'.'+encrypted.toString('base64'),Date.now()).run()
+ const viewer=await h.invite('synthetic-locket-47@example.test','viewer')
+ await viewer.command('erasure.reseal',{},{error:'FORBIDDEN'})
+ const upgraded=await h.owner.command('erasure.reseal',{})
+ assert.equal(upgraded.resealed,1)
+ assert.equal(upgraded.rewritten,2)
+ await t.test('session rotation',async()=>{
+  await h.rotateSessionSecret('synthetic-locket-38-session-secret-after-rotation')
+  const owner=await h.signIn('owner@example.test')
+  await owner.command('party.save',{name:'synthetic-locket-38',kind:'supplier',contacts:[{name:'synthetic-locket-36',email}]},{error:'ERASED_CONTACT'})
+  await owner.command('party.save',{name:'synthetic-locket-46',kind:'supplier',contacts:[{name:'Legacy',email:legacyEmail}]},{error:'ERASED_CONTACT'})
+  await owner.command('party.save',{name:'synthetic-locket-39',kind:'supplier',contacts:[{name:'Other',email:'other@example.test'}]})
+ })
+ const owner=await h.signIn('owner@example.test')
+ await t.test('legacy replacements',async()=>{
+  await owner.command('erasure.reseal',{})
+  const state=await owner.state()
+  assert.ok(!JSON.stringify(state.parties).includes(prefix))
+  assert.ok(!JSON.stringify(state.comments).includes(prefix))
+  const archive=await(await owner.request('/api/locket/export')).json()
+  assert.ok(archive.records.lk_erasure_keys.length===1)
+  assert.ok(!JSON.stringify(state).includes(archive.records.lk_erasure_keys[0].key_hex))
+ })
+})
+
+test('Expiry reminders filter held, previewed and already-reminded drafts before the 100 limit',async t=>{
+ const h=await installation();t.after(()=>h.close())
+ await h.owner.command('retention.configure',{days:1,version:0})
+ for(let i=0;i<101;i++){
+  const a=await h.owner.command('request.create',{title:'synthetic-locket-held-'+i,type:'nda',party:{name:'synthetic-locket-40',kind:'supplier'}})
+  await h.owner.command('hold.set',{agreementId:a.id,version:1,holdVersion:0,active:true,reason:'synthetic-locket-40 preservation',reviewOn:'2027-01-01'})
+ }
+ const last=await h.owner.command('request.create',{title:'synthetic-locket-41',type:'nda',party:{name:'synthetic-locket-40',kind:'supplier'}})
+ const at=Date.now()+3*86400000
+ await h.scheduled(at)
+ let state=await h.owner.state()
+ assert.equal(state.notifications.items.filter(n=>n.kind==='draft_retention'&&n.agreement_id===last.id).length,1,'101 held drafts cannot crowd out the 102nd')
+ // Clock belongs to the API command as well as the scheduler.
+ await h.setTime(at)
+ const reviewed=await h.owner.command('retention.preview',{})
+ assert.ok(reviewed.candidates.some(a=>a.id===last.id))
+ const fresh=await h.owner.command('request.create',{title:'synthetic-locket-42',type:'nda',party:{name:'synthetic-locket-40',kind:'supplier'}})
+ await h.scheduled(at+3*86400000)
+ state=await h.owner.state()
+ assert.equal(state.notifications.items.filter(n=>n.kind==='draft_retention'&&n.agreement_id===fresh.id).length,1)
+ assert.equal(state.notifications.items.filter(n=>n.kind==='draft_retention'&&n.agreement_id===last.id).length,1)
+ assert.ok(state.agreements.some(a=>a.id===last.id),'timers never delete drafts')
+ // Release the original 101 through the hold door. One tick sends only 100;
+ // the next must skip those already reminded to reach the last draft.
+ for(const a of state.agreements.filter(a=>a.title.startsWith('synthetic-locket-held-')))await h.owner.command('hold.set',{agreementId:a.id,version:a.version,holdVersion:1,active:false,reason:'synthetic-locket-48 reviewed release'})
+ await h.scheduled(at+4*86400000)
+ await h.scheduled(at+4*86400000+3600000)
+ state=await h.owner.state()
+ assert.equal(state.notifications.items.filter(n=>n.kind==='draft_retention').length,103,'already-reminded rows cannot crowd out a later revision')
+ // Under a new rule, preview the first 100, then the next tick must reach the
+ // remaining unreviewed rows even though previewed rows sort first.
+ await h.owner.command('retention.configure',{days:1,version:1})
+ const reviewedFirst=await h.owner.command('retention.preview',{})
+ assert.equal(reviewedFirst.candidates.length,100)
+ const before=new Set(state.notifications.items.filter(n=>n.kind==='draft_retention').map(n=>n.id))
+ await h.scheduled(at+5*86400000)
+ state=await h.owner.state()
+ const added=state.notifications.items.filter(n=>n.kind==='draft_retention'&&!before.has(n.id))
+ assert.equal(added.length,3,'previewed rows cannot crowd out later unreviewed drafts')
+ assert.ok(added.every(n=>!reviewedFirst.candidates.some(a=>a.id===n.agreement_id)))
+})
+
+test('Imported contracted originals remain retained after counterparty markup and every draft deletion preview',async t=>{
+ const h=await installation();t.after(()=>h.close())
+ const email='synthetic-locket-43@example.test',party=await h.owner.command('party.save',{name:'synthetic-locket-43',kind:'supplier',contacts:[{name:'synthetic-locket-43',email}]})
+ const bytes=pdf('synthetic-locket-43 imported contracted original')
+ const imported=await h.owner.command('legacy.import',{title:'synthetic-locket-43',type:'nda',partyId:party.id,sourceSystem:'Shared drive',sourceId:'synthetic-locket-43',file:file('original.pdf',bytes),signed:false,text:'synthetic-locket-43 contracted terms'})
+ let state=await h.owner.state(),a=state.agreements.find(a=>a.id===imported.id)
+ const artifact=state.artifacts.find(f=>f.agreement_id===a.id)
+ await h.owner.command('version.audience',{agreementId:a.id,version:a.version,versionId:a.current_version_id,audience:'external',confirmExternal:true})
+ a=(await h.owner.state()).agreements.find(a=>a.id===imported.id)
+ const {randomBytes,randomUUID}=await import('node:crypto'),token=randomBytes(32).toString('hex')
+ await h.owner.command('exchange.send',{agreementId:a.id,version:a.version,versionId:a.current_version_id,recipientEmail:email,contactConsent:'synthetic-locket-43 explicit disclosure',channel:'link',token,expiresAt:Date.now()+3600000,confirmCleanRendition:true})
+ const response=await h.request('/api/locket/exchange/upload',{method:'POST',headers:{authorization:'Bearer '+token},body:{commandId:randomUUID(),payload:{file:file('markup.pdf',pdf('synthetic-locket-44 counterparty markup'))}}})
+ assert.equal(response.status,200,await response.text())
+ a=(await h.owner.state()).agreements.find(a=>a.id===imported.id)
+ const preview=await h.owner.command('person.erase.preview',erasureRequest(email))
+ await t.test('custody receipt',async()=>{
+  assert.ok(!preview.drafts.some(d=>d.id===a.id))
+  assert.ok(preview.retained.some(r=>r.id===artifact.id&&r.reason==='retained_by_law'))
+ })
+ await t.test('draft deletion',async()=>{await h.owner.command('draft.delete',{agreementId:a.id,version:a.version,reason:'synthetic-locket-45'},{error:'RETAINED'})})
+ await h.owner.command('retention.configure',{days:1,version:0})
+ await h.setTime(Date.now()+3*86400000)
+ const expired=await h.owner.command('retention.preview',{})
+ assert.ok(!expired.candidates.some(d=>d.id===a.id))
+ assert.deepEqual(Buffer.from(await(await h.owner.request('/api/locket/files/'+artifact.id)).arrayBuffer()),bytes)
+})

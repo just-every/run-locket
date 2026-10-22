@@ -3,6 +3,7 @@
 import { requireRole } from './access'
 import type { Handler } from './commands'
 import { draftDeletion } from './draft-erasure'
+import { deletableDraftSql } from './retained-originals'
 import { fail, integer, json, parse, sql, text, type Sql } from './model'
 import { visibleAgreement } from './records'
 const owner=['owner'] as const
@@ -17,7 +18,7 @@ const preview:Handler=async(c)=>{
  requireRole(c.actor,owner,'preview expired drafts')
  const rule=await c.db.prepare("SELECT * FROM lk_retention_rules WHERE id='installation'").first<any>()
  if(!rule)fail('RETENTION','Configure a draft retention period first.',409)
- const candidates=(await c.db.prepare("SELECT id,version,title FROM lk_agreements a WHERE status='draft' AND created_at<=? AND NOT EXISTS(SELECT 1 FROM lk_legal_holds WHERE agreement_id=a.id AND active=1) AND NOT EXISTS(SELECT 1 FROM lk_agreements child WHERE child.parent_id=a.id) ORDER BY created_at,id LIMIT 100").bind(c.now-rule.days*86400000).all()).results
+ const candidates=(await c.db.prepare(`SELECT id,version,title FROM lk_agreements a WHERE ${deletableDraftSql()} AND created_at<=? ORDER BY created_at,id LIMIT 100`).bind(c.now-rule.days*86400000).all()).results
  const id=crypto.randomUUID()
  return{allowed:owner,result:{id,candidates},checks:[sql("(SELECT version FROM lk_retention_rules WHERE id='installation')=?",rule.version)],writes:[sql('INSERT INTO lk_retention_previews VALUES(?,?,?,?,?,NULL)',id,c.actor.id,rule.version,json(candidates),c.now)],audit:[{action:'retention.preview',summary:`Previewed ${candidates.length} expired unheld native drafts; no data deleted.`}]}
 }

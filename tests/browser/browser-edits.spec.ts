@@ -100,6 +100,8 @@ for(const width of [1440,390])test(`NEG-006 sends external v2, receives counterp
     await page.reload() // Fixture writes occurred outside this already-open workspace.
     const panel=page.getByRole('region',{name:'Counterparty exchange',exact:true})
     await expect(panel).toBeVisible()
+    await expect(panel).toContainText('reply address carries the same capability as the link')
+    await expect(panel).toContainText('Access ends when your sending session expires or you sign out')
     await panel.getByLabel('Share by',{exact:true}).selectOption(live?'link':'email')
     await panel.getByLabel('Why this contact is authorized to receive this version',{exact:true}).fill('synthetic-locket-14 approved counterparty negotiation contact')
     await expect(panel.getByRole('note')).toContainText('embedded comments')
@@ -112,6 +114,8 @@ for(const width of [1440,390])test(`NEG-006 sends external v2, receives counterp
     if(!live)expect(p.h.mails.filter((m:any)=>m.text?.includes('/exchange#')).length).toBe(1)
     const link=await panel.getByRole('link',{name:'Open secure counterparty link'}).getAttribute('href')
     const token=new URL(link!).hash.slice(1)
+    await expect(panel).toContainText('Access depends on the sender’s active session, role and agreement access.')
+    await expect(panel).toContainText('sender identity is not verified.')
     await shot('sender-approval')
     if(!live){
       expect(p.h.mails.find((m:any)=>m.text?.includes('/exchange#'))?.text).toContain('/exchange#'+token)
