@@ -11,7 +11,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 15
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
@@ -35,7 +35,13 @@ jobs:
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      # rer verify's hydration check drives the Chromium build Playwright pins.
-      - run: pnpm exec playwright install --with-deps chromium
+      # Ubuntu 24.04's hosted image includes Chrome's system libraries. Cache
+      # only the exact browser build selected by the locked Playwright package;
+      # hydration still launches that browser during the complete rer verify.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install chromium
       - run: pnpm exec rer check --profile first-party
       - run: pnpm exec rer verify --no-queue

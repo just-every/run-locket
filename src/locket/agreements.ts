@@ -131,7 +131,7 @@ async function templateVersion(c: Ctx, agreementId: string, number: number, p: R
   requireEntityScope(template.template_entity_id, { entity_id: entity?.id ?? null }, `${template.name} v${template.number}`)
   const values = { ...extra, ...object(p.fields ?? {}, 'fields'), ...entityValues(entity, template.body+' '+parse<{name:string}[]>(template.fields).map(f=>'{{'+f.name+'}}').join(' ')) }
   const choices=object(p.clauseChoices ?? {}, 'clauseChoices')
-  const word=await populateWord(c,template.id,values,choices)
+  const word=await populateWord(c,template.id,values,choices,p.lineItems)
   const filled = word ?? populate(template, values, choices, entity?.id ?? null)
   const id = crypto.randomUUID()
   const uses = retainedClauseUses(priorFields, filled.text)

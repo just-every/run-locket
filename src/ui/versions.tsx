@@ -1,3 +1,4 @@
+import { blankLine, PricingLines, type PricingLine } from './pricing-lines'
 import { BrowserEditor } from './browser-editor'
 import { CommentThread } from './comment-threads'
 // The version tools around the workspace page: the version chips and Compare
@@ -73,7 +74,7 @@ export function AddVersion({ state, a, locket, onDone }: { state: LocketState; a
               <TemplateVersionForm state={state} busy={busy} onSubmit={payload => run('version.generate', { agreementId: a.id, version: a.version, ...payload })} />
             </details>
           )}
-          {v && ['draft', 'in_review', 'approved'].includes(a.status) && !files(v.id).some(f => f.role === 'rendition' || f.media_type === 'application/pdf') && v.kind !== 'template' && (
+          {v && ['draft', 'in_review', 'approved'].includes(a.status) && !files(v.id).some(f => f.role === 'rendition' || f.media_type === 'application/pdf') && (v.kind !== 'template'||files(v.id).some(f=>f.media_type==='application/vnd.openxmlformats-officedocument.wordprocessingml.document')) && (
             <details className="lk-disclosure">
               <summary>Attach signing PDF for v{v.number}</summary>
               <Form busy={busy} submit="Attach PDF" onSubmit={async data => {
@@ -152,10 +153,11 @@ export function Comments({ state, a, shown, locket }: { state: LocketState; a: R
   )
 }
 
-export function TemplateVersionForm({ state, busy, onSubmit }: { state: LocketState; busy: boolean; onSubmit: (payload: { templateVersionId: string; fields: Record<string, string>; clauseChoices: Record<string, string> }) => Promise<unknown> }) {
+export function TemplateVersionForm({ state, busy, onSubmit }: { state: LocketState; busy: boolean; onSubmit: (payload: { templateVersionId: string; fields: Record<string, string>; clauseChoices: Record<string, string>;lineItems?:PricingLine[] }) => Promise<unknown> }) {
   const approved = state.templateVersions.filter(t => t.status === 'approved')
   const [chosen, setChosen] = useState(approved[0]?.id ?? '')
   const template = approved.find(t => t.id === chosen)
+  const [lineItems,setLineItems]=useState<PricingLine[]>([blankLine()]),word=state.wordTemplates.find(w=>w.id===chosen)
   return (
     <Form busy={busy} submit="Generate version" onSubmit={async data => {
       if (!template) return
@@ -164,10 +166,11 @@ export function TemplateVersionForm({ state, busy, onSubmit }: { state: LocketSt
         if (k.startsWith('field.')) fields[k.slice(6)] = String(v)
         if (k.startsWith('clause.')) clauseChoices[k.slice(7)] = String(v)
       }
-      await onSubmit({ templateVersionId: template.id, fields, clauseChoices })
+      await onSubmit({ templateVersionId: template.id, fields, clauseChoices,...(word?.pricing?{lineItems}:{}) })
     }}>
       <Field label="Approved template version"><select value={chosen} onChange={e => setChosen(e.target.value)}>{approved.map(t => <option key={t.id} value={t.id}>{state.templates.find(x => x.id === t.template_id)?.name} v{t.number}</option>)}</select></Field>
       {template && <TemplateFields template={template} />}
+      {word?.pricing&&<PricingLines items={lineItems} onChange={setLineItems}/>}
     </Form>
   )
 }

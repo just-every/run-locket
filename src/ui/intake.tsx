@@ -1,3 +1,4 @@
+import { blankLine, PricingLines, type PricingLine } from './pricing-lines'
 import { evaluateForm } from '../locket/intake-form-definition'
 import { IntakeFormFields, formVisibleFields, readIntakeFormAnswers, type IntakeAnswers } from './intake-form-fields'
 import { useState } from 'react'
@@ -48,6 +49,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
   const { run, busy } = locket
   const [type, setType] = useState('customer')
   const [source, setSource] = useState('template')
+  const [lineItems,setLineItems]=useState<PricingLine[]>([blankLine()])
   const [formId, setFormId] = useState('')
   const [answers, setAnswers] = useState<IntakeAnswers>({})
   const [requestValue, setRequestValue] = useState('')
@@ -72,6 +74,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
   const [chosenTemplate, setTemplateId] = useState(approved[0]?.id ?? '')
   const templateId = approved.some(t => t.id === chosenTemplate) ? chosenTemplate : approved[0]?.id ?? ''
   const template = approved.find(t => t.id === templateId)
+  const word=state.wordTemplates.find(w=>w.id===templateId)
   const people = state.operators.filter(o => o.status === 'active')
   if (!can(state, 'owner', 'counsel', 'approver', 'requester')) return <p className="lk-empty">Your role cannot create requests.</p>
   return (
@@ -90,7 +93,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
           title: value(data, 'title'), type: requestType, ...(form ? {formVersionId:form.id,formAnswers:await readIntakeFormAnswers(formAnswers,visibleFields)} : {}), customValues: readCustomValues(data, customFieldsFor(state, requestType)), ...party(data), ...(entityId ? { entityId } : {}), value: value(data, 'value') || undefined, currency, ...(currency !== 'USD' ? { usdRate: value(data, 'usdRate') } : {}), timezone: zone, ownerId: value(data, 'ownerId'),
           neededBy: value(data, 'neededBy') || undefined, startDate: value(data, 'startDate') || undefined, restricted: data.get('restricted') === 'on',
           parentId: value(data, 'parentId') || undefined, requirements: value(data, 'requirements').split('\n').map(s => s.trim()).filter(Boolean),
-          ...(source === 'template' && template ? { templateVersionId: template.id, fields, clauseChoices } : {}),
+          ...(source === 'template' && template ? { templateVersionId: template.id, fields, clauseChoices,...(word?.pricing?{lineItems}:{}) } : {}),
           ...(source === 'file' && file?.size ? { file: await fileToPayload(file), text: value(data, 'text') || undefined } : {}),
         })
         if (result) window.location.hash = `agreement/${result.id}`
@@ -134,6 +137,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
               <>
                 <Field label="Template version"><select value={templateId} onChange={e => setTemplateId(e.target.value)}>{approved.map(t => <option key={t.id} value={t.id}>{state.templates.find(x => x.id === t.template_id)?.name} v{t.number}</option>)}</select></Field>
                 {template && <TemplateFields key={template.id + entityId} template={template} entityId={entityId || null} />}
+                {word?.pricing&&<PricingLines items={lineItems} onChange={setLineItems}/>}
               </>
             ) : <p className="lk-muted">No approved template yet. Owner or counsel approve templates in the Library.</p>)}
             {source === 'file' && (

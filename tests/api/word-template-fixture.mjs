@@ -12,10 +12,12 @@ export function wordTemplateFixture({title='MUTUAL NON-DISCLOSURE AGREEMENT'}={}
  const marks=[mark('firm','Our firm','Acme Firm'),mark('customer','Other party','Example Customer'),mark('effective','Effective date','January 1, 2027'),mark('purpose','Purpose','Evaluation'),mark('processing','Data processing','Data processing requires written instructions.','optional')]
  return {source,parts,text,marks,file:file('firm-nda.docx',source),fields:{firm:'North & South LLP',customer:'Ridgeway Services',effective:'February 2, 2027',purpose:'Joint evaluation'}}
 }
-export async function approvedWordFixture(h,{type='nda'}={}){
+export const wordLineItems=[{description:'Support',quantity:'1',unitPrice:'125.50'},{description:'Training',quantity:'2',unitPrice:'200.25'},{description:'Migration',quantity:'3',unitPrice:'300.00'}]
+export async function approvedWordFixture(h,{type='nda',pricing=false}={}){
  const f=wordTemplateFixture(type==='supplier'?{title:'MASTER SERVICES AGREEMENT'}:{}),draft=await h.owner.command('template.word.upload',{name:type==='supplier'?'Supplier MSA':'Firm NDA',type,file:f.file})
- const marked=await h.owner.command('template.word.mark',{versionId:draft.versionId,revision:1,marks:f.marks})
- const preview=await h.owner.command('template.word.preview',{...marked,fields:f.fields,clauseChoices:{processing:'include'}})
+ let marked=await h.owner.command('template.word.mark',{versionId:draft.versionId,revision:1,marks:f.marks})
+ if(pricing)marked=await h.owner.command('template.word.pricing',{...marked,tableIndex:0,prototypeRow:1,totalRow:4})
+ const preview=await h.owner.command('template.word.preview',{...marked,fields:f.fields,clauseChoices:{processing:'include'},...(pricing?{lineItems:wordLineItems}:{})})
  await h.owner.command('template.decide',{versionId:draft.versionId,decision:'approve'})
- return {...f,...draft,marked,preview}
+ return {...f,...draft,marked,preview,lineItems:pricing?wordLineItems:undefined}
 }

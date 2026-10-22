@@ -1,3 +1,4 @@
+import { blankLine, PricingLines, type PricingLine } from './pricing-lines'
 import { useRef, useState } from 'react'
 import { fileToPayload, type Row } from './api'
 import type { Locket } from './app'
@@ -21,6 +22,8 @@ export function WordTemplateUpload({locket,onSaved,template}:{locket:Locket;onSa
 export function WordTemplateEditor({word,version,locket,editor}:{word:Row;version:Row;locket:Locket;editor:boolean}) {
  const source=useRef<HTMLTextAreaElement>(null),[selection,setSelection]=useState({start:0,end:0}),[name,setName]=useState(''),[label,setLabel]=useState(''),[kind,setKind]=useState('field'),[required,setRequired]=useState(true),[preview,setPreview]=useState('')
  const marks=parse<any[]>(word.marks),draft=version.status==='draft'
+ const inventory=parse<any[]>(word.table_inventory),[tableIndex,setTableIndex]=useState(0),[prototypeRow,setPrototypeRow]=useState(1),[totalRow,setTotalRow]=useState((inventory[0]?.rows.length??3)-1),[items,setItems]=useState<PricingLine[]>([blankLine()])
+ const table=inventory[tableIndex]
  const select=()=>{if(source.current)setSelection({start:source.current.selectionStart,end:source.current.selectionEnd})}
  return <section aria-label={`Word template v${version.number}`}>
   <p><a href={`/api/locket/files/${word.source_artifact_id}`}>Download original Word template</a></p>
@@ -36,11 +39,13 @@ export function WordTemplateEditor({word,version,locket,editor}:{word:Row;versio
     const result=await locket.run('template.word.mark',{versionId:version.id,revision:word.revision,marks:[...marks,{...selection,quote:word.source_text.slice(selection.start,selection.end),kind,name,label,required}]})
     if(result){setName('');setLabel('');setPreview('')}
    }}>Mark selection</button>
+   {table&&<details><summary>Set repeating USD pricing table</summary><Form busy={locket.busy} submit="Use pricing table" onSubmit={()=>void locket.run('template.word.pricing',{versionId:version.id,revision:word.revision,tableIndex,prototypeRow,totalRow})}><Field label="Pricing table"><select value={tableIndex} onChange={e=>{const index=Number(e.target.value);setTableIndex(index);setPrototypeRow(1);setTotalRow(inventory[index].rows.length-1)}}>{inventory.map(t=><option key={t.index} value={t.index}>Table {t.index+1}</option>)}</select></Field><Field label="Prototype item row"><select value={prototypeRow} onChange={e=>setPrototypeRow(Number(e.target.value))}>{table.rows.map((r:any)=><option key={r.index} value={r.index}>Row {r.index+1}: {r.text.slice(0,80)}</option>)}</select></Field><Field label="Total row"><select value={totalRow} onChange={e=>setTotalRow(Number(e.target.value))}>{table.rows.map((r:any)=><option key={r.index} value={r.index}>Row {r.index+1}: {r.text.slice(0,80)}</option>)}</select></Field><p>The first cell holds the description, quantity and unit price; the last cell holds each calculated USD line total. Body rows from the prototype to the row before the total are replaced by your supplied line items. The total row’s last cell holds the grand total. Preview this selection before approval.</p></Form></details>}
+   {word.pricing&&<p>Repeating USD pricing table configured.</p>}
    {marks.some(m=>m.kind==='field')&&<Form busy={locket.busy} submit="Preview Word document" onSubmit={async data=>{
     const fields:Record<string,string>={},clauseChoices:Record<string,string>={}
     for(const[key,answer]of data.entries()){if(key.startsWith('field.'))fields[key.slice(6)]=String(answer);if(key.startsWith('clause.'))clauseChoices[key.slice(7)]=String(answer)}
-    const result=await locket.run('template.word.preview',{versionId:version.id,revision:word.revision,fields,clauseChoices});if(result)setPreview(result.text)
-   }}><h4>Preview with sample answers</h4><TemplateFields template={version}/></Form>}
+    const result=await locket.run('template.word.preview',{versionId:version.id,revision:word.revision,fields,clauseChoices,...(word.pricing?{lineItems:items}:{})});if(result)setPreview(result.text)
+   }}><h4>Preview with sample answers</h4><TemplateFields template={version}/>{word.pricing&&<PricingLines items={items} onChange={setItems}/>}</Form>}
   </>}
   {word.preview_artifact_id&&word.preview_revision===word.revision&&<p><a href={`/api/locket/files/${word.preview_artifact_id}`}>Download populated Word preview</a></p>}
   {preview&&<pre className="lk-document" aria-label="Word preview text">{preview}</pre>}
