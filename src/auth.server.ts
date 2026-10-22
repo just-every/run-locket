@@ -51,7 +51,7 @@ export interface Bindings {
  OWNER_EMAIL: string
  SESSION_SECRET: string
  SETUP_TOKEN?: string
- MAIL_PROVIDER?: 'development' | 'resend' | 'sendgrid' | 'cloudflare'
+ MAIL_PROVIDER?: 'development' | 'resend' | 'sendgrid' | 'cloudflare' | 'postmark'
  MAIL_FROM?: string
  POSTMARK_REPLY_DOMAIN?: string
  POSTMARK_INBOUND_SECRET?: string

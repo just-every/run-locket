@@ -1,3 +1,4 @@
+import { isCreditMail } from '../api/reconciliation-fixture.mjs'
 import { test,expect } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -7,7 +8,7 @@ import { serviceLevelBindings,serviceLevelFake,serviceLevelFixture } from '../ap
 test.use({ignoreHTTPSErrors:true,locale:'en-US',timezoneId:'UTC'})
 for(const width of [1440,390])test(`AGENT-002 authorizes monitoring, confirms signed terms and approves one exact USD 1000 claim for 99.2% versus 99.9% at ${width}px`,async({page})=>{
  const calls:any[]=[],p=await productPage(page,{width,bindings:serviceLevelBindings,outboundResponse:serviceLevelFake(calls,()=> 'exclusions')}),{h,origin}=p
- const outbound=()=>h.mails.filter((m:any)=>m.MessageStream==='outbound')
+ const outbound=()=>h.mails.filter(isCreditMail)
  const click=async(scope:any,label:string)=>{
   const pending=page.waitForResponse(r=>r.url()===origin+'/api/locket/commands'&&r.request().method()==='POST')
   await scope.getByRole('button',{name:label,exact:true}).click()
@@ -96,13 +97,13 @@ for(const width of [1440,390])test(`AGENT-002 authorizes monitoring, confirms si
   await shot('owner-approved')
   await claim.getByRole('checkbox',{name:/Send the approved/}).check()
   await click(claim,'Send approved service credit claim')
-  await expect(claim).toContainText('Postmark accepted; mailbox delivery and credit recovery unconfirmed.')
+  await expect(claim).toContainText('Mail provider accepted; mailbox delivery and credit recovery unconfirmed.')
   expect(outbound()).toHaveLength(1)
   const saved=(await p.state()).serviceLevels.claims.find((c:any)=>c.id===record.id)
-  expect(outbound()[0].TextBody).toBe(saved.message_text)
-  expect(outbound()[0].Subject).toBe(saved.subject)
+  expect(outbound()[0].text).toBe(saved.message_text)
+  expect(outbound()[0].subject).toBe(saved.subject)
   await page.reload()
-  await expect(claim).toContainText('Postmark accepted; mailbox delivery and credit recovery unconfirmed.')
+  await expect(claim).toContainText('Mail provider accepted; mailbox delivery and credit recovery unconfirmed.')
   await expect(claim.getByRole('button',{name:'Send approved service credit claim',exact:true})).toHaveCount(0)
   expect(outbound()).toHaveLength(1)
   expect(Buffer.from(await(await h.owner.request(`/api/locket/files/${read.artifact_id}`)).arrayBuffer())).toEqual(Buffer.from(bytesBefore))

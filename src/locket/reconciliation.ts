@@ -4,7 +4,7 @@ import type { Handler } from './commands'
 import { canonical, date, fail, integer, json, sha256, sql, text } from './model'
 import { citation } from './obligations'
 import { agreementGuards, bump, visibleAgreement } from './records'
-import { familySources, humanReconciliationRoles, participant, procurementDependency, reconciliationRoles, settings, sourceChecks } from './reconciliation-records'
+import { familySources, findingOwnerRoles, participant, procurementDependency, reconciliationRoles, settings, sourceChecks } from './reconciliation-records'
 import { reconciliationDecisionHandlers } from './reconciliation-decisions'
 import { reconciliationMailHandlers } from './reconciliation-mail'
 import { notificationWrites } from './notifications'
@@ -16,7 +16,7 @@ const configure:Handler=async(c,p)=>{
  if(a.type!=='supplier'||!['executed','imported'].includes(a.status))fail('NOT_EXECUTED','Invoice reconciliation requires an executed or imported supplier agreement.',409)
  if(p.consent!==true)fail('CONSENT','Explicitly authorize reading linked vendor bills and preparing findings. Supplier contact still needs exact-message approval.')
  const counselId=text(p,'counselId',100),financeId=text(p,'financeId',100),ownerId=text(p,'ownerId',100),ids=family.sources.map(s=>s.id)
- const counsel=await participant(c,counselId,['owner','counsel'],ids),finance=await participant(c,financeId,['owner','approver'],ids),owner=await participant(c,ownerId,humanReconciliationRoles,ids)
+ const counsel=await participant(c,counselId,['owner','counsel'],ids),finance=await participant(c,financeId,['owner','approver'],ids),owner=await participant(c,ownerId,findingOwnerRoles,ids)
  return {allowed:may.manageRoles,result:{agreementId:a.id},checks:[...agreementGuards(c,a,p),...family.checks,counsel.check,finance.check,owner.check],writes:[sql('INSERT INTO lk_reconciliation_settings(agreement_id,counsel_id,finance_id,owner_id,consent_by,consent_at,version) VALUES(?,?,?,?,?,?,1) ON CONFLICT(agreement_id) DO UPDATE SET counsel_id=excluded.counsel_id,finance_id=excluded.finance_id,owner_id=excluded.owner_id,consent_by=excluded.consent_by,consent_at=excluded.consent_at,version=lk_reconciliation_settings.version+1',a.id,counselId,financeId,ownerId,c.actor.id,c.now),bump(c,a)],audit:[{action:'reconciliation.configure',agreementId:a.id,summary:'Owner authorized read-only invoice reconciliation and designated counsel, finance and the finding owner. No supplier contact or accounting posting authorized.'}]}
 }
 const interpret:Handler=async(c,p)=>{
@@ -38,7 +38,7 @@ const scan:Handler=async(c,p)=>{
  const i=await c.db.prepare('SELECT * FROM lk_reconciliation_interpretations WHERE agreement_id=? ORDER BY rowid DESC LIMIT 1').bind(a.id).first<any>()
  if(!i||i.settings_version!==s.version)fail('INTERPRETATION','Designated counsel must confirm the current pricing interpretation first.',409)
  const checks=await sourceChecks(c,a.id,i.sources),ids=JSON.parse(i.sources).map((s:any)=>s.id)
- for(const [id,roles]of [[s.counsel_id,['owner','counsel']],[s.finance_id,['owner','approver']],[s.owner_id,humanReconciliationRoles]] as const)checks.push((await participant(c,id,roles,ids)).check)
+ for(const [id,roles]of [[s.counsel_id,['owner','counsel']],[s.finance_id,['owner','approver']],[s.owner_id,findingOwnerRoles]] as const)checks.push((await participant(c,id,roles,ids)).check)
  const link=await c.db.prepare('SELECT * FROM lk_accounting_links WHERE agreement_id=?').bind(a.id).first<any>()
  if(!link)fail('ACCOUNTING_UNAVAILABLE','The owner must authorize the read-only QuickBooks vendor link first.',409)
  const since=date(p,'since'),through=date(p,'through')
@@ -69,7 +69,7 @@ const prepare:Handler=async(c,p)=>{
  const id=crypto.randomUUID(),amount=(atStake/100).toFixed(2),content={...evidence,observedIncreasePercent:100*(bill.totalCents-baseline.totalCents)/baseline.totalCents,sources:JSON.parse(scan.sources),procurement:spend.procurement,basis:'Potential overcharge only. Finance must confirm full contract allocation, equal annual service/quantity scope, and all tax, credit and adjustment effects; total vendor bills alone do not prove an overcharge.'}
  const ids=content.sources.map((s:any)=>s.id)
  const people=[]
- for(const [personId,roles]of [[s.counsel_id,['owner','counsel']],[s.finance_id,['owner','approver']],[s.owner_id,humanReconciliationRoles]] as const)people.push((await participant(c,personId,roles,ids)).check)
+ for(const [personId,roles]of [[s.counsel_id,['owner','counsel']],[s.finance_id,['owner','approver']],[s.owner_id,findingOwnerRoles]] as const)people.push((await participant(c,personId,roles,ids)).check)
  const subject=`Credit request: ${a.reference}, bill ${bill.id}`
  const body=`Please review a potential USD ${amount} overcharge on bill ${bill.id} dated ${bill.date}. The comparable baseline bill ${baseline.id} is USD ${(baseline.totalCents/100).toFixed(2)}; the current bill is USD ${(bill.totalCents/100).toFixed(2)}. The confirmed annual increase cap is ${i.cap_bps/100}%, allowing USD ${(allowed/100).toFixed(2)}.\n\nContract clause: “${content.citation.quote}”\nInterpretation: ${i.interpretation}\n\nPlease confirm the appropriate credit or explain any difference in scope, tax or credits.`
  return {allowed:reconciliationRoles,result:{id,suppressed:false,atStakeCents:atStake},checks:[...checks,...people,sql('(SELECT version FROM lk_reconciliation_settings WHERE agreement_id=?)=?',a.id,s.version),sql('(SELECT version FROM lk_accounting_links WHERE agreement_id=?)=?',a.id,scan.link_version),sql('(SELECT id FROM lk_reconciliation_interpretations WHERE agreement_id=? ORDER BY rowid DESC LIMIT 1)=?',a.id,i.id),sql("NOT EXISTS(SELECT 1 FROM lk_reconciliation_findings WHERE agreement_id=? AND (fingerprint=? OR (evidence_key=? AND status='rejected')))",a.id,fingerprint,evidenceKey)],writes:[sql("INSERT INTO lk_reconciliation_findings(id,agreement_id,scan_id,fingerprint,evidence_key,content,owner_id,counsel_id,finance_id,status,subject,message_text,created_at) VALUES(?,?,?,?,?,?,?,?,?,'proposed',?,?,?)",id,a.id,scan.id,fingerprint,evidenceKey,json(content),s.owner_id,s.counsel_id,s.finance_id,subject,body,c.now),...notificationWrites(c,{key:id,agreementId:a.id,recipientId:s.finance_id,kind:'approval'})],audit:[{action:'reconciliation.prepare',agreementId:a.id,summary:`Prepared a potential USD ${amount} above-cap finding citing signed terms and both QuickBooks bills. Finance confirmation and finding-owner exact-message approval are required before contact.`}]}

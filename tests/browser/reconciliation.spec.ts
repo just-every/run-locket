@@ -2,7 +2,7 @@ import { test,expect } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { productPage } from './product-harness.mjs'
-import { reconciliationBindings,reconciliationFake,reconciliationFixture } from '../api/reconciliation-fixture.mjs'
+import { reconciliationBindings,reconciliationFake,reconciliationFixture,isCreditMail } from '../api/reconciliation-fixture.mjs'
 
 test.use({ignoreHTTPSErrors:true,locale:'en-US',timezoneId:'America/New_York'})
 for(const width of [1440,390])test(`AGENT-001 reviews 3% versus 7%, confirms finance and approves one exact $4,000 credit request at ${width}px`,async({page})=>{
@@ -42,7 +42,7 @@ for(const width of [1440,390])test(`AGENT-001 reviews 3% versus 7%, confirms fin
   await finding.getByText('Edit exact supplier credit request',{exact:true}).click()
   await finding.getByLabel('Credit request recipient',{exact:true}).fill('synthetic-locket-supplier@example.test')
   await click(finding,'Save exact credit request')
-  expect(h.mails.filter((m:any)=>m.MessageStream==='outbound').length).toBe(0)
+  expect(h.mails.filter(isCreditMail).length).toBe(0)
   await as(f.finance)
   await finding.getByLabel('Finance accounting explanation',{exact:true}).fill('I checked the two full annual service periods, unchanged quantities, full contract allocation, taxes and credits; the USD 4,000 difference remains due for review.')
   await finding.getByLabel('Both bills are allocated completely to this contract and cover comparable annual services and quantities.',{exact:true}).check()
@@ -53,20 +53,20 @@ for(const width of [1440,390])test(`AGENT-001 reviews 3% versus 7%, confirms fin
   await finding.getByLabel('I approve this exact recipient, subject and message. Sending is a separate action.',{exact:true}).check()
   await click(finding,'Approve exact credit request')
   await expect(finding).toContainText('Approved; no email sent.')
-  expect(h.mails.filter((m:any)=>m.MessageStream==='outbound').length).toBe(0)
+  expect(h.mails.filter(isCreditMail).length).toBe(0)
   await shot('approved')
-  await finding.getByLabel('Send the exact approved credit request to synthetic-locket-supplier@example.test through Postmark.',{exact:true}).check()
+  await finding.getByLabel('Send the exact approved credit request to synthetic-locket-supplier@example.test through the installation mail provider.',{exact:true}).check()
   await click(finding,'Send approved credit request')
-  await expect(finding).toContainText('Postmark accepted; mailbox delivery and credit recovery unconfirmed.')
-  const outbound=h.mails.filter((m:any)=>m.MessageStream==='outbound')
+  await expect(finding).toContainText('Mail provider accepted; mailbox delivery and credit recovery unconfirmed.')
+  const outbound=h.mails.filter(isCreditMail)
   expect(outbound.length).toBe(1)
   const record=(await product.state()).reconciliationFindings[0]
-  expect(outbound[0].TextBody).toBe(record.message_text)
+  expect(outbound[0].text).toBe(record.message_text)
   await page.reload()
   await expect(finding).toBeVisible()
-  await expect(finding).toContainText('Postmark accepted; mailbox delivery and credit recovery unconfirmed.')
+  await expect(finding).toContainText('Mail provider accepted; mailbox delivery and credit recovery unconfirmed.')
   await expect(finding.getByRole('button',{name:'Send approved credit request',exact:true})).toHaveCount(0)
-  expect(h.mails.filter((m:any)=>m.MessageStream==='outbound').length).toBe(1)
+  expect(h.mails.filter(isCreditMail).length).toBe(1)
   await shot('accepted')
  }finally{await product.close()}
 })

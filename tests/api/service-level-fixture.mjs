@@ -2,7 +2,7 @@ import {file,pdf} from './files.mjs'
 import {PDFDocument,StandardFonts} from 'pdf-lib'
 
 export const serviceLevelPolicy='Healthy time as a share of observed scheduled time (healthy + not passing). Unknown, paused and maintenance time are excluded from the uptime and SLA denominator and shown separately.'
-export const serviceLevelBindings={UPTIME_ORIGIN:'https://synthetic-locket-uptime.example.test',UPTIME_METRICS_KEY:'synthetic-locket-1',POSTMARK_SERVER_TOKEN:'synthetic-locket-2',TEST_NOW:String(Date.parse('2026-10-17T14:00:00Z'))}
+export const serviceLevelBindings={UPTIME_ORIGIN:'https://synthetic-locket-uptime.example.test',UPTIME_METRICS_KEY:'synthetic-locket-1',MAIL_PROVIDER:'postmark',MAIL_API_KEY:'synthetic-locket-2',TEST_NOW:String(Date.parse('2026-10-17T14:00:00Z'))}
 export function serviceLevelFake(calls,mode=()=> 'ok') {
  return async request=>{
   const url=new URL(request.url),selected=mode(),from=Date.parse(url.searchParams.get('from')),to=Date.parse(url.searchParams.get('to')),windowMs=to-from
@@ -18,7 +18,7 @@ export function serviceLevelFake(calls,mode=()=> 'ok') {
  }
 }
 export async function serviceLevelFixture(h,{restricted=false,separateOwner=false,confirm=true,link=true,native=true}={}) {
- const counsel=await h.invite('synthetic-locket-counsel@example.test','counsel'),owner=separateOwner?await h.invite('synthetic-locket-agreement-owner@example.test','requester'):h.owner
+ const counsel=await h.invite('synthetic-locket-counsel@example.test','counsel'),owner=separateOwner?await h.invite('synthetic-locket-agreement-owner@example.test','approver'):h.owner
  const ownerId=separateOwner?owner.id:(await h.owner.state()).actor.id
  const quote='Monthly availability must be at least 99.9%. Availability of 99.0% to below 99.9% earns a credit of 10% of the USD 10000 monthly service charge. Healthy time is divided by observed scheduled time; unknown, paused and maintenance time are excluded. The service month uses UTC. Claim by 23:59:59 UTC on the date 30 calendar days after the final service date.'
  const body=`Supplier hosting service, effective September 1, 2026. ${quote}`

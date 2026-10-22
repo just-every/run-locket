@@ -10,8 +10,15 @@ permissions:
 
 jobs:
   verify:
+    name: Verify (${{ matrix.partition }})
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # The API runner shards the complete existing file list. The portable
+        # export/import proof gets its own runner; no checks move off push CI.
+        partition: [core, api-1, api-2, api-3, api-4, portable]
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
@@ -37,11 +44,14 @@ jobs:
       - run: pnpm run deps
       # Ubuntu 24.04's hosted image includes Chrome's system libraries. Cache
       # only the exact browser build selected by the locked Playwright package;
-      # hydration still launches that browser during the complete rer verify.
+      # hydration still launches that browser in the core verification job.
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        if: matrix.partition == 'core'
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install chromium
+        if: matrix.partition == 'core'
       - run: pnpm exec rer check --profile first-party
-      - run: pnpm exec rer verify --no-queue
+      - name: Run full verification partition
+        run: node .github/scripts/verify.mjs "${{ matrix.partition }}"

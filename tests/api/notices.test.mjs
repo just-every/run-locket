@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { installation } from './harness.mjs'
-import { reconciliationBindings, reconciliationFake, reconciliationFixture } from './reconciliation-fixture.mjs'
+import { reconciliationBindings, reconciliationFake, reconciliationFixture, isCreditMail, installationMailReceipt } from './reconciliation-fixture.mjs'
 import { noticeFixture, prepare, signedEvent, postEvent, webhookKey } from './notice-fixture.mjs'
 import { serviceLevelBindings,serviceLevelFake,serviceLevelFixture,serviceLevelPolicy } from './service-level-fixture.mjs'
 
@@ -34,16 +34,19 @@ test('AGENT-002 confirms signed SLA, preserves exact Uptime evidence, records su
  assert.equal((await outside.request(`/api/locket/files/${read.artifact_id}`)).status,404)
  assert.ok((await f.owner.state()).notifications.items.some(n=>n.agreement_id===f.source.id&&n.kind==='obligation'))
  await h.owner.command('service-level.message',{claimId:claim.id,claimVersion:claim.version,recipient:'synthetic-locket-supplier@example.test',subject:claim.subject,message:claim.message_text},{error:'FORBIDDEN'})
+ await h.owner.command('role.set',{operatorId:f.ownerId,role:'requester'})
+ await f.owner.command('service-level.message',{claimId:claim.id,claimVersion:claim.version,recipient:'synthetic-locket-supplier@example.test',subject:claim.subject,message:claim.message_text},{error:'FORBIDDEN'})
+ await h.owner.command('role.set',{operatorId:f.ownerId,role:'approver'})
  await f.save(claim.id)
  await f.owner.command('service-level.email',await f.sendPayload(claim.id),{error:'APPROVAL'})
  await f.owner.command('service-level.approve',{...await f.sendPayload(claim.id),amountCents:1},{error:'APPROVAL'})
  await f.approve(claim.id)
- assert.equal(h.mails.filter(m=>m.MessageStream==='outbound').length,0)
+ assert.equal(h.mails.filter(isCreditMail).length,0)
  const payload=await f.sendPayload(claim.id),commandId=crypto.randomUUID()
  const [sent,again]=await Promise.all([f.owner.command('service-level.email',payload,{commandId}),f.owner.command('service-level.email',payload,{commandId})])
  assert.deepEqual(sent,again)
- const outbound=h.mails.filter(m=>m.MessageStream==='outbound'),saved=await f.claim(claim.id)
- assert.equal(outbound.length,1);assert.equal(outbound[0].TextBody,saved.message_text);assert.equal(outbound[0].To,saved.recipient)
+ const outbound=h.mails.filter(isCreditMail),saved=await f.claim(claim.id)
+ assert.equal(outbound.length,1);assert.equal(outbound[0].text,saved.message_text);assert.equal(outbound[0].to[0],saved.recipient)
  assert.equal((await h.owner.state()).serviceLevels.dispatches[0].status,'accepted')
  await f.owner.command('service-level.email',payload,{error:'ALREADY_SENT'})
  const repeated=await f.read(agent)
@@ -82,7 +85,7 @@ test('AGENT-002 refuses unconfirmed formulas and incomplete, wrong-policy or una
  assert.equal(result.amountCents,100000);assert.equal(metrics.unknownMs,500);assert.equal(metrics.pausedMs,500);assert.equal(metrics.maintenanceMs,500)
  assert.equal(metrics.observedMs,metrics.windowMs-1500);assert.equal(metrics.upMs+metrics.notPassingMs,metrics.observedMs)
  assert.equal(metrics.denominatorPolicy,serviceLevelPolicy)
- assert.equal(h.mails.filter(m=>m.MessageStream==='outbound').length,0)
+ assert.equal(h.mails.filter(isCreditMail).length,0)
 })
 
 test('AGENT-002 cached results and evidence respect source scope; changed formulas, owner authority and claim deadlines block supplier contact',async t=>{
@@ -114,7 +117,7 @@ test('AGENT-002 cached results and evidence respect source scope; changed formul
  Object.assign(h.owner,await h.signIn('owner@example.test'))
  Object.assign(viewer,await h.signIn('synthetic-locket-viewer@example.test'))
  await h.owner.command('service-level.email',await f.sendPayload(next.claimId),{error:'CLAIM_CLOSED'})
- assert.equal(h.mails.filter(m=>m.MessageStream==='outbound').length,0)
+ assert.equal(h.mails.filter(isCreditMail).length,0)
  await h.owner.command('access.set',{agreementId:amendment.id,operatorId:viewer.id,grant:'revoke'})
  assert.equal((await viewer.state()).serviceLevels.reads.length,0)
  assert.ok((await viewer.state()).agreements.some(a=>a.id===f.source.id))
@@ -127,13 +130,13 @@ test('AGENT-002 cached results and evidence respect source scope; changed formul
 })
 
 test('AGENT-002 uncertain provider outcomes never resend and erasure preserves exact monitoring evidence while respecting legal holds',async t=>{
- const h=await installation({bindings:serviceLevelBindings,outboundResponse:serviceLevelFake([]),mailResponse:m=>m.MessageStream==='outbound'?new Response('Provider outcome unknown',{status:503}):Response.json({id:crypto.randomUUID()})})
+ const h=await installation({bindings:serviceLevelBindings,outboundResponse:serviceLevelFake([]),mailResponse:m=>isCreditMail(m)?new Response('Provider outcome unknown',{status:503}):installationMailReceipt(m)})
  t.after(()=>h.close())
  const f=await serviceLevelFixture(h),r=await f.read();await f.save(r.claimId);await f.approve(r.claimId)
  const payload=await f.sendPayload(r.claimId),commandId=crypto.randomUUID()
  await h.owner.command('service-level.email',payload,{commandId});await h.owner.command('service-level.email',payload,{commandId})
  await h.owner.command('service-level.email',payload,{error:'ALREADY_SENT'})
- assert.equal(h.mails.filter(m=>m.MessageStream==='outbound').length,1)
+ assert.equal(h.mails.filter(isCreditMail).length,1)
  assert.equal((await h.owner.state()).serviceLevels.dispatches[0].status,'uncertain')
  const read=(await h.owner.state()).serviceLevels.reads[0],before=Buffer.from(await(await h.owner.request(`/api/locket/files/${read.artifact_id}`)).arrayBuffer())
  const email=(await f.claim(r.claimId)).recipient
@@ -149,7 +152,7 @@ test('AGENT-002 uncertain provider outcomes never resend and erasure preserves e
  assert.deepEqual(Buffer.from(await(await h.owner.request(`/api/locket/files/${read.artifact_id}`)).arrayBuffer()),before)
 })
 
-test('AGENT-001 QuickBooks above-cap bills require counsel, finance and exact finding-owner approval; Postmark sends once and rejected evidence stays suppressed',async t=>{
+test('AGENT-001 QuickBooks above-cap bills require counsel, finance and exact finding-owner approval; the installation mail door sends once and rejected evidence stays suppressed',async t=>{
  let mode='ok';const calls=[],h=await installation({bindings:reconciliationBindings,outboundResponse:reconciliationFake(calls,()=>mode)})
  t.after(()=>h.close())
  const f=await reconciliationFixture(h,{restricted:true,separateOwner:true}),outsider=await h.invite('synthetic-locket-outside@example.test','viewer')
@@ -166,21 +169,21 @@ test('AGENT-001 QuickBooks above-cap bills require counsel, finance and exact fi
  assert.equal(evidence.procurement.status,'unavailable');assert.match(evidence.procurement.detail,/cannot read POs/)
  assert.equal((await outsider.state()).reconciliationFindings.length,0)
  assert.equal((await f.finance.state()).notifications.items.filter(n=>n.agreement_id===f.source.id&&n.kind==='approval').length,1)
- assert.equal(h.mails.filter(m=>m.MessageStream==='outbound').length,0)
+ assert.equal(h.mails.filter(isCreditMail).length,0)
  await f.save(candidate.id)
  await f.owner.command('reconciliation.message.approve',{...await f.sendPayload(candidate.id)},{error:'APPROVAL'})
  await h.owner.command('reconciliation.finance.confirm',{findingId:candidate.id,findingVersion:(await f.record(candidate.id)).version,confirmComparable:true,confirmAdjustments:true,note:'Not the designated finance person.'},{error:'FORBIDDEN'})
  await f.confirm(candidate.id)
  await h.owner.command('reconciliation.message.approve',await f.sendPayload(candidate.id),{error:'FORBIDDEN'})
  await f.approve(candidate.id)
- assert.equal(h.mails.filter(m=>m.MessageStream==='outbound').length,0)
+ assert.equal(h.mails.filter(isCreditMail).length,0)
  const payload=await f.sendPayload(candidate.id),commandId=crypto.randomUUID()
  const [sent,replayed]=await Promise.all([f.owner.command('reconciliation.email',payload,{commandId}),f.owner.command('reconciliation.email',payload,{commandId})])
  assert.deepEqual(sent,replayed)
- const outbound=h.mails.filter(m=>m.MessageStream==='outbound')
- assert.equal(outbound.length,1);assert.match(outbound[0].TextBody,/4000\.00/)
+ const outbound=h.mails.filter(isCreditMail)
+ assert.equal(outbound.length,1);assert.match(outbound[0].text,/4000\.00/)
  finding=await f.record(candidate.id)
- assert.equal(outbound[0].TextBody,finding.message_text);assert.equal(outbound[0].To,finding.recipient);assert.equal(outbound[0].Subject,finding.subject)
+ assert.equal(outbound[0].text,finding.message_text);assert.equal(outbound[0].to[0],finding.recipient);assert.equal(outbound[0].subject,finding.subject)
  let state=await h.owner.state(),dispatch=state.reconciliationDispatches.find(d=>d.finding_id===candidate.id)
  assert.equal(dispatch.status,'accepted');assert.ok(dispatch.provider_message_id)
  assert.ok(!('delivered_at' in dispatch));assert.ok(!('recovered_cents' in dispatch))
@@ -205,6 +208,10 @@ test('AGENT-001 refuses wrong roles, unconsented reads, changed exact messages, 
  const f=await reconciliationFixture(h,{interpret:false}),viewer=await h.invite('synthetic-locket-viewer@example.test','viewer')
  await viewer.command('reconciliation.configure',{agreementId:f.source.id},{error:'FORBIDDEN'})
  await h.owner.command('reconciliation.configure',{agreementId:f.source.id,version:(await f.current()).version,counselId:f.counsel.id,financeId:f.finance.id,ownerId:f.ownerId},{error:'CONSENT'})
+ for(const role of ['requester','counsel']){
+  const ineligible=role==='counsel'?f.counsel:await h.invite('synthetic-locket-requester@example.test','requester')
+  await h.owner.command('reconciliation.configure',{agreementId:f.source.id,version:(await f.current()).version,counselId:f.counsel.id,financeId:f.finance.id,ownerId:ineligible.id,consent:true},{error:'RECIPIENT'})
+ }
  await h.owner.command('reconciliation.scan',{agreementId:f.source.id,since:'2025-01-01',through:'2026-10-17'},{error:'INTERPRETATION'})
  await h.owner.command('reconciliation.interpret',await f.interpretationPayload(),{error:'FORBIDDEN'})
  await f.counsel.command('reconciliation.interpret',{...await f.interpretationPayload(),citation:{quote:'Invented cap clause'}},{error:'CITATION'})
@@ -220,15 +227,15 @@ test('AGENT-001 refuses wrong roles, unconsented reads, changed exact messages, 
  await f.approve(candidate.id)
  await h.owner.command('role.set',{operatorId:f.finance.id,role:'viewer'})
  await h.owner.command('reconciliation.email',await f.sendPayload(candidate.id),{error:'RECIPIENT'})
- assert.equal(h.mails.filter(m=>m.MessageStream==='outbound').length,0)
+ assert.equal(h.mails.filter(isCreditMail).length,0)
  await h.owner.command('role.set',{operatorId:f.finance.id,role:'approver'})
  await h.owner.command('accounting.link',{agreementId:f.source.id,version:(await f.current()).version,vendorId:'42',consent:true})
  await h.owner.command('reconciliation.email',await f.sendPayload(candidate.id),{error:'STALE'})
  assert.equal((await h.owner.state()).reconciliationDispatches.length,0)
 })
 
-test('AGENT-001 unavailable accounting is never zero; uncertain and rejected Postmark outcomes never resend',async t=>{
- let mode='refused',outcome='uncertain';const h=await installation({bindings:reconciliationBindings,outboundResponse:reconciliationFake([],()=>mode),mailResponse:m=>m.MessageStream==='outbound'?(outcome==='uncertain'?new Response('Unknown provider outcome',{status:503}):Response.json({ErrorCode:300,Message:'Provider refused'},{status:422})):Response.json({id:crypto.randomUUID()})})
+test('AGENT-001 unavailable accounting is never zero; uncertain and rejected installation mail outcomes never resend',async t=>{
+ let mode='refused',outcome='uncertain';const h=await installation({bindings:reconciliationBindings,outboundResponse:reconciliationFake([],()=>mode),mailResponse:m=>isCreditMail(m)?(outcome==='uncertain'?new Response('Unknown provider outcome',{status:503}):Response.json({message:'Provider refused'},{status:422})):installationMailReceipt(m)})
  t.after(()=>h.close())
  const f=await reconciliationFixture(h)
  await h.owner.command('reconciliation.scan',{agreementId:f.source.id,since:'2025-01-01',through:'2026-10-17'},{error:'ACCOUNTING_UNAVAILABLE'})
@@ -247,7 +254,7 @@ test('AGENT-001 unavailable accounting is never zero; uncertain and rejected Pos
   assert.equal((await h.owner.state()).reconciliationDispatches.find(d=>d.finding_id===candidate.id).status,outcome)
   outcome='rejected'
  }
- assert.equal(h.mails.filter(m=>m.MessageStream==='outbound').length,2)
+ assert.equal(h.mails.filter(isCreditMail).length,2)
 })
 
 test('RENEW-006 approved exact PDF/recipient email, signed provider events, retries, archive and manual certified-mail evidence', async t => {

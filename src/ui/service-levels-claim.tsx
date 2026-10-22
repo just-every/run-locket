@@ -27,10 +27,10 @@ export function ServiceLevelClaim({state,a,locket,claim:c}:ServiceLevelProps&{cl
  const b=parse<any>(c.content),read=state.serviceLevels.reads.find(r=>r.id===c.read_id),link=state.serviceLevels.links.find(l=>l.agreement_id===a.id),term=state.serviceLevels.terms.find(t=>t.agreement_id===a.id)
  const dispatch=state.serviceLevels.dispatches.find(d=>d.claim_id===c.id),breach=state.serviceLevels.breaches.find(d=>d.claim_id===c.id),obligation=state.obligations.find(o=>o.id===c.obligation_id)
  const stale=serviceSourceStale(state,c.sources)||!read||read.term_id!==term?.id||read.link_version!==link?.version||a.owner_id!==c.owner_id
- const closed=state.now>=c.deadline_at,owner=state.actor.id===c.owner_id&&can(state,'owner','counsel','approver','requester'),editable=owner&&!dispatch&&!stale&&!closed
+ const closed=state.now>=c.deadline_at,owner=state.actor.id===c.owner_id&&can(state,'owner','approver'),editable=owner&&!dispatch&&!stale&&!closed
  const base={claimId:c.id,claimVersion:c.version,amountCents:c.amount_cents,messageDigest:c.message_digest}
  const deadline=new Intl.DateTimeFormat('en-US',{timeZone:b.period.timeZone,dateStyle:'long',timeStyle:'long'}).format(c.deadline_at)
- const outcomes:Record<string,string>={queued:'Queued; no provider acceptance recorded.',sending:'Send claimed; provider outcome unconfirmed. No automatic resend.',accepted:'Postmark accepted; mailbox delivery and credit recovery unconfirmed.',rejected:'Postmark rejected the request; no delivery confirmed.',uncertain:'Provider outcome uncertain; no automatic resend.',rate_limited:'Provider rate limited the request; no delivery confirmed.',suppressed:'Suppressed locally; no email sent.',cancelled:'Send cancelled because authority or evidence changed.'}
+ const outcomes:Record<string,string>={queued:'Queued; no provider acceptance recorded.',sending:'Send claimed; provider outcome unconfirmed. No automatic resend.',accepted:'Mail provider accepted; mailbox delivery and credit recovery unconfirmed.',rejected:'Mail provider rejected the request; no delivery confirmed.',uncertain:'Provider outcome uncertain; no automatic resend.',rate_limited:'Provider rate limited the request; no delivery confirmed.',suppressed:'Suppressed locally; no email sent.',cancelled:'Send cancelled because authority or evidence changed.'}
  return <article className="lk-card" aria-label={`Service credit claim ${c.month}`} style={{minWidth:0,overflowWrap:'anywhere'}}>
   <h4>Service credit claim: {serviceUsd(c.amount_cents)}</h4><Badge value={c.status}/>
   <p>Service month: {c.month} · Agreement owner: {personName(state,c.owner_id)}</p>
@@ -56,7 +56,7 @@ export function ServiceLevelClaim({state,a,locket,claim:c}:ServiceLevelProps&{cl
   </Form>}
   {c.status==='approved'&&!dispatch&&<p>Amount and exact message approved; no email sent.</p>}
   {editable&&c.status==='approved'&&<Form busy={locket.busy} submit="Send approved service credit claim" onSubmit={data=>void locket.run('service-level.email',{...base,consent:data.get('send')==='on'})}>
-   <label className="lk-check"><input name="send" type="checkbox" required/> Send the approved {serviceUsd(c.amount_cents)} claim to {c.recipient} through Postmark.</label>
+   <label className="lk-check"><input name="send" type="checkbox" required/> Send the approved {serviceUsd(c.amount_cents)} claim to {c.recipient} through the installation mail provider.</label>
   </Form>}
   {!owner&&!dispatch&&<p>Only {personName(state,c.owner_id)}, the agreement owner, may approve this claim amount and exact message or send it.</p>}
   {dispatch&&<p role="status">{outcomes[dispatch.status]}{dispatch.provider_message_id&&<> Receipt: {dispatch.provider_message_id}</>}</p>}

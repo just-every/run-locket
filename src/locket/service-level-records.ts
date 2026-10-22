@@ -8,7 +8,7 @@ import { hiddenFields,policyVersionCheck,repositoryPolicy } from './repository-a
 
 export type ServiceRow={id:string;[key:string]:any}
 export const serviceReaders:Role[]=['owner','counsel','approver','requester','agent']
-export const servicePeople:Role[]=['owner','counsel','approver','requester']
+export const servicePeople:Role[]=['owner','approver']
 const familySql=`WITH RECURSIVE family(id) AS (SELECT ? UNION SELECT a.id FROM lk_agreements a JOIN family f ON a.parent_id=f.id WHERE a.relation='amends')`
 export async function serviceSources(c:Ctx,a:AgreementRow) {
  const rows=(await c.db.prepare(`${familySql} SELECT a.* FROM lk_agreements a JOIN family f ON f.id=a.id ORDER BY a.id`).bind(a.id).all<AgreementRow>()).results

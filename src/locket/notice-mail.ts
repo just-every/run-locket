@@ -1,5 +1,5 @@
 import { familyClear } from './family-analysis-guard'
-import { operatorMail } from '../mail.server.mjs'
+import { installationMail, installationMailLocal } from './installation-mail'
 import { may, requireRole, visibleSql } from './access'
 import { readArtifactBytes } from './artifacts'
 import { auditSql, commit, guardSql, type Ctx, type Handler } from './commands'
@@ -11,7 +11,7 @@ export interface Dispatch {
   recipient: string; sender: string; pdf_artifact_id: string; pdf_sha256: string; subject: string; message_text: string
   status: string; provider: string | null; provider_message_id: string | null; code: string | null; attempt_id: string | null
 }
-const local = (c: Ctx) => c.env.AUTH_LOCAL === 'true' || (c.env as { RER_DEMO?: string }).RER_DEMO === '1'
+
 
 export const emailNotice: Handler = async (c, p) => {
   requireRole(c.actor, may.signature, 'send an approved notice')
@@ -23,7 +23,7 @@ export const emailNotice: Handler = async (c, p) => {
   const letter = await c.db.prepare('SELECT * FROM lk_notice_letters WHERE id=?').bind(n.id).first<any>()
   if (!letter) fail('LETTER', 'This older approval has no frozen PDF. Prepare and approve a new notice before emailing it.', 409)
   if (!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(letter.recipient)) fail('RECIPIENT', 'Prepare a notice addressed to one email address before email approval.', 400)
-  if (!local(c) && (c.env.MAIL_PROVIDER !== 'resend' || !operatorMail(c.env) || !c.env.MAIL_FROM || !c.env.NOTICE_RESEND_WEBHOOK_SECRET)) fail('MAIL_UNAVAILABLE', 'Configure Resend mail and its notice webhook signing secret before sending notices.', 503)
+  if (!installationMailLocal(c.env) && (c.env.MAIL_PROVIDER !== 'resend' || !installationMail(c.env) || !c.env.MAIL_FROM || !c.env.NOTICE_RESEND_WEBHOOK_SECRET)) fail('MAIL_UNAVAILABLE', 'Configure Resend mail and its notice webhook signing secret before sending notices.', 503)
   if (await c.db.prepare('SELECT id FROM lk_notice_dispatches WHERE notice_id=?').bind(n.id).first()) fail('STATUS', 'This notice already has a send request. Inspect its outcome before preparing another notice.', 409)
   return {
     allowed: may.signature, result: { id: c.commandId, noticeId: n.id, status: 'queued', pdfDigest: letter.sha256 },
@@ -63,8 +63,8 @@ export async function dispatchNotice(c: Ctx, scheduledChecks?: Sql[]) {
   }
   row = (await c.db.prepare('SELECT * FROM lk_notice_dispatches WHERE id=?').bind(c.commandId).first<Dispatch>())!
   if (row.attempt_id !== attempt) return
-  if (local(c)) return finish('suppressed', 'development', null, null)
-  const sender = operatorMail(c.env)
+  if (installationMailLocal(c.env)) return finish('suppressed', 'development', null, null)
+  const sender = installationMail(c.env)
   if (!sender || c.env.MAIL_PROVIDER !== 'resend' || !c.env.MAIL_FROM || !c.env.NOTICE_RESEND_WEBHOOK_SECRET) return finish('rejected', null, null, 'mail_unavailable')
   const bytes = await readArtifactBytes(c.db, row.pdf_artifact_id)
   if (await sha256(bytes) !== row.pdf_sha256) return finish('rejected', null, null, 'pdf_digest_mismatch')

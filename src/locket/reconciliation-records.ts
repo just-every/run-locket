@@ -9,6 +9,7 @@ import { requireFamilyClear } from './family-analysis-guard'
 export type ReconciliationRow = {id:string;[key:string]:any}
 export const reconciliationRoles: Role[] = ['owner','counsel','approver','requester','agent']
 export const humanReconciliationRoles: Role[] = ['owner','counsel','approver','requester']
+export const findingOwnerRoles: Role[] = ['owner','approver']
 export const procurementDependency = 'Purse PO evidence unavailable: its published integration token only creates purchase requests and cannot read POs. No procurement evidence was inferred.'
 const familySql = `WITH RECURSIVE family(id) AS (SELECT ? UNION SELECT a.id FROM lk_agreements a JOIN family f ON a.parent_id=f.id WHERE a.relation='amends')`
 export async function familySources(c:Ctx,a:AgreementRow) {
@@ -52,7 +53,7 @@ export async function currentEvidence(c:Ctx,f:ReconciliationRow) {
  const interpretation=await c.db.prepare('SELECT id FROM lk_reconciliation_interpretations WHERE agreement_id=? ORDER BY rowid DESC LIMIT 1').bind(f.agreement_id).first<{id:string}>()
  if(interpretation?.id!==scan.interpretation_id)fail('STALE','Counsel changed the interpretation. Read and review fresh bills.',409)
  const ids=JSON.parse(scan.sources).map((s:any)=>s.id)
- const counsel=await participant(c,s.counsel_id,['owner','counsel'],ids),finance=await participant(c,s.finance_id,['owner','approver'],ids),owner=await participant(c,s.owner_id,humanReconciliationRoles,ids)
+ const counsel=await participant(c,s.counsel_id,['owner','counsel'],ids),finance=await participant(c,s.finance_id,['owner','approver'],ids),owner=await participant(c,s.owner_id,findingOwnerRoles,ids)
  return {scan,s,finance,checks:[...checks,counsel.check,finance.check,owner.check,policyVersionCheck((await repositoryPolicy(c.db)).version),sql('(SELECT version FROM lk_reconciliation_settings WHERE agreement_id=?)=?',f.agreement_id,s.version),sql('(SELECT version FROM lk_accounting_links WHERE agreement_id=?)=?',f.agreement_id,scan.link_version),sql('(SELECT id FROM lk_reconciliation_interpretations WHERE agreement_id=? ORDER BY rowid DESC LIMIT 1)=?',f.agreement_id,scan.interpretation_id),sql('(SELECT version FROM lk_reconciliation_findings WHERE id=?)=?',f.id,f.version)]}
 }
 export const messageDigest=(f:ReconciliationRow)=>sha256(canonical({finding:f.fingerprint,recipient:f.recipient,subject:f.subject,text:f.message_text}))
@@ -77,7 +78,7 @@ export async function reconciliationState(env:Bindings,actor:Actor) {
 
 /** A cached mutation outcome is still a read under the actor's current grant. */
 export async function authorizeReconciliationResult(c:Ctx,type:string,p:Record<string,unknown>,result:unknown) {
- const allowed=type==='reconciliation.configure'?['owner'] as Role[]:type==='reconciliation.interpret'?['owner','counsel'] as Role[]:type==='reconciliation.finance.confirm'?['owner','approver'] as Role[]:['reconciliation.scan','reconciliation.prepare'].includes(type)?reconciliationRoles:humanReconciliationRoles
+ const allowed=type==='reconciliation.configure'?['owner'] as Role[]:type==='reconciliation.interpret'?['owner','counsel'] as Role[]:type==='reconciliation.finance.confirm'?['owner','approver'] as Role[]:['reconciliation.scan','reconciliation.prepare'].includes(type)?reconciliationRoles:type==='reconciliation.reject'?humanReconciliationRoles:findingOwnerRoles
  const {requireRole}=await import('./access')
  requireRole(c.actor,allowed,'read an invoice command outcome')
  let agreementId=typeof p.agreementId==='string'?p.agreementId:null,sources:string|null=null

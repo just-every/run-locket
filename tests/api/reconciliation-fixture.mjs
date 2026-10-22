@@ -1,7 +1,7 @@
 import { file,pdf } from './files.mjs'
 import { accountingBindings } from './renewal-brief-fixture.mjs'
 
-export const reconciliationBindings={...accountingBindings,POSTMARK_SERVER_TOKEN:'synthetic-locket-2',TEST_NOW:String(Date.parse('2026-10-17T14:00:00Z'))}
+export const reconciliationBindings={...accountingBindings,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-locket-2',TEST_NOW:String(Date.parse('2026-10-17T14:00:00Z'))}
 // QuickBooks' real query response is faked only at fetch. Purse has no published
 // machine-authorized PO read API; inventing a successful Purse fake would hide it.
 export function reconciliationFake(calls,mode=()=> 'ok') {
@@ -16,7 +16,7 @@ export function reconciliationFake(calls,mode=()=> 'ok') {
 }
 export async function reconciliationFixture(h,{restricted=false,native=true,separateOwner=false,interpret=true}={}) {
  const counsel=await h.invite('synthetic-locket-counsel@example.test','counsel'),finance=await h.invite('synthetic-locket-finance@example.test','approver')
- const owner=separateOwner?await h.invite('synthetic-locket-finding-owner@example.test','requester'):h.owner
+ const owner=separateOwner?await h.invite('synthetic-locket-finding-owner@example.test','approver'):h.owner
  const ownerId=separateOwner?owner.id:(await h.owner.state()).actor.id
  const quote='Annual price increases shall not exceed 3 percent.'
  const body=`${quote} Annual supplier services are USD 100000 for the same service scope. The baseline annual service period is January through December 2025; the next period is January through December 2026.`
@@ -45,3 +45,6 @@ export async function reconciliationFixture(h,{restricted=false,native=true,sepa
  const sendPayload=async id=>{const f=await record(id);return {findingId:id,findingVersion:f.version,messageDigest:f.message_digest,consent:true}}
  return {source,counsel,finance,owner,ownerId,quote,current,interpretationPayload,read,prepare,record,confirm,save,approve,sendPayload}
 }
+
+export const isCreditMail=mail=>mail.to?.includes('synthetic-locket-supplier@example.test')===true
+export const installationMailReceipt=mail=>Response.json(mail.MessageStream?{ErrorCode:0,MessageID:crypto.randomUUID()}:{id:crypto.randomUUID()})
