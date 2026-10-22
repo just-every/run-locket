@@ -195,6 +195,7 @@ test('ERASE-001 verified contact erasure preserves execution and audit, counsel 
  s=await h.owner.state()
  assert.ok(s.agreements.some(r=>r.id===x.keep.id)&&s.agreements.some(r=>r.id===imported.id),'elapsed expiry never destroys an unreviewed draft')
  const reminders=s.notifications.items.filter(n=>n.kind==='draft_retention')
+ console.log('EXPIRY_DIAGNOSTIC',JSON.stringify({at:expiredAt,drafts:(await h.db.prepare("SELECT id,status,version,created_at FROM lk_agreements").all()).results,notifications:(await h.db.prepare("SELECT kind,email_status,event_key FROM lk_notifications WHERE kind='draft_retention'").all()).results,owners:(await h.db.prepare("SELECT count(*) n FROM oa_operators WHERE role='owner' AND status='active'").first())}))
  for(const id of [x.keep.id,imported.id])assert.equal(reminders.filter(n=>n.agreement_id===id).length,1,'the owner receives one reminder for an unreviewed expired draft')
  assert.ok(!reminders.some(n=>n.agreement_id===heldRow.id),'held records are excluded from expiry prompts')
  assert.equal(s.legalHolds.find(r=>r.agreement_id===heldRow.id).active,1,'passing the review date never releases a hold')
