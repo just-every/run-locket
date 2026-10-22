@@ -541,7 +541,9 @@ test('configurable supplier forms preview conditions and routes, publish immutab
 
 
 test('INTAKE-006 rotates a guarded team queue, escalates once through personal notifications and preserves reasoned cancellations', async t => {
- const h=await installation();t.after(()=>h.close())
+ // Digest assertions run after 9am in the configured New York zone.
+ const clock=Date.parse('2026-10-20T14:00:00Z')
+ const h=await installation({bindings:{TEST_NOW:String(clock)}});t.after(()=>h.close())
  const tm=await team(h), viewer=await h.invite('synthetic-locket-viewer@example.test','viewer')
  const ownerId=(await h.owner.state()).actor.id
  const group=await h.owner.command('audience.save',{name:'synthetic-locket-1',kind:'group',memberIds:[tm.counsel.id,tm.requester.id]})
@@ -628,7 +630,9 @@ test('INTAKE-006 rotates a guarded team queue, escalates once through personal n
 
 test('APPROVE-002 publishes previewed conditional routes, orders exact-version decisions and attributes current away delegates',async t=>{
  const {approvalRuleFixture,ruleRequest,ruleDecision}=await import('./approval-rule-fixture.mjs')
- const h=await installation();t.after(()=>h.close())
+ // Keep the full journey, including the six-day reminder, after own-zone 9am.
+ const clock=Date.parse('2026-10-20T14:00:00Z')
+ const h=await installation({bindings:{TEST_NOW:String(clock)}});t.after(()=>h.close())
  const f=await approvalRuleFixture(h),viewer=await h.invite('synthetic-locket-approval-viewer@example.test','viewer')
  const beforeRules=await ruleRequest(h.owner,f.requester,f.department.id,{title:'synthetic-locket-before-rules'})
  await f.requester.command('approval.rules.save',{version:0,rules:f.rules},{error:'FORBIDDEN'})
@@ -670,7 +674,7 @@ test('APPROVE-002 publishes previewed conditional routes, orders exact-version d
  await f.requester.command('approval.rule.remind',{agreementId:id,version:a.version,stepId:route[0].deviationId},{error:'TOO_SOON'})
  assert.ok((await f.finance.state()).notifications.items.some(n=>n.kind==='rule_approval_reminder'&&n.email_status==='suppressed'))
  await f.finance.command('notification.preferences',{inApp:true,email:true,digest:true,timezone:'America/New_York'})
- const due=Date.now()+6*86400000
+ const due=clock+6*86400000
  await h.setTime(due);await h.scheduled(due)
  const calls=h.mails.length;await h.scheduled(due);assert.equal(h.mails.length,calls)
  assert.ok((await f.finance.state()).notifications.items.some(n=>n.kind==='rule_approval_reminder'&&n.email_status==='accepted'))
