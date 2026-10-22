@@ -1,3 +1,4 @@
+import { familyClear } from './family-analysis-guard'
 import { agreementAccessSql } from './access'
 // Bulk schedules track the existing lifecycle projection. RENEW-002 delivers from a
 // schedule whose deadline matches the current one; its messages are the delivery record.
@@ -41,9 +42,10 @@ async function projection(c: Ctx, ids: string[], days: number[]) {
   const agreements = await Promise.all(ids.map(id => visibleAgreement(c, id)))
   const [terms, renewals, notices] = await Promise.all(['lk_terms', 'lk_renewals', 'lk_notices'].map(table => all(c.db, table, ids)))
   const { rollNoticeDeadlines } = await installationSettings(c.db)
+  const unblocked = new Map(await Promise.all(agreements.map(async a=>{const check=familyClear(a.id);return [a.id,!!(await c.db.prepare(`SELECT (${check.sql}) AS ok`).bind(...check.params).first<{ok:number}>())?.ok] as const})))
   const rows = agreements.map(a => {
     const current = lifecycle(a, terms, renewals, notices, c.now, rollNoticeDeadlines)
-    const reason = a.status !== 'imported' ? 'Not an imported agreement' : ['expired', 'terminated'].includes(current.status) ? current.status === 'expired' ? 'Expired' : 'Terminated' : current.missing.length ? `Missing confirmed terms: ${current.missing.join(', ')}` : !current.deadline ? 'No current notice deadline' : current.terminationUnsent ? 'Termination notice not recorded as sent' : null
+    const reason = !unblocked.get(a.id) ? 'Family governing terms need counsel review' : a.status !== 'imported' ? 'Not an imported agreement' : ['expired', 'terminated'].includes(current.status) ? current.status === 'expired' ? 'Expired' : 'Terminated' : current.missing.length ? `Missing confirmed terms: ${current.missing.join(', ')}` : !current.deadline ? 'No current notice deadline' : current.terminationUnsent ? 'Termination notice not recorded as sent' : null
     return {
       agreementId: a.id, version: a.version, reference: a.reference, title: a.title, timezone: a.timezone,
       lifecycle: current.status, start: current.start, end: current.end, term: current.term,
@@ -102,7 +104,7 @@ const apply: Handler = async (c, p) => {
   return {
     allowed: may.renewalDecision,
     result: { previewId: id, scheduled: tracked.length, skipped: rows.length - tracked.length, deliveryStatus: 'not_delivered' },
-    checks: [selectionGuard(c.actor.id, agreements), ownerGuard(saved.owner_id, saved.owner_version, agreements), sql('EXISTS(SELECT 1 FROM lk_bulk_reminder_previews WHERE id=? AND actor_id=? AND applied_at IS NULL AND expires_at>?)', id, c.actor.id, c.now)],
+    checks: [...tracked.map(row=>familyClear(row.agreementId)),selectionGuard(c.actor.id, agreements), ownerGuard(saved.owner_id, saved.owner_version, agreements), sql('EXISTS(SELECT 1 FROM lk_bulk_reminder_previews WHERE id=? AND actor_id=? AND applied_at IS NULL AND expires_at>?)', id, c.actor.id, c.now)],
     writes: [...writes, sql('UPDATE lk_bulk_reminder_previews SET applied_at=? WHERE id=?', c.now, id)],
     audit: rows.map(r => ({ action: 'renewal.bulk.apply', agreementId: r.agreementId, summary: r.reason ? `Skipped: ${r.reason}` : `Stored ${snapshot.offsets.join(', ')} day reminder schedule for term ${r.term}, notice deadline ${r.deadlineDate} (${r.timezone}), owner ${snapshot.ownerId}. No reminder delivered.` })),
   }

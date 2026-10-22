@@ -1,3 +1,4 @@
+import { familyClear } from './family-analysis-guard'
 import { operatorMail } from '../mail.server.mjs'
 import { may, requireRole, visibleSql } from './access'
 import { readArtifactBytes } from './artifacts'
@@ -50,7 +51,7 @@ export async function dispatchNotice(c: Ctx, scheduledChecks?: Sql[]) {
     ])
   }
   try {
-    const claimChecks = [visibleSql(c.actor, row.agreement_id), sql('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND version=?)', row.agreement_id, row.agreement_version), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", row.notice_id), sql('(SELECT sha256 FROM lk_notice_letters WHERE id=?)=?', row.notice_id, row.pdf_sha256), sql("(SELECT status FROM lk_notice_dispatches WHERE id=?)='queued'", c.commandId)]
+    const claimChecks = [familyClear(row.agreement_id),visibleSql(c.actor, row.agreement_id), sql('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND version=?)', row.agreement_id, row.agreement_version), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", row.notice_id), sql('(SELECT sha256 FROM lk_notice_letters WHERE id=?)=?', row.notice_id, row.pdf_sha256), sql("(SELECT status FROM lk_notice_dispatches WHERE id=?)='queued'", c.commandId)]
     const claim = sql("UPDATE lk_notice_dispatches SET status='sending',attempt_id=?,attempted_at=? WHERE id=? AND status='queued'", attempt, c.now, c.commandId)
     if (scheduledChecks) {
       const guard = crypto.randomUUID()

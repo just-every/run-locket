@@ -99,7 +99,7 @@ async function apply(c: Ctx, kind: Kind, payload: Record<string, unknown>, propo
     return {allowed:deciders.renewal,result:{noticeId:n.id,status:'draft'},writes:[...writes,bump(c,a)],checks:[...sourceChecks(s),sql('(SELECT version FROM lk_agreements WHERE id=?)=?',a.id,a.version)],audit:[{action:'notice.prepare',agreementId:a.id,summary:'Accepted cited prepared draft; exact schedule approval still required.'}]}
   }
   const n = await noticeDraft(c, payload.renewalId, payload, proposalId)
-  return { allowed: deciders.renewal, result: { noticeId: n.id, status: 'draft' }, writes: [...n.writes, bump(c, n.a)], checks: [sql('(SELECT version FROM lk_agreements WHERE id=?)=?', n.a.id, n.a.version)], audit: [{ action: 'notice.prepare', agreementId: n.a.id, summary: `Accepted prepared ${n.r.decision} notice draft; it still needs sending approval` }] }
+  return { allowed: deciders.renewal, result: { noticeId: n.id, status: 'draft' }, writes: [...n.writes, bump(c, n.a)], checks: [n.familyCheck,sql('(SELECT version FROM lk_agreements WHERE id=?)=?', n.a.id, n.a.version)], audit: [{ action: 'notice.prepare', agreementId: n.a.id, summary: `Accepted prepared ${n.r.decision} notice draft; it still needs sending approval` }] }
 }
 
 const decide: Handler = async (c, p) => {

@@ -1,3 +1,4 @@
+import { familyClear } from './family-analysis-guard'
 // RENEW-002: which renewal and obligation deadlines are open, who is reminded,
 // at which offsets and when. Reminders go out at 9:00 on (deadline date − offset)
 // in the recipient's US time zone, or the deadline's own zone until they choose one.
@@ -58,7 +59,7 @@ export function stillOpenSql(kind: string, subjectId: string, deadlineDate: stri
 /** SQL: an active member other than an agent who may read the agreement. */
 export function readerSql(c: Pick<Ctx, 'actor'>, agreementId: string | null, id: string) {
   const active = sql(`EXISTS(SELECT 1 FROM oa_operators o WHERE o.id=? AND o.status='active' AND (o.role='owner' OR COALESCE((SELECT r.role FROM lk_roles r WHERE r.operator_id=o.id),'viewer')<>'agent'))`, id)
-  return agreementId ? [active, visibleSql({ ...c.actor, id }, agreementId)] : [active]
+  return agreementId ? [familyClear(agreementId),active, visibleSql({ ...c.actor, id }, agreementId)] : [active]
 }
 export async function isReader(c: Ctx, agreementId: string | null, id: string) {
   const checks = readerSql(c, agreementId, id)

@@ -1,3 +1,4 @@
+import { familyClear } from './family-analysis-guard'
 // AGENT-003: selected-source preparation and explicit approval of a frozen schedule.
 import { may, requireRole } from './access'
 import type { Ctx, Handler } from './commands'
@@ -14,7 +15,7 @@ export async function sourceOf(c: Ctx, id: unknown) {
   return { s, a }
 }
 export function sourceChecks(s: any) {
-  return [sql('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND current_version_id=? AND party_id=? AND status IN (\'executed\',\'imported\'))', s.agreement_id, s.version_id, s.party_id),
+  return [familyClear(s.agreement_id),sql('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND current_version_id=? AND party_id=? AND status IN (\'executed\',\'imported\'))', s.agreement_id, s.version_id, s.party_id),
     sql('EXISTS(SELECT 1 FROM lk_renewals WHERE id=? AND decision=? AND decided_at=? AND deadline_at=?)', s.renewal_id, s.decision, s.decided_at, s.deadline_at),
     sql('EXISTS(SELECT 1 FROM lk_parties WHERE id=? AND version=? AND merged_into IS NULL)', s.party_id, s.party_version)]
 }
@@ -41,7 +42,7 @@ export async function agentDraft(c: Ctx, s: any, method: string, parent: string 
   const recipient = method === 'email' ? s.recipient : s.alternate_address
   const body = preparedNoticeText(s, r.end_date)
   const n = await noticeDraft(c, s.renewal_id, { recipient, body }, proposalId)
-  return { n, writes: [...n.writes, ...(parent ? [sql('UPDATE lk_notices SET prepared_by=? WHERE id=?','locket-scheduler',n.id)] : []), sql("INSERT INTO lk_notice_plans(id,agreement_id,source_id,parent_notice_id,method,status) VALUES(?,?,?,?,?,'draft')", n.id, s.agreement_id, s.id, parent, method)] }
+  return { n, familyCheck:n.familyCheck, writes: [...n.writes, ...(parent ? [sql('UPDATE lk_notices SET prepared_by=? WHERE id=?','locket-scheduler',n.id)] : []), sql("INSERT INTO lk_notice_plans(id,agreement_id,source_id,parent_notice_id,method,status) VALUES(?,?,?,?,?,'draft')", n.id, s.agreement_id, s.id, parent, method)] }
 }
 const prepareAgent: Handler = async (c, p) => {
   requireRole(c.actor, may.prepare, 'prepare a notice from a person-selected passage')

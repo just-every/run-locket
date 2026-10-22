@@ -3,10 +3,11 @@ import { file, pdf } from './files.mjs'
 
 // The clause's three conflicting passages, entered through the normal import,
 // citation confirmation and family-link doors. No records are injected into D1.
-export async function familyConflictFixture(client) {
+export async function familyConflictFixture(client, { withLegalText = false } = {}) {
   const tag = randomUUID().slice(0, 8)
   const create = async (title, days, extra = {}) => {
-    const quote = `Agreement ${tag}. Notice requires ${days} days. Payment is due in 30 days. Effective March 1, 2022. Term ends February 28, 2023. Renews every 12 months.`
+    const legal=withLegalText ? days===60?' Annual price is USD 100,000. The MSA governs conflicting orders.':days===90?' Annual price is USD 110,000. This amendment overrides inconsistent MSA notice and price provisions.':' Annual price is USD 120,000. This order governs conflicting MSA terms.' : ''
+    const quote = `Agreement ${tag}. Notice requires ${days} days. Payment is due in 30 days. Effective March 1, 2022. Term ends February 28, 2023. Renews every 12 months.${legal}`
     const a = await client.command('legacy.import', { title, type: 'other', party: { name: 'Northwind Services', kind: 'supplier' }, sourceSystem: 'Legal archive', sourceId: `${tag}-${days}`, file: file(`${days}-days.pdf`, pdf(quote)), text: quote, ...extra })
     return { id: a.id, quote }
   }

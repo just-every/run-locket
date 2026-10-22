@@ -1,3 +1,4 @@
+import { requireFamilyClear } from './family-analysis-guard'
 import { sourceChecks } from './notice-agent'
 import { notificationWrites } from './notifications'
 // Confirmed terms and obligations from the executed document, the renewal
@@ -213,17 +214,18 @@ const decideRenewal: Handler = async (c, p) => {
 
 export async function noticeDraft(c: Ctx, renewalId: unknown, p: Record<string, unknown>, proposalId: string | null) {
   const { r, a } = await renewalOf(c, renewalId)
+  const familyCheck=await requireFamilyClear(c,a.id)
   if (!r.decision) fail('NO_DECISION', 'Decide renew, renegotiate or terminate before preparing a notice.', 409)
   const id = crypto.randomUUID()
   const recipient = text(p, 'recipient', 1000), body = text(p, 'body', 20_000)
   const letter = await frozenLetter(c, { id, agreement_id: a.id, recipient, body })
-  return { id, a, r, writes: [sql('INSERT INTO lk_notices VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, r.id, a.id, recipient, body, c.actor.id, proposalId, 'draft', null, null, null, null, null, null, c.now), ...letter.writes] }
+  return { id, a, r, familyCheck, writes: [sql('INSERT INTO lk_notices VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, r.id, a.id, recipient, body, c.actor.id, proposalId, 'draft', null, null, null, null, null, null, c.now), ...letter.writes] }
 }
 
 const prepareNotice: Handler = async (c, p) => {
   requireRole(c.actor, may.review, 'prepare notices')
   const n = await noticeDraft(c, p.renewalId, p, null)
-  return { allowed: may.review, result: { id: n.id, status: 'draft' }, writes: [...n.writes, bump(c, n.a)], checks: agreementGuards(c, n.a), audit: [{ action: 'notice.prepare', agreementId: n.a.id, summary: `Prepared a ${n.r.decision} notice draft` }] }
+  return { allowed: may.review, result: { id: n.id, status: 'draft' }, writes: [...n.writes, bump(c, n.a)], checks: [n.familyCheck,...agreementGuards(c, n.a)], audit: [{ action: 'notice.prepare', agreementId: n.a.id, summary: `Prepared a ${n.r.decision} notice draft` }] }
 }
 
 async function noticeOf(c: Ctx, id: unknown) {

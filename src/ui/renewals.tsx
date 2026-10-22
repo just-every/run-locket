@@ -1,3 +1,4 @@
+import { FamilyBlock } from './family-analysis'
 import { RenewalBrief } from './renewal-brief'
 import { NoticeAgentSource } from './notice-agent'
 import { BulkReminders } from './bulk-reminders'
@@ -39,6 +40,7 @@ export function Renewals({ state, locket }: { state: LocketState; locket: Locket
                     </span>
                     {decision}
                   </div>
+                  {open && <FamilyBlock state={state} a={a} />}
                   {open && <Steps state={state} r={r} a={a} locket={locket} />}
                 </li>
               )

@@ -11,6 +11,12 @@ import branding from './branding.json'
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ AI_ENABLED?:string
+ AI_MODEL?:string
+ AI_BASE_URL?:string
+ AI_API_KEY?:string
+ MODELS_SERVICE?:string
+ MODELS_KEY?:string
  QUICKBOOKS_ACCESS_TOKEN?: string
  QUICKBOOKS_REALM_ID?: string
  QUICKBOOKS_SANDBOX?: string

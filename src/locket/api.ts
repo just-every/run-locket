@@ -1,3 +1,4 @@
+import { familyAnalysisHandlers } from './family-analysis'
 import { wordTemplateHandlers } from './word-templates'
 import { accountingHandlers } from './accounting'
 import { renewalBriefHandlers } from './renewal-briefs'
@@ -64,7 +65,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...wordTemplateHandlers, ...accountingHandlers, ...renewalBriefHandlers, ...exchangeHandlers, ...repositoryBulkHandlers, ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
+  ...familyAnalysisHandlers, ...wordTemplateHandlers, ...accountingHandlers, ...renewalBriefHandlers, ...exchangeHandlers, ...repositoryBulkHandlers, ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
   ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,

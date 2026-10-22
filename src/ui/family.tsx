@@ -1,3 +1,4 @@
+import { FamilyAnalysis } from './family-analysis'
 import { metadataTermLabel, metadataTermValue } from './custom-field-values'
 import { family } from '../locket/family-projection'
 import { relations } from '../locket/family-relations'
@@ -10,6 +11,7 @@ export function Family({ state, a, locket }: { state: LocketState; a: Row; locke
   const f = family(state, a.id)
   const edit = can(state, 'owner', 'counsel')
   return <div className="lk-tab-page lk-family">
+    <FamilyAnalysis state={state} root={f.root} locket={locket} />
     <section className="lk-panel">
       <div className="lk-panel-head"><h2>Agreement family</h2></div>
       <p>Parent: <a href={`#agreement/${f.root.id}/family`}>{f.root.reference} · {f.root.title}</a></p>

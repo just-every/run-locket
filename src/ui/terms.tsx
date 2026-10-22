@@ -1,3 +1,4 @@
+import { FamilyBlock } from './family-analysis'
 import { metadataTermLabel, metadataTermValue } from './custom-field-values'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
@@ -10,7 +11,7 @@ import { RiskLabel } from './counterparty'
 
 const keys = ['effective_date', 'end_date', 'auto_renew', 'renewal_term_months', 'notice_days', 'governing_law', 'payment_terms']
 const unread = (c: any) => (c.signedText === 'unreadable' ? ' (the signed PDF has no readable text; not checked against it)' : '')
-const cite = (c: any) => (c.source === 'custom-field-passage' ? `Document v${c.versionNumber}: “${c.quote}” (characters ${c.start}–${c.end})` : c.source === 'import-manifest' ? `Import manifest row ${c.row} (not yet checked against the signed PDF)`
+const cite = (c: any) => (c.source === 'family-governing' ? `Counsel-confirmed family source: “${c.quote}”${c.page ? ` (page ${c.page})` : ''}` : c.source === 'custom-field-passage' ? `Document v${c.versionNumber}: “${c.quote}” (characters ${c.start}–${c.end})` : c.source === 'import-manifest' ? `Import manifest row ${c.row} (not yet checked against the signed PDF)`
   : c.source === 'signed-pdf-text' ? `Signed PDF page ${c.page}: “${c.quote}” (found in the signed text)`
   : c.source === 'signed-pdf-page' ? `Signed PDF page ${c.page}: “${c.quote}”${unread(c)}` : `Executed text: “${c.quote}”${c.page ? ` (page ${c.page})` : ''}${unread(c)}`)
 
@@ -25,6 +26,7 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
   if (!effective) return <Empty>Terms and obligations are confirmed against the executed agreement. This one is not executed yet.</Empty>
   return (
     <div className="lk-tab-page">
+      <FamilyBlock state={state} a={a} />
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Terms</h2>{renewal && <span className="lk-muted">Notice deadline <span className="lk-nowrap">{deadline(renewal.deadline_at, renewal.timezone)}</span></span>}</div>
         <table className="lk-table">
