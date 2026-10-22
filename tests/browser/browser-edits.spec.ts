@@ -97,6 +97,7 @@ for(const width of [1440,390])test(`NEG-006 sends external v2, receives counterp
     }
     const x=await exchangeFixture(live?{owner:p.owner}:p.h)
     await page.goto(p.origin+'/app#agreement/'+x.a.id)
+    await page.reload() // Fixture writes occurred outside this already-open workspace.
     const panel=page.getByRole('region',{name:'Counterparty exchange',exact:true})
     await expect(panel).toBeVisible()
     await panel.getByLabel('Share by',{exact:true}).selectOption(live?'link':'email')
@@ -106,7 +107,7 @@ for(const width of [1440,390])test(`NEG-006 sends external v2, receives counterp
     const sending=page.waitForResponse(r=>r.url()===p.origin+'/api/locket/commands'&&r.request().postDataJSON()?.type==='exchange.send')
     await panel.getByRole('button',{name:'Share external version',exact:true}).click()
     const sent=await(await sending).json()
-    expect(sent.ok).toBe(true)
+    expect(sent.ok,JSON.stringify(sent.error)).toBe(true)
     await expect(panel.getByRole('link',{name:'Open secure counterparty link'})).toBeVisible()
     if(!live)expect(p.h.mails.filter((m:any)=>m.text?.includes('/exchange#')).length).toBe(1)
     const link=await panel.getByRole('link',{name:'Open secure counterparty link'}).getAttribute('href')
