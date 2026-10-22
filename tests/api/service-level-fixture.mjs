@@ -1,4 +1,5 @@
 import {file,pdf} from './files.mjs'
+import {PDFDocument,StandardFonts} from 'pdf-lib'
 
 export const serviceLevelPolicy='Healthy time as a share of observed scheduled time (healthy + not passing). Unknown, paused and maintenance time are excluded from the uptime and SLA denominator and shown separately.'
 export const serviceLevelBindings={UPTIME_ORIGIN:'https://synthetic-locket-uptime.example.test',UPTIME_METRICS_KEY:'synthetic-locket-1',POSTMARK_SERVER_TOKEN:'synthetic-locket-2',TEST_NOW:String(Date.parse('2026-10-17T14:00:00Z'))}
@@ -20,7 +21,10 @@ export async function serviceLevelFixture(h,{restricted=false,separateOwner=fals
  const counsel=await h.invite('synthetic-locket-counsel@example.test','counsel'),owner=separateOwner?await h.invite('synthetic-locket-agreement-owner@example.test','requester'):h.owner
  const ownerId=separateOwner?owner.id:(await h.owner.state()).actor.id
  const quote='Monthly availability must be at least 99.9%. Availability of 99.0% to below 99.9% earns a credit of 10% of the USD 10000 monthly service charge. Healthy time is divided by observed scheduled time; unknown, paused and maintenance time are excluded. The service month uses UTC. Claim by 23:59:59 UTC on the date 30 calendar days after the final service date.'
- const body=`Supplier hosting service, effective September 1, 2026. ${quote}`,bytes=pdf(body)
+ const body=`Supplier hosting service, effective September 1, 2026. ${quote}`
+ const signed=await PDFDocument.create(),font=await signed.embedFont(StandardFonts.Helvetica)
+ signed.addPage([595,842]).drawText(body,{x:40,y:800,size:10,font,maxWidth:515,lineHeight:14})
+ const bytes=Buffer.from(await signed.save())
  const details={title:'synthetic-locket monthly service SLA',type:'supplier',party:{name:'synthetic-locket supplier',kind:'supplier'},value:'120000',timezone:'UTC',file:file('service.pdf',bytes),text:body,restricted,ownerId}
  const source=await h.owner.command(native?'request.create':'legacy.import',native?details:{...details,sourceSystem:'Authorized archive',sourceId:crypto.randomUUID(),signed:true})
  const current=async()=>(await h.owner.state()).agreements.find(a=>a.id===source.id)
