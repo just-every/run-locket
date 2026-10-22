@@ -81,6 +81,8 @@ for(const width of [1440,390])test(`ERASE-001 verified contact erasure, counsel 
   const row=(await p.state()).agreements.find((r:any)=>r.id===a.id)
   await p.command('comment.add',{agreementId:a.id,versionId:row.current_version_id,body:'Morgan Reed · morgan@example.test'})
   const shot=async(name:string)=>{
+   await page.evaluate(()=>window.scrollTo(0,0))
+   await expect(page.locator('main')).toHaveAttribute('aria-busy','false')
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
    if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-ERASE-001-${name}.png`),fullPage:true})}
   }

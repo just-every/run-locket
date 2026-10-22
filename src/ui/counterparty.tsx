@@ -46,7 +46,7 @@ export function Counterparty({ state, id, locket }: { state: LocketState; id: st
           <div><dt>Formed in</dt><dd>{party.formation ?? '—'}</dd></div>
           <div><dt>Registered address</dt><dd>{party.registered_address ?? '—'}</dd></div>
           <div><dt>Notice address</dt><dd>{party.notice_address ?? '—'}{party.notice_method && <small> by {methodLabel[party.notice_method].toLowerCase()}</small>}</dd></div>
-          <div><dt>Contacts</dt><dd>{contacts.length ? contacts.map(c => `${c.name} <${c.email}>${c.title ? `, ${c.title}` : ''}`).join('; ') : '—'}</dd></div>
+          <div><dt>Contacts</dt><dd>{contacts.length ? contacts.map(c => c.email.endsWith('@invalid.example') ? c.name : `${c.name} <${c.email}>${c.title ? `, ${c.title}` : ''}`).join('; ') : '—'}</dd></div>
           <div><dt>Authorized signatories</dt><dd>{signers.length ? signers.map(c => `${c.name}, ${c.title}`).join('; ') : '—'}<small> as recorded; Locket does not validate signing authority</small></dd></div>
         </dl>
         {merged.length > 0 && <p className="lk-muted">Merged into this record: {merged.map(m => `${m.name} (${m.merge_reason})`).join('; ')}</p>}
