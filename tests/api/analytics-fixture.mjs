@@ -33,7 +33,8 @@ export async function timedRequests(h, count = 20, { late = 0 } = {}) {
   const ids = [], signatureDurations = []
   let lastFinish = 0
   for (let i = 1; i <= count; i++) {
-    const start = Math.max(base + i * 120 * minute, lastFinish + minute)
+    // Independent agreements overlap in time, as real requests do.
+    const start = base + i * 120 * minute
     await h.setTime(start)
     const a = await request(h.owner, `synthetic-locket-${i}`); ids.push(a.id)
     await h.setTime(start + i * minute); await stage(h.owner,a.id,'drafting')
@@ -42,9 +43,11 @@ export async function timedRequests(h, count = 20, { late = 0 } = {}) {
     await h.setTime(start + 5 * i * minute); await approve(h.owner, a.id)
     await h.setTime(start + (5 * i + 1) * minute); const pkg = await dispatch(h.owner, a.id)
     const due=(await h.owner.state()).requestQueue.work.find(w=>w.agreement_id===a.id).due_at
-    lastFinish=i>count-late?due+minute:start+(6*i+1)*minute
-    signatureDurations.push(lastFinish-(start+5*i*minute))
-    await h.setTime(lastFinish); await finish(h.owner, a.id, pkg)
+    const finishedAt=i>count-late?due+minute:start+(6*i+1)*minute
+    lastFinish=Math.max(lastFinish,finishedAt)
+    signatureDurations.push(finishedAt-(start+5*i*minute))
+    await h.setTime(finishedAt); await finish(h.owner, a.id, pkg)
   }
+  await h.setTime(lastFinish)
   return Object.assign(ids,{signatureDurations,lastFinish})
 }

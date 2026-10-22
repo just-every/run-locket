@@ -88,6 +88,8 @@ test('REPORT-001 measures twenty public request journeys, period throughput, rep
   row=await find(h.owner,slow.id)
   await h.owner.command('approval.email',{agreementId:row.id,version:row.version,versionId:row.current_version_id,recipientId:approver.id})
   const deadline=(await h.owner.state()).requestQueue.work.find(w=>w.agreement_id===slow.id).due_at
+  // Continue the multi-day journey through a fresh public sign-in session.
+  h.owner=await h.signIn('owner@example.test')
   await h.setTime(deadline+minute)
   out=await read()
   assert.equal(out.approvers[0].approverId,approver.id)
