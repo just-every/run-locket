@@ -6,6 +6,7 @@ import { prepareCustomFields, applyCustomFields, customProposalAuthority } from 
 // proposal keeps who prepared it, who decided and what it produced.
 import { may, requireRole } from './access'
 import { agreementHandlers } from './agreements'
+import { refuseErasedAddress } from './erasure-addresses'
 import type { Ctx, Handler, Outcome } from './commands'
 import { fail, json, list, object, oneOf, parse, sql, type Role } from './model'
 import { confirmTermsWrites, noticeDraft, termProposal } from './obligations'
@@ -57,7 +58,13 @@ async function renewalAgreement(c: Ctx, renewalId: unknown) {
 
 /** Applies an approved proposal by reusing the ordinary command logic as the deciding person. */
 async function apply(c: Ctx, kind: Kind, payload: Record<string, unknown>, proposalId: string): Promise<Outcome> {
-  if (kind === 'intake') return agreementHandlers['request.create'](c, payload)
+  if (kind === 'intake') {
+    // A stored proposal may predate erasure; delegated writes repeat the same
+    // live-address check and carry its fence into the approval transaction.
+    const checks=await refuseErasedAddress(c,'request.create',payload)
+    const out=await agreementHandlers['request.create'](c,payload)
+    return {...out,checks:[...(out.checks??[]),...checks]}
+  }
   if (kind === 'family') return agreementHandlers['family.link'](c, { ...payload, version: (await visibleAgreement(c, payload.agreementId)).version })
   if (kind === 'review') {
     const a = await visibleAgreement(c, payload.agreementId)

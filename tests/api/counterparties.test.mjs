@@ -230,6 +230,7 @@ test('Erasure re-entry checks match whole addresses and recheck reviewed imports
  const manifest='Envelope ID,Subject,Status,Completed On,Recipient Email,Counterparty\nsynthetic-locket-31,synthetic-locket-31,Completed,2026-10-20,'+email+',synthetic-locket-31\n'
  const input={kit:'docusign-archive',label:'synthetic-locket-31',dateFormat:'iso',manifest:{filename:'synthetic-locket-31.csv',base64:Buffer.from(manifest).toString('base64')},files:[{path:'synthetic-locket-31/contract.pdf',base64:pdf('synthetic-locket-31').toString('base64')}]}
  const batch=await h.owner.command('import.preview',input)
+ const proposed=await h.owner.command('proposal.prepare',{kind:'intake',payload:{title:'synthetic-locket-49',type:'nda',party:{name:'synthetic-locket-49',kind:'supplier',contacts:[{name:'Ann',email}]}},evidence:['synthetic-locket-49 verified request']})
  assert.equal(batch.counts.import,1)
  const preview=await h.owner.command('person.erase.preview',erasureRequest(email))
  await h.owner.command('person.erase',erasureConfirmation(preview,email,[]))
@@ -238,6 +239,7 @@ test('Erasure re-entry checks match whole addresses and recheck reviewed imports
   ['request.create',{title:'synthetic-locket-33',type:'nda',party:{name:'synthetic-locket-33',kind:'supplier',contacts:[{name:'Ann',email}]}}],
   ['import.preview',input],
   ['import.apply',{batchId:batch.batchId,version:1,fingerprint:batch.fingerprint}],
+  ['proposal.decide',{proposalId:proposed.id,decision:'approve'}],
  ]
  for(const[type,payload]of cases)await t.test(type,async()=>{
   await h.owner.command(type,payload,{error:'ERASED_CONTACT'})
@@ -246,6 +248,8 @@ test('Erasure re-entry checks match whole addresses and recheck reviewed imports
   await h.owner.command('party.save',{name:'synthetic-locket-34 '+different,kind:'supplier',contacts:[{name:'Joann',email:different}]})
   await h.owner.command('request.create',{title:'synthetic-locket-35 '+different,type:'nda',party:{name:'synthetic-locket-35 '+different,kind:'supplier',contacts:[{name:'Joann',email:different}]}})
  }
+ const proposal=await h.owner.command('proposal.prepare',{kind:'intake',payload:{title:'synthetic-locket-50',type:'nda',party:{name:'synthetic-locket-50',kind:'supplier',contacts:[{name:'Joann',email:'joann@example.test'}]}},evidence:['synthetic-locket-50 reviewed request']})
+ await h.owner.command('proposal.decide',{proposalId:proposal.id,decision:'approve'})
  assert.equal((await h.owner.state()).imports.find(b=>b.id===batch.batchId).status,'previewed')
 })
 
