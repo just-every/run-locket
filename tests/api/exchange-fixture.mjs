@@ -7,7 +7,7 @@ export const freshToken=()=>randomBytes(32).toString('hex')
 export async function exchangeFixture(h,{channel='link',sender=h.owner}={}){
   const created=await sender.command('request.create',{title:'synthetic-locket-1',type:'nda',party:{name:'synthetic-locket-2',kind:'supplier',contacts:[{name:'synthetic-locket-3',email:'synthetic-locket-3@example.test'}]},file:file('synthetic-locket-1.docx',docx([exchangeText.replace('30 days','15 days')]))})
   let state=await sender.state(),a=state.agreements.find(a=>a.id===created.id)
-  const version=await sender.command('version.add',{agreementId:a.id,version:a.version,kind:'upload',label:'synthetic-locket-4',file:file('synthetic-locket-2.docx',docx(exchangeText.split('\n')))})
+  const version=await sender.command('version.upload',{agreementId:a.id,version:a.version,kind:'upload',label:'synthetic-locket-4',file:file('synthetic-locket-2.docx',docx(exchangeText.split('\n')))})
   const internal=[]
   for(const body of ['synthetic-locket-5 private legal position','synthetic-locket-6 private approval note'])internal.push(await sender.command('comment.add',{agreementId:a.id,versionId:version.versionId,body}))
   const external=await sender.command('comment.add',{agreementId:a.id,versionId:version.versionId,body:'synthetic-locket-7 external question'})

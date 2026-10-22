@@ -163,4 +163,17 @@ test('NEG-006 refuses internal versions, unsafe disclosure, forged scope, revoke
   await h.owner.command('role.set',{operatorId:counsel.id,role:'viewer'})
   assert.equal((await h.request('/api/locket/exchange/open',{method:'POST',body:{},headers:{authorization:'Bearer '+token}})).status,404)
   assert.ok(sent.id)
+  // Erasing one contact also revokes another contact's frozen rendition when
+  // it could still contain the first contact's external comment identity.
+  const party=(await h.owner.state()).parties.find(p=>p.id===a.party_id)
+  await h.owner.command('party.save',{id:party.id,version:party.version,name:party.name,kind:party.kind,contacts:[...JSON.parse(party.contacts),{name:'synthetic-locket-23',email:'synthetic-locket-23@example.test'}],signatories:[]})
+  const originalToken=freshToken(),otherToken=freshToken()
+  await h.owner.command('exchange.send',{...x.payload,version:a.version,token:originalToken})
+  await h.owner.command('exchange.send',{...x.payload,version:a.version,token:otherToken,recipientEmail:'synthetic-locket-23@example.test'})
+  const scoped=(action,token,payload={})=>h.request('/api/locket/exchange/'+action,{method:'POST',headers:{authorization:'Bearer '+token},body:payload})
+  assert.equal((await scoped('open',otherToken)).status,200)
+  assert.equal((await scoped('comment',originalToken,{commandId:randomUUID(),payload:{body:'synthetic-locket-3 confirms this external comment'}})).status,200)
+  await h.owner.command('person.erase',{email:'synthetic-locket-3@example.test',verified:true,verification:'synthetic-locket-24 verified contact channel',reason:'synthetic-locket-25 privacy request'})
+  assert.equal((await scoped('open',otherToken)).status,404,'frozen renderings containing erased comments cannot be reopened by another contact')
+  assert.ok(!(await h.owner.state()).comments.some(c=>c.external_author_email==='synthetic-locket-3@example.test'))
 })
