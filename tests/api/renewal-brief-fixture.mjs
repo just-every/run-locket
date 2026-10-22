@@ -9,12 +9,25 @@ export function accountingFake(calls,mode=()=> 'ok') {
   return Response.json({QueryResponse:{Bill:bills}})
  }
 }
-export async function renewalBriefFixture(h,{restricted=false}={}) {
+export async function renewalBriefFixture(h,{restricted=false,native=false}={}) {
  const ownerId=(await h.owner.state()).actor.id
  const maker=await h.invite('synthetic-locket-maker@example.test','approver'),counsel=await h.invite('synthetic-locket-counsel@example.test','counsel')
  const quote='Annual price increases shall not exceed 3 percent.'
  const body=`Supplier services. ${quote} Give 60 days notice. The term is January 1 to December 31, 2026.`
- const source=await h.owner.command('legacy.import',{title:'synthetic-locket supplier',type:'supplier',party:{name:'synthetic-locket supplier',kind:'supplier'},value:'100000',sourceSystem:'Authorized archive',sourceId:crypto.randomUUID(),file:file('supplier.pdf',pdf(body)),text:body,signed:true,restricted})
+ const bytes=pdf(body),details={title:'synthetic-locket supplier',type:'supplier',party:{name:'synthetic-locket supplier',kind:'supplier'},value:'100000',file:file('supplier.pdf',bytes),text:body,restricted}
+ const source=native?await h.owner.command('request.create',details):await h.owner.command('legacy.import',{...details,sourceSystem:'Authorized archive',sourceId:crypto.randomUUID(),signed:true})
+ if(native){
+  const current=async()=>(await h.owner.state()).agreements.find(a=>a.id===source.id)
+  const start=(await h.owner.state()).now
+  for(const requirement of (await h.owner.state()).requirements.filter(r=>r.agreement_id===source.id))await h.owner.command('requirement.attach',{agreementId:source.id,requirementId:requirement.id,file:file('required.pdf',pdf(requirement.label))})
+  await h.setTime(start+3600000)
+  await h.owner.command('agreement.submit',{agreementId:source.id,version:(await current()).version})
+  await h.owner.command('approval.decide',{agreementId:source.id,version:(await current()).version,versionId:source.versionId,kind:'commercial',decision:'approved'})
+  const packet=await h.owner.command('package.prepare',{agreementId:source.id,version:(await current()).version,provider:'paper',recipients:[{name:'Synthetic signer',email:'synthetic-locket-signer@example.test',action:'sign'}]})
+  await h.owner.command('package.sent',{agreementId:source.id,version:(await current()).version,packageId:packet.packageId,envelopeId:'synthetic-locket-2'})
+  await h.owner.command('execution.record',{agreementId:source.id,version:(await current()).version,envelopeId:'synthetic-locket-2',executedOn:'2026-10-17',documentConfirmed:true,signers:[{name:'Synthetic signer',email:'synthetic-locket-signer@example.test'}],signed:file('signed.pdf',bytes),certificate:file('certificate.pdf',pdf('Synthetic execution certificate'))})
+ }
+
  for(const [key,value]of [['effective_date','2026-01-01'],['end_date','2026-12-31'],['notice_days','60'],['auto_renew','no']]){
   const t=await h.owner.command('term.propose',{agreementId:source.id,key,value,citation:{quote:'Give 60 days notice.'}})
   await h.owner.command('term.decide',{agreementId:source.id,termId:t.id,decision:'confirm'})

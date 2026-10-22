@@ -35,12 +35,13 @@ export function RenewalBrief({state,a,locket}:{state:LocketState;a:Row;locket:Lo
 }
 function Brief({state,a,record,locket}:{state:LocketState;a:Row;record:Row;locket:Locket}) {
  const b=parse<any>(record.content),sources=parse<any[]>(record.sources),stale=sources.some(s=>state.agreements.find(a=>a.id===s.id)?.version!==s.version)||state.renewalBriefSettings.find(s=>s.agreement_id===a.id)?.version!==b.settingsVersion
+ const zone=b.timezone??a.timezone
  const forms=state.intakeForms.filter(f=>f.canLaunch&&f.published?.definition.type===a.type)
  const [formId,setFormId]=useState(forms[0]?.id??''),[answers,setAnswers]=useState<IntakeAnswers>({})
  const form=forms.find(f=>f.id===formId)?.published,fields=form?formVisibleFields(form.definition,{...answers,value:a.value_cents===null?'':(a.value_cents/100).toFixed(2)}):[]
  return <>
   <p>Snapshot {new Date(b.preparedAt).toISOString()} · {stale?'Source changed — prepare a new brief.':'Current reviewed sources'}</p>
-  <p>Current term: {b.current.start??'Start not recorded'} to {b.current.end}. Notice deadline: {deadline(b.deadline,a.timezone)}.</p>
+  <p>Current term: {b.current.start??'Start not recorded'} to {b.current.end}. Notice deadline: {deadline(b.deadline,zone)}.</p>
   <a href={`/api/locket/files/${record.artifact_id}`}>Download renewal brief PDF</a>
   <h4>Price-increase cap and current terms</h4>
   {b.caps.map((cap:any)=><blockquote key={cap.agreement_id}><strong>{cap.value}</strong><p>{parse<any>(cap.citation).quote}</p><a href={`#agreement/${cap.agreement_id}/terms`}>Cited source</a></blockquote>)}
@@ -48,9 +49,9 @@ function Brief({state,a,record,locket}:{state:LocketState;a:Row;record:Row;locke
   <ul>{b.terms.map((t:any)=><li key={t.id}>{t.key.replaceAll('_',' ')}: {t.value} — {parse<any>(t.citation).quote}</li>)}</ul>
   <h4>Amendments</h4>{!b.amendments.length?<p>No accessible amendments recorded.</p>:b.amendments.map((m:any)=><p key={m.id}><a href={`#agreement/${m.id}`}>{m.reference}: {m.title}</a></p>)}
   <h4>Spend to date</h4>{b.spend?<><p>${(b.spend.totalCents/100).toLocaleString('en-US',{minimumFractionDigits:2})} USD · {b.spend.provider} · {b.spend.since} through {b.spend.through}</p><p>{b.spend.basis}</p><ul>{b.spend.bills.map((i:any)=><li key={i.id}>Bill {i.id}: ${(i.totalCents/100).toFixed(2)} USD · {i.date}</li>)}</ul></>:<p>Unavailable — no accounting vendor linked.</p>}
-  <h4>Obligation and service-level history</h4><ul>{b.obligations.map((o:any)=><li key={o.id}>{o.description}: {o.status} · {o.due_date??'No due date'}</li>)}</ul><p>{b.serviceLevels.length} recorded service-level intervals.</p>
+  <h4>Obligation and service-level history</h4><ul>{b.obligations.map((o:any)=><li key={o.id}>{o.description}: {o.status} · {o.due_date??'No due date'}{o.evidence_note?` · ${o.evidence_note}`:''}</li>)}</ul><p>{b.serviceLevels.length} recorded service-level intervals.</p><ul>{b.serviceLevels.map((s:any)=><li key={`${s.agreement_id}:${s.generation}`}>Service level {s.generation}: {s.outcome??'open'} · started {deadline(s.started_at,zone)} · due {deadline(s.due_at,zone)}{s.closed_at?` · closed ${deadline(s.closed_at,zone)}`:''}</li>)}</ul>
   <h4>Open issues</h4><ul>{b.issues.map((i:any)=><li key={i.id}>{i.body}</li>)}{b.deviations.map((d:any)=><li key={d.id}>{d.clause_key}: {d.result}</li>)}</ul>
-  <h4>Options and deadlines</h4><ul>{b.options.map((o:any)=><li key={o.decision}>{o.decision}: {deadline(o.deadline,a.timezone)}</li>)}</ul>
+  <h4>Options and deadlines</h4><ul>{b.options.map((o:any)=><li key={o.decision}>{o.decision}: {deadline(o.deadline,zone)}</li>)}</ul>
   {record.request_id?<p><a href={`#agreement/${record.request_id}`}>Open linked renewal request</a></p>:can(state,'owner','approver')&&!stale&&(state.actor.role==='owner'||state.actor.id===b.decisionMakerId)&&<Form busy={locket.busy} submit="Open renewal request" onSubmit={async data=>{
    const result=await locket.run('renewal.workflow.open',{briefId:record.id,title:value(data,'title'),decision:value(data,'decision'),...(form?{formVersionId:form.id,formAnswers:await readIntakeFormAnswers(answers,fields)}:{}),customValues:readCustomValues(data,customFieldsFor(state,a.type))})
    if(result)window.location.hash=`agreement/${result.id}`

@@ -76,7 +76,7 @@ for(const width of [1440,390])test(`RENEW-005 reviews cited cap and accounting s
  const shot=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-renew-005-${name}.png`),fullPage:true})}}
  const click=async(scope:any,name:string)=>{const pending=page.waitForResponse(r=>r.url()===product.origin+'/api/locket/commands'&&r.request().method()==='POST');await scope.getByRole('button',{name,exact:true}).click();const body=await(await pending).json();expect(body.ok,JSON.stringify(body.error)).toBe(true);await expect(page.locator('main')).toHaveAttribute('aria-busy','false')}
  try{
-  const f=await renewalBriefFixture(product.h)
+  const f=await renewalBriefFixture(product.h,{native:true})
   await page.goto(product.origin+'/app#renewals')
   const section=page.getByRole('region',{name:'Renewal brief',exact:true})
   await expect(section).toContainText('14 days before')
@@ -88,6 +88,8 @@ for(const width of [1440,390])test(`RENEW-005 reviews cited cap and accounting s
   await page.reload()
   await expect(section).toContainText('$84,000.00 USD')
   await expect(section).toContainText(f.quote)
+  await expect(section).toContainText('Service level 1: executed')
+  await expect(section).toContainText('September service report reviewed.')
   await expect(section).toContainText('Bill 8: $10500.00 USD')
   await expect(section.getByRole('link',{name:'Download renewal brief PDF'})).toBeVisible()
   await shot('brief')
