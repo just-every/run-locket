@@ -1,6 +1,7 @@
 // Private, purpose-limited re-entry checks. The request/receipt identity is random.
 // Rotation/restoration uses the installation secret already required by PORT-001.
 import type { Ctx } from './commands'
+import { requireRole } from './access'
 import { decodeBase64, encodeBase64 } from './artifacts'
 import { fail } from './model'
 const utf8=new TextEncoder()
@@ -10,7 +11,8 @@ export async function sealErasedAddress(c:Ctx,email:string){
  return encodeBase64(iv)+'.'+encodeBase64(new Uint8Array(cipher))
 }
 export async function refuseErasedAddress(c:Ctx,type:string,p:Record<string,unknown>){
- if(!['party.save','request.create','legacy.import','import.preview','intake.launch'].includes(type))return
+ if(!['party.save','request.create','legacy.import','import.preview'].includes(type))return
+ requireRole(c.actor,type==='import.preview'?['owner']:['owner','counsel','approver','requester'],'record or import personal data')
  const rows=(await c.db.prepare('SELECT address_ciphertext FROM lk_erasure_blocks').all<{address_ciphertext:string}>()).results
  if(!rows.length)return
  const strings:string[]=[]

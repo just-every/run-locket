@@ -384,10 +384,13 @@ const importLegacy: Handler = async (c, p) => {
   await operatorExists(c, ownerId)
   const id = crypto.randomUUID(), versionId = crypto.randomUUID(), reference = agreementReference(id)
   const title = text(p, 'title', 200), type = oneOf(p, 'type', agreementTypes), value = amount(c, p)
-  const custom = await customValueWrites(c, id, type, p.customValues, 'imported', false)
+  const draft=bool(p,'draft')
+  if(draft&&bool(p,'signed'))fail('INVALID','A signed copy cannot be declared an unexecuted draft.')
+  const status=draft?'draft':'imported'
+  const custom = await customValueWrites(c, id, type, p.customValues, status, false)
   let body = optionalText(p, 'text', 400_000), source = body ? 'person' : 'none'
   if (!body && isDocx(file)) { body = await docxText(file.bytes); source = 'docx' }
-  const provenance = { sourceSystem, sourceId, originalFilename: file.filename, importedBy: c.actor.id, importedAt: new Date(c.now).toISOString(), signedStatus: bool(p, 'signed') ? 'stated signed by importer' : 'not stated' }
+  const provenance = { sourceSystem, sourceId, originalFilename: file.filename, importedBy: c.actor.id, importedAt: new Date(c.now).toISOString(), signedStatus: bool(p, 'signed') ? 'stated signed by importer' : 'not stated', draftStatus: draft ? 'stated unexecuted draft by importer' : 'not stated' }
   const artifact = await storeArtifact(file, { agreementId: id, versionId, role: 'original', sourceSystem, sourceId, provenance, imported: true, actorId: c.actor.id, at: c.now })
   const vdigest = await versionDigest({ agreementId: id, number: 1, files: [{ role: 'original', sha256: artifact.sha256 }], text: body, fields: null })
   return {
@@ -395,7 +398,7 @@ const importLegacy: Handler = async (c, p) => {
     result: { id, reference, versionId, sha256: artifact.sha256 },
     writes: [
       ...party.writes,
-      sql(agreementInsert, id, reference, title, type, party.id, value.valueCents, value.currency, ownerId, c.actor.id, 'imported', bool(p, 'restricted') ? 1 : 0, null, optionalDate(p, 'startDate'), await zoneFor(c, p, entity), null, null, 'legacy', versionId, c.now, c.now, entity?.id ?? null, value.originalCents, value.rate, value.rateBy, value.rateAt),
+      sql(agreementInsert, id, reference, title, type, party.id, value.valueCents, value.currency, ownerId, c.actor.id, status, bool(p, 'restricted') ? 1 : 0, null, optionalDate(p, 'startDate'), await zoneFor(c, p, entity), null, null, 'legacy', versionId, c.now, c.now, entity?.id ?? null, value.originalCents, value.rate, value.rateBy, value.rateAt),
       ...artifact.writes,
       sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', versionId, id, 1, 'legacy', `Imported from ${sourceSystem}`, null, null, body, source, vdigest, c.actor.id, c.now),
       ...custom.writes,

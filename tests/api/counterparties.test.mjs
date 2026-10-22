@@ -186,7 +186,7 @@ test('ERASE-001 verified contact erasure preserves execution and audit, counsel 
  for(const state of [JSON.stringify(s),JSON.stringify(minimized)])assert.ok(!state.includes(emailHash)&&!state.includes(emailHash.slice(0,16)),'no guessable email digest remains in state or archive')
  assert.ok(!JSON.stringify(minimized.records.lk_erasures).includes(erasureSubject.email),'erasure metadata contains no personal free-text reason')
  await h.owner.command('legacy.import',{title:'Erased contact re-entry',type:'nda',party:{name:'New import',kind:'supplier',contacts:[erasureSubject]},sourceSystem:'Shared drive',sourceId:'synthetic-locket-erased-import',signed:false,file:file('reentry.pdf',pdf('New unrelated agreement'))},{error:'ERASED_CONTACT'})
- const imported=await h.owner.command('legacy.import',{title:'Unsigned imported draft',type:'nda',party:{name:'Independent archive supplier',kind:'supplier'},sourceSystem:'Shared drive',sourceId:'synthetic-locket-unsigned-import',signed:false,file:file('unsigned.pdf',pdf('Unsigned imported NDA'))})
+ const imported=await h.owner.command('legacy.import',{title:'Unsigned imported draft',type:'nda',party:{name:'Independent archive supplier',kind:'supplier'},sourceSystem:'Shared drive',sourceId:'synthetic-locket-unsigned-import',signed:false,draft:true,file:file('unsigned.pdf',pdf('Unsigned imported NDA'))})
  await h.owner.command('retention.configure',{days:1,version:0})
  const expiredAt=Date.now()+3*86400000
  await h.setTime(expiredAt)
@@ -195,7 +195,6 @@ test('ERASE-001 verified contact erasure preserves execution and audit, counsel 
  s=await h.owner.state()
  assert.ok(s.agreements.some(r=>r.id===x.keep.id)&&s.agreements.some(r=>r.id===imported.id),'elapsed expiry never destroys an unreviewed draft')
  const reminders=s.notifications.items.filter(n=>n.kind==='draft_retention')
- const diagnosticDb=await h.mf.getD1Database('DB');console.log('EXPIRY_DIAGNOSTIC',JSON.stringify({at:expiredAt,drafts:(await diagnosticDb.prepare("SELECT id,status,version,created_at FROM lk_agreements").all()).results,notifications:(await diagnosticDb.prepare("SELECT kind,email_status,event_key FROM lk_notifications WHERE kind='draft_retention'").all()).results,owners:(await diagnosticDb.prepare("SELECT count(*) n FROM oa_operators WHERE role='owner' AND status='active'").first())}))
  for(const id of [x.keep.id,imported.id])assert.equal(reminders.filter(n=>n.agreement_id===id).length,1,'the owner receives one reminder for an unreviewed expired draft')
  assert.ok(!reminders.some(n=>n.agreement_id===heldRow.id),'held records are excluded from expiry prompts')
  assert.equal(s.legalHolds.find(r=>r.agreement_id===heldRow.id).active,1,'passing the review date never releases a hold')
