@@ -1,3 +1,4 @@
+import { applicableRecommendationPlaybook } from './playbook-recommendations'
 // The browser and future Word door share this versioned insertion command.
 import { may, requireRole } from './access'
 import { PDF, storeArtifact } from './artifacts'
@@ -29,12 +30,13 @@ export const insertClause: Handler = async (c, p) => {
   const body = base.text.slice(0, start) + insertedText + base.text.slice(end)
   if (body.length > 400_000) fail('INVALID', 'The resulting document is too long.')
   const active = await c.db.prepare("SELECT id, rules FROM lk_playbook_versions WHERE status='active'").first<any>()
+  const playbook=await applicableRecommendationPlaybook(c,a,active)
   const ruleKey = clause.ruleKey || clause.key
   const use: ClauseUse = {
     libraryVersionId: library.id, libraryVersionNumber: library.number, templateName: library.name,
     clauseKey: clause.key, clauseTitle: clause.title, variantId: variant.id, variantLabel: variant.label,
     text: variant.text, notes: [clause.notes, variant.notes].filter(Boolean).join('\n'), ruleKey,
-    playbookVersionId: active && parse<any[]>(active.rules).some(r => r.key === ruleKey) ? active.id : null,
+    playbookVersionId: playbook && parse<any[]>(playbook.rules).some(r => r.key === ruleKey) ? playbook.id : null,
     insertedBy: c.actor.id, insertedAt: c.now,
   }
   const uses = retainedClauseUses(base.fields, body).filter(x => !(x.libraryVersionId === use.libraryVersionId && x.clauseKey === use.clauseKey && x.variantId === use.variantId))

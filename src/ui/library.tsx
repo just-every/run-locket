@@ -1,3 +1,4 @@
+import { PlaybookRecommendations } from './playbook-recommendations'
 import { WordTemplateEditor, WordTemplateUpload } from './word-template'
 import { DraftRetention } from './erasure'
 import { ApprovalRules } from './approval-rules'
@@ -54,6 +55,7 @@ export function Library({ state, locket }: { state: LocketState; locket: Locket 
   return (
     <div className="lk-library">
       <div className="lk-titlebar"><div><h1>Library</h1><p><a href="#clickwrap">Published terms and clickwrap acceptance</a></p><p className="lk-muted">Owner- and counsel-approved templates and the clause playbook reviews are measured against.</p></div></div>
+      <PlaybookRecommendations state={state} locket={locket}/>
       <DraftRetention state={state} locket={locket}/>
       <InstallationDefaults state={state} locket={locket} />
       <ApprovalRules state={state} locket={locket}/>

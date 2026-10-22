@@ -1,3 +1,4 @@
+import { applicableRecommendationPlaybook } from './playbook-recommendations'
 import { populateWord } from './word-templates'
 import { captureRuleSet, ruleRequirements } from './approval-rules'
 import { newRequestWork } from './request-queue'
@@ -126,7 +127,7 @@ async function uploadedVersion(c: Ctx, agreementId: string, number: number, kind
     writes: [...artifact.writes, sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, kind, label, null, fields ? json(fields) : null, body, source, digest, c.actor.id, c.now)],
   }
 }
-async function templateVersion(c: Ctx, agreementId: string, number: number, p: Record<string, unknown>, extra: Record<string, string>, entity: EntityRow | null, priorFields: string | null = null): Promise<NewVersion> {
+async function templateVersion(c: Ctx, agreementId: string, number: number, p: Record<string, unknown>, extra: Record<string, string>, entity: EntityRow | null, agreementType:string, priorFields: string | null = null): Promise<NewVersion> {
   const template = await approvedTemplate(c, p.templateVersionId)
   requireEntityScope(template.template_entity_id, { entity_id: entity?.id ?? null }, `${template.name} v${template.number}`)
   const values = { ...extra, ...object(p.fields ?? {}, 'fields'), ...entityValues(entity, template.body+' '+parse<{name:string}[]>(template.fields).map(f=>'{{'+f.name+'}}').join(' ')) }
@@ -136,7 +137,8 @@ async function templateVersion(c: Ctx, agreementId: string, number: number, p: R
   const id = crypto.randomUUID()
   const uses = retainedClauseUses(priorFields, filled.text)
   const selectedFields = { template: template.id, ...filled.fields }
-  const playbook = await c.db.prepare("SELECT id, rules FROM lk_playbook_versions WHERE status='active'").first<any>()
+  const active = await c.db.prepare("SELECT * FROM lk_playbook_versions WHERE status='active'").first<any>()
+  const playbook=await applicableRecommendationPlaybook(c,{type:agreementType,entity_id:entity?.id??null},active)
   const selected = templateClauseUses(template, json(selectedFields), c.actor.id, c.now, playbook, values)
   const recorded = [...new Map([...uses, ...selected].map(use => [JSON.stringify([use.libraryVersionId, use.clauseKey, use.variantId]), use])).values()]
   const fields = { ...selectedFields, clauseLibrary: recorded }
@@ -146,7 +148,7 @@ async function templateVersion(c: Ctx, agreementId: string, number: number, p: R
     id,
     number,
     digest,
-    checks:[sql("(SELECT status FROM lk_template_versions WHERE id=?)='approved'",template.id)],
+    checks:[sql("(SELECT status FROM lk_template_versions WHERE id=?)='approved'",template.id),sql("(SELECT id FROM lk_playbook_versions WHERE status='active') IS ?",active?.id??null)],
     writes: [...(artifact?.writes??[]),sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, 'template', `${template.name} v${template.number}`, template.id, json(fields), filled.text, 'template', digest, c.actor.id, c.now)],
   }
 }
@@ -174,7 +176,7 @@ const createRequest: Handler = async (c, p) => {
   const relation = parentId ? (type === 'amendment' ? 'amends' : type === 'order_form' ? 'order_under' : oneOf(p, 'relation', relations)) : null
   const writes: Sql[] = [...party.writes]
   let version: NewVersion | null = null
-  if (p.templateVersionId) version = await templateVersion(c, id, 1, p, { counterparty: party.name, title }, entity)
+  if (p.templateVersionId) version = await templateVersion(c, id, 1, p, { counterparty: party.name, title }, entity,type)
   else if (p.file) version = await uploadedVersion(c, id, 1, 'upload', 'Initial draft', fileInput(p.file), optionalText(p, 'text', 400_000))
   writes.push(
     sql(
@@ -302,7 +304,7 @@ const generateVersion: Handler = async (c, p) => {
   const party = await c.db.prepare('SELECT name FROM lk_parties WHERE id=?').bind(a.party_id).first<{ name: string }>()
   const number = await nextVersion(c, a)
   const prior = await c.db.prepare('SELECT fields FROM lk_versions WHERE id=?').bind(a.current_version_id).first<{ fields: string | null }>()
-  const v = await templateVersion(c, a.id, number, p, { counterparty: party?.name ?? '', title: a.title }, await entityById(c, a.entity_id), prior?.fields ?? null)
+  const v = await templateVersion(c, a.id, number, p, { counterparty: party?.name ?? '', title: a.title }, await entityById(c, a.entity_id),a.type, prior?.fields ?? null)
   return versionOutcome(c, a, p, v, `Generated version ${number} from an approved template`)
 }
 /** Attaches the PDF a DOCX or template version will be signed as; it becomes part of the version's identity. */

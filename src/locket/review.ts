@@ -1,3 +1,4 @@
+import { applicableRecommendationPlaybook } from './playbook-recommendations'
 import { ruleRequirements, approvalSample, ruleDecision } from './approval-rules'
 import { approvalNotifications } from './notification-events'
 // Playbook review findings and exact-version approvals (clauses 6 and 7).
@@ -56,7 +57,8 @@ export async function deviationOutcome(c: Ctx, a: AgreementRow, p: Record<string
   const v = await c.db.prepare('SELECT * FROM lk_versions WHERE id=? AND agreement_id=?').bind(p.versionId, a.id).first<VersionRow>()
   if (!v) fail('NOT_FOUND', 'That version is not on this agreement.', 404)
   if (v.text === null) fail('NO_TEXT', `Version ${v.number} has no text to cite. Upload a DOCX or supply the text with the version.`, 409)
-  const playbook = await activePlaybook(c)
+  const active = await activePlaybook(c)
+  const playbook = await applicableRecommendationPlaybook(c,a,active)
   if (!playbook) fail('NO_PLAYBOOK', 'Activate a clause playbook before recording review findings.', 409)
   const clauseKey = text(p, 'clauseKey', 40)
   const rule = parse<any[]>(playbook.rules).find(r => r.key === clauseKey)
@@ -80,7 +82,7 @@ export async function deviationOutcome(c: Ctx, a: AgreementRow, p: Record<string
     allowed: may.prepare,
     result: { id, authority: rule.authority },
     writes,
-    checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_playbook_versions WHERE id=?)='active'", playbook.id)],
+    checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_playbook_versions WHERE id=?)='active'", active.id)],
     audit: [{ action: 'deviation.add', agreementId: a.id, summary: `${clauseKey}: ${result === 'met' ? 'rule met' : result === 'breached' ? 'rule breached' : 'cannot determine'} (playbook v${playbook.number})` }],
   }
 }

@@ -13,7 +13,7 @@ const resultLabel: Record<string, string> = { met: 'Rule met', breached: 'Rule b
 export function Review({ state, a, locket }: { state: LocketState; a: Row; locket: Locket }) {
   const { run, busy } = locket
   const v = currentVersion(state, a)
-  const playbook = state.playbooks.find(p => p.status === 'active')
+  const playbook = state.playbooks.find(p => p.id===state.agreementPlaybooks[a.id])
   const rules: any[] = playbook ? parse(playbook.rules) : []
   const versions = versionsOf(state, a.id)
   // Newest version first; on each, what needs a decision before what is met, then in the order of the text.
@@ -30,7 +30,7 @@ export function Review({ state, a, locket }: { state: LocketState; a: Row; locke
           <ul className="lk-findings">
             {findings.map(d => (
               <li key={d.id} className={d.version_id === v?.id ? undefined : 'lk-faded'}>
-                <div className="lk-finding-head"><strong>{rules.find(r => r.key === d.clause_key)?.title ?? d.clause_key}</strong><Badge value={d.result} label={resultLabel[d.result]} />{decisionOn(d) && <Badge value={decisionOn(d)!.decision} tone={decisionOn(d)!.decision === 'approved' ? 'neutral' : 'bad'} label={decisionOn(d)!.decision === 'approved' ? 'Accepted ✓' : 'Rejected'} />}<span className="lk-muted">v{versions.find(x => x.id === d.version_id)?.number} · characters {d.start_offset}–{d.end_offset}{d.proposal_id ? ' · prepared by agent' : ''}</span></div>
+                <div className="lk-finding-head"><strong>{parse<any[]>(state.playbooks.find(book=>book.id===d.playbook_version_id)?.rules??'[]').find(rule=>rule.key===d.clause_key)?.title??d.clause_key}</strong><Badge value={d.result} label={resultLabel[d.result]} />{decisionOn(d) && <Badge value={decisionOn(d)!.decision} tone={decisionOn(d)!.decision === 'approved' ? 'neutral' : 'bad'} label={decisionOn(d)!.decision === 'approved' ? 'Accepted ✓' : 'Rejected'} />}<span className="lk-muted">v{versions.find(x => x.id === d.version_id)?.number} · characters {d.start_offset}–{d.end_offset} · playbook v{state.playbooks.find(book=>book.id===d.playbook_version_id)?.number}{d.proposal_id ? ' · prepared by agent' : ''}</span></div>
                 <blockquote>{d.quote}</blockquote>
                 <p>{d.explanation}</p>
                 {d.proposed_wording && <p className="lk-proposed"><strong>Proposed wording:</strong> {d.proposed_wording}</p>}

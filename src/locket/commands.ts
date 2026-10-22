@@ -13,7 +13,7 @@ import { runNotifications } from './notification-dispatch'
 // versions) → writes → durable command outcome → audit → guard release.
 // Retrying the same commandId with the same payload returns the first outcome.
 import type { Bindings } from '../auth.server'
-import { authority } from './access'
+import { authority, requireRole } from './access'
 import { authorizeBulkPreviewResult } from './bulk-reminders'
 import { dispatchNotice } from './notice-mail'
 import { dispatchApprovalMail } from './approval-mail'
@@ -84,6 +84,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const payload = object(input.payload)
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const completed = async (result: unknown) => {
+    if(/^playbook\.(recommend$|recommendation\.)/.test(type)) requireRole(c.actor,['counsel'],'read measured playbook recommendation outcomes')
     if(type.startsWith('reconciliation.')) await authorizeReconciliationResult(c,type,payload,result)
     if(type==='reconciliation.email') await dispatchReconciliation(c)
     if(type==='exchange.send') await dispatchExchange(c,payload.token)
