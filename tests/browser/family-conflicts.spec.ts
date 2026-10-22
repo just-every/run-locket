@@ -77,6 +77,7 @@ for (const width of [1440,390]) test(`AGENT-005 counsel resolves executed notice
    await page.context().clearCookies()
    await page.context().addCookies(client.cookie.split('; ').map((pair:string)=>{const i=pair.indexOf('=');return {name:pair.slice(0,i),value:pair.slice(i+1),url:p.origin,secure:true,httpOnly:true,sameSite:'Lax' as const}}))
    await page.reload()
+   await expect(page.getByRole('region',{name:'Governing family analysis',exact:true})).toBeVisible()
   }
   await page.goto(`${p.origin}/app#agreement/${f.master.id}/family`)
   const panel=page.getByRole('region',{name:'Governing family analysis',exact:true})
