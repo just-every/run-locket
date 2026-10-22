@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type Row = { id: string; [key: string]: any }
 export interface LocketState {
+ wordTemplates:Row[]
  renewalBriefs:Row[]
  renewalBriefSettings:Row[]
  accountingLinks:Row[]

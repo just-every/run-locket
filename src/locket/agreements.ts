@@ -1,3 +1,4 @@
+import { populateWord } from './word-templates'
 import { captureRuleSet, ruleRequirements } from './approval-rules'
 import { newRequestWork } from './request-queue'
 import { launchForm, formSnapshotWrites } from './intake-form-launch'
@@ -127,8 +128,10 @@ async function uploadedVersion(c: Ctx, agreementId: string, number: number, kind
 async function templateVersion(c: Ctx, agreementId: string, number: number, p: Record<string, unknown>, extra: Record<string, string>, entity: EntityRow | null, priorFields: string | null = null): Promise<NewVersion> {
   const template = await approvedTemplate(c, p.templateVersionId)
   requireEntityScope(template.template_entity_id, { entity_id: entity?.id ?? null }, `${template.name} v${template.number}`)
-  const values = { ...extra, ...object(p.fields ?? {}, 'fields'), ...entityValues(entity, template.body) }
-  const filled = populate(template, values, object(p.clauseChoices ?? {}, 'clauseChoices'), entity?.id ?? null)
+  const values = { ...extra, ...object(p.fields ?? {}, 'fields'), ...entityValues(entity, template.body+' '+parse<{name:string}[]>(template.fields).map(f=>'{{'+f.name+'}}').join(' ')) }
+  const choices=object(p.clauseChoices ?? {}, 'clauseChoices')
+  const word=await populateWord(c,template.id,values,choices)
+  const filled = word ?? populate(template, values, choices, entity?.id ?? null)
   const id = crypto.randomUUID()
   const uses = retainedClauseUses(priorFields, filled.text)
   const selectedFields = { template: template.id, ...filled.fields }
@@ -136,12 +139,13 @@ async function templateVersion(c: Ctx, agreementId: string, number: number, p: R
   const selected = templateClauseUses(template, json(selectedFields), c.actor.id, c.now, playbook, values)
   const recorded = [...new Map([...uses, ...selected].map(use => [JSON.stringify([use.libraryVersionId, use.clauseKey, use.variantId]), use])).values()]
   const fields = { ...selectedFields, clauseLibrary: recorded }
-  const digest = await versionDigest({ agreementId, number, files: [], text: filled.text, fields })
+  const artifact=word?await storeArtifact({filename:`template-v${template.number}.docx`,mediaType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',bytes:word.bytes},{agreementId,versionId:id,role:'original',actorId:c.actor.id,at:c.now,provenance:{kind:'populated_word_template',templateVersionId:template.id}}):null
+  const digest = await versionDigest({ agreementId, number, files: artifact?[{role:'original',sha256:artifact.sha256}]:[], text: filled.text, fields })
   return {
     id,
     number,
     digest,
-    writes: [sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, 'template', `${template.name} v${template.number}`, template.id, json(fields), filled.text, 'template', digest, c.actor.id, c.now)],
+    writes: [...(artifact?.writes??[]),sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, 'template', `${template.name} v${template.number}`, template.id, json(fields), filled.text, 'template', digest, c.actor.id, c.now)],
   }
 }
 

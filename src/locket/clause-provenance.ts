@@ -33,7 +33,7 @@ export function templateClauseUses(library: Record<string, any>, fields: string,
   const rules = playbook ? parse<Record<string, any>[]>(playbook.rules) : []
   return parse<LibraryClause[]>(library.clauses).flatMap(clause => {
     const variant = clause.variants.find(v => v.id === chosen[clause.key])
-    if (!variant) return []
+    if (!variant || !variant.text.trim()) return []
     const ruleKey = clause.ruleKey || clause.key
     return [{ libraryVersionId: library.id, libraryVersionNumber: library.number, templateName: library.name,
       clauseKey: clause.key, clauseTitle: clause.title, variantId: variant.id, variantLabel: variant.label,
@@ -67,7 +67,7 @@ export function approvedClauses(data: { templateVersions: Row[]; templates: Row[
   const q = query.trim().toLowerCase()
   return data.templateVersions.filter(v => v.status === 'approved').flatMap(v => {
     const template = data.templates.find(t => t.id === v.template_id)
-    return parse<LibraryClause[]>(v.clauses).flatMap(clause => clause.variants.map((variant) => {
+    return parse<LibraryClause[]>(v.clauses).flatMap(clause => clause.variants.filter(variant=>variant.text.trim()).map((variant) => {
       const ruleKey = clause.ruleKey || clause.key
       const rule = rules.find(r => r.key === ruleKey)
       return {

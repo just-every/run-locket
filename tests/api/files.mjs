@@ -23,7 +23,7 @@ export function pdf(text, pages = 1) {
 const crcTable = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0 })
 const crc32 = buf => { let c = 0xffffffff; for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0 }
 
-function zip(entries) {
+export function zip(entries) {
   const locals = [], centrals = []
   let offset = 0
   for (const [name, content] of entries) {

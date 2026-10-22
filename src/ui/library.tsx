@@ -1,3 +1,4 @@
+import { WordTemplateEditor, WordTemplateUpload } from './word-template'
 import { DraftRetention } from './erasure'
 import { ApprovalRules } from './approval-rules'
 import { IntakeFormDesigner } from './intake-form-designer'
@@ -71,6 +72,7 @@ export function Library({ state, locket }: { state: LocketState; locket: Locket 
               return <li key={t.id}><button type="button" className={t.id === selected ? 'lk-selected' : undefined} aria-pressed={t.id === selected} onClick={() => setSelected(t.id)}><span className="lk-shelf-page" aria-hidden="true">{(latest?.body ?? '').split('\n').slice(0, 6).map((l: string, i: number) => <span key={i} style={{ width: `${Math.min(100, 28 + l.length)}%` }} />)}</span><strong>{t.name}</strong><small>{typeLabel[t.type]} · v{latest?.number}{t.entity_id ? ` · ${entityName(state, t.entity_id)} only` : ''}</small>{latest && <Badge value={latest.status} />}</button></li>
             })}</ul>
           )}
+          {editor&&<WordTemplateUpload locket={locket} onSaved={setSelected}/>}
           {editor && (
             <details className="lk-disclosure" open={state.templates.length === 0}>
               <summary>New template</summary>
@@ -90,6 +92,7 @@ export function Library({ state, locket }: { state: LocketState; locket: Locket 
               {versions.map(v => (
                 <article key={v.id} className="lk-card">
                   <div className="lk-finding-head"><strong>v{v.number}</strong><Badge value={v.status} /><small>{v.approved_by ? `Approved by ${personName(state, v.approved_by)} ${when(v.approved_at)}` : `Drafted by ${personName(state, v.created_by)} ${when(v.created_at)}`}</small></div>
+                  {state.wordTemplates.find(w=>w.id===v.id)&&<WordTemplateEditor word={state.wordTemplates.find(w=>w.id===v.id)!} version={v} locket={locket} editor={editor}/>}
                   <details><summary>Body and fields</summary>
                     <pre className="lk-document">{v.body}</pre>
                     <p className="lk-muted">Fields: {parse<any[]>(v.fields).map(f => f.label).join(', ') || 'none'}</p>
@@ -99,7 +102,7 @@ export function Library({ state, locket }: { state: LocketState; locket: Locket 
                   {editor && v.status === 'approved' && <button type="button" className="lk-small" disabled={busy} onClick={() => void run('template.decide', { versionId: v.id, decision: 'retire' })}>Retire</button>}
                 </article>
               ))}
-              {editor && (
+              {editor&&state.wordTemplates.some(w=>versions.some(v=>v.id===w.id))?<WordTemplateUpload locket={locket} onSaved={setSelected} template={template}/>:editor && (
                 <details className="lk-disclosure">
                   <summary>Draft a new version</summary>
                   <Form busy={busy} submit="Save draft" onSubmit={async (data, form) => { if (await run('template.revise', save(data, { templateId: template.id }))) form.reset() }}>

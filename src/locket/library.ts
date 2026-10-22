@@ -60,6 +60,7 @@ const reviseTemplate: Handler = async (c, p) => {
   requireRole(c.actor, may.library, 'maintain templates')
   const template = await c.db.prepare('SELECT * FROM lk_templates WHERE id=?').bind(p.templateId).first<any>()
   if (!template) fail('NOT_FOUND', 'No such template.', 404)
+  if(await c.db.prepare('SELECT 1 FROM lk_word_templates w JOIN lk_template_versions v ON v.id=w.id WHERE v.template_id=?').bind(template.id).first())fail('WORD_TEMPLATE','Upload a new Word version so the original formatting is retained.',409)
   const last = await c.db.prepare('SELECT MAX(number) AS n FROM lk_template_versions WHERE template_id=?').bind(template.id).first<{ n: number }>()
   const number = (last?.n ?? 0) + 1, versionId = crypto.randomUUID()
   const content = templateContent(p)
@@ -80,12 +81,14 @@ const decideTemplate: Handler = async (c, p) => {
   const decision = oneOf(p, 'decision', ['approve', 'retire'] as const)
   if (decision === 'approve' && v.status !== 'draft') fail('STATUS', `${v.name} v${v.number} is already ${v.status}.`, 409)
   if (decision === 'retire' && v.status === 'retired') fail('STATUS', `${v.name} v${v.number} is already retired.`, 409)
+  const word=await c.db.prepare('SELECT * FROM lk_word_templates WHERE id=?').bind(v.id).first<any>()
+  if(decision==='approve'&&word&&(word.preview_revision!==word.revision||!word.preview_artifact_id))fail('PREVIEW','Preview the current markings with sample answers before approving this Word template.',409)
   const status = decision === 'approve' ? 'approved' : 'retired'
   return {
     allowed: may.library,
     result: { versionId: v.id, status },
     writes: [sql('UPDATE lk_template_versions SET status=?, approved_by=COALESCE(approved_by,?), approved_at=COALESCE(approved_at,?) WHERE id=?', status, decision === 'approve' ? c.actor.id : null, decision === 'approve' ? c.now : null, v.id)],
-    checks: [sql('(SELECT status FROM lk_template_versions WHERE id=?)=?', v.id, v.status)],
+    checks: [sql('(SELECT status FROM lk_template_versions WHERE id=?)=?', v.id, v.status),...(word?[sql('(SELECT revision FROM lk_word_templates WHERE id=?)=?',v.id,word.revision)]:[])],
     audit: [{ action: `template.${decision}`, summary: `${decision === 'approve' ? 'Approved' : 'Retired'} ${v.name} v${v.number}` }],
   }
 }

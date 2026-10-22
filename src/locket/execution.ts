@@ -61,7 +61,7 @@ const preparePackage: Handler = async (c, p) => {
   const writes: Sql[] = []
   let pdf: { id: string; sha256: string; filename: string }
   if (pdfFile) pdf = { id: pdfFile.id, sha256: pdfFile.sha256, filename: pdfFile.filename }
-  else if (v.kind === 'template' && v.text !== null) {
+  else if (v.kind === 'template' && v.text !== null && !files.some(f=>f.role==='original')) {
     const bytes = textPdf(a.title, v.text, `${a.reference} v${v.number} - version digest ${v.digest.slice(0, 16)}`)
     const stored = await storeArtifact({ filename: `${a.reference}-v${v.number}.pdf`, mediaType: PDF, bytes }, { agreementId: a.id, versionId: v.id, role: 'package', provenance: { renderedFrom: v.id, versionDigest: v.digest }, actorId: c.actor.id, at: c.now })
     writes.push(...stored.writes)
