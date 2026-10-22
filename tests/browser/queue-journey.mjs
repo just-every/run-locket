@@ -68,7 +68,7 @@ export async function queueJourney(page,width,p){
  // The native runner retains the first width's reopened cancellation history.
  const expectedCancellations=p.h||width===1440?1:2
  expect(analytics.canceled.filter(c=>c.reason==='deal_lost'&&c.stage==='negotiation')).toHaveLength(expectedCancellations)
- await expect(page.locator('main')).toContainText('deal lost · negotiation: '+expectedCancellations)
+ await expect(page.locator('main')).toContainText('deal lost · Negotiation: '+expectedCancellations)
  await shot('cancellation-report')
  await page.goto(p.origin+'/app#queue');await page.reload()
  await page.getByLabel('Queue status',{exact:true}).selectOption('cancelled')
