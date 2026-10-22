@@ -1,4 +1,5 @@
 import { InvoiceReconciliation } from './reconciliation'
+import { ServiceLevels } from './service-levels'
 import { FamilyBlock } from './family-analysis'
 import { metadataTermLabel, metadataTermValue } from './custom-field-values'
 import type { LocketState, Row } from './api'
@@ -29,6 +30,7 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
     <div className="lk-tab-page">
       <FamilyBlock state={state} a={a} />
       {a.type==='supplier'&&<InvoiceReconciliation state={state} a={a} locket={locket} />}
+      {a.type==='supplier'&&<ServiceLevels state={state} a={a} locket={locket} />}
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Terms</h2>{renewal && <span className="lk-muted">Notice deadline <span className="lk-nowrap">{deadline(renewal.deadline_at, renewal.timezone)}</span></span>}</div>
         <table className="lk-table">

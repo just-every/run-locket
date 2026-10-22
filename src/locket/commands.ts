@@ -1,5 +1,7 @@
 import { authorizeReconciliationResult } from './reconciliation-records'
 import { dispatchReconciliation } from './reconciliation-mail'
+import { authorizeServiceResult } from './service-level-records'
+import { dispatchServiceClaim } from './service-level-mail'
 import { familyCommandChecks } from './family-analysis-guard'
 import { refuseErasedAddress } from './erasure-addresses'
 import { dispatchExchange } from './exchange-mail'
@@ -84,6 +86,8 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const payload = object(input.payload)
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const completed = async (result: unknown) => {
+    if(type.startsWith('service-level.'))await authorizeServiceResult(c,type,payload,result)
+    if(type==='service-level.email')await dispatchServiceClaim(c)
     if(/^playbook\.(recommend$|recommendation\.)/.test(type)) requireRole(c.actor,['counsel'],'read measured playbook recommendation outcomes')
     if(type.startsWith('reconciliation.')) await authorizeReconciliationResult(c,type,payload,result)
     if(type==='reconciliation.email') await dispatchReconciliation(c)

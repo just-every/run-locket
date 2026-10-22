@@ -1,8 +1,9 @@
 import type { ReconciliationWorkspace as importReconciliationWorkspace } from './reconciliation'
+import type { ServiceLevelWorkspace } from './service-levels'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type Row = { id: string; [key: string]: any }
-export interface LocketState extends importReconciliationWorkspace {
+export interface LocketState extends importReconciliationWorkspace,ServiceLevelWorkspace {
  playbookRecommendations:{outcomes:Row[];issues:Row[];recommendations:Row[];applications:Row[]}
  agreementPlaybooks:Record<string,string|null>
  familyModel:{enabled:boolean;model:string|null;endpoint:string|null}|null

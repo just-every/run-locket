@@ -8,6 +8,16 @@
   "d1": [
     {
       "binding": "DB"
+    },
+    {
+      "binding": "UPTIME_ORIGIN",
+      "environment": "UPTIME_ORIGIN",
+      "optional": true
+    },
+    {
+      "binding": "UPTIME_METRICS_KEY",
+      "environment": "UPTIME_METRICS_KEY",
+      "optional": true
     }
   ],
   "originVar": "AUTH_ORIGIN",
