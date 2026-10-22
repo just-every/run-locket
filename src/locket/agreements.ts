@@ -100,6 +100,7 @@ async function approvedTemplate(c: Ctx, id: unknown) {
 }
 
 interface NewVersion {
+  checks?: Sql[]
   id: string
   writes: Sql[]
   digest: string
@@ -145,6 +146,7 @@ async function templateVersion(c: Ctx, agreementId: string, number: number, p: R
     id,
     number,
     digest,
+    checks:[sql("(SELECT status FROM lk_template_versions WHERE id=?)='approved'",template.id)],
     writes: [...(artifact?.writes??[]),sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, 'template', `${template.name} v${template.number}`, template.id, json(fields), filled.text, 'template', digest, c.actor.id, c.now)],
   }
 }
@@ -186,7 +188,7 @@ const createRequest: Handler = async (c, p) => {
   checks.push(...approvalSnapshot.checks);writes.push(...approvalSnapshot.writes)
   const work = await newRequestWork(c, {id,type,restricted:bool(p,'restricted')?1:0,owner_id:ownerId,requester_id:c.actor.id,timezone:zone,department:String(form?.answers.department??'')})
   checks.push(...work.checks); writes.push(...work.writes)
-  if (version) writes.push(...version.writes)
+  if (version) {writes.push(...version.writes);checks.push(...(version.checks??[]))}
   if (form) {
     writes.push(...await formSnapshotWrites(c, id, form))
     if(form.route.reviewerId !== ownerId) writes.push(...notificationWrites(c,{key:c.commandId,agreementId:id,recipientId:form.route.reviewerId,kind:'assignment'}))
@@ -281,7 +283,7 @@ function versionOutcome(c: Ctx, a: AgreementRow, p: Record<string, unknown>, v: 
     allowed: may.intake,
     result: { versionId: v.id, number: v.number, digest: v.digest },
     writes: [...v.writes, bump(c, a, 'current_version_id=?, status=?', v.id, status), invalidateApprovals(c, a.id, `Version ${v.number} replaced the approved document`)],
-    checks: agreementGuards(c, a, p),
+    checks: [...agreementGuards(c, a, p),...(v.checks??[])],
     audit: [{ action: 'version.add', agreementId: a.id, summary }],
   }
 }

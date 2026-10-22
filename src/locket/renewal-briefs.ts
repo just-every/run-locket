@@ -1,7 +1,8 @@
+import { refuseErasedAddress } from './erasure-addresses'
 import { citation } from './obligations'
 import type { Bindings } from '../auth.server'
 import { agreementAccessSql, fullReaders, may, requireRole, roleSql } from './access'
-import { PDF, readArtifactBytes, storeArtifact } from './artifacts'
+import { PDF, encodeBase64, readArtifactBytes, storeArtifact } from './artifacts'
 import { accountingSpend } from './accounting'
 import { agreementHandlers } from './agreements'
 import { auditSql, guardSql, type Ctx, type Handler, type Outcome } from './commands'
@@ -81,11 +82,13 @@ const open:Handler=async(c,p)=>{
  for(const source of sources){const current=await visibleAgreement(c,source.id);if(current.version!==source.version)fail('STALE','A source changed. Prepare and review a new brief.',409);checks.push(...agreementGuards(c,current))}
  const decision=text(p,'decision',20)
  if(!['renew','renegotiate'].includes(decision))fail('INVALID','Only renew or renegotiate opens a renewal request. Record terminate separately.')
- const out=await agreementHandlers['request.create'](c,{...p,agreementId:undefined,title:text(p,'title',200),type:a.type,partyId:a.party_id,entityId:a.entity_id??undefined,currency:'USD',value:a.value_cents===null?undefined:(a.value_cents/100).toFixed(2),restricted:Boolean(a.restricted),parentId:a.id,relation:'renews',timezone:a.timezone})
- const result=out.result as {id:string;reference:string}
+ const payload={...p,agreementId:undefined,title:text(p,'title',200),type:a.type,partyId:a.party_id,entityId:a.entity_id??undefined,currency:'USD',value:a.value_cents===null?undefined:(a.value_cents/100).toFixed(2),restricted:Boolean(a.restricted),parentId:a.id,relation:'renews',timezone:a.timezone}
  const bytes=await readArtifactBytes(c.db,b.artifact_id)
+ checks.push(...await refuseErasedAddress(c,'request.create',{...payload,renewalBrief:snapshot,briefFile:{base64:encodeBase64(bytes)}}))
+ const out=await agreementHandlers['request.create'](c,payload)
+ const result=out.result as {id:string;reference:string}
  const attached=await storeArtifact({filename:`renewal-brief-${a.reference}.pdf`,mediaType:PDF,bytes},{agreementId:result.id,role:'attachment',actorId:c.actor.id,at:c.now,provenance:{kind:'renewal_brief',briefId:b.id,sourceAgreementId:a.id,sources}})
- return {...out,result:{...result,briefId:b.id},checks:[...(out.checks??[]),...checks,sql('(SELECT request_id FROM lk_renewal_briefs WHERE id=?) IS NULL',b.id),sql('(SELECT version FROM lk_renewal_brief_settings WHERE agreement_id=?)=?',a.id,setting.version)],writes:[...out.writes,...attached.writes,sql('UPDATE lk_renewal_briefs SET request_id=? WHERE id=?',result.id,b.id),sql('UPDATE lk_renewals SET decision=?,decided_by=?,decided_at=?,decision_reason=? WHERE id=?',decision,c.actor.id,c.now,'Opened linked renewal workflow from reviewed brief',b.renewal_id)],audit:[...out.audit,{action:'renewal.workflow.open',agreementId:a.id,summary:`Chose ${decision}; opened ${result.reference} through the current intake form with an exact copy of the renewal brief.`}]}
+ return {...out,result:{...result,briefId:b.id},checks:[...(out.checks??[]),...checks,sql('(SELECT request_id FROM lk_renewal_briefs WHERE id=?) IS NULL',b.id),sql('(SELECT version FROM lk_renewal_brief_settings WHERE agreement_id=?)=?',a.id,setting.version)],writes:[...out.writes,sql("UPDATE lk_agreements SET relation='renews' WHERE id=?",result.id),sql('INSERT INTO lk_agreement_groups SELECT ?,audience_id FROM lk_agreement_groups WHERE agreement_id=?',result.id,a.id),...attached.writes,sql('UPDATE lk_renewal_briefs SET request_id=? WHERE id=?',result.id,b.id),sql('UPDATE lk_renewals SET decision=?,decided_by=?,decided_at=?,decision_reason=? WHERE id=?',decision,c.actor.id,c.now,'Opened linked renewal workflow from reviewed brief',b.renewal_id)],audit:[...out.audit,{action:'renewal.workflow.open',agreementId:a.id,summary:`Chose ${decision}; opened ${result.reference} through the current intake form with an exact copy of the renewal brief.`}]}
 }
 const cap:Handler=async(c,p)=>{
  requireRole(c.actor,may.confirmTerms,'confirm a cited price-increase cap')

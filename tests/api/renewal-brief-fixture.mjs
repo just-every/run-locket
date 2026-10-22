@@ -32,7 +32,7 @@ export async function renewalBriefFixture(h,{restricted=false}={}) {
  await h.owner.command('renewal.cap.confirm',{agreementId:source.id,version:(await current()).version,value:'3% annually',citation:{quote}})
  await h.owner.command('accounting.link',{agreementId:source.id,version:(await current()).version,vendorId:'42',consent:true})
  await h.owner.command('renewal.brief.configure',{agreementId:source.id,version:(await current()).version,leadDays:14,decisionMakerId:maker.id})
- const draft=await h.owner.command('form.save',{definition:{name:'Supplier renewal',type:'supplier',fields:[{key:'security',label:'Security review',kind:'pick_list',required:true,options:['Enhanced review'],when:[]}],requirements:['Pricing schedule'],launch:{roles:['owner','approver'],audienceIds:[]},defaultRoute:{ownerId:maker.id,reviewerId:counsel.id,approvalRole:'counsel'},rules:[]}})
+ const draft=await h.owner.command('form.save',{definition:{name:'Supplier renewal',type:'supplier',fields:[{key:'contact',label:'Renewal contact',kind:'text',required:false,options:[],when:[]},{key:'security',label:'Security review',kind:'pick_list',required:true,options:['Enhanced review'],when:[]}],requirements:['Pricing schedule'],launch:{roles:['owner','approver'],audienceIds:[]},defaultRoute:{ownerId:maker.id,reviewerId:counsel.id,approvalRole:'counsel'},rules:[]}})
  const published=await h.owner.command('form.publish',draft)
  const s=await h.owner.state(),r=s.renewals.find(r=>r.agreement_id===source.id)
  return {source,maker,counsel,ownerId,published,quote,current,due:r.deadline_at-14*86400000}
