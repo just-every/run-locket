@@ -9,7 +9,6 @@ export interface AnalysisCandidate { agreementId:string; versionId:string; value
 export interface AnalysisConflict { key:AnalysisKey; summary:string; recommended:number; reasoning:string; candidates:AnalysisCandidate[] }
 const candidateSchema={type:'object',additionalProperties:false,required:['agreementId','value','quote','page'],properties:{agreementId:{type:'string'},value:{type:'string'},quote:{type:'string'},page:{type:['integer','null']}}}
 const schema={type:'object',additionalProperties:false,required:['conflicts'],properties:{conflicts:{type:'array',items:{type:'object',additionalProperties:false,required:['key','summary','recommended','reasoning','candidates'],properties:{key:{type:'string',enum:analysisKeys},summary:{type:'string'},recommended:{type:'integer'},reasoning:{type:'string'},candidates:{type:'array',items:candidateSchema}}}}}}
-const normalize=(s:string)=>s.replace(/\s+/g,' ').trim()
 export function validateAnalysis(raw:unknown,sources:FamilySource[]):AnalysisConflict[] {
  const conflicts=list(object(raw,'analysis'),'conflicts',30).map((value)=>{
   const row=object(value,'conflict'),key=oneOf(row,'key',analysisKeys)
@@ -17,7 +16,7 @@ export function validateAnalysis(raw:unknown,sources:FamilySource[]):AnalysisCon
    const candidate=object(v,'candidate'),agreementId=text(candidate,'agreementId',100),source=sources.find(s=>s.agreementId===agreementId)
    const quote=text(candidate,'quote',4000),value=text(candidate,'value',2000)
    const page=candidate.page===null?null:integer(candidate,'page',1,5000)
-   if(!source||!source.pages.some(p=>(page===null||p.page===page)&&normalize(p.text).includes(normalize(quote))))fail('ANALYSIS_CITATION','The model returned a passage outside the approved source text. No result was saved.',502)
+   if(!source||!source.pages.some(p=>(page===null||p.page===page)&&p.text.includes(quote)))fail('ANALYSIS_CITATION','The model returned a passage outside the approved source text. No result was saved.',502)
    if(['notice_days','renewal_term_months'].includes(key)&&(!/^\d+$/.test(value)||Number(value)>(key==='notice_days'?730:120)||(key==='renewal_term_months'&&Number(value)<1)))fail('ANALYSIS_VALUE','The model returned an unsupported normalized interval.',502)
    if(['effective_date','end_date'].includes(key)&&(!/^\d{4}-\d{2}-\d{2}$/.test(value)||new Date(value+'T00:00:00Z').toISOString().slice(0,10)!==value))fail('ANALYSIS_VALUE','The model returned an invalid normalized date.',502)
    if(key==='auto_renew'&&!['yes','no'].includes(value))fail('ANALYSIS_VALUE','The model returned an invalid renewal flag.',502)
@@ -39,6 +38,7 @@ export function validateAnalysis(raw:unknown,sources:FamilySource[]):AnalysisCon
  return conflicts
 }
 export async function analyzeFamily(c:Ctx,sources:FamilySource[]) {
+ if(c.env.AI_TRAINING_PROHIBITED!=='true')fail('PROVIDER_POLICY','The owner must configure a provider contract that prohibits training on these texts before any family model request.',409)
  const config=aiConfig(c.env as unknown as Record<string,unknown>)
  if(!config.enabled||!config.model)fail('MODEL_UNAVAILABLE','An enabled model connection with an exact model must be configured before analyzing a family.',409)
  let response:Response

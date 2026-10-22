@@ -108,6 +108,15 @@ test('AGENT-005 family differences cite all confirmed notice periods and preview
 
 test('AGENT-005 executed family analysis requires exact consent, blocks derived actions and propagates counsel choices with retained sources', async t => {
  const {familyModelBindings,familyModelFake,familyAnalysisFixture}=await import('./family-analysis-fixture.mjs')
+ const prohibitedCalls=[]
+ const unapproved=await installation({bindings:{...familyModelBindings,AI_TRAINING_PROHIBITED:'false'},outboundResponse:familyModelFake(prohibitedCalls)})
+ try {
+  const source=await familyAnalysisFixture(unapproved.owner)
+  const snapshot=await unapproved.owner.command('family.analysis.prepare',{agreementId:source.master.id})
+  assert.equal((await unapproved.owner.state()).familyModel.enabled,false)
+  await unapproved.owner.command('family.analysis.run',{analysisId:snapshot.id,sourceDigest:snapshot.sourceDigest,consent:true},{error:'PROVIDER_POLICY'})
+  assert.equal(prohibitedCalls.length,0)
+ } finally {await unapproved.close()}
  const calls=[];let mode='ok'
  const h=await installation({bindings:{...familyModelBindings,NOTICE_RESEND_WEBHOOK_SECRET:'synthetic-locket-3'},outboundResponse:familyModelFake(calls,()=>mode)});t.after(()=>h.close())
  await h.setTime(Date.parse('2026-10-17T16:00:00Z'))

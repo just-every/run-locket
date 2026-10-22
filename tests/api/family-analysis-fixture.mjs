@@ -1,5 +1,5 @@
 import {familyConflictFixture} from './family-conflict-fixture.mjs'
-export const familyModelBindings={AI_ENABLED:'true',AI_MODEL:'synthetic-locket-1',AI_API_KEY:'synthetic-locket-2'}
+export const familyModelBindings={AI_TRAINING_PROHIBITED:'true',AI_ENABLED:'true',AI_MODEL:'synthetic-locket-1',AI_API_KEY:'synthetic-locket-2'}
 // Test-only OpenAI-compatible provider edge; input still crosses the actual
 // product command, consent, provider client and citation-validation doors.
 export function familyModelFake(calls,mode=()=> 'ok') {

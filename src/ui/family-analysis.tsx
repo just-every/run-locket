@@ -17,7 +17,7 @@ export function FamilyAnalysis({state,root,locket}:{state:LocketState;root:Row;l
   <p>Compare executed text and confirmed terms. Counsel confirms precedence, effective terms and exactly which parent obligations use them.</p>
   {blocked&&<p role="status"><strong>Derived actions blocked.</strong> Renewal decisions, notices and obligation completion wait for counsel’s current resolution. <a href={`#agreement/${root.id}/family`}>Review this family</a>.</p>}
   {!latest&&<p>No executed-text analysis has been prepared.</p>}
-  {preparer&&!state.familyModel?.enabled&&<p>Family analysis is off. The owner must configure and enable a model connection first.</p>}
+  {preparer&&!state.familyModel?.enabled&&<p>Family analysis is off. The owner must configure and enable a model connection under a contract prohibiting training on these texts first.</p>}
   {preparer&&state.familyModel?.enabled&&<p>Configured model: {state.familyModel.model} at {state.familyModel.endpoint}.</p>}
   {latest?.stale&&<p role="alert">Source family changed. Prepare a new analysis; previous choices no longer authorize derived actions.</p>}
   {preparer&&(!latest||latest.stale||latest.status==='resolved')&&<button type="button" disabled={locket.busy||!state.familyModel?.enabled} onClick={()=>void locket.run('family.analysis.prepare',{agreementId:root.id})}>Prepare executed-family analysis</button>}

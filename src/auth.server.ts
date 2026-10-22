@@ -11,6 +11,8 @@ import branding from './branding.json'
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ /** Owner deployment attestation: provider contract prohibits training on contract text. */
+ AI_TRAINING_PROHIBITED?:string
  AI_ENABLED?:string
  AI_MODEL?:string
  AI_BASE_URL?:string

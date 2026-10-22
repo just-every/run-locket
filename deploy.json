@@ -74,6 +74,11 @@
       "optional": true
     },
     {
+      "binding": "AI_TRAINING_PROHIBITED",
+      "environment": "AI_TRAINING_PROHIBITED",
+      "optional": true
+    },
+    {
       "binding": "AI_ENABLED",
       "environment": "AI_ENABLED",
       "optional": true
