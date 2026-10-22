@@ -63,6 +63,8 @@ for(const width of [1440,390])test(`AGENT-001 reviews 3% versus 7%, confirms fin
   const record=(await product.state()).reconciliationFindings[0]
   expect(outbound[0].TextBody).toBe(record.message_text)
   await page.reload()
+  await expect(finding).toBeVisible()
+  await expect(finding).toContainText('Postmark accepted; mailbox delivery and credit recovery unconfirmed.')
   await expect(finding.getByRole('button',{name:'Send approved credit request',exact:true})).toHaveCount(0)
   expect(h.mails.filter((m:any)=>m.MessageStream==='outbound').length).toBe(1)
   await shot('accepted')
