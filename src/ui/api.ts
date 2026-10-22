@@ -1,7 +1,8 @@
+import type { ReconciliationWorkspace as importReconciliationWorkspace } from './reconciliation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type Row = { id: string; [key: string]: any }
-export interface LocketState {
+export interface LocketState extends importReconciliationWorkspace {
  familyModel:{enabled:boolean;model:string|null;endpoint:string|null}|null
  familyAnalyses:Row[]
  familyBlocks:string[]

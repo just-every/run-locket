@@ -2,7 +2,7 @@ import type { Ctx } from './commands'
 import { retainedOriginalSql } from './retained-originals'
 import { canonical, fail, json, parse, sha256, sql, type Sql } from './model'
 import { readArtifactBytes } from './artifacts'
-export const erasureFields:Record<string,string[]>={lk_family_analyses:['sources','conflicts','choices','reason'],lk_renewal_briefs:['content'],lk_price_caps:['value','citation'],lk_comments:['body','quote','external_author_name','external_author_email'],lk_notices:['recipient','body'],lk_notice_letters:['recipient'],lk_notice_dispatches:['recipient','subject','message_text'],lk_notice_sources:['recipient','alternate_address'],lk_notice_plans:['recipient','acknowledgment'],lk_notice_events:['detail'],lk_notice_tracking:['detail'],lk_notification_deliveries:['recipient_email'],lk_approval_reminders:['recipient_email'],lk_deadline_reminders:['recipient_email'],lk_approval_mail:['recipient_email'],lk_exchanges:['recipient_name','recipient_email','contact_consent']}
+export const erasureFields:Record<string,string[]>={lk_reconciliation_interpretations:['interpretation','citation'],lk_reconciliation_scans:['content'],lk_reconciliation_findings:['content','recipient','subject','message_text','finance_note','rejection_reason'],lk_reconciliation_dispatches:['recipient','subject','message_text'],lk_family_analyses:['sources','conflicts','choices','reason'],lk_renewal_briefs:['content'],lk_price_caps:['value','citation'],lk_comments:['body','quote','external_author_name','external_author_email'],lk_notices:['recipient','body'],lk_notice_letters:['recipient'],lk_notice_dispatches:['recipient','subject','message_text'],lk_notice_sources:['recipient','alternate_address'],lk_notice_plans:['recipient','acknowledgment'],lk_notice_events:['detail'],lk_notice_tracking:['detail'],lk_notification_deliveries:['recipient_email'],lk_approval_reminders:['recipient_email'],lk_deadline_reminders:['recipient_email'],lk_approval_mail:['recipient_email'],lk_exchanges:['recipient_name','recipient_email','contact_consent']}
 export interface KeptRecord {table:string;id:string;agreementId:string|null;reason:string;authorizer:string;holdReason?:string}
 export interface ErasurePatch {table:string;id:string;agreementId:string|null;before:Record<string,unknown>;after:Record<string,unknown>}
 export interface DraftDisposition {id:string;version:number;held:boolean;files:{id:string;role:string}[];versions:string[]}
@@ -27,6 +27,7 @@ export async function erasurePlan(c:Ctx,email:string,token:string){
  const sourceAgreements=(table:string,r:any):string[]=>{
   const ids=[r.agreement_id,r.root_id].filter(Boolean)
   if(table==='lk_family_analyses')ids.push(...parse<any>(r.facts).members.map((m:any)=>m.id))
+  if(table.startsWith('lk_reconciliation_')&&typeof r.sources==='string')ids.push(...parse<any[]>(r.sources).map(s=>s.id))
   return [...new Set<string>(ids)]
  }
  const heldFor=(table:string,r:any)=>table==='lk_parties'?holds.filter(h=>agreements.some(a=>a.id===h.agreement_id&&a.party_id===r.id)):table==='lk_notification_deliveries'?holds.filter(h=>deliveries.some(n=>n.delivery_id===r.id&&n.agreement_id===h.agreement_id)):holds.filter(h=>sourceAgreements(table,r).includes(h.agreement_id))

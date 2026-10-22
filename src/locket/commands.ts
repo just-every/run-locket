@@ -1,3 +1,5 @@
+import { authorizeReconciliationResult } from './reconciliation-records'
+import { dispatchReconciliation } from './reconciliation-mail'
 import { familyCommandChecks } from './family-analysis-guard'
 import { refuseErasedAddress } from './erasure-addresses'
 import { dispatchExchange } from './exchange-mail'
@@ -82,6 +84,8 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const payload = object(input.payload)
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const completed = async (result: unknown) => {
+    if(type.startsWith('reconciliation.')) await authorizeReconciliationResult(c,type,payload,result)
+    if(type==='reconciliation.email') await dispatchReconciliation(c)
     if(type==='exchange.send') await dispatchExchange(c,payload.token)
     if(/^repository\.bulk\./.test(type))await authorizeRepositoryBulkResult(c,result)
     await syncRulePending(env,c.now)
