@@ -7,7 +7,7 @@ export const expiredDraftCheck=(id:string,version:number,ruleVersion:number,now:
 export async function runRetentionReminders(env:Bindings,now=Date.now()){
  const rule=await env.DB.prepare("SELECT * FROM lk_retention_rules WHERE id='installation'").first<{version:number;days:number}>()
  if(!rule)return
- const owners=(await env.DB.prepare("SELECT id,name,email,version FROM oa_operators WHERE role='owner' AND status='active'").all<any>()).results
+ const owners=(await env.DB.prepare("SELECT id,display_name AS name,email,version FROM oa_operators WHERE role='owner' AND status='active'").all<any>()).results
  const drafts=(await env.DB.prepare("SELECT id,version FROM lk_agreements WHERE status='draft' AND created_at<=? ORDER BY created_at,id LIMIT 100").bind(now-rule.days*86400000).all<{id:string;version:number}>()).results
  for(const draft of drafts)for(const owner of owners){
   const key=`retention:${rule.version}:${draft.id}:${draft.version}`
