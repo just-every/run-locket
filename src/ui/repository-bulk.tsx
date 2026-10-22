@@ -2,15 +2,28 @@ import { useEffect, useState } from 'react'
 import { fetchJson, type LocketState, type Row } from './api'
 import type { Locket } from './app'
 import { Field } from './controls'
-import { typeLabel } from './format'
+import { typeLabel, money, day } from './format'
 import { standardBulkFields } from '../locket/repository-bulk-fields'
 
 interface Operation {operationId:string;status:string;total:number;changed:number;applied:number;reverted:number;skipped:number;pending:number;offset:number;proposal?:{preparedBy:string;decidedBy:string|null;evidence:string[];assumptions:string};rows:{agreementId:string;reference:string;title:string;outcome:string;reason:string|null;diff:Record<string,{before:unknown;after:unknown}>}[]}
-const display=(v:unknown)=>v===null?'(empty)':typeof v==='object'?JSON.stringify(v):String(v)
+const standardLabels:Record<string,string>={title:'Title',type:'Agreement type',value:'Value (USD)',needed_by:'Needed by',start_date:'Start date',timezone:'Time zone',entity:'Our entity',department:'Department',groups:'Access groups',owner:'Responsible person',restricted:'Restricted access'}
 export function RepositoryBulk({state,locket,rows}:{state:LocketState;locket:Locket;rows:Row[]}){
  const [source,setSource]=useState('current'),[selected,setSelected]=useState<string[]>([]),[all,setAll]=useState(true)
  const [operation,setOperation]=useState<Operation|null>(null),[history,setHistory]=useState<Row[]>([]),[field,setField]=useState(state.actor.role==='owner'?'department':'title'),[value,setValue]=useState(''),[clear,setClear]=useState(false),[csv,setCsv]=useState(''),[running,setRunning]=useState(false),[error,setError]=useState(''),[progress,setProgress]=useState('')
  const editable=['owner','counsel','approver','requester'].includes(state.actor.role)&&!state.fieldAccess.hidden.length
+ const display=(key:string,v:unknown):string=>{
+  if(v===null)return '(empty)'
+  if(key==='type')return typeLabel[String(v)]??String(v)
+  if(key==='owner')return state.operators.find(o=>o.id===v)?.name??'Former person'
+  if(key==='entity')return state.entities.find(e=>e.id===v)?.legal_name??'Not recorded'
+  if(key==='department')return state.intakeAudiences.find(a=>a.id===v)?.name??'Unavailable department'
+  if(key==='groups'&&Array.isArray(v))return v.map(id=>state.intakeAudiences.find(a=>a.id===id)?.name??'Unavailable group').join(', ')||'(empty)'
+  const custom=state.customFields.find(f=>'custom:'+f.id===key)
+  if((key==='value'||custom?.kind==='money')&&typeof v==='number')return money(v)
+  if((key==='needed_by'||key==='start_date'||custom?.kind==='date')&&typeof v==='string')return day(v)
+  if(typeof v==='boolean')return v?'Yes':'No'
+  return typeof v==='object'?JSON.stringify(v):String(v)
+ }
  const path=(id:string,extra='')=>`/api/locket/repository/bulk?operationId=${encodeURIComponent(id)}${extra}`
  const load=async(id:string,offset=0)=>{const op=await fetchJson<Operation>(path(id,'&offset='+offset));setOperation(op);return op}
  const refreshHistory=async()=>{const r=await fetchJson<{operations:Row[]}>('/api/locket/repository/bulk');setHistory(r.operations)}
@@ -63,7 +76,7 @@ export function RepositoryBulk({state,locket,rows}:{state:LocketState;locket:Loc
    {operation.status==='previewing'&&<button className="lk-button" type="button" disabled={busy} onClick={()=>void perform(()=>finishReview(operation.operationId))}>Continue dry-run review</button>}
    {['reviewed','applying','reverting'].includes(operation.status)&&<button className="lk-button lk-primary" disabled={busy} type="button" onClick={()=>void continueOperation()}>{operation.status==='reverting'?'Continue restoring prior values':operation.status==='applying'?'Continue reviewed changes':'Apply exact dry run'}</button>}
    {operation.status==='done'&&<button className="lk-button" type="button" disabled={busy} onClick={()=>void perform(async()=>{const r=await locket.run('repository.bulk.revert',{operationId:operation.operationId});if(r){await load(operation.operationId);setProgress('Restoration prepared. Continue restoring prior values to finish.')}})}>Revert bulk operation</button>}
-   <h3>Record differences and outcomes</h3>{operation.rows.map(row=><details key={row.agreementId}><summary>{row.reference} · {row.title} · {row.outcome}</summary>{row.reason&&<p>{row.reason}</p>}<dl>{Object.entries(row.diff).map(([key,v])=><div key={key}><dt>{state.customFields.find(f=>'custom:'+f.id===key)?.name??key}</dt><dd style={{overflowWrap:'anywhere'}}>{display(v.before)} → {display(v.after)}</dd></div>)}</dl></details>)}
+   <h3>Record differences and outcomes</h3>{operation.rows.map(row=><details key={row.agreementId}><summary>{row.reference} · {row.title} · {row.outcome}</summary>{row.reason&&<p>{row.reason}</p>}<dl>{Object.entries(row.diff).map(([key,v])=><div key={key}><dt>{state.customFields.find(f=>'custom:'+f.id===key)?.name??standardLabels[key]??key}</dt><dd style={{overflowWrap:'anywhere'}}>{display(key,v.before)} → {display(key,v.after)}</dd></div>)}</dl></details>)}
    <p><button type="button" disabled={busy||operation.offset===0} onClick={()=>void perform(()=>load(operation.operationId,Math.max(0,operation.offset-50)))}>Previous records</button> <button type="button" disabled={busy||operation.offset+50>=operation.total} onClick={()=>void perform(()=>load(operation.operationId,operation.offset+50))}>Next records</button></p>
   </>}
  </section>
