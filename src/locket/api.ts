@@ -1,6 +1,9 @@
+import { inboundExchangeResponse } from './exchange-inbound'
 import { requireFullFields } from './repository-access'
 import { repositoryBulkHandlers } from './repository-bulk'
 import { repositoryBulkResponse } from './repository-bulk-http'
+import { exchangeHandlers, exchangeList } from './exchange'
+import { publicExchangeResponse } from './exchange-public'
 import { erasureHandlers } from './erasure'
 import { retentionHandlers } from './retention'
 import { approvalRuleHandlers, ruleReminderReceipt } from './approval-rules'
@@ -58,7 +61,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...repositoryBulkHandlers, ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
+  ...exchangeHandlers, ...repositoryBulkHandlers, ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
   ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,
@@ -98,6 +101,8 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
   try {
     const event = await noticeEventResponse(request, env)
     if (event) return event
+    const inbound = await inboundExchangeResponse(request,env)
+    if(inbound)return inbound
     if (request.method === 'POST') {
       // Same-origin JSON only: a cross-site form cannot carry a session into a command.
       const origin = request.headers.get('origin')
@@ -106,9 +111,12 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     }
     const clickwrap = await publicClickwrapResponse(request, env)
     if (clickwrap) return clickwrap
+    const exchange = await publicExchangeResponse(request,env)
+    if(exchange)return exchange
     const actor = await currentActor(request, env)
     const bulk = await repositoryBulkResponse(request,env,actor)
     if(bulk)return bulk
+    if(request.method==='GET'&&path==='/exchanges')return reply(await exchangeList(env,actor,url.searchParams.get('agreementId')??''))
     if (request.method === 'GET' && path === '/analytics') { await requireFullFields(env.DB,actor); return reply(workflowAnalytics(await state(env, actor), url.searchParams)) }
     if (request.method === 'GET' && path === '/clickwrap/acceptances') {
       const rows = await acceptanceRecords(env, actor, url.searchParams)

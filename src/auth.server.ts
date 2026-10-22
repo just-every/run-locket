@@ -40,6 +40,9 @@ export interface Bindings {
  SETUP_TOKEN?: string
  MAIL_PROVIDER?: 'development' | 'resend' | 'sendgrid' | 'cloudflare'
  MAIL_FROM?: string
+ POSTMARK_REPLY_DOMAIN?: string
+ POSTMARK_INBOUND_SECRET?: string
+ POSTMARK_SERVER_TOKEN?: string
  MAIL_API_KEY?: string
  MAIL_ACCOUNT_ID?: string
 }

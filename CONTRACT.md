@@ -315,7 +315,9 @@ A person sends the external version to counterparty contacts from Locket by emai
 
 *Acceptance:* a journey with a Postmark fake sends version 2 to a counterparty contact, opens the secure link as the counterparty, uploads a markup and comments; version 3 appears as a counterparty version with its digest, the activity shows sent, opened and uploaded, and the link refuses access after expiry.
 
-*Status:* missing. Exchange with counterparties happens outside Locket.
+Conservative default adopted pending ct: only owner or counsel initiates sharing. A version and each shared comment require explicit external designation; a separate recorded-contact disclosure approval authorizes a pinned plain Word rendition and an expiring email/link. The rendition includes only reviewed version text and explicitly external Locket comments; original bytes are retained, while source formatting, embedded comments and metadata are removed. The no-account bearer token is hashed at rest and scoped to one version/contact; possession is attributed to that designated contact without claiming identity verification. Every request rechecks expiry/revocation, the sender’s current native session/role/access, the recorded contact and external designation. Removing a contact, withdrawing external content, erasure or sender authority invalidates access. Email is a single claimed Postmark attempt with honest accepted/suppressed/rejected/uncertain outcomes; uncertain attempts are not automatically resent. Authenticated Postmark replies require a configured inbound secret/domain, the designated sender and the scoped reply address. Exact PDF/DOCX reply attachments become counterparty versions in one guarded batch; they never execute or approve an agreement. Later NEG-002/005, INT-002 and connector doors inherit this explicit disclosure, current-access and erasure boundary.
+
+*Status:* partial. Native no-account review/download/comments/markup, Postmark sending and authenticated attachment replies ship with version digests and attributed activity. ct approval is pending for the adopted authority, bearer attribution, explicit disclosure and plain-rendition policy; this clause cannot be DONE before that approval.
 
 ### Built-in AI review
 
@@ -958,8 +960,8 @@ REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 26 | 25 | 29 | 80 |
-| All | 45 | 25 | 29 | 99 |
+| Target and push further | 26 | 26 | 28 | 80 |
+| All | 45 | 26 | 28 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -1006,7 +1008,7 @@ REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence 
 | `NEG-003` | Locket for Word add-in | target | missing |  | No Word add-in exists |
 | `NEG-004` | Browser redlining and threaded comments | target | done | `src/locket/browser-edits.ts`; `src/locket/comment-threads.ts`; `tests/api/browser-edits.test.mjs`; `tests/browser/browser-edits.spec.ts`; `tests/browser/browser-edits-live.mjs` |  |
 | `NEG-005` | Internal and external sides of a negotiation | target | partial | `src/locket/agreements.ts` | Internal and external marking, sharing and stripping do not exist |
-| `NEG-006` | Counterparty exchange by email and secure link | target | missing |  | Exchange with counterparties happens outside Locket |
+| `NEG-006` | Counterparty exchange by email and secure link | target | partial | `tests/api/browser-edits.test.mjs`: NEG-006 sends a clean external v2 through Postmark, accepts an exact v3 markup and audits scoped account-free use (Postmark fake, v2 no-account open/download/comment/upload, exact v3 digest/bytes, activity, expiry, authenticated multi-attachment email replies and replay); NEG-006 refuses internal versions, unsafe disclosure, forged scope, revoked links and removed sender authority (explicit consent, access/revocation/erasure and no private comments); `tests/browser/browser-edits.spec.ts`: NEG-006 explicit external sharing and account-free counterparty markup at 1440px/390px (sender review, public link, download/comment/markup, returned version and expired link) | ct approval pending for owner/counsel initiation, explicit contact/content disclosure approval, scoped bearer attribution tied to current sender authority, and consciously approved plain Word renditions; original formatting remains under NEG-002 |
 | `REVIEW-002` | Built-in playbook review | target | partial | `src/locket/review.ts`; `src/locket/proposals.ts`; `tests/api/flows.test.mjs` | The built-in model run does not exist |
 | `REVIEW-003` | AI redlines a person edits before sending | target | partial | `src/locket/review.ts` | Turning findings into tracked changes does not exist |
 | `REVIEW-004` | Ask the repository | target | missing |  | No question answering exists |

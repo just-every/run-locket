@@ -37,6 +37,10 @@ export async function installation({ bindings = {}, mailResponse } = {}) {
       host: '127.0.0.1', port: Number(new URL(origin).port), https: true, modules: true, script, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: ['DB'],
       bindings: workerBindings,
       outboundService: async request => {
+        if(request.url==='https://api.postmarkapp.com/email'){
+          const raw=await request.json();mails.push({...raw,from:raw.From,to:[raw.To],subject:raw.Subject,text:raw.TextBody,html:raw.HtmlBody});
+          return mailResponse ? mailResponse(mails.at(-1)) : Response.json({ErrorCode:0,MessageID:`synthetic-locket-postmark-${mails.length}`})
+        }
         if (request.url !== 'https://api.resend.com/emails') throw new Error('Unexpected test network destination')
         mails.push(await request.json())
         return mailResponse ? mailResponse(mails.at(-1)) : Response.json({ id: `test-receipt-${mails.length}` })
