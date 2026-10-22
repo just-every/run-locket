@@ -111,6 +111,8 @@ test('AGENT-002 cached results and evidence respect source scope; changed formul
  await f.counsel.command('service-level.confirm',await f.confirmPayload())
  const next=await f.read();await f.save(next.claimId);await f.approve(next.claimId)
  await h.setTime((await f.claim(next.claimId)).deadline_at)
+ Object.assign(h.owner,await h.signIn('owner@example.test'))
+ Object.assign(viewer,await h.signIn('synthetic-locket-viewer@example.test'))
  await h.owner.command('service-level.email',await f.sendPayload(next.claimId),{error:'CLAIM_CLOSED'})
  assert.equal(h.mails.filter(m=>m.MessageStream==='outbound').length,0)
  await h.owner.command('access.set',{agreementId:amendment.id,operatorId:viewer.id,grant:'revoke'})

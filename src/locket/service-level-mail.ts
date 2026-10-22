@@ -41,7 +41,8 @@ export async function dispatchServiceClaim(c:Ctx) {
  if(local(c))return finish('suppressed',null,'local_suppressed')
  if(!c.env.POSTMARK_SERVER_TOKEN||!c.env.MAIL_FROM||c.env.MAIL_FROM!==d.sender)return finish('rejected',null,'mail_unavailable_or_sender_changed')
  try{
-  const response=await fetch('https://api.postmarkapp.com/email',{method:'POST',redirect:'error',headers:{'content-type':'application/json',Accept:'application/json','X-Postmark-Server-Token':c.env.POSTMARK_SERVER_TOKEN},body:JSON.stringify({From:d.sender,To:d.recipient,Subject:d.subject,TextBody:d.message_text,MessageStream:'outbound'}),signal:AbortSignal.timeout(15000)}),body=await response.json().catch(()=>null) as {ErrorCode?:unknown;MessageID?:unknown}|null
+  const response=await fetch('https://api.postmarkapp.com/email',{method:'POST',redirect:'manual',headers:{'content-type':'application/json',Accept:'application/json','X-Postmark-Server-Token':c.env.POSTMARK_SERVER_TOKEN},body:JSON.stringify({From:d.sender,To:d.recipient,Subject:d.subject,TextBody:d.message_text,MessageStream:'outbound'}),signal:AbortSignal.timeout(15000)}),body=await response.json().catch(()=>null) as {ErrorCode?:unknown;MessageID?:unknown}|null
+  if(response.status>=300&&response.status<400)return finish('rejected',null,'provider_redirect_refused')
   if(response.status===429)return finish('rate_limited',null,'postmark_429')
   if(response.status>=500)return finish('uncertain',null,'provider_outcome_unknown')
   if(!response.ok||typeof body?.ErrorCode==='number'&&body.ErrorCode!==0)return finish('rejected',null,'provider_rejected')
