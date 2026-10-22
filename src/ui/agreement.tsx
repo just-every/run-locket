@@ -1,3 +1,4 @@
+import { LegalHold } from './erasure'
 import { AgreementDepartment } from './repository-access'
 import { IntakeSnapshot } from './intake-snapshot'
 // One agreement: the document workspace (its default), and the review,
@@ -130,7 +131,7 @@ function Details({ state, a, locket }: { state: LocketState; a: Row; locket: Loc
   const audit = state.audit.filter(x => x.agreement_id === a.id)
   const editable = can(state, 'owner', 'counsel', 'approver', 'requester') && ['draft', 'in_review', 'approved'].includes(a.status)
   return (
-    <div className="lk-tab-page"><AgreementDepartment state={state} a={a} locket={locket}/>
+    <div className="lk-tab-page"><LegalHold state={state} a={a} locket={locket}/><AgreementDepartment state={state} a={a} locket={locket}/>
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Request details</h2></div>
         {editable ? (

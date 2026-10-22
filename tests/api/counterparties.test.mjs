@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { installation } from './harness.mjs'
-import { team } from './setup.mjs'
+import { team, library, executed } from './setup.mjs'
 import { file, pdf } from './files.mjs'
 
 const quote = 'This agreement runs from January 1, 2026 to December 31, 2027.'
@@ -78,4 +78,65 @@ test('REPO-010 counterparty details, notice address and signatories, three linke
   const seen = (await viewer.state()).counterparties[keep.id]
   assert.equal(seen.totalCents, 17000000)
   assert.ok(!seen.undated.includes(hidden.id))
+})
+
+test('ERASE-001 verified contact erasure preserves execution and audit, counsel holds fence every deletion door, owner approves expired draft retention', async t => {
+ const h=await installation();t.after(()=>h.close())
+ const counsel=await h.invite('synthetic-locket-1@example.test','counsel'),viewer=await h.invite('synthetic-locket-2@example.test','viewer')
+ const party=await h.owner.command('party.save',{name:'Cardinal Systems',kind:'supplier',email:'morgan@example.test',contacts:[{name:'Morgan Reed',email:'morgan@example.test',title:'Legal operations'}]})
+ const people={counsel,requester:h.owner,approver:h.owner},lib=await library(h,people)
+ const a=await executed(h,people,lib,{title:'Executed supplier agreement',party:'Cardinal Systems'})
+ let s=await h.owner.state(),row=s.agreements.find(x=>x.id===a.id)
+ await h.owner.command('comment.add',{agreementId:a.id,versionId:row.current_version_id,body:'Morgan Reed can be reached at morgan@example.test'})
+ for(const[key,value]of[['end_date','2027-12-31'],['notice_days','60']]){
+  const term=await h.owner.command('term.propose',{agreementId:a.id,key,value,citation:{quote:'Payment terms: invoices are payable within 30 days.'}})
+  await h.owner.command('term.decide',{agreementId:a.id,termId:term.id,decision:'confirm'})
+ }
+ const renewal=(await h.owner.state()).renewals.find(r=>r.agreement_id===a.id)
+ await h.owner.command('renewal.decide',{renewalId:renewal.id,decision:'terminate',reason:'Supplier replacement'})
+ const notice=await h.owner.command('notice.prepare',{renewalId:renewal.id,recipient:'morgan@example.test',body:'Morgan Reed, please record this notice of termination.'})
+ const before=await h.owner.state(),artifact=before.artifacts.find(f=>f.agreement_id===a.id&&f.role==='signed'),execution=before.executions.find(e=>e.agreement_id===a.id)
+ const bytes=Buffer.from(await(await h.owner.request('/api/locket/files/'+artifact.id)).arrayBuffer())
+ const payload={email:'morgan@example.test',verified:true,verification:'Request confirmed through the established contact channel',reason:'Verified privacy request'}
+ await viewer.command('person.erase',payload,{error:'FORBIDDEN'})
+ await counsel.command('person.erase',payload,{error:'FORBIDDEN'})
+ await h.owner.command('person.erase',{...payload,verified:false},{error:'VERIFICATION'})
+ const erased=await h.owner.command('person.erase',payload)
+ s=await h.owner.state()
+ assert.ok(erased.changedRecords>=3)
+ assert.ok(!s.parties.find(p=>p.id===party.id).contacts.includes('Morgan Reed'))
+ assert.equal(s.parties.find(p=>p.id===party.id).email,null)
+ assert.ok(!JSON.stringify(s.comments).includes('morgan@example.test'))
+ assert.ok(!JSON.stringify(s.comments).includes('Morgan Reed'))
+ assert.ok(!JSON.stringify(s.notices.find(n=>n.id===notice.id)).includes('morgan@example.test'))
+ assert.ok(!JSON.stringify(s.notices.find(n=>n.id===notice.id)).includes('Morgan Reed'))
+ assert.deepEqual(s.executions.find(e=>e.id===execution.id),execution)
+ assert.deepEqual(s.artifacts.find(f=>f.id===artifact.id),artifact)
+ assert.deepEqual(Buffer.from(await(await h.owner.request('/api/locket/files/'+artifact.id)).arrayBuffer()),bytes)
+ for(const entry of before.audit)assert.deepEqual(s.audit.find(e=>e.id===entry.id),entry)
+ assert.ok(s.audit.some(e=>e.action==='person.erase'&&e.summary.includes(erased.id)))
+ const draft=await h.owner.command('request.create',{title:'Expired unexecuted supplier draft',type:'nda',partyId:party.id,file:file('draft.pdf',pdf('Draft NDA')),text:'Draft NDA'})
+ row=(await h.owner.state()).agreements.find(a=>a.id===draft.id)
+ await h.owner.command('hold.set',{agreementId:row.id,version:row.version,holdVersion:0,active:true,reason:'Litigation preservation'},{error:'FORBIDDEN'})
+ await counsel.command('hold.set',{agreementId:row.id,version:row.version,holdVersion:0,active:true,reason:'Litigation preservation'})
+ await h.owner.command('draft.delete',{agreementId:row.id,version:row.version,reason:'Requested removal'},{error:'LEGAL_HOLD'})
+ const draftFile=(await h.owner.state()).artifacts.find(f=>f.agreement_id===row.id)
+ await assert.rejects(()=>h.db.prepare('DELETE FROM lk_artifact_chunks WHERE artifact_id=?').bind(draftFile.id).run(),/LOCKET_LEGAL_HOLD/)
+ await h.owner.command('retention.configure',{days:1,version:0})
+ await h.setTime(Date.now()+3*86400000)
+ let preview=await h.owner.command('retention.preview',{})
+ assert.ok(!preview.candidates.some(a=>a.id===row.id),'held draft excluded')
+ await counsel.command('hold.set',{agreementId:row.id,version:row.version,holdVersion:1,active:false,reason:'Preservation released by counsel'})
+ preview=await h.owner.command('retention.preview',{})
+ assert.deepEqual(preview.candidates.map(a=>a.id),[row.id])
+ assert.ok((await h.owner.state()).agreements.some(a=>a.id===row.id),'preview is non-destructive')
+ await viewer.command('retention.apply',{previewId:preview.id,reason:'Expiry confirmed'},{error:'FORBIDDEN'})
+ await h.owner.command('request.update',{agreementId:row.id,version:row.version,title:'Updated expired supplier draft',ownerId:(await h.owner.state()).actor.id,restricted:false})
+ await h.owner.command('retention.apply',{previewId:preview.id,reason:'Old preview'},{error:'STALE'})
+ preview=await h.owner.command('retention.preview',{})
+ const result=await h.owner.command('retention.apply',{previewId:preview.id,reason:'Owner reviewed expired drafts'})
+ assert.equal(result.deleted,1)
+ s=await h.owner.state();assert.ok(!s.agreements.some(a=>a.id===row.id));assert.ok(!s.artifacts.some(f=>f.id===draftFile.id))
+ assert.equal((await h.owner.request('/api/locket/files/'+draftFile.id)).status,404)
+ assert.ok(s.agreements.some(r=>r.id===a.id));assert.ok(s.audit.some(e=>e.action==='hold.release'&&e.agreement_id===row.id));assert.ok(s.audit.some(e=>e.action==='draft.delete'&&e.agreement_id===row.id))
 })

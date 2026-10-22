@@ -1,3 +1,5 @@
+import { erasureHandlers } from './erasure'
+import { retentionHandlers } from './retention'
 import { approvalRuleHandlers, ruleReminderReceipt } from './approval-rules'
 import { repositoryAccessHandlers } from './repository-access'
 import { queueHandlers } from './request-queue'
@@ -53,7 +55,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
+  ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
   ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,

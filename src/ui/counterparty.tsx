@@ -1,3 +1,4 @@
+import { EraseContact } from './erasure'
 // A counterparty's page (REPO-010): its legal details, notice address and
 // method, contacts and signatories, the agreements this person may see grouped
 // by family with contracted and annual USD value and the next notice deadline,
@@ -83,6 +84,7 @@ export function Counterparty({ state, id, locket }: { state: LocketState; id: st
           <ul key={f.rootId} className="lk-list" aria-label={`Family of ${state.agreements.find(a => a.id === f.rootId)?.title ?? 'an agreement'}`}>{f.ids.map(x => agreements.find(a => a.id === x)).filter(Boolean).map(a => <li key={a!.id}><span>{a!.id !== f.rootId && '↳ '}<a href={`#agreement/${a!.id}`}>{a!.title}</a> · {typeLabel[a!.type]} · {statusLabel[a!.status] ?? a!.status} · {a!.value_cents === null ? 'no value' : `${money(a!.value_cents)} USD`} · risk {rolled(state.risk.agreements[a!.id])}</span></li>)}</ul>
         ))}
       </section>
+      <EraseContact state={state} party={party} locket={locket}/>
       {can(state, 'owner', 'counsel') && <MergeParty state={state} party={party} locket={locket} />}
     </div>
   )

@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type Row = { id: string; [key: string]: any }
 export interface LocketState {
+  legalHolds: Row[]
+  retentionRule: Row|null
+  erasures: Row[]
   actor: { id: string; name: string; role: string }
   portfolio: import('../locket/portfolio').Portfolio
   now: number
