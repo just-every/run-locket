@@ -1,3 +1,4 @@
+import { refuseErasedAddress } from './erasure-addresses'
 import { dispatchExchange } from './exchange-mail'
 import { authorizeRepositoryBulkResult } from './repository-bulk'
 import { syncRulePending } from './approval-rules'
@@ -98,6 +99,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   }
   if(typeof payload.agreementId==='string')await requireFullFields(c.db,actor)
   const policy=await repositoryPolicy(c.db)
+  await refuseErasedAddress(c,type,payload)
   const out = await handlers[type](c, payload)
   out.checks=[...(out.checks??[]),policyVersionCheck(policy.version)]
   const notifications = await commandNotifications(c, type, payload, out)

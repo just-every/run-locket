@@ -5,7 +5,7 @@ import { Badge, Empty, Field, Form, value } from './controls'
 import { stamp, words } from './format'
 import { zones } from './preferences'
 
-const kindLabel: Record<string,string> = {rule_approval:'Rule approval request',rule_approval_reminder:'Rule approval reminder',rule_approval_escalation:'Rule approval escalation', queue_assignment:'Request assignment',queue_due_soon:'Queue due soon',queue_overdue:'Queue overdue',queue_canceled:'Request canceled',queue_reopened:'Request reopened', assignment: 'Assignment', mention: 'Comment mention', approval: 'Approval request', signature: 'Signature event', deadline: 'Deadline reminder' }
+const kindLabel: Record<string,string> = {draft_retention:'Expired draft needs owner review',rule_approval:'Rule approval request',rule_approval_reminder:'Rule approval reminder',rule_approval_escalation:'Rule approval escalation', queue_assignment:'Request assignment',queue_due_soon:'Queue due soon',queue_overdue:'Queue overdue',queue_canceled:'Request canceled',queue_reopened:'Request reopened', assignment: 'Assignment', mention: 'Comment mention', approval: 'Approval request', signature: 'Signature event', deadline: 'Deadline reminder' }
 const emailLabel: Record<string, string> = {
   pending: 'Email queued',
   queued: 'Email queued',

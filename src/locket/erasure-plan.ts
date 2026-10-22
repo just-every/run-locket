@@ -1,0 +1,77 @@
+import type { Ctx } from './commands'
+import { canonical, fail, json, parse, sha256, sql, type Sql } from './model'
+import { readArtifactBytes } from './artifacts'
+export interface KeptRecord {table:string;id:string;agreementId:string|null;reason:string;authorizer:string;holdReason?:string}
+export interface ErasurePatch {table:string;id:string;agreementId:string|null;before:Record<string,unknown>;after:Record<string,unknown>}
+export interface DraftDisposition {id:string;version:number;held:boolean;files:{id:string;role:string}[];versions:string[]}
+const escape=(s:string)=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
+/** Unicode word boundaries also protect Ann from Annual and address substrings. */
+export function privacyWords(needles:string[],replacement:(s:string)=>string){
+ const patterns=[...new Set(needles)].filter(Boolean).sort((a,b)=>b.length-a.length).map(needle=>({needle,pattern:new RegExp(`(?<![\\p{L}\\p{N}_${needle.includes('@')?'@.+-':''}])${escape(needle)}(?![\\p{L}\\p{N}_${needle.includes('@')?'@+-':''}])`,'giu')}))
+ return (value:string)=>patterns.reduce((next,{pattern})=>next.replace(pattern,match=>replacement(match)),value)
+}
+export async function erasurePlan(c:Ctx,email:string,token:string){
+ const parties=(await c.db.prepare('SELECT * FROM lk_parties').all<any>()).results
+ const contacts=parties.flatMap(r=>parse<any[]>(r.contacts??'[]')).filter(r=>r.email.toLowerCase()===email)
+ if(!contacts.length&&!parties.some(r=>r.email?.toLowerCase()===email))fail('NOT_FOUND','No current counterparty contact has that email.',404)
+ const names=[...new Set<string>(contacts.map(r=>r.name).filter(Boolean))]
+ const replacement=`erased-${token}@invalid.example`,scrub=privacyWords([email,...names],match=>match.toLowerCase()===email?replacement:'[erased person]')
+ const masks=privacyWords([email,...names],()=> '[erased person]')
+ const agreements=(await c.db.prepare('SELECT * FROM lk_agreements').all<any>()).results
+ const holds=(await c.db.prepare('SELECT * FROM lk_legal_holds WHERE active=1 ORDER BY agreement_id').all<any>()).results
+ const holdById=new Map(holds.map(h=>[h.agreement_id,h]))
+ const deliveries=(await c.db.prepare('SELECT delivery_id,agreement_id FROM lk_notifications WHERE delivery_id IS NOT NULL').all<any>()).results
+ const heldFor=(table:string,r:any)=>table==='lk_parties'?holds.filter(h=>agreements.some(a=>a.id===h.agreement_id&&a.party_id===r.id)):table==='lk_notification_deliveries'?holds.filter(h=>deliveries.some(n=>n.delivery_id===r.id&&n.agreement_id===h.agreement_id)):holdById.has(r.agreement_id)?[holdById.get(r.agreement_id)]:[]
+ const patches:ErasurePatch[]=[],retained:KeptRecord[]=[],checks:Sql[]=[],related=new Set<string>(),scope:unknown[]=[]
+ const retain=(table:string,r:any,held:any[])=>{
+  for(const h of held)retained.push({table,id:r.id??r.agreement_id,agreementId:h.agreement_id,reason:'legal_hold',authorizer:h.set_by,holdReason:masks(h.reason)})
+ }
+ const patch=(table:string,r:any,after:Record<string,unknown>)=>{
+  const changed=Object.fromEntries(Object.entries(after).filter(([key,v])=>v!==r[key]))
+  if(!Object.keys(changed).length)return
+  const held=heldFor(table,r)
+  if(r.agreement_id)related.add(r.agreement_id)
+  if(held.length){retain(table,r,held);return}
+  const before=Object.fromEntries([...Object.keys(changed),...(['version','revision'].filter(k=>k in r))].map(k=>[k,r[k]]))
+  patches.push({table,id:r.id,agreementId:r.agreement_id??null,before,after:changed})
+  checks.push(sql(`EXISTS(SELECT 1 FROM ${table} WHERE id=? AND ${Object.keys(before).map(k=>`${k} IS ?`).join(' AND ')})`,r.id,...Object.values(before)))
+ }
+ for(const r of parties){
+  const next=parse<any[]>(r.contacts??'[]').map(v=>v.email.toLowerCase()===email?{name:'[erased person]',email:replacement,title:null}:v)
+  if(next.some(v=>v.email===replacement)||r.email?.toLowerCase()===email){
+   agreements.filter(a=>a.party_id===r.id).forEach(a=>related.add(a.id))
+   patch('lk_parties',r,{contacts:json(next),email:r.email?.toLowerCase()===email?null:r.email})
+  }
+ }
+ const fields:Record<string,string[]>={lk_comments:['body','quote','external_author_name','external_author_email'],lk_notices:['recipient','body'],lk_notice_letters:['recipient'],lk_notice_dispatches:['recipient','subject','message_text'],lk_notice_sources:['recipient','alternate_address'],lk_notice_plans:['recipient','acknowledgment'],lk_notice_events:['detail'],lk_notice_tracking:['detail'],lk_notification_deliveries:['recipient_email'],lk_approval_reminders:['recipient_email'],lk_deadline_reminders:['recipient_email'],lk_approval_mail:['recipient_email'],lk_exchanges:['recipient_name','recipient_email','contact_consent']}
+ for(const[table,columns]of Object.entries(fields)){
+  const rows=(await c.db.prepare(`SELECT * FROM ${table}`).all<any>()).results
+  scope.push([table,rows.length]);checks.push(sql(`(SELECT COUNT(*) FROM ${table})=?`,rows.length))
+  for(const r of rows)patch(table,r,Object.fromEntries(columns.filter(k=>typeof r[k]==='string').map(k=>[k,scrub(r[k])])))
+ }
+ scope.push(['lk_parties',parties.length]);checks.push(sql('(SELECT COUNT(*) FROM lk_parties)=?',parties.length))
+ const drafts:DraftDisposition[]=[]
+ const allVersions=(await c.db.prepare('SELECT * FROM lk_versions').all<any>()).results,artifacts=(await c.db.prepare('SELECT * FROM lk_artifacts').all<any>()).results
+ for(const[table,rows]of [['lk_agreements',agreements],['lk_versions',allVersions],['lk_artifacts',artifacts]] as const){scope.push([table,rows.length]);checks.push(sql(`(SELECT COUNT(*) FROM ${table})=?`,rows.length))}
+ for(const a of agreements){
+  const versions=allVersions.filter(v=>v.agreement_id===a.id),files=artifacts.filter(f=>f.agreement_id===a.id)
+  let named=related.has(a.id)||versions.some(v=>typeof v.text==='string'&&scrub(v.text)!==v.text)||files.some(f=>scrub(f.filename)!==f.filename)
+  if(!named&&a.status==='draft')for(const f of files){const body=new TextDecoder().decode(await readArtifactBytes(c.db,f.id));if(scrub(body)!==body){named=true;break}}
+  if(!named)continue
+  related.add(a.id)
+  if(a.status==='draft'){
+   if(holdById.has(a.id))for(const f of files)retain('lk_artifacts',f,[holdById.get(a.id)])
+   drafts.push({id:a.id,version:a.version,held:holdById.has(a.id),files:files.map(f=>({id:f.id,role:f.role})),versions:versions.map(v=>v.id)})
+   checks.push(sql('(SELECT version FROM lk_agreements WHERE id=?)=?',a.id,a.version))
+  }else if(['executed','imported'].includes(a.status)){
+   for(const f of files)retained.push({table:'lk_artifacts',id:f.id,agreementId:a.id,reason:'retained_by_law',authorizer:c.actor.id})
+   for(const e of(await c.db.prepare('SELECT id FROM lk_executions WHERE agreement_id=?').bind(a.id).all<{id:string}>()).results)retained.push({table:'lk_executions',id:e.id,agreementId:a.id,reason:'retained_by_law',authorizer:c.actor.id})
+  }
+ }
+ for(const r of(await c.db.prepare('SELECT id,agreement_id FROM lk_audit').all<any>()).results)if(related.has(r.agreement_id))retained.push({table:'lk_audit',id:r.id,agreementId:r.agreement_id,reason:'retained_by_law',authorizer:c.actor.id})
+ // Reads of restricted records append audit events; retained audit is a receipt,
+ // not a mutable part of the business-data preview fingerprint.
+ const fingerprint=await sha256(canonical({token,patches,drafts,holds,scope}))
+ checks.push(sql("(SELECT COALESCE(json_group_array(json_object('agreement',agreement_id,'version',version)),'[]') FROM (SELECT agreement_id,version FROM lk_legal_holds WHERE active=1 ORDER BY agreement_id))=?",json(holds.sort((a,b)=>a.agreement_id.localeCompare(b.agreement_id)).map(h=>({agreement:h.agreement_id,version:h.version})))))
+ return{patches,retained,drafts,checks,fingerprint,replacement,related:[...related]}
+}

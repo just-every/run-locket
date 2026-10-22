@@ -218,14 +218,15 @@ State exposes scoped `approvalInputs`, `rulePending`, `ruleReminders`, own/owner
 
 ## Verified erasure and draft retention
 
-- `person.erase` (owner): `{email, verified:true, verification, reason}`. Minimizes the recorded contact’s names/email across native contacts, comments, notice and notification addressing, records erasure, disables matching operator email notifications and retains original files, signatures, sign-in identity and audit. No contact details enter the erasure outcome.
-- `hold.set` (counsel): `{agreementId, version, holdVersion, active, reason}`. First hold uses `holdVersion:0`; every change increments it. Current agreement/field visibility applies; SQL also refuses held agreement/file removal.
+- `person.erase.preview` (owner): `{email,verified:true,method,receivedOn,reason}`. Methods: `established_channel`, `in_person`, `verified_letter`; reasons: `privacy_request`, `legal_request`, `other_verified_request`; received date: ISO day. Returns exact record/field IDs, a fingerprint, retained records with authorizer/reason, and every affected draft's file/version IDs. Saved previews mask old personal field values and never persist a free-text request reason.
+- `person.erase` (owner): `{previewId,fingerprint,email,draftDispositions:[{agreementId,action,reason}]}`. Every listed draft needs explicit `delete` or `retain`; retention reasons are `legal_hold`, `business_retention`, `request_scope` or `legal_retention`. Held drafts must be retained for `legal_hold`. Recomputes the exact fingerprint, refuses changed state, minimizes whole-word contact/comment/notice/notification matches, revokes affected exchange links, disables operator email notifications and preserves sign-in identity. Receipt lists every held/retained-by-law record and draft disposition with a random request identity. The private encrypted erased-address block list refuses re-entry through contact/request/import doors.
+- `hold.set` (owner/counsel): `{agreementId,version,holdVersion,active,reason,reviewOn?}`. Setting requires an ISO review date; holds never expire automatically and overdue review is shown. Only counsel releases while active counsel exists; otherwise the owner may release. First hold uses `holdVersion:0`. Current agreement/field visibility applies; SQL also refuses held agreement/file removal.
 - `draft.delete` (owner): `{agreementId,version,reason}`. Deletes only an unexecuted native draft and its native dependents/files; active holds and linked child agreements refuse deletion. Audit history remains.
-- `retention.configure` (owner): `{version,days}`. First rule uses `version:0`. Elapsed-day expiry never automatically authorizes destruction.
+- `retention.configure` (owner): `{version,days}`. First rule uses `version:0`. Elapsed-day expiry never automatically authorizes destruction. The hourly scheduler reminds the owner of unreviewed expired native or imported drafts; duplicate runs do not send another event for the same rule/draft revision.
 - `retention.preview` (owner): `{}` returns `{id,candidates:[{id,version,title}]}` for up to 100 eligible expired drafts.
 - `retention.apply` (owner): `{previewId,reason}` applies exactly that owner’s unchanged preview under the current rule. Changed/deleted/held drafts refuse the transaction.
 
-Workspace state includes permission-scoped `legalHolds`, plus owner-only `retentionRule` and `erasures`. The complete archive retains these records and retention previews. ERASE-001 remains PARTIAL pending ct approval of the adopted privacy/retention policy.
+Workspace state includes permission-scoped `legalHolds`, plus owner-only `retentionRule` and `erasures`. The complete archive retains these records, private encrypted re-entry checks and previews. ERASE-001 remains PARTIAL pending the scoped privacy role and ct re-read of the 22 Oct ruling implementation.
 
 ## Workflow performance
 

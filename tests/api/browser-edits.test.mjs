@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { installation } from './harness.mjs'
 import { file, docx } from './files.mjs'
+import { erasureRequest, erasureConfirmation } from './erasure-fixture.mjs'
 
 const original = '1. Payment\nInvoices are due within 30 days.\n2. Liability\nLiability is capped at $100,000.\n3. Confidentiality\nBoth parties protect confidential information.'
 const edited = original.replace('30 days', '45 days').replace('$100,000', '$200,000')
@@ -177,7 +178,9 @@ test('NEG-006 refuses internal versions, unsafe disclosure, forged scope, revoke
   const scoped=(action,token,payload={})=>h.request('/api/locket/exchange/'+action,{method:'POST',headers:{authorization:'Bearer '+token},body:payload})
   assert.equal((await scoped('open',otherToken)).status,200)
   assert.equal((await scoped('comment',originalToken,{commandId:randomUUID(),payload:{body:'synthetic-locket-3 confirms this external comment'}})).status,200)
-  await h.owner.command('person.erase',{email:'synthetic-locket-3@example.test',verified:true,verification:'synthetic-locket-24 verified contact channel',reason:'synthetic-locket-25 privacy request'})
+  const eraseEmail='synthetic-locket-3@example.test'
+  const erasePreview=await h.owner.command('person.erase.preview',erasureRequest(eraseEmail))
+  await h.owner.command('person.erase',erasureConfirmation(erasePreview,eraseEmail,erasePreview.drafts.map(d=>({agreementId:d.id,action:'retain',reason:d.held?'legal_hold':'business_retention'}))))
   assert.equal((await scoped('open',otherToken)).status,404,'frozen renderings containing erased comments cannot be reopened by another contact')
   assert.ok(!(await h.owner.state()).comments.some(c=>c.external_author_email==='synthetic-locket-3@example.test'))
 })

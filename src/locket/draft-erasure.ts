@@ -5,7 +5,7 @@ import { fail, json, sql, type Sql } from './model'
 import { agreementGuards, type AgreementRow } from './records'
 
 export async function draftDeletion(c: Ctx, a: AgreementRow): Promise<{writes:Sql[];checks:Sql[]}> {
-  if(a.status!=='draft'||a.origin!=='intake') fail('STATUS','Only an unexecuted native draft can be deleted.',409)
+  if(a.status!=='draft') fail('STATUS','Only an unexecuted native draft can be deleted.',409)
   if(await c.db.prepare('SELECT 1 FROM lk_executions WHERE agreement_id=?').bind(a.id).first()) fail('RETAINED','Execution evidence must be retained.',409)
   if(await c.db.prepare('SELECT 1 FROM lk_agreements WHERE parent_id=?').bind(a.id).first()) fail('LINKED','Unlink child agreements before deleting this draft.',409)
   if(await c.db.prepare('SELECT 1 FROM lk_legal_holds WHERE agreement_id=? AND active=1').bind(a.id).first()) fail('LEGAL_HOLD','Counsel must release the legal hold before deleting this draft or its files.',409)

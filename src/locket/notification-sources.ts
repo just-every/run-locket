@@ -1,3 +1,4 @@
+import { expiredDraftCheck } from './retention-reminders'
 import { rulePendingSql } from './approval-rules'
 import { routeRoleSql } from './intake-route'
 // Compatibility with the existing approval and deadline outboxes. Their own
@@ -17,6 +18,10 @@ export const notificationSourceTables: Record<NotificationSource, string> = {
 }
 
 export async function notificationSourceChecks(c: Ctx, event: NotificationRow): Promise<{ ready: boolean; checks: Sql[] }> {
+  if(event.kind==='draft_retention'){
+    const [,ruleVersion,id,version]=event.event_key.split(':')
+    return{ready:true,checks:[expiredDraftCheck(id,Number(version),Number(ruleVersion),c.now)]}
+  }
   if(event.kind.startsWith('rule_approval')){
     const eventRow=await c.db.prepare('SELECT pending_id FROM lk_rule_reminder_events WHERE id=?').bind(event.event_key).first<{pending_id:string}>()
     const id=eventRow?.pending_id??event.event_key.slice(0,event.event_key.lastIndexOf(':'))
