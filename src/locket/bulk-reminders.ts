@@ -1,4 +1,4 @@
-import { familyClear } from './family-analysis-guard'
+import { familyClear, familySelectionClear } from './family-analysis-guard'
 import { agreementAccessSql } from './access'
 // Bulk schedules track the existing lifecycle projection. RENEW-002 delivers from a
 // schedule whose deadline matches the current one; its messages are the delivery record.
@@ -104,7 +104,7 @@ const apply: Handler = async (c, p) => {
   return {
     allowed: may.renewalDecision,
     result: { previewId: id, scheduled: tracked.length, skipped: rows.length - tracked.length, deliveryStatus: 'not_delivered' },
-    checks: [...tracked.map(row=>familyClear(row.agreementId)),selectionGuard(c.actor.id, agreements), ownerGuard(saved.owner_id, saved.owner_version, agreements), sql('EXISTS(SELECT 1 FROM lk_bulk_reminder_previews WHERE id=? AND actor_id=? AND applied_at IS NULL AND expires_at>?)', id, c.actor.id, c.now)],
+    checks: [familySelectionClear(tracked.map(row=>row.agreementId)),selectionGuard(c.actor.id, agreements), ownerGuard(saved.owner_id, saved.owner_version, agreements), sql('EXISTS(SELECT 1 FROM lk_bulk_reminder_previews WHERE id=? AND actor_id=? AND applied_at IS NULL AND expires_at>?)', id, c.actor.id, c.now)],
     writes: [...writes, sql('UPDATE lk_bulk_reminder_previews SET applied_at=? WHERE id=?', c.now, id)],
     audit: rows.map(r => ({ action: 'renewal.bulk.apply', agreementId: r.agreementId, summary: r.reason ? `Skipped: ${r.reason}` : `Stored ${snapshot.offsets.join(', ')} day reminder schedule for term ${r.term}, notice deadline ${r.deadlineDate} (${r.timezone}), owner ${snapshot.ownerId}. No reminder delivered.` })),
   }

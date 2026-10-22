@@ -2,7 +2,7 @@ import type { Ctx } from './commands'
 import { retainedOriginalSql } from './retained-originals'
 import { canonical, fail, json, parse, sha256, sql, type Sql } from './model'
 import { readArtifactBytes } from './artifacts'
-export const erasureFields:Record<string,string[]>={lk_renewal_briefs:['content'],lk_price_caps:['value','citation'],lk_comments:['body','quote','external_author_name','external_author_email'],lk_notices:['recipient','body'],lk_notice_letters:['recipient'],lk_notice_dispatches:['recipient','subject','message_text'],lk_notice_sources:['recipient','alternate_address'],lk_notice_plans:['recipient','acknowledgment'],lk_notice_events:['detail'],lk_notice_tracking:['detail'],lk_notification_deliveries:['recipient_email'],lk_approval_reminders:['recipient_email'],lk_deadline_reminders:['recipient_email'],lk_approval_mail:['recipient_email'],lk_exchanges:['recipient_name','recipient_email','contact_consent']}
+export const erasureFields:Record<string,string[]>={lk_family_analyses:['sources','conflicts','choices','reason'],lk_renewal_briefs:['content'],lk_price_caps:['value','citation'],lk_comments:['body','quote','external_author_name','external_author_email'],lk_notices:['recipient','body'],lk_notice_letters:['recipient'],lk_notice_dispatches:['recipient','subject','message_text'],lk_notice_sources:['recipient','alternate_address'],lk_notice_plans:['recipient','acknowledgment'],lk_notice_events:['detail'],lk_notice_tracking:['detail'],lk_notification_deliveries:['recipient_email'],lk_approval_reminders:['recipient_email'],lk_deadline_reminders:['recipient_email'],lk_approval_mail:['recipient_email'],lk_exchanges:['recipient_name','recipient_email','contact_consent']}
 export interface KeptRecord {table:string;id:string;agreementId:string|null;reason:string;authorizer:string;holdReason?:string}
 export interface ErasurePatch {table:string;id:string;agreementId:string|null;before:Record<string,unknown>;after:Record<string,unknown>}
 export interface DraftDisposition {id:string;version:number;held:boolean;files:{id:string;role:string}[];versions:string[]}
@@ -24,7 +24,12 @@ export async function erasurePlan(c:Ctx,email:string,token:string){
  const holds=(await c.db.prepare('SELECT * FROM lk_legal_holds WHERE active=1 ORDER BY agreement_id').all<any>()).results
  const holdById=new Map(holds.map(h=>[h.agreement_id,h]))
  const deliveries=(await c.db.prepare('SELECT delivery_id,agreement_id FROM lk_notifications WHERE delivery_id IS NOT NULL').all<any>()).results
- const heldFor=(table:string,r:any)=>table==='lk_parties'?holds.filter(h=>agreements.some(a=>a.id===h.agreement_id&&a.party_id===r.id)):table==='lk_notification_deliveries'?holds.filter(h=>deliveries.some(n=>n.delivery_id===r.id&&n.agreement_id===h.agreement_id)):holdById.has(r.agreement_id)?[holdById.get(r.agreement_id)]:[]
+ const sourceAgreements=(table:string,r:any):string[]=>{
+  const ids=[r.agreement_id,r.root_id].filter(Boolean)
+  if(table==='lk_family_analyses')ids.push(...parse<any>(r.facts).members.map((m:any)=>m.id))
+  return [...new Set<string>(ids)]
+ }
+ const heldFor=(table:string,r:any)=>table==='lk_parties'?holds.filter(h=>agreements.some(a=>a.id===h.agreement_id&&a.party_id===r.id)):table==='lk_notification_deliveries'?holds.filter(h=>deliveries.some(n=>n.delivery_id===r.id&&n.agreement_id===h.agreement_id)):holds.filter(h=>sourceAgreements(table,r).includes(h.agreement_id))
  const patches:ErasurePatch[]=[],retained:KeptRecord[]=[],checks:Sql[]=[],related=new Set<string>(),scope:unknown[]=[]
  const retain=(table:string,r:any,held:any[])=>{
   for(const h of held)retained.push({table,id:r.id??r.agreement_id,agreementId:h.agreement_id,reason:'legal_hold',authorizer:h.set_by,holdReason:masks(h.reason)})
@@ -33,7 +38,7 @@ export async function erasurePlan(c:Ctx,email:string,token:string){
   const changed=Object.fromEntries(Object.entries(after).filter(([key,v])=>v!==r[key]))
   if(!Object.keys(changed).length)return
   const held=heldFor(table,r)
-  if(r.agreement_id)related.add(r.agreement_id)
+  for(const id of sourceAgreements(table,r))related.add(id)
   if(held.length){retain(table,r,held);return}
   const before=Object.fromEntries([...Object.keys(changed),...(['version','revision'].filter(k=>k in r))].map(k=>[k,r[k]]))
   patches.push({table,id:r.id,agreementId:r.agreement_id??null,before,after:changed})

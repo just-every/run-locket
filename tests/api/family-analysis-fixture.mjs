@@ -14,7 +14,7 @@ export function familyModelFake(calls,mode=()=> 'ok') {
  }
 }
 export async function familyAnalysisFixture(client) {
- const f=await familyConflictFixture(client,{withLegalText:true})
+ const f=await familyConflictFixture(client,{withLegalText:true,initialFutureTerm:true})
  const owner=(await client.state()).actor.id
  const obligation=await client.command('obligation.add',{agreementId:f.master.id,description:'Prepare the notice decision',ownerId:owner,dueDate:'2026-12-30',recurrence:'none',evidence:'note',citation:{quote:f.master.quote,page:1}})
  await client.command('obligation.update',{agreementId:f.master.id,obligationId:obligation.id,action:'confirm'})

@@ -3,11 +3,11 @@ import { file, pdf } from './files.mjs'
 
 // The clause's three conflicting passages, entered through the normal import,
 // citation confirmation and family-link doors. No records are injected into D1.
-export async function familyConflictFixture(client, { withLegalText = false } = {}) {
+export async function familyConflictFixture(client, { withLegalText = false, initialFutureTerm = false } = {}) {
   const tag = randomUUID().slice(0, 8)
   const create = async (title, days, extra = {}) => {
     const legal=withLegalText ? days===60?' Annual price is USD 100,000. The MSA governs conflicting orders.':days===90?' Annual price is USD 110,000. This amendment overrides inconsistent MSA notice and price provisions.':' Annual price is USD 120,000. This order governs conflicting MSA terms.' : ''
-    const quote = `Agreement ${tag}. Notice requires ${days} days. Payment is due in 30 days. Effective March 1, 2022. Term ends February 28, 2023. Renews every 12 months.${legal}`
+    const quote = `Agreement ${tag}. Notice requires ${days} days. Payment is due in 30 days. Effective March 1, 2022. Term ends February 28, ${initialFutureTerm ? 2027 : 2023}. Renews every 12 months.${legal}`
     const a = await client.command('legacy.import', { title, type: 'other', party: { name: 'Northwind Services', kind: 'supplier' }, sourceSystem: 'Legal archive', sourceId: `${tag}-${days}`, file: file(`${days}-days.pdf`, pdf(quote)), text: quote, ...extra })
     return { id: a.id, quote }
   }
@@ -25,7 +25,7 @@ export async function familyConflictFixture(client, { withLegalText = false } = 
   }
   for (const [key, value, quote] of [
     ['effective_date', '2022-03-01', 'Effective March 1, 2022.'],
-    ['end_date', '2023-02-28', 'Term ends February 28, 2023.'],
+    ['end_date', initialFutureTerm?'2027-02-28':'2023-02-28', `Term ends February 28, ${initialFutureTerm ? 2027 : 2023}.`],
     ['auto_renew', 'yes', 'Renews every 12 months.'],
     ['renewal_term_months', '12', 'Renews every 12 months.'],
   ]) await confirm(master, key, value, quote)

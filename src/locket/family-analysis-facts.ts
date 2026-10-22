@@ -1,8 +1,9 @@
+import { visibleSetSql } from './access'
 import { readArtifactBytes } from './artifacts'
 import type { Ctx } from './commands'
 import { readablePages } from './execution-comparison'
-import { canonical, fail, sha256 } from './model'
-import { agreementGuards, visibleAgreement } from './records'
+import { canonical, fail, json, sha256, sql } from './model'
+import { visibleAgreement } from './records'
 
 export type FamilyFact = { id:string; parentId:string|null; relation:string|null; status:string; versionId:string|null; timezone:string }
 export type TermFact = { id:string; agreementId:string; key:string; value:string }
@@ -44,5 +45,5 @@ export async function familyFacts(c:Ctx, id:unknown, includeText=false) {
   sources.push({agreementId:a.id,versionId:a.current_version_id,title:a.title,relation:a.relation,pages,terms:facts.terms.filter(t=>t.agreementId===a.id)})
  }
  if(includeText&&(sources.length<2||canonical(sources).length>250000))fail('ANALYSIS_SCOPE','Select a family with at least two readable executed documents and at most 250,000 characters. Nothing was sent.',409)
- return {root,members,facts,sources,digest:await sha256(canonical({facts,sources})),checks:members.flatMap(a=>agreementGuards(c,a))}
+ return {root,members,facts,sources,digest:await sha256(canonical({facts,sources})),checks:[visibleSetSql(c.actor,members.map(a=>a.id)),sql(`NOT EXISTS(SELECT 1 FROM json_each(?) source LEFT JOIN lk_agreements a ON a.id=json_extract(source.value,'$.id') WHERE a.id IS NULL OR a.version IS NOT json_extract(source.value,'$.version'))`,json(members.map(a=>({id:a.id,version:a.version}))))]}
 }
