@@ -244,6 +244,10 @@ Every bulk change is applied record by record through the same role, access, ver
 
 *Acceptance:* a journey filters 300 imported agreements, sets Department = Sales on all of them, and reassigns a departing owner's 40 agreements and their open obligations to a colleague. It moves 25 agreements to the Finance group and downloads 20 originals as a ZIP whose digests match. It then exports the CSV, corrects the type on 15 rows and re-imports it, seeing a dry-run diff of exactly those 15 before applying. Each record's activity shows its audited change, and reverting the department change restores the prior values with history kept. A viewer's bulk edit is refused, and a record changed after selection is reported as skipped.
 
+Exactly: the selected search/view is frozen as record revisions, up to 5,000. Dry-run review and application resume in bounded native guarded batches, with a visible count and per-record outcome. Required fields retain their existing validation; optional fields can be cleared. Access classification and our entity use their existing owner/counsel authority. Assigned agreement groups additionally require current membership and intersect restricted/type/department policy; clearing group assignment restores that underlying policy, never a restricted-access grant. Ownership reassignment moves only the departing responsible person’s open obligations and stored reminder schedules, preserving their other settings. ZIP streams original/signed/certificate bytes with a SHA-256 manifest. CSV updates use exported record identities/revisions and apply the exact reviewed diff. Revert checks current versions, permissions and the operation’s changed fields, preserving unrelated later edits and skipping a field edited again. Agents submit an evidenced proposal; an authorized person separately reviews and applies it. Later REPO-012/013 and INT-002 inherit these current group, field and record checks.
+
+*Status:* done. Public API and desktop/mobile repository journeys prove guarded field edits, open-work reassignment, group access, byte-custody ZIPs, exact CSV review, skips, proposals, audited changes and revert. The committed 300-record scale journey is required on the exact landing candidate outside push Verify; its run is cited in the landing report.
+
 *Status:* missing. The register has no selection or bulk actions.
 
 ### Drafting and playbooks
@@ -954,8 +958,8 @@ REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 25 | 25 | 30 | 80 |
-| All | 44 | 25 | 30 | 99 |
+| Target and push further | 26 | 25 | 29 | 80 |
+| All | 45 | 25 | 29 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -993,7 +997,7 @@ REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence 
 | `REPO-008` | Agreement families | target | done | `src/locket/families.ts`; `src/locket/family-projection.ts`; `src/ui/family.tsx`; `tests/api/families.test.mjs`; `tests/browser/families.spec.ts` | |
 | `REPO-009` | Groups, departments and field-level access | target | partial | `tests/api/saved-views.test.mjs` — REPO-009 current group and department grants intersect restricted access and hide fields before all repository projections (membership/type/department, API/search/CSV, pre-filter/sort hiding, files, notifications and revocation); `tests/browser/saved-views.spec.ts` — REPO-009 Sales visibility, hidden value and current group shares at 1440px/390px (owner policy, register/search/CSV, group sharing and displays) | ct approval pending: deny unmatched readers, preserve owner/counsel full access, owner-only policy, own-group sharing, and withhold originals/free-text/reports/business actions for hidden-field roles rather than risk exposing hidden values |
 | `REPO-010` | Counterparty records | target | done | `src/locket/counterparties.ts`; `src/locket/counterparty-summary.ts`; `tests/api/counterparties.test.mjs`; `tests/browser/counterparties.spec.ts` |  |
-| `REPO-011` | Bulk repository actions | target | missing |  | The register has no selection or bulk actions |
+| `REPO-011` | Bulk repository actions | target | done | `tests/browser/repository-bulk-scale.mjs`: 300 imported agreements / 300 department updates / 40 owner and open-obligation reassignments / 25 Finance group moves / 20 digest-matching ZIP originals / 15 exact CSV corrections / 300 audited reverts / viewer refusal and stale skip (exact-candidate heavy-slot run cited in landing report); `tests/api/saved-views.test.mjs`: REPO-011 reviewed bulk changes preserve custody, reassign open work, round-trip exact CSV differences and revert with history (stored reminders, signed/certificate ZIPs and archive); REPO-011 SEC-001 rejects viewers and direct agent writes, skips stale records, enforces field roles and requires human review of proposals (typed custom/entity roles and evidenced proposals); `tests/browser/saved-views.spec.ts`: REPO-011 reviews filtered bulk changes, exact CSV differences and reversible history at 1440px/390px | None for current repository metadata, access and files; REPO-012/013 and INT-002 inherit current checks |
 | `DRAFT-002` | Word documents from templates | target | partial | `src/locket/library.ts`; `src/locket/pdf.ts` | DOCX output with preserved formatting and answer-driven conditional clauses do not exist |
 | `DRAFT-003` | Clause library in negotiation | target | done | `src/locket/clause-insertion.ts`; `src/locket/clause-provenance.ts`; `tests/api/clause-library.test.mjs`; `tests/browser/clause-library.spec.ts` |  |
 | `DRAFT-004` | Templates authored from existing Word documents | target | missing |  | Templates are authored as text in Locket |
