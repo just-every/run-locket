@@ -16,25 +16,35 @@ export async function dispatch(client, id) {
   let a = await find(client, id)
   const pkg = await client.command('package.prepare', { agreementId: id, version: a.version, provider: 'docusign', recipients: [{ name: 'Alex Morgan', email: 'alex@example.test', action: 'sign' }] })
   a = await find(client, id)
-  await client.command('package.sent', { agreementId: id, version: a.version, packageId: pkg.packageId, envelopeId: `ENV-${id}` })
+  await client.command('package.sent', { agreementId: id, version: a.version, packageId: pkg.packageId, envelopeId: `synthetic-locket-${id}` })
   return pkg
 }
 export async function finish(client, id, pkg) {
   const a = await find(client, id)
   const signed = Buffer.from(await (await client.request('/api/locket/files/' + pkg.pdfArtifactId)).arrayBuffer())
-  return client.command('execution.record', { agreementId: id, version: a.version, envelopeId: `ENV-${id}`, executedOn: '2026-10-22', documentConfirmed: true, signers: [{ name: 'Alex Morgan', email: 'alex@example.test' }], signed: file('signed.pdf', signed), certificate: file('certificate.pdf', pdf('Provider certificate test fixture')) })
+  return client.command('execution.record', { agreementId: id, version: a.version, envelopeId: `synthetic-locket-${id}`, executedOn: '2026-10-22', documentConfirmed: true, signers: [{ name: 'Alex Morgan', email: 'alex@example.test' }], signed: file('signed.pdf', signed), certificate: file('certificate.pdf', pdf('Provider certificate test fixture')) })
 }
 
-export async function timedRequests(h, count = 20) {
-  const ids = []
+export async function stage(client, id, name, opts = {}) {
+  return client.command('request.stage', { agreementId:id, version:(await find(client,id)).version, stage:name, reason:'Recorded fixture work handoff' }, opts)
+}
+
+export async function timedRequests(h, count = 20, { late = 0 } = {}) {
+  const ids = [], signatureDurations = []
+  let lastFinish = 0
   for (let i = 1; i <= count; i++) {
-    const start = base + i * 120 * minute
+    const start = Math.max(base + i * 120 * minute, lastFinish + minute)
     await h.setTime(start)
-    const a = await request(h.owner, `Northwind NDA ${i}`); ids.push(a.id)
-    await h.setTime(start + i * minute); await submit(h.owner, a.id)
-    await h.setTime(start + 3 * i * minute); await approve(h.owner, a.id)
-    await h.setTime(start + (3 * i + 1) * minute); const pkg = await dispatch(h.owner, a.id)
-    await h.setTime(start + (6 * i + 1) * minute); await finish(h.owner, a.id, pkg)
+    const a = await request(h.owner, `synthetic-locket-${i}`); ids.push(a.id)
+    await h.setTime(start + i * minute); await stage(h.owner,a.id,'drafting')
+    await h.setTime(start + 2 * i * minute); await stage(h.owner,a.id,'negotiation')
+    await h.setTime(start + 3 * i * minute); await submit(h.owner, a.id)
+    await h.setTime(start + 5 * i * minute); await approve(h.owner, a.id)
+    await h.setTime(start + (5 * i + 1) * minute); const pkg = await dispatch(h.owner, a.id)
+    const due=(await h.owner.state()).requestQueue.work.find(w=>w.agreement_id===a.id).due_at
+    lastFinish=i>count-late?due+minute:start+(6*i+1)*minute
+    signatureDurations.push(lastFinish-(start+5*i*minute))
+    await h.setTime(lastFinish); await finish(h.owner, a.id, pkg)
   }
-  return ids
+  return Object.assign(ids,{signatureDurations,lastFinish})
 }

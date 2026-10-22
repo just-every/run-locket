@@ -1,3 +1,4 @@
+import { requireFullFields } from './repository-access'
 import { erasureHandlers } from './erasure'
 import { retentionHandlers } from './retention'
 import { approvalRuleHandlers, ruleReminderReceipt } from './approval-rules'
@@ -104,7 +105,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     const clickwrap = await publicClickwrapResponse(request, env)
     if (clickwrap) return clickwrap
     const actor = await currentActor(request, env)
-    if (request.method === 'GET' && path === '/analytics') return reply(workflowAnalytics(await state(env, actor), url.searchParams))
+    if (request.method === 'GET' && path === '/analytics') { await requireFullFields(env.DB,actor); return reply(workflowAnalytics(await state(env, actor), url.searchParams)) }
     if (request.method === 'GET' && path === '/clickwrap/acceptances') {
       const rows = await acceptanceRecords(env, actor, url.searchParams)
       if (url.searchParams.get('format') === 'csv') {

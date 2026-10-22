@@ -29,6 +29,8 @@ export interface LocketState {
   requestQueue: {rules:Row[];work:Row[];cancellations:Row[]}
   requestForms: Row[]
   agreements: Row[]
+  workflowStages: Row[]
+  workflowServiceLevels: Row[]
   workflowHistory: Row[]
   routes: Record<string, { kind: string; deviationId: string | null; label: string; roles: string[];approverId?:string;delegateId?:string|null;away?:boolean;order?:number;absenceVersion?:number }[]>
   requirements: Row[]

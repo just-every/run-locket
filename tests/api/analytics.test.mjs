@@ -2,23 +2,33 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { installation } from './harness.mjs'
-import { base, minute, timedRequests, request, submit, approve, dispatch, find } from './analytics-fixture.mjs'
+import { base, minute, timedRequests, request, submit, approve, dispatch, find, stage } from './analytics-fixture.mjs'
 import { file, pdf } from './files.mjs'
 
 test('REPORT-001 measures twenty public request journeys, period throughput, repeat-stage timing and scoped waiting work', async t => {
   const h = await installation(); t.after(() => h.close())
-  const ids = await timedRequests(h)
+  const ownerId=(await h.owner.state()).actor.id
+  const group=await h.owner.command('audience.save',{name:'synthetic-locket-report-team',kind:'group',memberIds:[ownerId]})
+  await h.owner.command('queue.configure',{type:'nda',audienceId:group.id,leadId:ownerId,businessDays:2,version:0})
+  const ids = await timedRequests(h,20,{late:4})
   const read = async (client = h.owner, query = '') => {
     const r = await client.request('/api/locket/analytics' + query); assert.equal(r.status, 200); return r.json()
   }
   let out = await read()
   assert.equal(out.groups[0].opened, 20); assert.equal(out.groups[0].completed, 20)
   assert.deepEqual(out.groups[0].completedIds.sort(), [...ids].sort())
-  for (const [stage, multiplier] of [['draft', 1], ['in_review', 2], ['out_for_signature', 3]]) {
+  for (const [stage, multiplier] of [['intake', 1], ['drafting', 1], ['negotiation', 1], ['approval', 2]]) {
     const s = out.stages.find(s => s.stage === stage)
     assert.equal(s.count, 20); assert.equal(s.medianMs, 10.5 * multiplier * minute); assert.equal(s.p90Ms, 18 * multiplier * minute)
   }
-  assert.equal(out.stages.find(s => s.stage === 'approved').medianMs, minute)
+  const signatures=[...ids.signatureDurations].sort((a,b)=>a-b)
+  assert.equal(out.stages.find(s=>s.stage==='signature').medianMs,(signatures[9]+signatures[10])/2)
+  assert.equal(out.stages.find(s=>s.stage==='signature').p90Ms,signatures[17])
+  assert.equal(out.observedStatuses.find(s=>s.stage==='approved').medianMs,minute)
+  assert.equal(out.groups[0].teamId,group.id)
+  assert.equal(out.serviceLevels.count,20);assert.equal(out.serviceLevels.breaches,4);assert.equal(out.serviceLevels.met,16)
+  assert.equal((await read(h.owner,'?team='+group.id)).groups[0].completed,20)
+  assert.deepEqual((await read(h.owner,'?team=synthetic-locket-absent')).groups,[])
   const day = await read(h.owner, '?from=2026-10-22&to=2026-10-22')
   assert.equal(day.groups[0].opened, 5); assert.equal(day.groups[0].completed, 5)
   assert.deepEqual((await read(h.owner, '?type=supplier')).groups, [])
@@ -26,20 +36,20 @@ test('REPORT-001 measures twenty public request journeys, period throughput, rep
   assert.equal((await h.owner.request('/api/locket/analytics?from=2026-10-24&to=2026-10-22')).status, 400)
   assert.equal((await h.request('/api/locket/analytics')).status, 401)
 
-  await h.setTime(base + 3000 * minute)
+  await h.setTime(ids.lastFinish + 10 * minute)
   const pending = await request(h.owner, 'Insurance NDA approval')
   const original = await find(h.owner, pending.id), commandId = randomUUID()
   const payload = { agreementId: pending.id, version: original.version }
   await h.owner.command('agreement.submit', payload, { commandId })
   await h.owner.command('agreement.submit', payload, { commandId })
   await h.owner.command('agreement.submit', payload, { error: 'STATUS' })
-  const a = await find(h.owner, pending.id), ownerId = (await h.owner.state()).actor.id
+  const a = await find(h.owner, pending.id)
   await h.owner.command('approval.email', { agreementId: a.id, version: a.version, versionId: a.current_version_id, recipientId: ownerId })
-  await h.setTime(base + 3010 * minute)
+  await h.setTime(ids.lastFinish + 20 * minute)
   const sent = await request(h.owner, 'Hosting NDA signature'); await submit(h.owner, sent.id); await approve(h.owner, sent.id); await dispatch(h.owner, sent.id)
   const hidden = await request(h.owner, 'Confidential acquisition', { restricted: true })
   await submit(h.owner, hidden.id); await approve(h.owner, hidden.id); await dispatch(h.owner, hidden.id)
-  await h.setTime(base + 3040 * minute)
+  await h.setTime(ids.lastFinish + 50 * minute)
   out = await read()
   assert.equal(out.approvalWaits.find(p => p.agreementId === pending.id).elapsedMs, 40 * minute)
   assert.equal(out.signatureWaits.find(p => p.agreementId === sent.id).elapsedMs, 30 * minute)
@@ -56,13 +66,38 @@ test('REPORT-001 measures twenty public request journeys, period throughput, rep
   let p = await find(h.owner, pending.id); await approve(h.owner, p.id)
   p = await find(h.owner, pending.id)
   await h.owner.command('version.upload', { agreementId: p.id, version: p.version, kind: 'counterparty', file: file('revised.pdf', pdf('Revised confidentiality agreement.')), text: 'Revised confidentiality agreement.' })
-  await h.setTime(base + 3047 * minute); await approve(h.owner, p.id)
+  await h.setTime(ids.lastFinish + 57 * minute); await approve(h.owner, p.id)
   out = await read()
-  assert.equal(out.stages.find(s => s.stage === 'in_review').count, 24)
+  assert.equal(out.observedStatuses.find(s => s.stage === 'in_review').count, 24)
   assert.ok(!out.approvalWaits.some(w => w.agreementId === p.id))
+  // Cancellations retain the reached stage after reopening, and each service
+  // interval closes independently rather than resetting a historical breach.
+  await stage(h.owner,sent.id,'negotiation',{error:'STATUS'})
+  const canceled=await request(h.owner,'synthetic-locket-cancellation')
+  await stage(h.owner,canceled.id,'negotiation')
+  let row=await find(h.owner,canceled.id)
+  await h.owner.command('request.cancel',{agreementId:row.id,version:row.version,reason:'deal_lost'})
+  row=await find(h.owner,row.id)
+  await h.owner.command('request.reopen',{agreementId:row.id,version:row.version,reason:'Customer resumed discussions'})
+  out=await read()
+  assert.deepEqual(out.cancellationGroups.find(g=>g.reason==='deal_lost'),{reason:'deal_lost',stage:'negotiation',count:1,agreementIds:[row.id]})
+  assert.equal(out.serviceLevels.intervals.filter(s=>s.agreementId===row.id).length,2)
+  assert.equal(out.serviceLevels.intervals.find(s=>s.agreementId===row.id&&s.generation===1).outcome,'cancelled')
+  const approver=await h.invite('synthetic-locket-slowest@example.test','approver')
+  const slow=await request(h.owner,'synthetic-locket-slow-approval');await submit(h.owner,slow.id)
+  row=await find(h.owner,slow.id)
+  await h.owner.command('approval.email',{agreementId:row.id,version:row.version,versionId:row.current_version_id,recipientId:approver.id})
+  const deadline=(await h.owner.state()).requestQueue.work.find(w=>w.agreement_id===slow.id).due_at
+  await h.setTime(deadline+minute)
+  out=await read()
+  assert.equal(out.approvers[0].approverId,approver.id)
+  assert.ok(out.approvers[0].longestWaitMs>0)
+  assert.ok(out.serviceLevels.intervals.find(s=>s.agreementId===slow.id).breached)
   const archive = await (await h.owner.request('/api/locket/export')).json()
   const events = archive.records.lk_workflow_history.filter(e => e.agreement_id === pending.id)
   assert.equal(events.filter(e => e.to_status === 'in_review').length, 2)
   assert.ok(events.some(e => e.command_id === commandId))
+  assert.equal(archive.records.lk_workflow_stages.filter(e=>e.command_id===commandId).length,1)
+  assert.equal(archive.records.lk_workflow_service_levels.filter(e=>e.agreement_id===canceled.id).length,2)
   assert.ok((await h.owner.state()).audit.some(e => e.agreement_id === hidden.id && e.action === 'agreement.view'))
 })
