@@ -226,3 +226,7 @@ State exposes scoped `approvalInputs`, `rulePending`, `ruleReminders`, own/owner
 - `retention.apply` (owner): `{previewId,reason}` applies exactly that owner’s unchanged preview under the current rule. Changed/deleted/held drafts refuse the transaction.
 
 Workspace state includes permission-scoped `legalHolds`, plus owner-only `retentionRule` and `erasures`. The complete archive retains these records and retention previews. ERASE-001 remains PARTIAL pending ct approval of the adopted privacy/retention policy.
+
+## Workflow performance
+
+`GET /api/locket/analytics?from=YYYY-MM-DD&to=YYYY-MM-DD&type=TYPE&entity=ID&team=ID` applies intersecting filters and current agreement access. Hidden-field roles are refused. It returns `stages` (intake/drafting/negotiation/approval/signature elapsed medians and nearest-rank P90), `observedStatuses` (legacy status observations), `groups` (opened/completed ids by current type/entity/team), `approvalWaits`, ranked `approvers`, `signatureWaits`, `serviceLevels` (known generation intervals, breaches, on-time closes and open intervals), `canceled` and `cancellationGroups`. Unknown historical starts are explicit. Workspace/archive include `workflowStages` and `workflowServiceLevels`; opening/reopening snapshots the business-day SLA, and execution/cancellation closes that interval. Working-stage handoffs use `request.stage`; submission enters approval and approval completion enters signature, including awaiting dispatch. Period semantics are shown on the dashboard.

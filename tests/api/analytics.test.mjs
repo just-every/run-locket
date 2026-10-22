@@ -61,6 +61,9 @@ test('REPORT-001 measures twenty public request journeys, period throughput, rep
   assert.ok((await read(viewer)).signatureWaits.some(p => p.agreementId === hidden.id))
   await h.owner.command('access.set', { agreementId: hidden.id, operatorId: viewer.id, grant: 'revoke' })
   assert.ok(!(await read(viewer)).signatureWaits.some(p => p.agreementId === hidden.id))
+  await h.owner.command('repository.access',{version:0,enabled:false,grants:[],hiddenFields:[{role:'viewer',fields:['value']}]})
+  assert.equal((await viewer.request('/api/locket/analytics')).status,403,'hidden-field roles cannot run workflow reports')
+  await h.owner.command('repository.access',{version:1,enabled:false,grants:[],hiddenFields:[]})
 
   // A revision reopens review; only a completed new visit adds a sample.
   let p = await find(h.owner, pending.id); await approve(h.owner, p.id)
