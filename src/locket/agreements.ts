@@ -22,7 +22,7 @@ import { agreementGuards, bump, invalidateApprovals, requireStatus, statusAfterC
 
 export const agreementTypes = ['customer', 'supplier', 'nda', 'amendment', 'order_form', 'other'] as const
 import { relations } from './family-relations'
-import { livePartyId, partyInsert } from './counterparties'
+import { livePartyId, partyInsert, visibleParty } from './counterparties'
 import { entityById, entityForNewAgreement, entityValues, requireEntityScope, type EntityRow } from './entities'
 
 import { installationSettings } from './installation'
@@ -34,19 +34,23 @@ async function operatorExists(c: Ctx, id: string): Promise<void> {
   if (!row) fail('INVALID', 'The responsible person must be an active member of this installation.', 400, { field: 'ownerId' })
 }
 
-async function partyFor(c: Ctx, p: Record<string, unknown>): Promise<{ id: string; name: string; writes: Sql[] }> {
+async function partyFor(c: Ctx, p: Record<string, unknown>): Promise<{ id: string; name: string; writes: Sql[]; checks: Sql[] }> {
   if (typeof p.partyId === 'string' && p.partyId) {
-    const party = await c.db.prepare('SELECT id, name FROM lk_parties WHERE id=?').bind(await livePartyId(c, p.partyId)).first<{ id: string; name: string }>()
+    const party = await visibleParty(c, await livePartyId(c, p.partyId))
     if (!party) fail('INVALID', 'Choose an existing counterparty or enter a new one.', 400, { field: 'partyId' })
-    return { ...party, writes: [] }
+    return { id: party.row.id, name: party.row.name, writes: [], checks: [party.check] }
   }
   const input = object(p.party, 'party')
   const name = text(input, 'name', 200)
-  const existing = await c.db.prepare('SELECT id, name, merged_into FROM lk_parties WHERE lower(name)=lower(?)').bind(name).first<{ id: string; name: string; merged_into: string | null }>()
-  if (existing?.merged_into) return { ...(await c.db.prepare('SELECT id, name FROM lk_parties WHERE id=?').bind(existing.merged_into).first<{ id: string; name: string }>())!, writes: [] }
-  if (existing) return { id: existing.id, name: existing.name, writes: [] }
+  const existing = await c.db.prepare('SELECT id, merged_into FROM lk_parties WHERE lower(name)=lower(?)').bind(name).first<{ id: string; merged_into: string | null }>()
+  if (existing) {
+    // Names are unique: a recorded counterparty is reused only when this person may see it.
+    const party = await visibleParty(c, existing.merged_into ?? existing.id)
+    if (!party) fail('PARTY_UNAVAILABLE', 'That counterparty is already recorded and is not available to you. Ask the owner or counsel to start this request.', 409, { field: 'party' })
+    return { id: party.row.id, name: party.row.name, writes: [], checks: [party.check] }
+  }
   const id = crypto.randomUUID()
-  return { id, name, writes: [partyInsert(id, name, input, c)] }
+  return { id, name, writes: [partyInsert(id, name, input, c)], checks: [] }
 }
 
 /** US-001: a value in USD, or in another currency with the USD-per-unit rate a person records (never fetched). */
@@ -167,7 +171,7 @@ const createRequest: Handler = async (c, p) => {
   await operatorExists(c, ownerId)
   const parentId = typeof p.parentId === 'string' && p.parentId ? p.parentId : null
   if (needsParent.has(type) && !parentId) fail('PARENT_REQUIRED', 'An amendment or order form must name the agreement it belongs to.', 400, { field: 'parentId' })
-  const checks: Sql[] = [...(form?.checks ?? [])]
+  const checks: Sql[] = [...party.checks, ...(form?.checks ?? [])]
   if (parentId) {
     await visibleAgreement(c, parentId)
     checks.push(sql('EXISTS(SELECT 1 FROM lk_agreements WHERE id=?)', parentId))
@@ -421,7 +425,7 @@ const importLegacy: Handler = async (c, p) => {
       sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', versionId, id, 1, 'legacy', `Imported from ${sourceSystem}`, null, null, body, source, vdigest, c.actor.id, c.now),
       ...custom.writes,
     ],
-    checks: [...custom.checks, sql('NOT EXISTS(SELECT 1 FROM lk_artifacts WHERE sha256=? AND role IN (\'original\',\'signed\'))', digest), entity ? sql('EXISTS(SELECT 1 FROM lk_entities WHERE id=?)', entity.id) : sql('NOT EXISTS(SELECT 1 FROM lk_entities)')],
+    checks: [...party.checks, ...custom.checks, sql('NOT EXISTS(SELECT 1 FROM lk_artifacts WHERE sha256=? AND role IN (\'original\',\'signed\'))', digest), entity ? sql('EXISTS(SELECT 1 FROM lk_entities WHERE id=?)', entity.id) : sql('NOT EXISTS(SELECT 1 FROM lk_entities)')],
     audit: [{ action: 'legacy.import', agreementId: id, summary: `Imported ${file.filename} from ${sourceSystem} ${sourceId}` }],
   }
 }

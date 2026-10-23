@@ -4,7 +4,7 @@
 // Owner or counsel merge a duplicate into the record they keep: its agreements
 // and clickwrap acceptances move over in one guarded write, agreements still in
 // negotiation lose their approvals, and the duplicate stays as merged history.
-import { may, requireRole } from './access'
+import { agreementAccessSql, may, requireRole } from './access'
 import type { Ctx, Handler } from './commands'
 import { fail, integer, list, object, oneOf, optionalText, sql, text, type Sql } from './model'
 import { invalidateApprovals } from './records'
@@ -58,12 +58,23 @@ export async function livePartyId(c: Pick<Ctx, 'db'>, id: string): Promise<strin
 
 const party = async (c: Ctx, id: string) => c.db.prepare('SELECT * FROM lk_parties WHERE id=?').bind(id).first<any>()
 
+/** Workspace visibility of a counterparty: hidden when every agreement naming it is
+ * hidden from this person. Lookup, reuse and edits read through it, and `check`
+ * repeats it inside the guarded write. */
+export async function visibleParty(c: Ctx, id: string): Promise<{ row: any; check: Sql } | null> {
+  const access = agreementAccessSql(c.actor.id, 'linked')
+  const check = sql(`EXISTS(SELECT 1 FROM lk_parties party WHERE party.id=? AND (NOT EXISTS(SELECT 1 FROM lk_agreements linked WHERE linked.party_id=party.id) OR EXISTS(SELECT 1 FROM lk_agreements linked WHERE linked.party_id=party.id AND ${access.sql})))`, id, ...access.params)
+  const row = await c.db.prepare(`SELECT * FROM lk_parties WHERE id=? AND ${check.sql}`).bind(id, ...check.params).first<any>()
+  return row ? { row, check } : null
+}
+
 const saveParty: Handler = async (c, p) => {
   requireRole(c.actor, may.intake, 'maintain counterparties')
   const name = text(p, 'name', 200)
   if (typeof p.id === 'string') {
-    const row = await party(c, p.id)
-    if (!row) fail('NOT_FOUND', 'No such counterparty.', 404)
+    const visible = await visibleParty(c, p.id)
+    if (!visible) fail('NOT_FOUND', 'No such counterparty.', 404)
+    const row = visible.row
     if (row.merged_into) fail('MERGED', `${row.name} was merged into another counterparty; edit that one.`, 409)
     if (p.version !== undefined && integer(p, 'version', 1) !== row.version) fail('STALE', `${row.name} changed since you loaded it. Reload before editing.`, 409)
     const d = details(p)
@@ -71,7 +82,7 @@ const saveParty: Handler = async (c, p) => {
       allowed: may.intake, result: { id: p.id, version: row.version + 1 },
       writes: [sql('UPDATE lk_parties SET name=?, kind=?, tax_id=?, tax_id_kind=?, email=?, entity_type=?, formation=?, registered_address=?, notice_address=?, notice_method=?, contacts=?, signatories=?, version=version+1 WHERE id=?',
         name, d.kind, d.taxId, d.taxKind, d.email, d.entityType, d.formation, d.registered, d.notice, d.method, d.contacts, d.signatories, p.id)],
-      checks: [sql('(SELECT version FROM lk_parties WHERE id=?)=? AND (SELECT merged_into FROM lk_parties WHERE id=?) IS NULL', p.id, row.version, p.id)],
+      checks: [sql('(SELECT version FROM lk_parties WHERE id=?)=? AND (SELECT merged_into FROM lk_parties WHERE id=?) IS NULL', p.id, row.version, p.id), visible.check],
       audit: [{ action: 'party.save', summary: `Updated counterparty ${name}` }],
     }
   }

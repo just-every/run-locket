@@ -101,3 +101,24 @@ test('only the owner or counsel change whether an agreement is restricted', asyn
   await tm.requester.command('request.update', { agreementId: a.id, version: a.version, restricted: true }, { error: 'FORBIDDEN' })
   assert.equal((await find(viewer, made.id)).restricted, 0)
 })
+
+test('a counterparty known only through restricted agreements is never matched, chosen or edited from outside them', async t => {
+  const h = await installation(); t.after(() => h.close())
+  const tm = await team(h)
+  const details = { name: 'synthetic-locket-2 Holdings', kind: 'other', email: 'synthetic-locket-2@example.test', registeredAddress: '2 Synthetic Lane', contacts: [{ name: 'Synthetic Contact', email: 'synthetic-locket-2-contact@example.test' }] }
+  const secret = await tm.counsel.command('request.create', { title: 'synthetic-locket-2 confidential matter', type: 'nda', party: details, restricted: true })
+  const party = (await tm.counsel.state()).parties.find(p => p.name === details.name)
+  const mentions = async () => JSON.stringify(await tm.requester.state()).includes('synthetic-locket-2')
+  assert.equal(await mentions(), false)
+  await tm.requester.command('request.create', { title: 'Ordinary request', type: 'nda', party: { name: 'SYNTHETIC-LOCKET-2 holdings', kind: 'other' } }, { error: 'PARTY_UNAVAILABLE' })
+  await tm.requester.command('request.create', { title: 'Ordinary request', type: 'nda', partyId: party.id }, { error: 'INVALID' })
+  await tm.requester.command('party.save', { id: party.id, version: party.version, name: details.name, kind: 'other', email: 'synthetic-locket-2-changed@example.test' }, { error: 'NOT_FOUND' })
+  assert.equal(await mentions(), false)
+  const s = await tm.counsel.state()
+  assert.deepEqual(s.agreements.map(a => a.party_id), [party.id])
+  assert.equal(s.parties.find(p => p.id === party.id).email, details.email)
+  // Someone inside the agreement still reuses the recorded counterparty by name.
+  await tm.counsel.command('access.set', { agreementId: secret.id, operatorId: tm.requester.id, grant: 'grant' })
+  const follow = await tm.requester.command('request.create', { title: 'synthetic-locket-2 follow-on', type: 'nda', party: { name: 'SYNTHETIC-LOCKET-2 holdings', kind: 'other' }, restricted: true })
+  assert.equal((await find(tm.requester, follow.id)).party_id, party.id)
+})
