@@ -225,13 +225,17 @@ const updateRequest: Handler = async (c, p) => {
   if (ownerId !== a.owner_id) await operatorExists(c, ownerId)
   const neededBy = p.neededBy === undefined ? a.needed_by : optionalDate(p, 'neededBy')
   const restricted = p.restricted === undefined ? a.restricted : bool(p, 'restricted') ? 1 : 0
+  // Who may see an agreement is access administration, as with explicit grants;
+  // the guarded write re-checks that authority.
+  const allowed = restricted === a.restricted ? may.intake : may.grantAccess
+  requireRole(c.actor, allowed, 'change whether this agreement is restricted')
   const m = value ?? { currency: a.currency, valueCents: a.value_cents, originalCents: a.original_cents, rate: a.usd_rate, rateBy: a.rate_recorded_by, rateAt: a.rate_recorded_at }
   const contextChanged = m.valueCents !== a.value_cents || m.currency !== a.currency || m.originalCents !== a.original_cents || m.rate !== a.usd_rate
   if (contextChanged && await c.db.prepare('SELECT 1 FROM lk_request_forms WHERE agreement_id=?').bind(a.id).first()) fail('FORM_ROUTE', 'Routing answers and value are pinned at launch. Create a new request for changed routing inputs.', 409)
   const writes = [bump(c, a, 'title=?, value_cents=?, currency=?, original_cents=?, usd_rate=?, rate_recorded_by=?, rate_recorded_at=?, owner_id=?, needed_by=?, restricted=?, status=?', title, m.valueCents, m.currency, m.originalCents, m.rate, m.rateBy, m.rateAt, ownerId, neededBy, restricted, contextChanged ? statusAfterChange(a) : a.status)]
   if (ownerId !== a.owner_id) writes.push(...notificationWrites(c,{key:c.commandId,agreementId:a.id,recipientId:ownerId,kind:'assignment'}))
   if (contextChanged) writes.push(invalidateApprovals(c, a.id, 'Contract value changed'))
-  return { allowed: may.intake, result: { id: a.id }, writes, checks: agreementGuards(c, a, p), audit: [{ action: 'request.update', agreementId: a.id, summary: contextChanged ? `Changed request details and value to ${amountWords(m as Amount)}; earlier approvals no longer count` : 'Changed request details' }] }
+  return { allowed, result: { id: a.id }, writes, checks: agreementGuards(c, a, p), audit: [{ action: 'request.update', agreementId: a.id, summary: contextChanged ? `Changed request details and value to ${amountWords(m as Amount)}; earlier approvals no longer count` : 'Changed request details' }] }
 }
 
 const addRequirement: Handler = async (c, p) => {
