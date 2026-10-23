@@ -3,6 +3,7 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { clauseSession } from './clause-session.mjs'
 import { uploadedWordReview } from '../api/word-review-fixture.mjs'
+import { hostExchange } from './exchange-fixture.mjs'
 test.use({ignoreHTTPSErrors:true})
 for(const width of [1440,390])test(`Word tracks twelve changes, nine accepts and three rejects, retained replies and cleaned outputs at ${width}px`,async({page})=>{
  const p=await clauseSession(page,width)
@@ -43,5 +44,21 @@ for(const width of [1440,390])test(`Word tracks twelve changes, nine accepts and
   // The actual icon-only fold control, if text comparison has an unchanged section.
   const icon=page.getByRole('button',{name:/^Show \d+ unchanged paragraph/}).first()
   await expect(icon).toBeVisible();await icon.focus();await expect(page.getByRole('tooltip',{name:'Show unchanged'})).toBeVisible();await shot('tooltip-focus');await icon.blur();await icon.hover();await expect(page.getByRole('tooltip',{name:'Show unchanged'})).toBeVisible({timeout:1000});await shot('tooltip-hover')
+  await sharing.getByRole('checkbox',{name:'I reviewed this version’s text and permit disclosure to the counterparty',exact:true}).check()
+  await save('version.audience',sharing.getByRole('button',{name:'Mark version external',exact:true}))
+  await sharing.getByLabel('Outgoing document',{exact:true}).selectOption('word-redline')
+  await sharing.getByLabel('Why this contact is authorized to receive this version',{exact:true}).fill('Supplier may review this exact formatted Word and our external reply.')
+  await sharing.getByRole('checkbox',{name:'I approve this clean plain rendition and explicit disclosure to the selected contact',exact:true}).check()
+  await shot('share-form')
+  await save('exchange.send',sharing.getByRole('button',{name:'Share external version',exact:true}))
+  const link=await sharing.getByRole('link',{name:'Open secure counterparty link',exact:true}).getAttribute('href')
+  const publicContext=await page.context().browser()!.newContext({ignoreHTTPSErrors:true,viewport:{width,height:1000}}),counterparty=await publicContext.newPage()
+  let unhost=async()=>{}
+  try{if(!process.env.LOCKET_CAMPAIGN_LIVE)unhost=await hostExchange(counterparty,p.origin)
+   await counterparty.goto(link!);await expect(counterparty.getByRole('region',{name:'External comments',exact:true})).toContainText('Our reply:');await expect(counterparty.locator('body')).not.toContainText(x.commentBodies[3])
+   const downloaded=counterparty.waitForEvent('download');await counterparty.getByRole('button',{name:'Download clean Word',exact:true}).click();expect((await downloaded).suggestedFilename()).toContain('.docx')
+   expect(await counterparty.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
+   if(process.env.LOCKET_SCREENSHOTS)await counterparty.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-word-counterparty.png`),fullPage:true})
+  }finally{await unhost();await publicContext.close()}
  }finally{await p.close()}
 })
