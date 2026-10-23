@@ -24,6 +24,7 @@ export async function signatureState(db:D1Database,actor:Actor,visible:Set<strin
   canCoordinate,
  }
 }
-export const signatureHandlers:Record<string,Handler>={...signatureRuleHandlers,...signatureFieldHandlers,...signaturePacketHandlers,...signatureSendHandlers,...signatureTagHandlers}
+// Compose at the HTTP registry after the cyclic domain imports have initialized.
+export function signatureHandlers():Record<string,Handler>{return {...signatureRuleHandlers,...signatureFieldHandlers,...signaturePacketHandlers,...signatureSendHandlers,...signatureTagHandlers}}
 
 export const signatureArchiveTables=['lk_signature_rule_drafts','lk_signature_rule_versions','lk_signature_rule_snapshots','lk_signature_coordinators','lk_signature_template_blocks','lk_signature_packets','lk_signature_packet_changes','lk_signature_connections','lk_signature_dispatches','lk_signature_tag_renditions']

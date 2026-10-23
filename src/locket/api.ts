@@ -63,6 +63,7 @@ import { approvedClauses } from './clause-provenance'
 import { agreementHandlers } from './agreements'
 import { runCommand, type Handler } from './commands'
 import { executionHandlers } from './execution'
+import { signatureHandlers } from './signature-workspace'
 import { importHandlers } from './imports/commands'
 import { libraryHandlers } from './library'
 import { emailNotice } from './notice-mail'
@@ -84,6 +85,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
+  ...signatureHandlers(),
   ...chatHandlers, ...scopedTokenHandlers,
   ...wordReviewHandlers,
   ...remediationHandlers,

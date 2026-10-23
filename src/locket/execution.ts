@@ -8,7 +8,6 @@ import { bool, date, fail, json, list, object, oneOf, optionalText, sha256, sql,
 import { textPdf } from './pdf'
 import { buildPacket, packetRecipients } from './signature-packets'
 import { requireCoordinator } from './signature-rules'
-import { signatureHandlers } from './signature-workspace'
 import { confirmSignaturePackage } from './signature-send'
 import { compareExecutionPdf, comparisonCheck } from './execution-comparison'
 import { executionFieldsCheck, inspectExecutionFields } from './execution-fields'
@@ -220,7 +219,6 @@ function pagesNote(packaged: number | null, signed: number | null) {
 }
 
 export const executionHandlers: Record<string, Handler> = {
-  ...signatureHandlers,
   'package.prepare': preparePackage,
   'package.sent': markSent,
   'package.void': voidPackage,

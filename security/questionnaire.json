@@ -81,9 +81,10 @@
     },
     {
       "name": "Slack",
-      "data": "Explicitly enabled approval notifications",
+      "data": "Signed command and shortcut intake, private request-form links, and explicitly enabled generic approval and status notifications",
       "bindings": [
-        "APPROVAL_SLACK_TOKEN"
+        "APPROVAL_SLACK_TOKEN",
+        "CHAT_SLACK_SIGNING_SECRET"
       ],
       "enabledByDefault": false
     },
