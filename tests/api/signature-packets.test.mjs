@@ -155,6 +155,7 @@ test('Connection checks expose credential failure, one owner alert, current affe
  await h.owner.command('connection.check',{id:'docusign'})
  assert.equal(alerts().length,1)
  failing=false
+ await h.owner.command('signature.connection.configure',{provider:'docusign',baseUrl:'https://demo.docusign.net/restapi/v2.1',accountId:'synthetic-locket-account',version:1})
  await h.owner.command('connection.check',{id:'docusign'})
  row=(await h.owner.state()).connections.find(c=>c.id==='docusign')
  assert.equal(row.status,'healthy');assert.ok(row.last_success_at);assert.equal(row.alert_status,null)
