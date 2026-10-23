@@ -12,7 +12,7 @@ test(`Word tracks twelve changes, nine accepts and three rejects, retained repli
   const save=async(type:string,button:any)=>{const pending=page.waitForResponse(response=>response.url()===p.origin+'/api/locket/commands'&&response.request().method()==='POST'&&response.request().postDataJSON().type===type);await button.click();expect((await(await pending).json()).ok).toBe(true)}
   try{
    const x=await uploadedWordReview(p),state=await p.owner.state()
-   await page.goto(`${p.origin}/app#agreement/${x.a.id}`)
+   await page.goto(`${p.origin}/app#agreement/${x.a.id}`);await page.reload()
    const panel=page.getByRole('region',{name:'Word tracked changes',exact:true})
    await expect(panel.getByRole('list',{name:'Word revisions'}).locator('> li')).toHaveCount(12)
    await expect(panel).toContainText('Alicia Counsel');await expect(panel).toContainText('Morgan Supplier')
