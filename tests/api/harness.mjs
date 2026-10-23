@@ -82,7 +82,7 @@ export async function installation({ bindings = {}, mailResponse, outboundRespon
         return res.json()
       },
     })
-    const owner = client(ownerCookie)
+    let owner = client(ownerCookie)
     /** Invite through Base auth, accept through the emailed link, then give a Locket role. */
     async function invite(email, role) {
       const res = await owner.request('/auth/invite', { method: 'POST', body: { email, displayName: email.split('@')[0], role: 'member' } })
@@ -105,7 +105,7 @@ export async function installation({ bindings = {}, mailResponse, outboundRespon
       assert.equal(confirmed.status, 303)
       return client(confirmed.headers.getSetCookie().map(v => v.split(';')[0]).join('; '))
     }
-    return { mf, db, origin, request, owner, invite, signIn, mails, async rotateSessionSecret(secret) { workerBindings.SESSION_SECRET = secret; await mf.setOptions(runtimeOptions()) }, async setTime(at) { workerBindings.TEST_NOW = String(at); await mf.setOptions(runtimeOptions()) }, async scheduled(at) { const result = await (await mf.getWorker()).scheduled({ scheduledTime: new Date(at), cron: '0 * * * *' }); assert.equal(result.outcome, 'ok', JSON.stringify(result)) }, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
+    return { mf, db, origin, request, get owner() { return owner }, set owner(value) { owner = value }, invite, signIn, mails, async rotateSessionSecret(secret) { workerBindings.SESSION_SECRET = secret; await mf.setOptions(runtimeOptions()) }, async setTime(at) { workerBindings.TEST_NOW = String(at); await mf.setOptions(runtimeOptions()) }, async scheduled(at) { const result = await (await mf.getWorker()).scheduled({ scheduledTime: new Date(at), cron: '0 * * * *' }); assert.equal(result.outcome, 'ok', JSON.stringify(result)) }, async close() { await mf.dispose(); await rm(root, { recursive: true, force: true }) } }
   } catch (error) {
     await mf.dispose().catch(() => {})
     await rm(root, { recursive: true, force: true }).catch(() => {})

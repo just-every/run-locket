@@ -87,7 +87,7 @@ test('AGENT-009 fixture-year source counts and exact USD totals match the retain
 
 test('AGENT-009 consent, source and access changes remain scoped and rejected or uncertain monthly mail is never retried',async t=>{
  let mode='ok',mailMode='ok',calls=0
- const h=await installation({bindings:{...accountingBindings,TEST_NOW:String(at('2026-10-20T12:00:00Z'))},outboundResponse:async()=>{calls++;return mode==='ok'?Response.json({QueryResponse:{Bill:[]}}):Response.json({Fault:{}},{status:401})},mailResponse:mail=>{
+ const h=await installation({bindings:{...accountingBindings,TEST_NOW:String(at('2026-10-20T12:00:00Z'))},outboundResponse:async()=>{calls++;return mode==='ok'?Response.json({QueryResponse:{Bill:[{Id:'synthetic-locket-visible-bill',TxnDate:'2026-08-05',TotalAmt:25,Balance:0,VendorRef:{value:'42'},CurrencyRef:{value:'USD'}}]}}):Response.json({Fault:{}},{status:401})},mailResponse:mail=>{
   if(!mail.subject.includes('monthly Locket'))return Response.json({id:'synthetic-locket-auth'})
   return mailMode==='rejected'?Response.json({message:'Rejected'},{status:422}):mailMode==='uncertain'?new Response('Unknown outcome',{status:503}):Response.json({id:'synthetic-locket-mail'})
  }});t.after(()=>h.close())
