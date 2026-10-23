@@ -11,6 +11,7 @@ for(const width of [1440,390])test(`Obligation owner approves a supplier request
  try{
   const x=await remediationFixture(p)
   await page.goto(`${p.origin}/app#agreement/${x.a.id}/terms`)
+  await page.reload()
   const panel=page.getByRole('region',{name:'Obligation remediation',exact:true})
   await expect(panel).toContainText('Required: USD 2000000.00, Harbor Couriers')
   await panel.getByText('Prepare request and chase schedule',{exact:true}).click()
