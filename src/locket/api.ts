@@ -22,6 +22,8 @@ import { repositoryBulkHandlers } from './repository-bulk'
 import { repositoryBulkResponse } from './repository-bulk-http'
 import { exchangeHandlers, exchangeList } from './exchange'
 import { publicExchangeResponse } from './exchange-public'
+import { connectionHandlers } from './connection-health'
+import { privacyHandlers } from './privacy-access'
 import { erasureHandlers } from './erasure'
 import { retentionHandlers } from './retention'
 import { approvalRuleHandlers, ruleReminderReceipt } from './approval-rules'
@@ -87,7 +89,7 @@ export const handlers: Record<string, Handler> = {
   ...renewalLifecycleHandlers,...renewalCalendarHandlers,
   ...serviceLevelHandlers,
   ...servicePerformanceHandlers,
-  ...playbookRecommendationHandlers, ...reconciliationHandlers, ...familyAnalysisHandlers, ...wordTemplateHandlers, ...accountingHandlers, ...renewalBriefHandlers, ...exchangeHandlers, ...repositoryBulkHandlers, ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
+  ...playbookRecommendationHandlers, ...reconciliationHandlers, ...familyAnalysisHandlers, ...wordTemplateHandlers, ...accountingHandlers, ...renewalBriefHandlers, ...exchangeHandlers, ...repositoryBulkHandlers, ...connectionHandlers, ...privacyHandlers, ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
   ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,

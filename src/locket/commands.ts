@@ -1,3 +1,5 @@
+import { alertConnectionFailure } from './connection-health'
+import { authorizeErasureResult } from './privacy-access'
 import { dispatchSignature } from './signature-send'
 import { authorizeSignatureResult } from './signature-results'
 import { runApprovalChannels } from './approval-channel-automatic'
@@ -97,6 +99,8 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     if(type.startsWith('package.')||type.startsWith('signature.'))await authorizeSignatureResult(c,type,payload)
     if(type==='package.send')await dispatchSignature(c,(result as {id:string}).id)
     if(type.startsWith('approval.channel.'))await authorizeChannelResult(c,type,payload)
+    if(type==='connection.check'){requireRole(c.actor,['owner'],'read connection checks');await alertConnectionFailure(env,(result as {id:string}).id)}
+    await authorizeErasureResult(c,type,result)
     if(type.startsWith('outcome-report.'))await authorizeOutcomeReportResult(c,type,payload)
     if(type==='outcome-report.deliver')await dispatchOutcomeReports(env,c.now)
     if(type.startsWith('remediation.'))await authorizeRemediationResult(c,type,payload,result)

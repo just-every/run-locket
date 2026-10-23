@@ -1,3 +1,4 @@
+import { Connections } from './connections'
 import { ApprovalChannelReview } from './approval-channel-review'
 import { ApprovalChannelInbox } from './approval-channel-settings'
 import { OutcomeReports } from './outcome-report'
@@ -61,6 +62,7 @@ export function LocketApp() {
             {route.view === 'approval-request' && <ApprovalChannelReview id={route.id} locket={locket}/>}
             {route.view === 'approval-word' && <ApprovalChannelInbox state={state}/>}
             {route.view === 'outcome-report' && <OutcomeReports state={state} locket={locket} month={route.id} />}
+            {route.view === 'connections' && <Connections state={state} locket={locket}/>}
             {route.view === 'queue' && <RequestQueue state={state} locket={locket} />}
             {route.view === 'portfolio' && <Portfolio state={state} />}
             {route.view === 'agreements' && <Register state={state} locket={locket} query={query} portfolioFilter={route.id === 'portfolio' ? route.tab : ''} />}

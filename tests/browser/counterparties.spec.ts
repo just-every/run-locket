@@ -77,7 +77,9 @@ for(const width of [1440,390])test(`ERASE-001 verified contact erasure, counsel 
  const p=await productPage(page,{width})
  try{
   const counsel=await p.h.invite('synthetic-locket-counsel@example.test','counsel')
+  const delegate=await p.h.invite('synthetic-locket-privacy@example.test','viewer')
   const x=await erasureFixture(p.h),row=x.rows[x.held.id]
+  const switchTo=async(cookie:string)=>{await page.context().clearCookies();await page.context().addCookies(cookie.split('; ').map(pair=>{const at=pair.indexOf('=');return{name:pair.slice(0,at),value:pair.slice(at+1),url:p.origin,secure:true,httpOnly:true,sameSite:'Lax' as const}}))}
   const shot=async(name:string)=>{
    await page.evaluate(()=>window.scrollTo(0,0))
    await expect(page.locator('main')).toHaveAttribute('aria-busy','false')
@@ -100,6 +102,16 @@ for(const width of [1440,390])test(`ERASE-001 verified contact erasure, counsel 
   await expect(page.getByRole('alert')).toContainText('release the legal hold')
   await shot('held-deletion-refused')
   await page.goto(p.origin+'/app#counterparty/'+x.party.id);await page.reload()
+  const authority=page.getByRole('region',{name:'Scoped privacy authority',exact:true})
+  await authority.getByLabel('Privacy delegate',{exact:true}).selectOption(delegate.id)
+  await authority.getByRole('checkbox').check()
+  await authority.getByRole('button',{name:'Grant privacy authority',exact:true}).click()
+  await expect(authority.getByRole('button',{name:'Revoke privacy authority',exact:true})).toBeVisible()
+  await shot('scoped-authority')
+  for(const partyId of [...new Set((await p.state()).agreements.map((a:any)=>a.party_id))])await p.command('privacy.scope',{partyId,operatorId:delegate.id,enabled:true})
+  await switchTo(delegate.cookie)
+  await page.reload()
+  await expect(page.getByRole('region',{name:'Scoped privacy authority',exact:true})).toHaveCount(0)
   const erase=page.getByRole('region',{name:'Verified personal-data erasure',exact:true})
   await erase.getByLabel('How the request was verified',{exact:true}).selectOption('established_channel')
   await erase.getByLabel('Request received on',{exact:true}).fill('2026-10-20')
@@ -141,6 +153,7 @@ for(const width of [1440,390])test(`ERASE-001 verified contact erasure, counsel 
   await page.goto(p.origin+'/app#agreement/'+x.held.id)
   await expect(page.locator('.lk-comments')).toContainText('Ann · morgan@example.test · preserve this comment exactly.')
   await shot('held-comment-retained')
+  await switchTo(p.h.owner.cookie)
   await counsel.command('hold.set',{agreementId:row.id,version:row.version,holdVersion:1,active:false,reason:'Preservation obligation concluded'})
   await p.h.setTime(Date.now()+3*86400000)
   await page.goto(p.origin+'/app#library');await page.reload()
@@ -164,5 +177,39 @@ for(const width of [1440,390])test(`ERASE-001 verified contact erasure, counsel 
   await expect(retention.getByText('2 expired drafts. Nothing has been deleted.',{exact:true})).toHaveCount(0)
   expect((await p.state()).agreements.some((r:any)=>r.id===x.keep.id||r.id===x.held.id)).toBe(false)
   await shot('retention-applied')
+  // Synthetic migrated erasure whose address was absent before private blocks.
+  await p.h.db.prepare("INSERT INTO lk_erasures(id,subject_token,reason,verification,requested_by,at,changed_records) VALUES(?,?,'legacy_verified_request','legacy_verified_request',?,?,1)").bind('synthetic-locket-history','synthetic-locket-history',(await p.state()).actor.id,Date.now()).run()
+  await page.reload()
+  const recovery=page.getByRole('region',{name:'Historical erasure recovery',exact:true})
+  await expect(recovery).toContainText('Personal-data entry and imports are paused')
+  await recovery.getByLabel('Verified original email',{exact:true}).fill('synthetic-locket-history@example.test')
+  await recovery.getByRole('checkbox').check()
+  await shot('historical-recovery')
+  await recovery.getByRole('button',{name:'Restore private protection',exact:true}).click()
+  await expect(recovery).toHaveCount(0)
+  expect((await p.state()).erasureRecovery).toHaveLength(0)
+  await shot('historical-protection-restored')
+ }finally{await p.close()}
+})
+
+
+for(const width of [1440,390])test(`Connection health read-only failure and recovery at ${width}px`,async({page})=>{
+ let failing=true
+ const p=await productPage(page,{width,bindings:{SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-80'},outboundResponse:async()=>failing?Response.json({error:'synthetic-locket-81'},{status:401}):Response.json({accountId:'synthetic-locket-account'})})
+ try{
+  await p.command('signature.connection.configure',{provider:'docusign',baseUrl:'https://demo.docusign.net/restapi/v2.1',accountId:'synthetic-locket-account',version:0})
+  await page.goto(p.origin+'/app#connections');await page.reload()
+  const panel=page.getByRole('region',{name:'docusign connection',exact:true})
+  const shot=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-INT-004-${name}.png`),fullPage:true})}}
+  await expect(panel).toContainText('Unverified')
+  await panel.getByRole('button',{name:'Check connection',exact:true}).click()
+  await expect(panel).toContainText('Credential rejected')
+  await expect(panel).toContainText('Accepted by provider; delivery unconfirmed')
+  await shot('failed')
+  failing=false
+  await panel.getByRole('button',{name:'Retry read-only check',exact:true}).click()
+  await expect(panel).toContainText('Healthy')
+  await expect(panel).toContainText('Read probe succeeded')
+  await shot('recovered')
  }finally{await p.close()}
 })

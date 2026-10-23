@@ -1,4 +1,4 @@
-// Verified owner requests first freeze an exact, hold-aware minimization plan.
+// Verified requests first freeze an exact, hold-aware minimization plan.
 import { requireRole } from './access'
 import type { Handler } from './commands'
 import { bool, fail, json, oneOf, sql, text, type Sql } from './model'
@@ -6,22 +6,27 @@ import { agreementGuards, visibleAgreement } from './records'
 import { draftDeletion } from './draft-erasure'
 import { erasurePlan } from './erasure-plan'
 import { sealErasedAddress } from './erasure-addresses'
-import { resealErasure } from './erasure-reseal'
+import { resealErasure, recoverErasure } from './erasure-reseal'
+const privacy=['owner','counsel','approver','requester','viewer'] as const
 const owner=['owner'] as const, custodians=['owner','counsel'] as const
+async function requirePrivacy(c:Parameters<Handler>[0]){
+ requireRole(c.actor,privacy,'handle verified personal-data erasure')
+ if(c.actor.role!=='owner'&&!await c.db.prepare('SELECT 1 FROM lk_privacy_scopes WHERE operator_id=?').bind(c.actor.id).first())fail('FORBIDDEN','The owner must assign scoped privacy authority.',403)
+}
 function address(p:Record<string,unknown>){const email=text(p,'email',200).toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))fail('INVALID','Choose a contact email.');return email}
 function date(p:Record<string,unknown>,key:string){const value=text(p,key,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value))||new Date(value).toISOString().slice(0,10)!==value)fail('INVALID','Choose a valid calendar date.');return value}
 const preview:Handler=async(c,p)=>{
- requireRole(c.actor,owner,'preview verified personal-data erasure')
+ await requirePrivacy(c)
  if(!bool(p,'verified'))fail('VERIFICATION','Verify the person’s request before previewing erasure.',409)
  const email=address(p),method=oneOf(p,'method',['established_channel','in_person','verified_letter'] as const),reason=oneOf(p,'reason',['privacy_request','legal_request','other_verified_request'] as const),receivedOn=date(p,'receivedOn')
  if(receivedOn>new Date(c.now).toISOString().slice(0,10))fail('INVALID','The received date cannot be in the future.')
  const id=crypto.randomUUID(),subjectToken=crypto.randomUUID().replaceAll('-',''),plan=await erasurePlan(c,email,subjectToken)
  // Receipts never preserve pre-erasure names, addresses or unrestricted reasons.
  const patches=plan.patches.map(r=>({...r,before:Object.fromEntries(Object.keys(r.before).map(k=>[k,'[personal data]']))}))
- return{allowed:owner,result:{id,subjectToken,fingerprint:plan.fingerprint,patches,retained:plan.retained,drafts:plan.drafts},writes:[sql('INSERT INTO lk_erasure_previews VALUES(?,?,?,?,?,?,?,?,NULL)',id,c.actor.id,subjectToken,plan.fingerprint,reason,method,receivedOn,c.now)],checks:plan.checks,audit:[{action:'person.erase.preview',summary:`Verified request ${id}: exact minimization and retained-record preview; no data erased.`}]}
+ return{allowed:privacy,result:{id,subjectToken,scope:plan.privacyScope,fingerprint:plan.fingerprint,patches,retained:plan.retained,drafts:plan.drafts},writes:[sql('INSERT INTO lk_erasure_previews VALUES(?,?,?,?,?,?,?,?,NULL)',id,c.actor.id,subjectToken,plan.fingerprint,reason,method,receivedOn,c.now)],checks:plan.checks,audit:[{action:'person.erase.preview',summary:`Verified request ${id}: exact minimization and retained-record preview; no data erased.`}]}
 }
 const erase:Handler=async(c,p)=>{
- requireRole(c.actor,owner,'confirm verified personal-data erasure')
+ await requirePrivacy(c)
  const email=address(p),previewId=text(p,'previewId',100),fingerprint=text(p,'fingerprint',100)
  const prior=await c.db.prepare('SELECT * FROM lk_erasure_previews WHERE id=? AND actor_id=? AND applied_at IS NULL').bind(previewId,c.actor.id).first<any>()
  if(!prior)fail('STALE','Choose your unconsumed erasure preview.',409)
@@ -62,7 +67,7 @@ const erase:Handler=async(c,p)=>{
  for(const person of operators)writes.push(sql("INSERT INTO lk_person_preferences(operator_id,timezone,digest,email,updated_by,updated_at) VALUES(?,'America/New_York',0,0,?,?) ON CONFLICT(operator_id) DO UPDATE SET email=0",person.id,c.actor.id,c.now),sql("UPDATE lk_notifications SET email_status='cancelled',code='personal_data_erased' WHERE recipient_id=? AND email_status IN ('pending','immediate','digest') AND NOT EXISTS(SELECT 1 FROM lk_legal_holds h WHERE h.agreement_id=lk_notifications.agreement_id AND h.active=1)",person.id))
  const id=crypto.randomUUID(),receipt={subjectToken:prior.subject_token,previewId,fingerprint,retained:plan.retained,drafts,changedRecords}
  writes.push(sql('INSERT INTO lk_erasures(id,subject_token,reason,verification,requested_by,at,changed_records,received_on,receipt) VALUES(?,?,?,?,?,?,?,?,?)',id,prior.subject_token,prior.reason,prior.method,c.actor.id,c.now,changedRecords,prior.received_on,json(receipt)),sql('INSERT INTO lk_erasure_blocks VALUES(?,?,?)',prior.subject_token,await sealErasedAddress(c,email),c.now),sql('UPDATE lk_erasure_previews SET applied_at=? WHERE id=?',c.now,previewId))
- return{allowed:owner,result:{id,changedRecords,receipt},writes,checks,audit:[{action:'person.erase',summary:`Verified personal-data erasure ${id}: ${changedRecords} native records minimized; preview ${previewId} confirmed. Held records, execution evidence and audit retained as listed in the receipt.`}]}
+ return{allowed:privacy,result:{id,changedRecords,receipt,scope:{...plan.privacyScope,agreementIds:plan.privacyScope.agreementIds.filter(id=>!deleted.has(id))}},writes,checks,audit:[{action:'person.erase',summary:`Verified personal-data erasure ${id}: ${changedRecords} native records minimized; preview ${previewId} confirmed. Held records, execution evidence and audit retained as listed in the receipt.`}]}
 }
 const hold:Handler=async(c,p)=>{
  requireRole(c.actor,custodians,'set or release legal holds')
@@ -80,4 +85,4 @@ const remove:Handler=async(c,p)=>{
  const a=await visibleAgreement(c,p.agreementId),out=await draftDeletion(c,a)
  return{allowed:owner,result:{id:a.id,deleted:true},...out,checks:[...out.checks,...agreementGuards(c,a,p)],audit:[{action:'draft.delete',agreementId:a.id,summary:`Deleted unexecuted draft and files: ${text(p,'reason',1000)}`} ]}
 }
-export const erasureHandlers:Record<string,Handler>={'erasure.reseal':resealErasure,'person.erase.preview':preview,'person.erase':erase,'hold.set':hold,'draft.delete':remove}
+export const erasureHandlers:Record<string,Handler>={'erasure.recover':recoverErasure,'erasure.reseal':resealErasure,'person.erase.preview':preview,'person.erase':erase,'hold.set':hold,'draft.delete':remove}

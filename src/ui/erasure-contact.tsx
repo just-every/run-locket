@@ -9,7 +9,7 @@ export function EraseContact({state,party,locket}:{state:LocketState;party:Row;l
  const [review,setReview]=useState<{email:string;preview:ErasurePreview}|null>(null)
  const [result,setResult]=useState<ErasureResult|null>(null)
  const contacts=parse<{name:string;email:string}[]>(party.contacts??'[]').filter(c=>!c.email.endsWith('@invalid.example'))
- if(!can(state,'owner')||!contacts.length&&!review&&!result)return null
+ if(!(can(state,'owner')||state.privacyScopes.some(s=>s.operator_id===state.actor.id&&s.party_id===party.id))||!contacts.length&&!review&&!result)return null
  const today=new Date(state.now).toISOString().slice(0,10)
  return <section className="lk-panel" aria-label="Verified personal-data erasure" style={{minWidth:0,overflowWrap:'anywhere'}}>
   <h2>Verified personal-data erasure</h2>

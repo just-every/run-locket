@@ -1,4 +1,6 @@
 import type { Ctx } from './commands'
+import { getDocumentProxy } from 'unpdf'
+import { privacyChecks } from './privacy-access'
 import { retainedOriginalSql } from './retained-originals'
 import { canonical, fail, json, parse, sha256, sql, type Sql } from './model'
 import { readArtifactBytes } from './artifacts'
@@ -69,7 +71,17 @@ export async function erasurePlan(c:Ctx,email:string,token:string){
  for(const a of agreements){
   const versions=allVersions.filter(v=>v.agreement_id===a.id),files=artifacts.filter(f=>f.agreement_id===a.id)
   let named=related.has(a.id)||versions.some(v=>typeof v.text==='string'&&scrub(v.text)!==v.text)||files.some(f=>scrub(f.filename)!==f.filename)
-  if(!named&&a.status==='draft')for(const f of files){const body=new TextDecoder().decode(await readArtifactBytes(c.db,f.id));if(scrub(body)!==body){named=true;break}}
+  if(!named&&a.status==='draft')for(const f of files){
+   const bytes=await readArtifactBytes(c.db,f.id)
+   let body=new TextDecoder().decode(bytes)
+   if(f.media_type==='application/pdf'){
+    let doc
+    try{doc=await getDocumentProxy(bytes);for(let n=1;n<=doc.numPages;n++){const page=await doc.getPage(n),content=await page.getTextContent();body+=' '+content.items.map(item=>'str' in item?item.str:'').join(' ')}}
+    catch{fail('ERASURE_REVIEW','A draft PDF cannot be inspected. The owner must provide a readable rendition before erasure.',409)}
+    finally{await doc?.loadingTask.destroy()}
+   }
+   if(scrub(body)!==body){named=true;break}
+  }
   if(!named)continue
   related.add(a.id)
   if(a.status==='draft'&&!contracted.has(a.id)){
@@ -84,7 +96,15 @@ export async function erasurePlan(c:Ctx,email:string,token:string){
  for(const r of(await c.db.prepare('SELECT id,agreement_id FROM lk_audit').all<any>()).results)if(related.has(r.agreement_id))retained.push({table:'lk_audit',id:r.id,agreementId:r.agreement_id,reason:'retained_by_law',authorizer:c.actor.id})
  // Reads of restricted records append audit events; retained audit is a receipt,
  // not a mutable part of the business-data preview fingerprint.
+ const privacyScope={partyIds:parties.filter(r=>parse<any[]>(r.contacts??'[]').some(v=>v.email.toLowerCase()===email)||r.email?.toLowerCase()===email||agreements.some(a=>related.has(a.id)&&a.party_id===r.id)).map(r=>r.id),agreementIds:[...related]}
+ if(c.actor.role!=='owner'&&patches.some(p=>!p.agreementId&&!['lk_parties','lk_notification_deliveries'].includes(p.table)))fail('FORBIDDEN','The owner must handle records without an agreement scope.',403)
+ for(const patch of patches)if(patch.table==='lk_notification_deliveries'){
+  const ids=deliveries.filter(d=>d.delivery_id===patch.id).map(d=>d.agreement_id)
+  if(c.actor.role!=='owner'&&!ids.length)fail('FORBIDDEN','The owner must handle notifications without an agreement scope.',403)
+  privacyScope.agreementIds.push(...ids)
+ }
+ checks.push(...await privacyChecks(c,privacyScope))
  const fingerprint=await sha256(canonical({token,patches,drafts,holds,scope}))
  checks.push(sql("(SELECT COALESCE(json_group_array(json_object('agreement',agreement_id,'version',version)),'[]') FROM (SELECT agreement_id,version FROM lk_legal_holds WHERE active=1 ORDER BY agreement_id))=?",json(holds.sort((a,b)=>a.agreement_id.localeCompare(b.agreement_id)).map(h=>({agreement:h.agreement_id,version:h.version})))))
- return{patches,retained,drafts,checks,fingerprint,replacement,related:[...related]}
+ return{privacyScope,patches,retained,drafts,checks,fingerprint,replacement,related:[...related]}
 }

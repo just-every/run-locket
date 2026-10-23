@@ -20,6 +20,9 @@ export interface LocketState extends importReconciliationWorkspace,ServiceLevelW
  accountingLinks:Row[]
   legalHolds: Row[]
   retentionRule: Row|null
+  connections: Row[]
+  privacyScopes: Row[]
+  erasureRecovery: Row[]
   erasures: Row[]
   actor: { id: string; name: string; role: string }
   portfolio: import('../locket/portfolio').Portfolio

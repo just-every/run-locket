@@ -32,6 +32,7 @@ export async function openErasedAddress(c:Ctx,value:string){
 export async function refuseErasedAddress(c:Ctx,type:string,p:Record<string,unknown>){
  if(!['party.save','request.create','legacy.import','import.preview','import.apply'].includes(type))return []
  requireRole(c.actor,type.startsWith('import.')?['owner']:['owner','counsel','approver','requester'],'record or import personal data')
+ if(await c.db.prepare('SELECT 1 FROM lk_erasures e LEFT JOIN lk_erasure_blocks b ON b.subject_token=e.subject_token WHERE b.subject_token IS NULL').first())fail('ERASURE_STATE','Historical erasure recovery is required before recording or importing personal data. The owner must verify and restore each missing address block.',409)
  const rows=(await c.db.prepare('SELECT address_ciphertext FROM lk_erasure_blocks').all<{address_ciphertext:string}>()).results
  // The append-only list is fenced even when empty; an erasure racing a write wins safely.
  const checks=[sql('(SELECT COUNT(*) FROM lk_erasure_blocks)=?',rows.length)]

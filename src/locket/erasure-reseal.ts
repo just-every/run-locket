@@ -4,7 +4,7 @@ import type { Handler } from './commands'
 import { requireRole } from './access'
 import { openErasedAddress, sealErasedAddress } from './erasure-addresses'
 import { erasureFields, privacyWords } from './erasure-plan'
-import { sql, type Sql } from './model'
+import { bool, fail, oneOf, text, sql, type Sql } from './model'
 const owner=['owner'] as const
 export const resealErasure:Handler=async(c)=>{
  requireRole(c.actor,owner,'upgrade private erasure custody')
@@ -49,4 +49,14 @@ export const resealErasure:Handler=async(c)=>{
   }
  }
  return{allowed:owner,result:{resealed,rewritten,retained},writes,checks,audit:[{action:'erasure.reseal',summary:`Upgraded private erasure custody: ${resealed} legacy entries re-sealed, ${rewritten} mutable records randomized; ${retained} held records retained. Original addresses absent from historical hashes cannot be reconstructed.`}]}
+}
+
+export const recoverErasure:Handler=async(c,p)=>{
+ requireRole(c.actor,owner,'recover historical erasure protection')
+ const subjectToken=text(p,'subjectToken',100),email=text(p,'email',200).toLowerCase()
+ if(!bool(p,'verified')||!/^\S+@[^\s@]+\.[^\s@]+$/.test(email))fail('VERIFICATION','Verify the original address against the historical privacy request.',409)
+ const method=oneOf(p,'method',['established_channel','in_person','verified_letter'] as const)
+ const missing=sql('EXISTS(SELECT 1 FROM lk_erasures e LEFT JOIN lk_erasure_blocks b ON b.subject_token=e.subject_token WHERE e.subject_token=? AND b.subject_token IS NULL)',subjectToken)
+ if(!await c.db.prepare('SELECT 1 WHERE '+missing.sql).bind(...missing.params).first())fail('STALE','Choose an unresolved historical erasure.',409)
+ return{allowed:owner,result:{subjectToken,recovered:true},checks:[missing],writes:[sql('INSERT INTO lk_erasure_blocks VALUES(?,?,?)',subjectToken,await sealErasedAddress(c,email),c.now)],audit:[{action:'erasure.recover',summary:`Owner verified historical request ${subjectToken} using ${method} and restored private re-entry protection; original historical custody retained.`}]}
 }
