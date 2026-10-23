@@ -80,3 +80,30 @@ Family analysis additionally requires a committed passing REVIEW-006 live evalua
 AGENT-001 and AGENT-002 use the shared installation mail door. Select Postmark explicitly with MAIL_PROVIDER=postmark and MAIL_API_KEY; their old dedicated server-token setting does not select a provider. Resend remains supported through the same door. Existing scheduled legal notices still require their Resend signing configuration and verified delivery callbacks; selecting another provider does not invent delivery proof.
 
 Supplier performance reports require the assigned agreement owner's explicit source consent and counsel's exact signed metric and credit formula. For optional Linen ticket reads, configure private LINEN_ORIGIN and LINEN_MCP_TOKEN for that installation's owner-minted integration principal with only work.read, work.get and the selected queue grants. Locket reads only the explicitly authorized record IDs; it does not discover tickets, read attachments or modify the source. Original MCP projections may include conversation and identity data, so the consent covers their retention as agreement evidence under the existing original-file custody rules. Missing timestamps remain unknown. Linen closure does not establish contractual resolution or delivery, and its unreconstructible business calendar is not treated as wall-clock performance.
+
+## Release and security review
+
+Run `node scripts/security-questionnaire.mjs` to compare the enabled-build
+deployment bindings with the subprocessor response inventory in
+`security/questionnaire.json`. Optional connectors are included even when
+disabled. Buyers must additionally review owner-configured endpoint destinations
+and contracts; this declaration does not inspect an external provider contract.
+The response covers data flows, encryption, access, audit, backup, incident
+response, vulnerability handling and the buyer responsibility split. It provides
+procurement domain answers for SIG Lite and CAIQ review, with no certification
+claim and no claim to reproduce or complete the official licensed question sets.
+
+Run `node scripts/release-history.mjs` with repository read access. It reads
+published releases, verifies their tags still exist, and reads published security
+advisories. It refuses any release gap above thirty-one days, including the
+current trailing gap. For each published advisory, record its identifier,
+`fixedRelease` tag and merged fix pull-request number as `ghsa`,
+`fixedRelease` and `pull` in `security/security-fixes.json`.
+The check obtains merge timestamps from GitHub and refuses missing provenance,
+mismatched advisory patched versions and publication after seven days.
+An empty advisory list does not constitute a security assurance claim.
+
+The pinned CLI has no update verb. No automatic export-before-update or tested
+previous-release transition is claimed by these checks. Export and verify a
+complete archive before applying a deployment change; hosted export remains
+unsupported by the pinned CLI. OPS-001 remains partial.

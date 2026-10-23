@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "questionSets": {
+    "SIG Lite": [
+      "dataFlows",
+      "encryption",
+      "access",
+      "audit",
+      "backup",
+      "incident",
+      "vulnerabilities",
+      "responsibility",
+      "assurance"
+    ],
+    "CAIQ": [
+      "dataFlows",
+      "encryption",
+      "access",
+      "audit",
+      "backup",
+      "incident",
+      "vulnerabilities",
+      "responsibility",
+      "assurance"
+    ]
+  },
+  "answers": {
+    "dataFlows": "Contract records, originals, audit and attachments remain in the buyer Cloudflare account. Enabled connectors receive only the data required by an explicitly authorized operation. External exchange links expose the reviewed rendition and designated external comments to the bearer; reply addresses grant a separate inbound-only capability.",
+    "encryption": "HTTPS protects provider transport. Cloudflare provides platform storage encryption. Operators must protect account access, local disks, private configuration and complete export archives. Application code does not claim customer-managed encryption keys or end-to-end encryption.",
+    "access": "Native owner and invited roles enforce current session, record, group and field access on server reads and guarded writes. Owner-created API tokens delegate explicit doors, expire within thirty days, and cease when the creator session ends. Public exchange capability possession does not verify identity.",
+    "audit": "Native business commands, restricted reads, file downloads and exports retain attributed audit records. Public exchange activity identifies a designated contact by bearer possession; inbound sender addresses are not identity proof. Buyers must control database access and independent audit retention.",
+    "backup": "The owner runs rer export and protects the resulting complete local archive, verifies integrity and tests restore into an empty installation. Hosted export is not supported by the pinned CLI. No automatic hosted backup service or recovery-time guarantee is claimed.",
+    "incident": "Buyer operators revoke affected sessions, tokens and external exchanges, disable affected connectors, preserve audit and provider logs, assess exposure and arrange legally required notifications. Software vulnerabilities should be reported privately through repository security advisories.",
+    "vulnerabilities": "Release notes identify migrations and data-handling changes. The release-history command checks published release tags for gaps exceeding thirty-one days and published advisories against merged fix pull requests and fixed release publication within seven days. It fails closed when provenance is missing.",
+    "responsibility": "The software maintains application guards and migrations. The buyer owns Cloudflare account security, deployment, identity and connector configuration, consent, backups, monitoring, retention, incident response and procurement review. Connector contracts and processing terms are the buyer responsibility.",
+    "assurance": "Locket has no independent SOC 2 report or SIG or CAIQ certification. Cloudflare platform assurance does not certify this application. These public response domains support SIG Lite and CAIQ procurement review; official licensed question sets must be reconciled by the buyer and are not reproduced here."
+  },
+  "subprocessors": [
+    {
+      "name": "Cloudflare",
+      "data": "Worker, D1 and R2 in the buyer account",
+      "bindings": [],
+      "enabledByDefault": true
+    },
+    {
+      "name": "Installation mail provider: Resend or Postmark",
+      "data": "Invitations, approved messages and attachments",
+      "bindings": [
+        "MAIL_API_KEY",
+        "NOTICE_RESEND_WEBHOOK_SECRET",
+        "POSTMARK_SERVER_TOKEN",
+        "POSTMARK_INBOUND_SECRET",
+        "POSTMARK_REPLY_DOMAIN"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "QuickBooks Online",
+      "data": "Owner-approved read-only invoice evidence",
+      "bindings": [
+        "QUICKBOOKS_ACCESS_TOKEN",
+        "QUICKBOOKS_REALM_ID",
+        "QUICKBOOKS_SANDBOX"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "Owner-selected model endpoint",
+      "data": "Only explicitly approved family snapshots; live evaluation and training prohibition required",
+      "bindings": [
+        "AI_BASE_URL",
+        "AI_MODEL",
+        "AI_API_KEY",
+        "MODELS_SERVICE",
+        "MODELS_KEY"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "Slack",
+      "data": "Explicitly enabled approval notifications",
+      "bindings": [
+        "APPROVAL_SLACK_TOKEN"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "Microsoft Teams and Nook",
+      "data": "Explicitly enabled approval notifications",
+      "bindings": [
+        "APPROVAL_TEAMS_WEBHOOK",
+        "APPROVAL_NOOK_ORIGIN",
+        "APPROVAL_NOOK_TOKEN",
+        "APPROVAL_TEAMS_TOKEN"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "DocuSign",
+      "data": "Reviewed signature packets",
+      "bindings": [
+        "SIGNATURE_DOCUSIGN_TOKEN"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "Adobe Acrobat Sign",
+      "data": "Reviewed signature packets",
+      "bindings": [
+        "SIGNATURE_ACROBAT_TOKEN"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "Dropbox Sign",
+      "data": "Reviewed signature packets",
+      "bindings": [
+        "SIGNATURE_DROPBOX_KEY"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "Inkwell",
+      "data": "Explicit draft preparation; no machine send",
+      "bindings": [
+        "SIGNATURE_INKWELL_TOKEN",
+        "SIGNATURE_INKWELL_ORIGIN"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "Uptime",
+      "data": "Owner-approved monitoring evidence",
+      "bindings": [
+        "UPTIME_ORIGIN",
+        "UPTIME_METRICS_KEY"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "Linen",
+      "data": "Explicitly selected read-only ticket evidence",
+      "bindings": [
+        "LINEN_ORIGIN",
+        "LINEN_MCP_TOKEN"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "Google Calendar and Microsoft Graph",
+      "data": "Explicit personal calendar connections",
+      "bindings": [
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "MICROSOFT_CLIENT_ID",
+        "MICROSOFT_CLIENT_SECRET"
+      ],
+      "enabledByDefault": false
+    }
+  ]
+}

@@ -387,3 +387,31 @@ Before using Acrobat or Dropbox, call `package.tags.prepare {agreementId,version
 ### Connection observations
 
 `connection.check` is owner-only: `{id}` runs a read-only account probe for `docusign`, `quickbooks`, `slack` or `teams`, using the installation’s existing secret bindings. It never retries a business operation. The state’s owner-only `connections` array names account, status, safe reason, last successful probe, affected agreement IDs and owner-alert outcome. Unsupported probes remain `unverified`. A transition into failure claims one generic owner email per incident; provider acceptance leaves delivery unconfirmed, and uncertain sends are not automatically repeated. Reconnect through server settings, then retry the probe. Automatic observations of all connector operations and credential-expiry warnings remain INT-004 gaps.
+## Explicit integration tokens
+
+The signed-in owner calls `token.create` with `label`, an `expiresAt` epoch
+timestamp within thirty days, an explicit `commands` array and a `reads` array.
+The response returns a server-generated `token`; only its hash is stored.
+The same owner session may recover the response by replaying the original command
+identity. Record the token privately. The owner calls `token.revoke` with its
+`id` to revoke it. Tokens cannot create other tokens.
+
+Integrations send `Authorization: Bearer TOKEN`. Commands still use the normal
+JSON envelope and the installation origin header. Read scopes name exact doors
+such as `/state`, `/repository`, `/files` and `/reports`; command scopes name
+exact commands such as `request.create`. Empty scope lists deny those operations.
+Expiry, revocation, the creator session and current native owner authority are
+rechecked. Every native record, group and field restriction remains in effect.
+Tokens stop working when their creating session ends. This conservative session
+binding awaits ct approval; persistent integration identities are not claimed.
+
+## Exchange capability separation
+
+`exchange.send` omits `token`; supplying it is refused. Its response includes
+server-generated `token`, separate `replyToken` and the honest `mailReceipt`.
+The public link uses the link token in its fragment. Only the reply token goes
+in the provider reply address. Reply tokens cannot open or download documents,
+and link tokens cannot authenticate inbound replies. Provider authentication
+and the recorded contact address remain required. Legacy reply addresses cease
+working after migration; issue a fresh exchange. Neither capability is retained
+raw in a command result, audit or archive. Session-secret rotation ends access.

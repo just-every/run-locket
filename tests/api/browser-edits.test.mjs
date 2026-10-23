@@ -328,3 +328,22 @@ test('Rejected, uncertain and rate-limited exchange mail attempts retain honest 
   }finally{await h.close()}
  }
 })
+
+test('Scoped integration tokens permit only named native doors and end on explicit revocation or creator sign-out',async t=>{
+ const h=await installation();t.after(()=>h.close())
+ const minted=await h.owner.command('token.create',{label:'synthetic-locket-40',commands:['request.create'],reads:['/state'],expiresAt:Date.now()+3600000})
+ const request=(path,body)=>h.request('/api/locket'+path,{headers:{authorization:'Bearer '+minted.token},...(body?{method:'POST',body}:{})})
+ assert.equal((await request('/state')).status,200)
+ const create={commandId:randomUUID(),type:'request.create',payload:{title:'synthetic-locket-41',type:'nda',party:{name:'synthetic-locket-42',kind:'supplier',contacts:[]}}}
+ const created=await request('/commands',create);assert.equal(created.status,200,await created.text())
+ assert.equal((await request('/export')).status,403)
+ assert.equal((await request('/commands',{commandId:randomUUID(),type:'token.create',payload:{}})).status,403)
+ await h.owner.command('token.revoke',{id:minted.id});assert.equal((await request('/state')).status,401)
+ const expired=await h.owner.command('token.create',{label:'synthetic-locket-43',commands:[],reads:['/state'],expiresAt:Date.now()+120000})
+ await h.setTime(Date.now()+180000)
+ assert.equal((await h.request('/api/locket/state',{headers:{authorization:'Bearer '+expired.token}})).status,401)
+ const live=await h.owner.command('token.create',{label:'synthetic-locket-44',commands:[],reads:['/state'],expiresAt:Date.now()+3600000})
+ const archive=await(await h.owner.request('/api/locket/export')).json();assert.ok(!JSON.stringify(archive).includes(live.token))
+ await h.owner.request('/auth/signout',{method:'POST',body:{}})
+ assert.equal((await h.request('/api/locket/state',{headers:{authorization:'Bearer '+live.token}})).status,403)
+})

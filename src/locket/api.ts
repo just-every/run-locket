@@ -1,3 +1,4 @@
+import { integrationActor, scopedTokenHandlers } from './scoped-tokens'
 import { approvalChannelConfigHandlers } from './approval-channel-config'
 import { approvalChannelHandlers, approvalChannelRequestView } from './approval-channel-requests'
 import { approvalChannelWordManifest } from './approval-channel-word'
@@ -81,6 +82,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
+  ...scopedTokenHandlers,
   ...wordReviewHandlers,
   ...remediationHandlers,
   ...reviewRedlineHandlers,
@@ -143,7 +145,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     if (clickwrap) return clickwrap
     const exchange = await publicExchangeResponse(request,env)
     if(exchange)return exchange
-    const actor = await currentActor(request, env)
+    const actor = await integrationActor(env,request,path) ?? await currentActor(request, env)
     if(request.method==='GET'&&path.startsWith('/approval-channels/requests/'))return reply(await approvalChannelRequestView(env,actor,decodeURIComponent(path.slice('/approval-channels/requests/'.length))))
     if(request.method==='GET'&&path==='/approval-channels/word-manifest')return approvalChannelWordManifest(env)
     if(request.method==='GET'&&path==='/outcome-report')return reply(await outcomeReport(env,actor,url.searchParams.get('month')??''))

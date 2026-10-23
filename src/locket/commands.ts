@@ -1,5 +1,6 @@
 import { alertConnectionFailure } from './connection-health'
 import { authorizeErasureResult } from './privacy-access'
+import { integrationCommandChecks, scopedTokenResult } from './scoped-tokens'
 import { dispatchSignature } from './signature-send'
 import { authorizeSignatureResult } from './signature-results'
 import { runApprovalChannels } from './approval-channel-automatic'
@@ -96,7 +97,9 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   if (typeof type !== 'string' || !handlers[type]) fail('UNKNOWN_COMMAND', `Unknown command ${String(type)}.`)
   const payload = object(input.payload)
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
+  const integrationChecks=await integrationCommandChecks(c,type)
   const completed = async (result: unknown) => {
+    if(type==='token.create')result=await scopedTokenResult(c,result)
     if(type.startsWith('package.')||type.startsWith('signature.'))await authorizeSignatureResult(c,type,payload)
     if(type==='package.send')await dispatchSignature(c,(result as {id:string}).id)
     if(type.startsWith('approval.channel.'))await authorizeChannelResult(c,type,payload)
@@ -139,7 +142,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   c.erasureChecks=await refuseErasedAddress(c,type,payload)
   const familyChecks = await familyCommandChecks(c, type, payload)
   const out = await handlers[type](c, payload)
-  out.checks=[...familyChecks,...(out.checks??[]),...(c.erasureChecks??[]),policyVersionCheck(policy.version)]
+  out.checks=[...integrationChecks,...familyChecks,...(out.checks??[]),...(c.erasureChecks??[]),policyVersionCheck(policy.version)]
   const notifications = await commandNotifications(c, type, payload, out)
   const workflow = await workflowWrites(c, out.audit)
   try {
