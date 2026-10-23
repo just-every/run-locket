@@ -1,3 +1,4 @@
+import { ChatNotifications } from './chat-notifications'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Field, Form, value } from './controls'
@@ -17,6 +18,7 @@ export function ApprovalChannelSettings({state,locket,personalOnly=false}:{state
  const w=state.approvalChannels
  if(state.actor.role==='agent')return null
  return <>
+  <ChatNotifications state={state} locket={locket} personalOnly={personalOnly}/>
   <section className="lk-panel" aria-label="Personal approval channels">
    <h2>Personal approval channels</h2><p>Choose where approval requests and their reminders reach you. Chat requires an owner-bound conversation. Email also follows your notification email and daily digest preferences. Every link requires your current Locket sign-in.</p>
    <Form key={w.preferences.version} busy={locket.busy} submit="Save approval channels" onSubmit={data=>void locket.run('approval.channel.preferences',{version:w.preferences.version,channels:Object.keys(names).filter(channel=>data.get(channel)==='on')})}>

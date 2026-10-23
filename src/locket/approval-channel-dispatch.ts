@@ -1,3 +1,4 @@
+import { chatAudienceChecks } from './chat-notifications'
 // One claimed attempt per delivery, even when the provider outcome is unknown.
 import type { Bindings } from '../auth.server'
 import { operatorMail } from '../mail.server.mjs'
@@ -76,6 +77,13 @@ export async function dispatchApprovalChannels(env:Bindings,now=Date.now(),reque
     ])
     continue
    }else checks.push(sql('COALESCE((SELECT digest FROM lk_person_preferences WHERE operator_id=?),0)=0',r.recipient_id))
+  }
+  if(['slack','teams','nook'].includes(d.channel)&&!channelLocal(env)){
+   const restricted=await env.DB.prepare('SELECT restricted FROM lk_agreements WHERE id=?').bind(r.agreement_id).first<{restricted:number}>()
+   if(restricted?.restricted){
+    try{checks.push(...await chatAudienceChecks(c,{channel:d.channel,destination:d.destination??''},{agreement_id:r.agreement_id,recipient_id:r.recipient_id}))}
+    catch{await finish('suppressed','audience_unverified');continue}
+   }
   }
   if((await hiddenFields(env.DB,{...channelScheduler,id:r.recipient_id})).length||!await notificationCheck(env.DB,checks)){await finish('cancelled','authority_or_record_changed');continue}
   const guard=crypto.randomUUID()

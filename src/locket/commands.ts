@@ -99,6 +99,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const integrationChecks=await integrationCommandChecks(c,type)
   const completed = async (result: unknown) => {
+    if(type==='notification.chat.identity')requireRole(c.actor,['owner'],'read chat identity outcomes')
     if(type==='token.create')result=await scopedTokenResult(c,result)
     if(type.startsWith('package.')||type.startsWith('signature.'))await authorizeSignatureResult(c,type,payload)
     if(type==='package.send')await dispatchSignature(c,(result as {id:string}).id)

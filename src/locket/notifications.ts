@@ -1,3 +1,4 @@
+import { chatNotificationWrites } from './chat-notifications'
 import { requestLink } from './approval-channel-requests'
 // Person-scoped notifications. The business command inserts its events in the
 // same guarded batch as the change; readers and senders repeat current access.
@@ -50,6 +51,7 @@ export async function notificationPreferences(db: D1Database, id: string): Promi
  * agreements produce no row; replaying an event never creates another item. */
 export function notificationWrites(c: Ctx, input: NotificationInput): Sql[] {
   const checks = notificationReaderSql(c.actor, input.agreementId, input.recipientId)
+  const notificationId=crypto.randomUUID()
   return [sql(`INSERT INTO lk_notifications(id,event_key,agreement_id,recipient_id,kind,source_kind,source_id,created_at,version_id,version_digest,in_app,email_status,code)
     SELECT ?,?,?,?,?,?,?,?,
       CASE WHEN ?='approval' THEN (SELECT current_version_id FROM lk_agreements WHERE id=?) ELSE NULL END,
@@ -58,8 +60,8 @@ export function notificationWrites(c: Ctx, input: NotificationInput): Sql[] {
       CASE WHEN COALESCE((SELECT email FROM lk_person_preferences WHERE operator_id=?),1)=0 THEN 'suppressed' ELSE 'pending' END,
       CASE WHEN COALESCE((SELECT email FROM lk_person_preferences WHERE operator_id=?),1)=0 THEN 'email_disabled' ELSE NULL END
     WHERE ${checks.map(s => `(${s.sql})`).join(' AND ')} ON CONFLICT DO NOTHING`,
-    crypto.randomUUID(), input.key, input.agreementId, input.recipientId, input.kind, input.sourceKind ?? null, input.sourceId ?? null, c.now,
-    input.kind, input.agreementId, input.kind, input.agreementId, input.recipientId, input.recipientId, input.recipientId, ...checks.flatMap(s => s.params))]
+    notificationId, input.key, input.agreementId, input.recipientId, input.kind, input.sourceKind ?? null, input.sourceId ?? null, c.now,
+    input.kind, input.agreementId, input.kind, input.agreementId, input.recipientId, input.recipientId, input.recipientId, ...checks.flatMap(s => s.params)), ...chatNotificationWrites(notificationId)]
 }
 
 export function notificationLink(env: Bindings, row: Pick<NotificationRow, 'agreement_id' | 'kind' | 'event_key'>): string {

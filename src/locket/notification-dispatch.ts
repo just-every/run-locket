@@ -1,3 +1,4 @@
+import { runChatNotifications } from './chat-notifications'
 // Notification routing and provider claims. An interrupted or uncertain claim
 // remains durable and is never automatically resent.
 import type { Bindings } from '../auth.server'
@@ -176,6 +177,7 @@ export async function runNotifications(env: Bindings, now: number, includeDigest
     if (!preferences.digest) await send(c, row.recipient_id, 'immediate', preferences.timezone, null, [item])
     else groups.set(row.recipient_id, [...(groups.get(row.recipient_id) ?? []), item])
   }
+  await runChatNotifications(env,now)
   if (!includeDigests) return
   for (const [recipient, items] of groups) {
     const preferences = await notificationPreferences(c.db, recipient)

@@ -45,7 +45,7 @@ function PartyField({ state }: { state: LocketState }) {
 }
 const party = (data: FormData) => (value(data, 'partyMode') === 'existing' ? { partyId: value(data, 'partyId') } : { party: { name: value(data, 'partyName'), kind: value(data, 'partyKind'), ...(value(data, 'partyEin') ? { taxIdKind: 'ein', taxId: value(data, 'partyEin') } : {}) } })
 
-export function Intake({ state, locket }: { state: LocketState; locket: Locket }) {
+export function Intake({ state, locket, chatLaunch }: { state: LocketState; locket: Locket; chatLaunch?:string }) {
   const { run, busy } = locket
   const [type, setType] = useState('customer')
   const [source, setSource] = useState('template')
@@ -81,6 +81,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
     <div className="lk-intake">
       <a className="lk-back" href="#agreements"><Icon name="back" />Back to agreements</a>
       <div className="lk-titlebar"><div><h1>New agreement request</h1><p className="lk-muted">Capture the deal, choose an approved template or attach the draft, and list what must be attached before review.</p></div></div>
+      {chatLaunch&&<p role="status">Opened from Slack. Sign in as the mapped Locket member and complete the current request form. The link expires after ten minutes.</p>}
       {forms.length>0 && <section className="lk-panel"><Field label="Request form"><select value={formId} onChange={e=>{setFormId(e.target.value);setAnswers({});setCurrency('USD')}}><option value="">Standard request</option>{forms.map(f=><option key={f.id} value={f.id}>{f.published!.definition.name} · v{f.published!.number}</option>)}</select></Field></section>}
       {!requestType ? <p className="lk-empty">No request forms are available to your current role or memberships.</p> : <Form busy={busy} submit="Create request" className="lk-intake-form" onSubmit={async data => {
         const file = data.get('file') as File | null
@@ -90,6 +91,7 @@ export function Intake({ state, locket }: { state: LocketState; locket: Locket }
           if (k.startsWith('clause.')) clauseChoices[k.slice(7)] = String(v)
         }
         const result = await run('request.create', {
+          ...(chatLaunch?{chatLaunch}:{}),
           title: value(data, 'title'), type: requestType, ...(form ? {formVersionId:form.id,formAnswers:await readIntakeFormAnswers(formAnswers,visibleFields)} : {}), customValues: readCustomValues(data, customFieldsFor(state, requestType)), ...party(data), ...(entityId ? { entityId } : {}), value: value(data, 'value') || undefined, currency, ...(currency !== 'USD' ? { usdRate: value(data, 'usdRate') } : {}), timezone: zone, ownerId: value(data, 'ownerId'),
           neededBy: value(data, 'neededBy') || undefined, startDate: value(data, 'startDate') || undefined, restricted: data.get('restricted') === 'on',
           parentId: value(data, 'parentId') || undefined, requirements: value(data, 'requirements').split('\n').map(s => s.trim()).filter(Boolean),

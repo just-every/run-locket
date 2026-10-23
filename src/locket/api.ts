@@ -1,3 +1,5 @@
+import { chatIntakeResponse } from './chat-intake'
+import { chatHandlers } from './chat-notifications'
 import { integrationActor, scopedTokenHandlers } from './scoped-tokens'
 import { approvalChannelConfigHandlers } from './approval-channel-config'
 import { approvalChannelHandlers, approvalChannelRequestView } from './approval-channel-requests'
@@ -82,7 +84,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...scopedTokenHandlers,
+  ...chatHandlers, ...scopedTokenHandlers,
   ...wordReviewHandlers,
   ...remediationHandlers,
   ...reviewRedlineHandlers,
@@ -129,6 +131,8 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
   if (!url.pathname.startsWith('/api/locket/')) return null
   const path = url.pathname.slice('/api/locket'.length)
   try {
+    const chatIntake=await chatIntakeResponse(request,env)
+    if(chatIntake)return chatIntake
     const event = await noticeEventResponse(request, env)
     if (event) return event
     const remediationReply=await inboundRemediationResponse(request,env)
