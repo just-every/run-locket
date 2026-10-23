@@ -39,7 +39,10 @@
     {
       "name": "Cloudflare",
       "data": "Worker, D1 and R2 in the buyer account",
-      "bindings": [],
+      "bindings": [
+        "INSTALLATION_KEY",
+        "INSTALLATION_KEY_PREVIOUS"
+      ],
       "enabledByDefault": true
     },
     {
