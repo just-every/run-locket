@@ -116,6 +116,15 @@ test(`MOBILE-001 owner runs an agreement from request to renewal notice at 1440p
     await expect(page.locator('.lk-findings').getByText('Rule breached')).toBeVisible()
     await shot(page, width, 'agreement-review')
 
+    // The complete signing packet is reviewed before exact-version approval.
+    await page.getByRole('link', { name: 'Signature', exact: true }).click()
+    scope = panel(page, 'Review signing packet')
+    await scope.getByLabel('Packet recipient 1 name').fill('Hana Park')
+    await scope.getByLabel('Packet recipient 1 email').fill('hana@harbor.example')
+    await scope.getByLabel('Reason for packet changes').fill('Reviewed Hana Park as the counterparty signer before approval.')
+    await submit(page, scope, 'Save signing packet')
+    await noOverflow(page)
+
     // Approvals: owner records both decisions on the exact version.
     await page.getByRole('link', { name: 'Approvals', exact: true }).click()
     for (let i = 0; i < 2; i++) await submit(page, page.locator('.lk-route li').filter({ has: page.getByRole('button', { name: 'Record decision' }) }).first(), 'Record decision')
@@ -124,9 +133,7 @@ test(`MOBILE-001 owner runs an agreement from request to renewal notice at 1440p
 
     // Signature: package and hand off to the existing provider.
     await page.getByRole('link', { name: 'Signature', exact: true }).click()
-    scope = panel(page, 'Send for signature')
-    await scope.getByLabel('Recipient 1 name').fill('Hana Park')
-    await scope.getByLabel('Recipient 1 email').fill('hana@harbor.example')
+    scope = panel(page, 'Prepare approved packet')
     await submit(page, scope, 'Prepare signature package')
     await expect(page.getByRole('link', { name: 'Signature-ready PDF' })).toBeVisible()
     const pdfResponse = await page.request.get(origin + (await page.getByRole('link', { name: 'Signature-ready PDF' }).getAttribute('href')))
