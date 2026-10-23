@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect,useState } from 'react'
 import { fileToPayload,type LocketState,type Row } from './api'
 import type { Locket } from './app'
 import { Field,Form,value } from './controls'
@@ -12,6 +12,7 @@ export function SignaturePacketEditor({state,a,locket}:{state:LocketState;a:Row;
  const party=state.parties.find(p=>p.id===a.party_id),contacts=[...parse<any[]>(party?.signatories??'[]'),...parse<any[]>(party?.contacts??'[]')]
  const [recipients,setRecipients]=useState<Recipient[]>(()=>packet?parse(packet.recipients):contacts.length?[{name:contacts[0].name,email:contacts[0].email,action:'sign',partyRole:'counterparty'}]:[{name:'',email:'',action:'sign',partyRole:'counterparty'}])
  const [documents,setDocuments]=useState<any[]>(()=>packet?parse(packet.documents):[]),[fields,setFields]=useState<any[]>(()=>packet?parse(packet.fields):[])
+ useEffect(()=>{if(packet){setRecipients(parse(packet.recipients));setDocuments(parse(packet.documents));setFields(parse(packet.fields))}},[packet?.revision])
  const files=state.artifacts.filter(f=>f.agreement_id===a.id&&['attachment','packet'].includes(f.role)&&f.media_type==='application/pdf')
  const primary=state.artifacts.find(f=>f.version_id===v?.id&&f.role==='rendition')??state.artifacts.find(f=>f.version_id===v?.id&&f.role==='original'&&f.media_type==='application/pdf')
  const [previewId,setPreviewId]=useState('main'),[page,setPage]=useState(1),[kind,setKind]=useState('signature'),[partyRole,setPartyRole]=useState('counterparty'),[dimensions,setDimensions]=useState<{width:number;height:number}[]>([])
