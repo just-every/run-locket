@@ -1,6 +1,8 @@
 import { requireRole } from './access'
 import { readArtifactBytes } from './artifacts'
-import { auditSql,commit,type Ctx,type Handler } from './commands'
+import { auditSql,commit,guardSql,type Ctx,type Handler } from './commands'
+import { commandNotifications } from './notification-events'
+import { workflowWrites } from './workflow-history'
 import { fail,integer,Problem,sha256,sql,text,type Sql } from './model'
 import { agreementGuards,bump,currentVersion,requireStatus,visibleAgreement,type AgreementRow } from './records'
 import { decisionContext,routing } from './review'
@@ -56,8 +58,13 @@ export async function dispatchSignature(c:Ctx,id:string=c.commandId) {
  const finish=async(status:string,envelopeId:string|null,code:string|null)=>{
   const previous=claimed?'sending':'queued',audit=auditSql(c,{action:`signature.provider.${status}`,agreementId:row.agreement_id,summary:`Provider operation ${status}${envelopeId?'; provider receipt '+envelopeId:''}. ${status==='provider_prepared'?'Draft only; send and signing remain unconfirmed.':status==='sent'?'The provider accepted the send; completion remains unconfirmed.':'No automatic retry.'}`})
   const statements=[sql(`INSERT INTO lk_audit SELECT ${audit.params.map(()=>'?').join(',')} WHERE EXISTS(SELECT 1 FROM lk_signature_dispatches WHERE id=? AND status=? AND attempt_id IS ?)`,...audit.params,id,previous,claimed?attempt:null),sql('UPDATE lk_signature_dispatches SET status=?,envelope_id=?,outcome_code=? WHERE id=? AND status=? AND attempt_id IS ?',status,envelopeId,code,id,previous,claimed?attempt:null)]
-  if(status==='sent')statements.push(sql("UPDATE lk_packages SET status='sent',envelope_id=?,sent_by=?,sent_at=? WHERE id=?",envelopeId,row.actor_id,Date.now(),row.package_id),sql("UPDATE lk_agreements SET status='out_for_signature',version=version+1,updated_at=? WHERE id=?",Date.now(),row.agreement_id))
-  await c.db.batch(statements.map(s=>c.db.prepare(s.sql).bind(...s.params)))
+  if(status==='sent'){
+   const transition={...c,now:Date.now()},event={action:'package.sent',agreementId:row.agreement_id,summary:'The provider accepted the exact reviewed signing packet; completion remains unconfirmed.'}
+   const history=await workflowWrites(transition,[event]),notifications=await commandNotifications(transition,'package.sent',{agreementId:row.agreement_id},{allowed:['owner'],result:{status:'sent'},writes:[],audit:[event]})
+   statements.push(sql("UPDATE lk_packages SET status='sent',envelope_id=?,sent_by=?,sent_at=? WHERE id=?",envelopeId,row.actor_id,transition.now,row.package_id),sql("UPDATE lk_agreements SET status='out_for_signature',version=version+1,updated_at=? WHERE id=?",transition.now,row.agreement_id),...history,...notifications)
+  }
+  const guard=crypto.randomUUID()
+  await c.db.batch([guardSql(guard,[sql('EXISTS(SELECT 1 FROM lk_signature_dispatches WHERE id=? AND status=? AND attempt_id IS ?)',id,previous,claimed?attempt:null)]),...statements,sql('DELETE FROM lk_guard WHERE id=?',guard)].map(s=>c.db.prepare(s.sql).bind(...s.params)))
  }
  let packet:ProviderPacket,connection:SignatureConnection,token:string
  try{
