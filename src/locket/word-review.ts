@@ -31,7 +31,7 @@ export async function wordReviewView(env:Bindings,actor:Actor,versionId:string){
 
 // Copy version-bound threads, keeping a source anchor where its words survive.
 // Imported anchors follow the actual XML ranges after revision decisions.
-function anchoredComments(parts:WordPart[],base:VersionRow,rows:any[],externalOnly=false){
+export function anchoredComments(parts:WordPart[],base:VersionRow,rows:any[],externalOnly=false){
  const model=inspectWordReview(parts),mapped=JSON.parse(base.fields??'{}').wordReview?.comments??[]
  const selected=rows.filter(row=>!externalOnly||row.audience==='external'),numbers=new Map(selected.map((row,i)=>[row.id,String(i)]))
  return selected.map(row=>{

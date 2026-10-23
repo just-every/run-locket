@@ -253,3 +253,37 @@ test('NEG-006 refuses internal versions, unsafe disclosure, forged scope, revoke
   assert.equal((await scoped('open',otherToken)).status,404,'frozen renderings containing erased comments cannot be reopened by another contact')
   assert.ok(!(await h.owner.state()).comments.some(c=>c.external_author_email==='synthetic-locket-3@example.test'))
 })
+
+test('Accepted findings become three reviewer-attributed browser and Word redlines with edited wording, reasons and retained model provenance',async t=>{
+ const h=await installation();t.after(()=>h.close());const {reviewRedlinesFixture}=await import('./review-redlines-fixture.mjs'),x=await reviewRedlinesFixture(h)
+ const a=await x.current(),payload={agreementId:a.id,version:a.version,versionId:x.v.id,changes:x.changes},commandId=crypto.randomUUID()
+ const result=await h.owner.command('review.redlines',payload,{commandId});assert.deepEqual(await h.owner.command('review.redlines',payload,{commandId}),result)
+ const state=await h.owner.state(),v=state.versions.find(row=>row.id===result.versionId),fields=JSON.parse(v.fields),records=fields.reviewRedlines.changes
+ assert.equal(records.length,3);assert.ok(records.every(r=>r.reviewerId===state.actor.id&&r.provenance.proposalId===x.proposal.id&&r.provenance.inputDigest===x.v.digest));assert.deepEqual(records[0].provenance.declaredModel,x.provenance)
+ assert.ok(v.text.includes('45 days'));assert.ok(records.some(r=>r.reason==='Counsel reviewed the higher cap for this scope.'))
+ const word=await(await h.owner.request('/api/locket/word-review?versionId='+v.id)).json()
+ assert.equal(word.changes.filter(c=>c.kind==='insertion').length,3);assert.equal(word.changes.filter(c=>c.kind==='deletion').length,3);assert.ok(word.changes.every(c=>c.author===state.actor.name));assert.equal(word.comments.length,3)
+ const comments=state.comments.filter(c=>c.version_id===v.id),external=state.commentAudiences.filter(side=>side.audience==='external'&&comments.some(c=>c.id===side.id))
+ assert.equal(comments.length,3);assert.equal(external.length,1);assert.equal(comments.find(c=>c.id===external[0].id).body,'Match the accepted supplier playbook for confidentiality')
+ const comparison=await(await h.owner.request(`/api/locket/compare?from=${x.v.id}&to=${v.id}`)).json();assert.equal(comparison.lines.filter(l=>l.op==='add').length,3);assert.equal(comparison.lines.filter(l=>l.op==='del').length,3)
+ const current=await x.current(),out=await h.owner.command('word.output',{agreementId:a.id,version:current.version,versionId:v.id,kind:'redline',confirmCleanup:true}),outgoing=Buffer.from(await(await h.owner.request('/api/locket/files/'+out.artifactId)).arrayBuffer()).toString()
+ assert.ok(outgoing.includes('Match the accepted supplier playbook for confidentiality'));assert.ok(!outgoing.includes('Counsel reviewed the higher cap'));assert.ok(!outgoing.includes('Match the accepted supplier playbook for payment'))
+ const source=state.artifacts.find(row=>row.version_id===x.v.id&&row.role==='original');assert.deepEqual(Buffer.from(await(await h.owner.request('/api/locket/files/'+source.id)).arrayBuffer()),x.bytes)
+ const archive=await(await h.owner.request('/api/locket/export')).json();assert.deepEqual(JSON.parse(archive.records.lk_versions.find(row=>row.id===v.id).fields).reviewRedlines,fields.reviewRedlines)
+ assert.ok(state.audit.some(e=>e.action==='review.redlines'));assert.equal(archive.records.lk_exchanges.length,0)
+})
+
+test('Review redlines refuse unaccepted, overlapping, stale and unauthorized application without sending or changing originals',async t=>{
+ const h=await installation();t.after(()=>h.close());const {reviewRedlinesFixture}=await import('./review-redlines-fixture.mjs'),x=await reviewRedlinesFixture(h,{decide:false})
+ let a=await x.current();await h.owner.command('review.redlines',{agreementId:a.id,version:a.version,versionId:x.v.id,changes:[]},{error:'INVALID'})
+ await h.owner.command('proposal.decide',{proposalId:x.proposal.id,decision:'approve'})
+ const state=await h.owner.state(),finding=state.deviations.find(d=>d.proposal_id===x.proposal.id),changes=[{findingId:finding.id,wording:'Reviewed replacement.',reason:'Reviewed reason.'}]
+ a=await x.current();const p={agreementId:a.id,version:a.version,versionId:x.v.id,changes}
+ const viewer=await h.invite('synthetic-locket-92@example.test','viewer'),agent=await h.invite('synthetic-locket-93@example.test','agent')
+ for(const actor of [viewer,agent])await actor.command('review.redlines',p,{error:'FORBIDDEN'})
+ await h.owner.command('review.redlines',{...p,changes:[...changes,...changes]},{error:'OVERLAP'})
+ await h.owner.command('review.redlines',{...p,version:a.version+1},{error:'STALE'})
+ await h.owner.command('review.redlines',p)
+ await h.owner.command('review.redlines',p,{error:'NOT_CURRENT'})
+ assert.equal((await(await h.owner.request('/api/locket/export')).json()).records.lk_exchanges.length,0)
+})

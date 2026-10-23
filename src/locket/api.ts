@@ -1,6 +1,7 @@
 import { servicePerformanceHandlers } from './service-performance'
 import { wordReviewHandlers, wordReviewView } from './word-review'
 import { inboundRemediationResponse } from './remediation-stops'
+import { reviewRedlineHandlers } from './review-redlines'
 import { remediationHandlers } from './remediation'
 import { renewalLifecycleHandlers } from './renewal-lifecycle'
 import { renewalCalendarHandlers } from './renewal-calendar'
@@ -76,6 +77,7 @@ import { compare, download, exportArchive, state } from './views'
 export const handlers: Record<string, Handler> = {
   ...wordReviewHandlers,
   ...remediationHandlers,
+  ...reviewRedlineHandlers,
   ...renewalLifecycleHandlers,...renewalCalendarHandlers,
   ...serviceLevelHandlers,
   ...servicePerformanceHandlers,

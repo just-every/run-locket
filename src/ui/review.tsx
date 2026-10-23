@@ -1,3 +1,4 @@
+import { ReviewRedlines } from './review-redlines'
 import { ApprovalRoutingInputs, ApprovalAvailability } from './approval-rules'
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
@@ -24,6 +25,7 @@ export function Review({ state, a, locket }: { state: LocketState; a: Row; locke
   return (
     <div className="lk-tab-page">
       <ApprovalMail state={state} a={a} locket={locket} />
+      <ReviewRedlines key={v?.id} state={state} a={a} locket={locket} />
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Review findings</h2>{playbook && <span className="lk-muted">Playbook v{playbook.number}</span>}</div>
         {findings.length === 0 ? <Empty>No findings recorded. Each finding cites the exact passage it is about.</Empty> : (
