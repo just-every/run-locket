@@ -6,8 +6,8 @@ import { file, pdf } from '../api/files.mjs'
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
 const quote = 'The supplier keeps insurance in force and reports on security every quarter.'
-for (const width of [1440, 390]) {
-  test(`OBL-002 refuses an insurance obligation done without its certificate, emails and escalates an overdue one and shows the raised risk on the counterparty page at ${width}px`, async ({ page }) => {
+test(`OBL-002 refuses an insurance obligation done without its certificate, emails and escalates an overdue one and shows the raised risk on the counterparty page at 1440px/390px`, async ({ page }) => {
+  for (const width of [1440, 390]) {
     const p = await productPage(page, { width })
     try {
       const screenshot = async (name: string) => {
@@ -53,5 +53,5 @@ for (const width of [1440, 390]) {
     } finally {
       await p.close()
     }
-  })
-}
+  }
+})
