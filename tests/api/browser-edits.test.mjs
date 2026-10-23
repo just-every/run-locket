@@ -276,6 +276,8 @@ test('Accepted findings become three reviewer-attributed browser and Word redlin
 test('Review redlines refuse unaccepted, overlapping, stale and unauthorized application without sending or changing originals',async t=>{
  const h=await installation();t.after(()=>h.close());const {reviewRedlinesFixture}=await import('./review-redlines-fixture.mjs'),x=await reviewRedlinesFixture(h,{decide:false})
  let a=await x.current();await h.owner.command('review.redlines',{agreementId:a.id,version:a.version,versionId:x.v.id,changes:[]},{error:'INVALID'})
+ const quote='Invoices are due within 60 days.',start=x.v.text.indexOf(quote),manual=await h.owner.command('deviation.add',{agreementId:a.id,versionId:x.v.id,clauseKey:'payment',result:'breached',start,end:start+quote.length,quote,explanation:'Manual finding awaiting proposal acceptance.',proposedWording:'Invoices are due within 30 days.',questions:[]})
+ a=await x.current();await h.owner.command('review.redlines',{agreementId:a.id,version:a.version,versionId:x.v.id,changes:[{findingId:manual.id}]},{error:'FINDING'})
  await h.owner.command('proposal.decide',{proposalId:x.proposal.id,decision:'approve'})
  const state=await h.owner.state(),finding=state.deviations.find(d=>d.proposal_id===x.proposal.id),changes=[{findingId:finding.id,wording:'Reviewed replacement.',reason:'Reviewed reason.'}]
  a=await x.current();const p={agreementId:a.id,version:a.version,versionId:x.v.id,changes}

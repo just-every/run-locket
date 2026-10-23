@@ -1,6 +1,6 @@
 // Applying accepted, cited wording is deterministic: this door makes no model
 // request and never represents an unevaluated model as evaluated.
-import { may, requireRole } from './access'
+import { requireRole } from './access'
 import { DOCX, readArtifactBytes, storeArtifact } from './artifacts'
 import { retainedClauseUses } from './clause-provenance'
 import type { Handler } from './commands'
@@ -22,7 +22,7 @@ const create:Handler=async(c,p)=>{
  if(base.text===null)fail('NO_TEXT','The source version needs readable text.',409)
  const items=list(p,'changes',30)
  if(!items.length)fail('INVALID','Choose at least one accepted finding.')
- const changes=[]
+ const changes:{findingId:string;start:number;end:number;quote:string;wording:string;reason:string;external:boolean;provenance:{kind:string;proposalId:string;preparedBy:string;acceptedBy:string;acceptedAt:number;declaredModel:unknown;playbookVersionId:string;inputVersionId:string;inputDigest:string}}[]=[]
  for(const raw of items){
   const item=object(raw),findingId=text(item,'findingId',100)
   const d=await c.db.prepare('SELECT * FROM lk_deviations WHERE id=? AND agreement_id=? AND version_id=?').bind(findingId,a.id,base.id).first<any>()
