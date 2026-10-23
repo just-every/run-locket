@@ -1,4 +1,6 @@
 import { authorizeReconciliationResult } from './reconciliation-records'
+import { authorizeRemediationResult } from './remediation'
+import { dispatchRemediation } from './remediation-mail'
 import { dispatchReconciliation } from './reconciliation-mail'
 import { authorizeServiceResult } from './service-level-records'
 import { dispatchServiceClaim } from './service-level-mail'
@@ -86,6 +88,8 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const payload = object(input.payload)
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const completed = async (result: unknown) => {
+    if(type.startsWith('remediation.'))await authorizeRemediationResult(c,type,payload,result)
+    if(type==='remediation.send')await dispatchRemediation(c,(result as {id:string}).id)
     if((type.startsWith('service-level.')||type.startsWith('service-performance.')))await authorizeServiceResult(c,type,payload,result)
     if(type==='service-level.email')await dispatchServiceClaim(c)
     if(/^playbook\.(recommend$|recommendation\.)/.test(type)) requireRole(c.actor,['counsel'],'read measured playbook recommendation outcomes')

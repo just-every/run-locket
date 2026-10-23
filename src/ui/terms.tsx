@@ -1,3 +1,4 @@
+import { ObligationRemediation } from './obligation-remediation'
 import { InvoiceReconciliation } from './reconciliation'
 import { ServiceLevels } from './service-levels'
 import { ServicePerformance } from './service-performance'
@@ -86,7 +87,8 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
               <span className="lk-row-actions">
                 {o.status === 'proposed' && confirmer && <><button type="button" className="lk-small lk-primary" disabled={busy} onClick={() => void run('obligation.update', { agreementId: a.id, obligationId: o.id, action: 'confirm' })}>Confirm</button><button type="button" className="lk-small" disabled={busy} onClick={() => void run('obligation.update', { agreementId: a.id, obligationId: o.id, action: 'reject' })}>Reject</button></>}
               </span>
-              {o.status === 'confirmed' && (o.owner_id === state.actor.id || confirmer) && <MarkDone a={a} o={o} locket={locket} />}
+              {['confirmed','done'].includes(o.status)&&<ObligationRemediation obligationId={o.id} ownerId={o.owner_id} actorId={state.actor.id} workspace={state.remediation} run={run} busy={busy} canConfigure={o.status==='confirmed'&&confirmer} canPrepare={o.status==='confirmed'&&can(state,'owner','counsel','approver','requester','agent')}/>}
+              {o.status === 'confirmed' && !state.remediation.requirements.some(r=>r.obligation_id===o.id) && (o.owner_id === state.actor.id || confirmer) && <MarkDone a={a} o={o} locket={locket} />}
             </li>
           ))}</ul>
         )}

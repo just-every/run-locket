@@ -1,4 +1,5 @@
 import { runRenewalBriefs } from './locket/renewal-briefs'
+import { runRemediation } from './locket/remediation-mail'
 import { runRetentionReminders } from './locket/retention-reminders'
 import { runRuleReminders } from './locket/approval-rules'
 import { runQueueEscalations } from './locket/request-queue'
@@ -50,6 +51,7 @@ export default withDemo({
   },
   // APPROVE-004 approval and RENEW-002 deadline reminders, hourly (triggers.crons in wrangler.jsonc, crons in deploy.json).
   async scheduled(controller, env) {
+    await runRemediation(runtimeBindings(env),controller.scheduledTime)
     await runRuleReminders(runtimeBindings(env), controller.scheduledTime)
     await runQueueEscalations(runtimeBindings(env), controller.scheduledTime)
     await runApprovalReminders(runtimeBindings(env), controller.scheduledTime)

@@ -1,3 +1,4 @@
+import { remediationCompletionCheck } from './remediation-records'
 import { requireFamilyClear } from './family-analysis-guard'
 import { sourceChecks } from './notice-agent'
 import { notificationWrites } from './notifications'
@@ -185,12 +186,13 @@ const updateObligation: Handler = async (c, p) => {
   }
   const status = action === 'confirm' ? 'confirmed' : action === 'reject' ? 'rejected' : 'done'
   const writes: Sql[] = []
+  const remediationGuard=action==='done'?await remediationCompletionCheck(c,o.id):null
   if (action === 'done') {
     const proof = await evidenceFor(c, a, o, p)
     writes.push(...proof.writes, sql("UPDATE lk_obligations SET status='done', done_by=?, done_at=?, evidence_artifact_id=?, evidence_link=?, evidence_note=? WHERE id=?", c.actor.id, c.now, proof.artifactId, proof.link, proof.note, o.id))
   } else writes.push(sql('UPDATE lk_obligations SET status=?, confirmed_by=? WHERE id=?', status, c.actor.id, o.id))
   if (action === 'confirm') writes.push(...notificationWrites(c,{key:c.commandId,agreementId:a.id,recipientId:o.owner_id,kind:'assignment'}))
-  return { allowed: action === 'done' ? may.review : may.confirmTerms, result: { id: o.id, status }, writes: [...writes, bump(c, a)], checks: [...agreementGuards(c, a), sql('(SELECT status FROM lk_obligations WHERE id=?)=?', o.id, o.status)], audit: [{ action: `obligation.${action}`, agreementId: a.id, summary: `${status[0].toUpperCase() + status.slice(1)} obligation: ${o.description.slice(0, 80)}` }] }
+  return { allowed: action === 'done' ? may.review : may.confirmTerms, result: { id: o.id, status }, writes: [...writes, bump(c, a)], checks: [...agreementGuards(c, a), ...(remediationGuard?[remediationGuard]:[]), sql('(SELECT status FROM lk_obligations WHERE id=?)=?', o.id, o.status)], audit: [{ action: `obligation.${action}`, agreementId: a.id, summary: `${status[0].toUpperCase() + status.slice(1)} obligation: ${o.description.slice(0, 80)}` }] }
 }
 
 async function renewalOf(c: Ctx, id: unknown) {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type Row = { id: string; [key: string]: any }
 export interface LocketState extends importReconciliationWorkspace,ServiceLevelWorkspace {
+ remediation:import('./obligation-remediation').RemediationWorkspace
  playbookRecommendations:{outcomes:Row[];issues:Row[];recommendations:Row[];applications:Row[]}
  agreementPlaybooks:Record<string,string|null>
  familyModel:{enabled:boolean;model:string|null;endpoint:string|null}|null
