@@ -191,3 +191,19 @@ test('AGENT-008 recipient replies and opt-outs stop every future chase; legal ho
  assert.equal(h.mails.filter(m=>m.to.includes('broker@example.test')).length,1,'retaining held evidence does not authorize contacting an erased recipient')
  assert.equal((await h.owner.state()).obligations.find(x=>x.id===o.id).status,'confirmed')
 })
+
+test('a role with hidden fields reads no obligation wording, quote or evidence note that may repeat a hidden value', async t => {
+  const h = await installation(); t.after(() => h.close())
+  const viewer = await h.invite('synthetic-locket-viewer@example.test', 'viewer')
+  const clause = 'Pay USD 125000 each year.'
+  const a = await h.owner.command('legacy.import', { title: 'synthetic-locket-3 licence', type: 'supplier', party: { name: 'synthetic-locket-3 vendor', kind: 'supplier' }, value: '125000', sourceSystem: 'Shared drive', sourceId: 'synthetic-locket-3', signed: true, file: file('synthetic-locket-3.pdf', pdf(clause)), text: clause })
+  const o = await h.owner.command('obligation.add', { agreementId: a.id, description: 'Pay the USD 125000 licence fee', ownerId: (await h.owner.state()).actor.id, recurrence: 'annually', citation: { quote: clause }, evidence: 'note' })
+  await h.owner.command('obligation.update', { agreementId: a.id, obligationId: o.id, action: 'confirm' })
+  await h.owner.command('obligation.update', { agreementId: a.id, obligationId: o.id, action: 'done', note: 'Wired USD 125000 on receipt' })
+  assert.match(JSON.stringify((await viewer.state()).obligations), /USD 125000 licence fee/)
+  await h.owner.command('repository.access', { version: 0, enabled: false, grants: [], hiddenFields: [{ role: 'viewer', fields: ['value'] }] })
+  const s = await viewer.state()
+  assert.deepEqual(s.fieldAccess.hidden, ['value'])
+  assert.deepEqual(s.agreements.map(x => x.id), [a.id])
+  assert.deepEqual(Object.keys(s).filter(key => JSON.stringify(s[key]).includes('125000')), [], 'no part of the workspace repeats the hidden value')
+})
