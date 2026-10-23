@@ -80,7 +80,7 @@ export async function assertProviderTags(provider:TextTagProvider,p:ProviderPack
    if(f.anchor!==tag)throw new SignatureProviderFailure('rejected','provider_native_tags_required')
    const matches=pages.flatMap((page,i)=>page.items.flatMap(item=>Array.from({length:item.text.split(tag).length-1},()=>({page:i+1,item}))))
    if(matches.length!==1||matches[0].page!==f.page||Math.abs(matches[0].item.x-f.x)>.1||Math.abs(matches[0].item.y-f.y)>.1||Math.abs(matches[0].item.width-f.width)>.1||Math.abs(matches[0].item.height-f.height)>.1)
-    throw new SignatureProviderFailure('rejected','provider_tag_placement_mismatch')
+    throw new SignatureProviderFailure('rejected','provider_tag_placement_mismatch_'+JSON.stringify({tag,expected:[f.page,f.x,f.y,f.width,f.height],actual:matches}))
   }
  }
 }
