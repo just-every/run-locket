@@ -86,7 +86,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const payload = object(input.payload)
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const completed = async (result: unknown) => {
-    if(type.startsWith('service-level.'))await authorizeServiceResult(c,type,payload,result)
+    if((type.startsWith('service-level.')||type.startsWith('service-performance.')))await authorizeServiceResult(c,type,payload,result)
     if(type==='service-level.email')await dispatchServiceClaim(c)
     if(/^playbook\.(recommend$|recommendation\.)/.test(type)) requireRole(c.actor,['counsel'],'read measured playbook recommendation outcomes')
     if(type.startsWith('reconciliation.')) await authorizeReconciliationResult(c,type,payload,result)

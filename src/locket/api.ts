@@ -1,3 +1,4 @@
+import { servicePerformanceHandlers } from './service-performance'
 import { playbookRecommendationHandlers } from './playbook-recommendations'
 import { reconciliationHandlers } from './reconciliation'
 import { serviceLevelHandlers } from './service-levels'
@@ -69,6 +70,7 @@ import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
   ...serviceLevelHandlers,
+  ...servicePerformanceHandlers,
   ...playbookRecommendationHandlers, ...reconciliationHandlers, ...familyAnalysisHandlers, ...wordTemplateHandlers, ...accountingHandlers, ...renewalBriefHandlers, ...exchangeHandlers, ...repositoryBulkHandlers, ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
   ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,

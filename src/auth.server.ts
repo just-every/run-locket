@@ -13,6 +13,8 @@ const theme = { href: '/rer-theme.css', productName: branding.name, accentColor:
 export interface Bindings {
  UPTIME_ORIGIN?:string
  UPTIME_METRICS_KEY?:string
+ LINEN_ORIGIN?:string
+ LINEN_MCP_TOKEN?:string
  /** Owner deployment attestation: provider contract prohibits training on contract text. */
  AI_TRAINING_PROHIBITED?:string
  AI_ENABLED?:string

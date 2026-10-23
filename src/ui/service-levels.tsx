@@ -5,9 +5,10 @@ import { Field, Form, value } from './controls'
 import { can, parse, personName } from './format'
 import { ServiceLevelSettings } from './service-levels-settings'
 import { ServiceLevelClaim, ServiceLevelMetrics } from './service-levels-claim'
+import type { ServicePerformanceWorkspace } from './service-performance'
 
 export interface ServiceLevelWorkspace {
- serviceLevels:{links:Row[];terms:Row[];reads:Row[];claims:Row[];breaches:Row[];dispatches:Row[]}
+ serviceLevels:{links:Row[];terms:Row[];reads:Row[];claims:Row[];breaches:Row[];dispatches:Row[]} & ServicePerformanceWorkspace
 }
 export type ServiceLevelState=LocketState&ServiceLevelWorkspace
 export type ServiceLevelProps={state:ServiceLevelState;a:Row;locket:Locket}

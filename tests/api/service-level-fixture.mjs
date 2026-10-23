@@ -17,11 +17,11 @@ export function serviceLevelFake(calls,mode=()=> 'ok') {
   return new Response(body,{headers:{'content-type':'application/json','cache-control':'no-store'}})
  }
 }
-export async function serviceLevelFixture(h,{restricted=false,separateOwner=false,confirm=true,link=true,native=true}={}) {
+export async function serviceLevelFixture(h,{restricted=false,separateOwner=false,confirm=true,link=true,native=true,extraText=''}={}) {
  const counsel=await h.invite('synthetic-locket-counsel@example.test','counsel'),owner=separateOwner?await h.invite('synthetic-locket-agreement-owner@example.test','approver'):h.owner
  const ownerId=separateOwner?owner.id:(await h.owner.state()).actor.id
  const quote='Monthly availability must be at least 99.9%. Availability of 99.0% to below 99.9% earns a credit of 10% of the USD 10000 monthly service charge. Healthy time is divided by observed scheduled time; unknown, paused and maintenance time are excluded. The service month uses UTC. Claim by 23:59:59 UTC on the date 30 calendar days after the final service date.'
- const body=`Supplier hosting service, effective September 1, 2026. ${quote}`
+ const body=`Supplier hosting service, effective September 1, 2026. ${quote}${extraText?' '+extraText:''}`
  const signed=await PDFDocument.create(),font=await signed.embedFont(StandardFonts.Helvetica)
  signed.addPage([595,842]).drawText(body,{x:40,y:800,size:10,font,maxWidth:515,lineHeight:14})
  const bytes=Buffer.from(await signed.save())

@@ -37,7 +37,7 @@ export async function installation({ bindings = {}, mailResponse, outboundRespon
       host: '127.0.0.1', port: Number(new URL(origin).port), https: true, modules: true, script, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: ['DB'],
       bindings: workerBindings,
       outboundService: async request => {
-        if(outboundResponse && (/^(sandbox-)?quickbooks\.api\.intuit\.com$/.test(new URL(request.url).hostname) || new URL(request.url).origin===new URL(workerBindings.AI_BASE_URL??'https://api.openai.com/v1').origin || workerBindings.UPTIME_ORIGIN&&new URL(request.url).origin===workerBindings.UPTIME_ORIGIN))return outboundResponse(request)
+        if(outboundResponse && (/^(sandbox-)?quickbooks\.api\.intuit\.com$/.test(new URL(request.url).hostname) || new URL(request.url).origin===new URL(workerBindings.AI_BASE_URL??'https://api.openai.com/v1').origin || workerBindings.UPTIME_ORIGIN&&new URL(request.url).origin===workerBindings.UPTIME_ORIGIN || workerBindings.LINEN_ORIGIN&&new URL(request.url).origin===workerBindings.LINEN_ORIGIN))return outboundResponse(request)
         if(request.url==='https://api.postmarkapp.com/email'){
           const raw=await request.json();mails.push({...raw,from:raw.From,to:[raw.To],subject:raw.Subject,text:raw.TextBody,html:raw.HtmlBody});
           return mailResponse ? mailResponse(mails.at(-1)) : Response.json({ErrorCode:0,MessageID:`synthetic-locket-postmark-${mails.length}`})

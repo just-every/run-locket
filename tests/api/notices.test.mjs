@@ -1,3 +1,5 @@
+import { servicePerformanceBindings,servicePerformanceFixture,serviceReportFile } from './service-performance-fixture.mjs'
+import { linenMcpFixture,linenTicket } from './service-ticket-fixture.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
@@ -540,4 +542,77 @@ test('RENEW-005 refuses stale, inaccessible and unauthorized workflows; failed a
  assert.equal((await f.maker.state()).renewalBriefs.length,0)
  assert.equal((await f.maker.request(`/api/locket/files/${b.artifact_id}`)).status,404)
  s=await h.owner.state();assert.equal(s.agreements.filter(a=>a.relation==='renews').length,0)
+})
+
+
+test('AGENT-002 native supplier response, resolution and delivery reports retain exact evidence and send one capped owner-approved credit per metric',async t=>{
+ const h=await installation({bindings:servicePerformanceBindings});t.after(()=>h.close())
+ const f=await servicePerformanceFixture(h,{confirm:false})
+ assert.equal((await f.current()).status,'executed')
+ let sent=0
+ for(const metric of ['response','resolution','delivery']){
+  const confirmed=await f.counsel.command('service-performance.confirm',{...await f.confirmPayload(),metric,thresholdMinutes:metric==='delivery'?0:60})
+  const result=await f.read({termId:confirmed.id}),claim=await f.claim(result.claimId),content=JSON.parse(claim.content)
+  assert.equal(result.status,'breached');assert.equal(result.amountCents,150000)
+  assert.equal(content.comparison.breachedCount,1);assert.equal(content.comparison.unknownCount,1)
+  assert.equal(content.formula.selectedTier.creditBps,2000);assert.equal(content.formula.eligibleFeeCents,1000000);assert.equal(content.formula.capCents,150000)
+  assert.equal(content.citation.quote,f.quote);assert.equal(content.metric,metric)
+  const download=await h.owner.request(`/api/locket/files/${content.report.artifactId}`)
+  assert.deepEqual(Buffer.from(await download.arrayBuffer()),Buffer.from(f.reportFile.base64,'base64'))
+  await f.save(claim.id)
+  await h.owner.command('service-level.email',await f.sendPayload(claim.id),{error:'APPROVAL'})
+  await f.approve(claim.id)
+  const payload=await f.sendPayload(claim.id),commandId=crypto.randomUUID()
+  await h.owner.command('service-level.email',payload,{commandId});await h.owner.command('service-level.email',payload,{commandId})
+  await h.owner.command('service-level.email',payload,{error:'ALREADY_SENT'})
+  const state=await h.owner.state(),dispatch=state.serviceLevels.performanceDispatches.find(d=>d.claim_id===claim.id)
+  assert.equal(dispatch.status,'accepted');assert.ok(dispatch.provider_message_id)
+  const mail=h.mails.filter(isCreditMail);assert.equal(mail.length,++sent);assert.equal(mail.at(-1).text,(await f.claim(claim.id)).message_text)
+ }
+ const archive=await(await h.owner.request('/api/locket/export')).json()
+ assert.equal(archive.records.lk_service_performance_claims.length,3);assert.equal(archive.records.lk_service_performance_reports.length,3)
+ assert.equal(archive.records.lk_service_performance_breaches.length,3)
+})
+
+test('AGENT-002 supplier reports refuse business clocks, unauthorized uploads and malformed timestamps; missing completion and stale formulas never authorize contact',async t=>{
+ const h=await installation({bindings:servicePerformanceBindings});t.after(()=>h.close())
+ const f=await servicePerformanceFixture(h)
+ await f.counsel.command('service-performance.confirm',{...await f.confirmPayload(),clock:'business'},{error:'SLA_CLOCK'})
+ await f.counsel.command('service-performance.report',await f.reportPayload(),{error:'FORBIDDEN'})
+ const invalid=serviceReportFile([{record_id:'synthetic-locket-bad',created_at:'2026-09-10T00:00:00+00:00'}])
+ await h.owner.command('service-performance.report',{...await f.reportPayload(),file:invalid},{error:'REPORT_DATA'})
+ const unknown=await f.read({file:serviceReportFile([f.records[1]])})
+ assert.equal(unknown.status,'unavailable');assert.equal((await h.owner.state()).serviceLevels.performanceClaims.length,0)
+ const report=(await h.owner.state()).serviceLevels.performanceReports.find(r=>r.id===unknown.id)
+ assert.equal(JSON.parse(report.metrics).unknownCount,1)
+ const result=await f.read();await f.save(result.claimId);await f.approve(result.claimId)
+ await f.counsel.command('service-performance.confirm',await f.confirmPayload())
+ await h.owner.command('service-level.email',await f.sendPayload(result.claimId),{error:'STALE'})
+ assert.equal(h.mails.filter(isCreditMail).length,0)
+})
+
+test('AGENT-002 exact scoped Linen MCP evidence supports observed response time while business clocks, closure-derived resolution and delivery remain unknown',async t=>{
+ const ticket=linenTicket(),responseAt='2026-09-01T12:00:00.000Z'
+ ticket.response_at=responseAt;ticket.sla.firstResponse.metAt=responseAt
+ let selected=ticket
+ const bindings={...servicePerformanceBindings,LINEN_ORIGIN:'https://synthetic-locket-linen.example.test',LINEN_MCP_TOKEN:'synthetic-locket-1'}
+ const h=await installation({bindings,outboundResponse:request=>linenMcpFixture({tickets:[selected]}).handle(request)});t.after(()=>h.close())
+ const f=await servicePerformanceFixture(h),term=(await h.owner.state()).serviceLevels.performanceTerms[0]
+ const payload={agreementId:f.source.id,termId:term.id,month:'2026-09',queueIds:[ticket.group.id],recordIds:[ticket.id],windowNote:'Exact owner-selected September ticket; provider closure is not contractual resolution.',consent:true}
+ await f.counsel.command('service-performance.tickets',payload,{error:'FORBIDDEN'})
+ const response=await h.owner.command('service-performance.tickets',payload)
+ assert.equal(response.status,'breached');assert.equal(response.amountCents,150000)
+ const report=(await h.owner.state()).serviceLevels.performanceReports.find(r=>r.id===response.id),original=JSON.parse(await(await h.owner.request(`/api/locket/files/${report.artifact_id}`)).text())
+ assert.equal(original.provider,'linen');assert.equal(JSON.parse(original.responses[0].body).result.structuredContent.response_at,responseAt)
+ selected={...ticket,sla:{...ticket.sla,policy:{...ticket.sla.policy,hours:'business'}}}
+ const business=await h.owner.command('service-performance.tickets',payload)
+ assert.equal(business.status,'unavailable')
+ selected=ticket
+ const resolutionTerm=await f.counsel.command('service-performance.confirm',{...await f.confirmPayload(),metric:'resolution'})
+ const resolution=await h.owner.command('service-performance.tickets',{...payload,termId:resolutionTerm.id})
+ assert.equal(resolution.status,'unavailable')
+ const deliveryTerm=await f.counsel.command('service-performance.confirm',{...await f.confirmPayload(),metric:'delivery',thresholdMinutes:0})
+ await h.owner.command('service-performance.tickets',{...payload,termId:deliveryTerm.id},{error:'REPORT_UNAVAILABLE'})
+ await h.owner.command('service-performance.tickets',{...payload,queueIds:['synthetic-locket-unselected']},{error:'LINEN_SCOPE'})
+ assert.equal((await h.owner.state()).serviceLevels.performanceClaims.length,1)
 })

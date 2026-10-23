@@ -39,7 +39,7 @@ export async function serviceTerm(c:Ctx,a:AgreementRow,expected?:string) {
 export async function serviceClaim(c:Ctx,id:unknown,version:unknown) {
  if(typeof id!=='string')fail('INVALID','claimId is required.')
  const claim=await c.db.prepare('SELECT * FROM lk_service_level_claims WHERE id=?').bind(id).first<ServiceRow>()
- if(!claim)fail('NOT_FOUND','No accessible service-credit claim has that identity.',404)
+ if(!claim)return (await import('./service-performance-records')).performanceClaim(c,id,version)
  const a=await visibleAgreement(c,claim.agreement_id)
  if(claim.version!==version)fail('STALE','This claim changed. Reload and review its exact amount and message.',409)
  const read=await c.db.prepare('SELECT * FROM lk_service_level_reads WHERE id=?').bind(claim.read_id).first<ServiceRow>()
@@ -47,7 +47,7 @@ export async function serviceClaim(c:Ctx,id:unknown,version:unknown) {
  const current=await serviceTerm(c,a,read.term_id)
  if(a.owner_id!==claim.owner_id)fail('STALE','The agreement owner changed. Review the current sources.',409)
  if(c.now>=claim.deadline_at)fail('CLAIM_CLOSED','The counsel-confirmed claim deadline has passed. No supplier email is authorized.',409)
- return {claim,a,read,...current,checks:[...current.checks,sql('(SELECT version FROM lk_service_level_claims WHERE id=?)=?',claim.id,claim.version)]}
+ return {claim,a,read,...current,kind:'uptime' as const,claimTable:'lk_service_level_claims' as const,dispatchTable:'lk_service_level_dispatches' as const,checks:[...current.checks,sql('(SELECT version FROM lk_service_level_claims WHERE id=?)=?',claim.id,claim.version)]}
 }
 export const serviceMessageDigest=(c:ServiceRow)=>sha256(canonical({claim:c.fingerprint,amountCents:c.amount_cents,deadlineAt:c.deadline_at,recipient:c.recipient,subject:c.subject,message:c.message_text}))
 export async function canReadServiceSources(db:D1Database,actor:Actor,sources:string) {
@@ -55,7 +55,7 @@ export async function canReadServiceSources(db:D1Database,actor:Actor,sources:st
  return true
 }
 export async function serviceLevelState(env:Bindings,actor:Actor) {
- const empty={links:[],terms:[],reads:[],claims:[],breaches:[],dispatches:[]}
+ const empty={links:[],terms:[],reads:[],claims:[],breaches:[],dispatches:[],performanceTerms:[],performanceReports:[],performanceClaims:[],performanceBreaches:[],performanceDispatches:[]}
  if((await hiddenFields(env.DB,actor)).length)return empty
  const access=agreementAccessSql(actor.id),scoped=async(table:string)=>(await env.DB.prepare(`SELECT r.* FROM ${table} r JOIN lk_agreements a ON a.id=r.agreement_id WHERE ${access.sql} ORDER BY r.rowid DESC`).bind(...access.params).all<ServiceRow>()).results
  const terms=[],reads=[],claims=[]
@@ -63,13 +63,19 @@ export async function serviceLevelState(env:Bindings,actor:Actor) {
  for(const row of await scoped('lk_service_level_reads'))if(await canReadServiceSources(env.DB,actor,row.sources))reads.push(row)
  for(const row of await scoped('lk_service_level_claims'))if(await canReadServiceSources(env.DB,actor,row.sources))claims.push(row)
  const ids=new Set(claims.map(c=>c.id))
- return {links:await scoped('lk_service_level_links'),terms,reads,claims,breaches:(await scoped('lk_service_level_breaches')).filter(b=>ids.has(b.claim_id)),dispatches:(await scoped('lk_service_level_dispatches')).filter(d=>ids.has(d.claim_id))}
+ const performanceTerms=[],performanceReports=[],performanceClaims=[]
+ for(const row of await scoped('lk_service_performance_terms'))if(await canReadServiceSources(env.DB,actor,row.sources))performanceTerms.push(row)
+ for(const row of await scoped('lk_service_performance_reports'))if(await canReadServiceSources(env.DB,actor,row.sources))performanceReports.push(row)
+ for(const row of await scoped('lk_service_performance_claims'))if(await canReadServiceSources(env.DB,actor,row.sources))performanceClaims.push(row)
+ const performanceIds=new Set(performanceClaims.map(c=>c.id))
+ return {performanceTerms,performanceReports,performanceClaims,performanceBreaches:(await scoped('lk_service_performance_breaches')).filter(b=>performanceIds.has(b.claim_id)),performanceDispatches:(await scoped('lk_service_performance_dispatches')).filter(d=>performanceIds.has(d.claim_id)),links:await scoped('lk_service_level_links'),terms,reads,claims,breaches:(await scoped('lk_service_level_breaches')).filter(b=>ids.has(b.claim_id)),dispatches:(await scoped('lk_service_level_dispatches')).filter(d=>ids.has(d.claim_id))}
 }
 export async function authorizeServiceResult(c:Ctx,type:string,p:Record<string,unknown>,result:unknown) {
- requireRole(c.actor,type==='service-level.link'?['owner']:type==='service-level.confirm'?['counsel']:['service-level.message','service-level.approve','service-level.email'].includes(type)?servicePeople:serviceReaders,'read service-level command outcomes')
+ requireRole(c.actor,type==='service-level.link'?['owner']:['service-level.confirm','service-performance.confirm'].includes(type)?['counsel']:type.startsWith('service-performance.')?servicePeople:['service-level.message','service-level.approve','service-level.email'].includes(type)?servicePeople:serviceReaders,'read service-level command outcomes')
  let agreementId=typeof p.agreementId==='string'?p.agreementId:null,sources:string|null=null
- if(typeof p.claimId==='string'){const row=await c.db.prepare('SELECT agreement_id,sources FROM lk_service_level_claims WHERE id=?').bind(p.claimId).first<ServiceRow>();agreementId=row?.agreement_id??agreementId;sources=row?.sources??null}
+ if(typeof p.claimId==='string'){const row=await c.db.prepare('SELECT agreement_id,sources FROM lk_service_level_claims WHERE id=? UNION ALL SELECT agreement_id,sources FROM lk_service_performance_claims WHERE id=?').bind(p.claimId,p.claimId).first<ServiceRow>();agreementId=row?.agreement_id??agreementId;sources=row?.sources??null}
  if(type==='service-level.read'&&typeof(result as {id?:unknown})?.id==='string'){const row=await c.db.prepare('SELECT agreement_id,sources FROM lk_service_level_reads WHERE id=?').bind((result as {id:string}).id).first<ServiceRow>();agreementId=row?.agreement_id??agreementId;sources=row?.sources??sources}
+ if(type.startsWith('service-performance.')&&typeof(result as {id?:unknown})?.id==='string'){const row=await c.db.prepare('SELECT agreement_id,sources FROM lk_service_performance_reports WHERE id=? UNION ALL SELECT agreement_id,sources FROM lk_service_performance_terms WHERE id=?').bind((result as {id:string}).id,(result as {id:string}).id).first<ServiceRow>();agreementId=row?.agreement_id??agreementId;sources=row?.sources??sources}
  if(agreementId){await visibleAgreement(c,agreementId);const term=await c.db.prepare('SELECT sources FROM lk_service_level_terms WHERE agreement_id=? ORDER BY rowid DESC LIMIT 1').bind(agreementId).first<{sources:string}>();sources??=term?.sources??null}
  if(sources&&!await canReadServiceSources(c.db,c.actor,sources))fail('NOT_FOUND','Some sources are no longer accessible.',404)
 }

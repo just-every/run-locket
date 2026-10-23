@@ -1,6 +1,7 @@
 // Synthetic evidence enters exclusively through the product's public commands.
 import { file, pdf } from './files.mjs'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { serviceReportFile } from './service-performance-fixture.mjs'
 import { serviceLevelBindings, serviceLevelPolicy } from './service-level-fixture.mjs'
 import { dispatch, finish, find, stage } from './analytics-fixture.mjs'
 export const fallback = 'Liability is capped at the fees paid in the prior 24 months.'
@@ -9,6 +10,7 @@ export const recommendationScope = { agreementTypes: ['supplier'], entityIds: []
 export const minute = 60_000
 const priceQuote = 'Annual price increases shall not exceed 3 percent.'
 const slaQuote = 'Monthly availability must be at least 99.9%. Availability of 99.0% to below 99.9% earns a credit of 10% of the USD 10000 monthly service charge. Healthy time is divided by observed scheduled time; unknown, paused and maintenance time are excluded. The service month uses UTC. Claim by 23:59:59 UTC on the date 30 calendar days after the final service date.'
+const performanceQuote = 'Supplier must first respond within 60 wall-clock minutes after creation. Each metric earns one monthly credit selected by worst proven lateness: more than zero minutes late earns 10 percent and more than 60 minutes late earns 20 percent of the USD 10000 eligible hosting fee, capped at USD 1500. Fees exclude tax and unrelated services. Unknown timestamps do not prove fulfillment. Service months use UTC and claims are due 30 calendar days after month end.'
 async function readableCohortPdf(contents) {
  const doc=await PDFDocument.create(),font=await doc.embedFont(StandardFonts.Helvetica)
  doc.addPage([595,842]).drawText(contents,{x:40,y:800,size:10,font,maxWidth:515,lineHeight:14})
@@ -27,7 +29,7 @@ export async function negotiationFixture(h, { count = 30, nativeCredit = false }
   for (let i = 0; i < count; i++) {
     const at = base + i * 120 * minute
     await h.setTime(at)
-    const contents = `synthetic-locket-${i + 1}\n${nativeCredit && i === 0 ? priceQuote + '\n' + slaQuote + '\n' : ''}${fallback}`
+    const contents = `synthetic-locket-${i + 1}\n${nativeCredit && i === 0 ? priceQuote + '\n' + slaQuote + '\n' + performanceQuote + '\n' : ''}${fallback}`
     const created = await h.owner.command('request.create', { title: `synthetic-locket-${i + 1}`, type: 'supplier', party: { name: `synthetic-locket-party-${i + 1}`, kind: 'supplier' }, file: file(`synthetic-locket-${i + 1}.pdf`, nativeCredit && i === 0 ? await readableCohortPdf(contents) : pdf(contents)), text: contents, restricted: i === 0 })
     await attachNegotiationRequirements(h.owner,created.id)
     await h.setTime(at + 10 * minute); await stage(h.owner, created.id, 'negotiation')
@@ -81,6 +83,15 @@ async function nativeCreditFinding(h,counsel,agreement) {
   r=await serviceRecord()
   await h.owner.command('service-level.approve',{claimId:r.id,claimVersion:r.version,amountCents:r.amount_cents,messageDigest:r.message_digest,consent:true})
  },send:async()=>{const r=await serviceRecord();return h.owner.command('service-level.email',{claimId:r.id,claimVersion:r.version,amountCents:r.amount_cents,messageDigest:r.message_digest,consent:true})}}
+ const performanceTerm=await counsel.command('service-performance.confirm',{agreementId:agreement.id,version:(await current()).version,sourceAgreementId:agreement.id,citation:{quote:performanceQuote},metric:'response',clock:'wall',aggregation:'worst_record_once',thresholdMinutes:60,tiers:[{minimumLateMinutes:0,creditBps:1000},{minimumLateMinutes:60,creditBps:2000}],eligibleFee:'10000',allocation:'The full USD 10000 hosting fee, excluding taxes and unrelated services.',cap:'1500',timeZone:'UTC',claimDays:30,interpretation:'Worst proven monthly wall-clock response lateness selects a single credit tier, capped at USD 1500. Missing response timestamps remain unknown.',confirmFormula:true})
+ const performanceReport=await h.owner.command('service-performance.report',{agreementId:agreement.id,termId:performanceTerm.id,month:'2026-09',file:serviceReportFile([{record_id:'synthetic-locket-performance-1',created_at:'2026-09-10T00:00:00Z',first_public_response_at:'2026-09-10T03:00:00Z'},{record_id:'synthetic-locket-performance-2',created_at:'2026-09-11T00:00:00Z'}]),sourceName:'Supplier September response report',sourceReference:'synthetic-locket-performance-report-1',windowNote:'September created tickets only. Supplier completeness and authenticity are unverified; a missing response stays unknown.',consent:true})
+ const performanceRecord=async()=>(await h.owner.state()).serviceLevels.performanceClaims.find(r=>r.id===performanceReport.claimId)
+ const performanceCredit={id:performanceReport.claimId,quote:performanceQuote,reportId:performanceReport.id,record:performanceRecord,approve:async()=>{
+  let r=await performanceRecord()
+  await h.owner.command('service-level.message',{claimId:r.id,claimVersion:r.version,recipient:'synthetic-locket-credit-supplier@example.test',subject:r.subject,message:r.message_text})
+  r=await performanceRecord()
+  await h.owner.command('service-level.approve',{claimId:r.id,claimVersion:r.version,amountCents:r.amount_cents,messageDigest:r.message_digest,consent:true})
+ },send:async()=>{const r=await performanceRecord();return h.owner.command('service-level.email',{claimId:r.id,claimVersion:r.version,amountCents:r.amount_cents,messageDigest:r.message_digest,consent:true})}}
  const record=async()=>(await h.owner.state()).reconciliationFindings.find(r=>r.id===finding.id)
  const approve=async()=>{
   await finance.command('reconciliation.finance.confirm',{findingId:finding.id,findingVersion:(await record()).version,confirmComparable:true,confirmAdjustments:true,note:'Same full annual services and quantities, allocated wholly to this agreement. Both bills exclude tax; no credits or adjustments apply.'})
@@ -90,5 +101,5 @@ async function nativeCreditFinding(h,counsel,agreement) {
   await h.owner.command('reconciliation.message.approve',{findingId:r.id,findingVersion:r.version,messageDigest:r.message_digest,consent:true})
  }
  const send=async()=>{const r=await record();return h.owner.command('reconciliation.email',{findingId:r.id,findingVersion:r.version,messageDigest:r.message_digest,consent:true})}
- return {id:finding.id,quote:priceQuote,record,approve,send,serviceCredit}
+ return {id:finding.id,quote:priceQuote,record,approve,send,serviceCredit,performanceCredit}
 }
