@@ -6,6 +6,7 @@ import type { Bindings } from '../auth.server'
 import { handlers } from '../locket/api'
 import { runCommand } from '../locket/commands'
 import { day, writtenDay } from '../locket/display'
+import { addDays } from '../locket/dates'
 import type { Actor, Role } from '../locket/model'
 import { textPdf } from '../locket/pdf'
 import { team } from './examples'
@@ -44,7 +45,7 @@ export async function seedJourneys(env: Bindings, ownerId: string, now: Date) {
     }
 
     // Summit Ridge: signed and returned, reconciled, with confirmed terms feeding a renewal.
-    const envelope = '9B3F1D24-6C5E-4A87-8D90-1E2F3A4B5C62', end = date(48)
+    const envelope = '9B3F1D24-6C5E-4A87-8D90-1E2F3A4B5C62'
     const people = signers('Noah Brennan', 'noah.brennan@summitridge.example')
     a = await agreement('demo-summit')
     if (a?.status === 'approved') {
@@ -53,19 +54,38 @@ export async function seedJourneys(env: Bindings, ownerId: string, now: Date) {
       await run(jenna, 'package.sent', { agreementId: 'demo-summit', version: a!.version, packageId: pkg.packageId, envelopeId: envelope })
       a = await agreement('demo-summit')
     }
-    if (a?.status === 'out_for_signature') {
+    const execution = () => env.DB.prepare('SELECT id, status, executed_on FROM lk_executions WHERE agreement_id=? AND envelope_id=?').bind('demo-summit', envelope).first<{ id: string; status: string; executed_on: string }>()
+    let recorded = await execution()
+    const executedOn = recorded?.executed_on ?? date(0), end = addDays(executedOn, 48)
+    if (a?.status === 'out_for_signature' && !recorded) {
       const note = 'Fictional demo sample - not a real signature or certificate'
       await run(jenna, 'execution.record', {
-        agreementId: 'demo-summit', version: a.version, envelopeId: envelope, executedOn: date(0), documentConfirmed: true,
+        agreementId: 'demo-summit', version: a.version, envelopeId: envelope, executedOn, documentConfirmed: true,
         signers: people.map(({ name, email }) => ({ name, email })),
         signed: sample('Platform subscription MSA - signed.pdf', 'Platform subscription MSA', `SAMPLE ONLY - fictional executed copy\nBetween Fieldstone Software, Inc. and Summit Ridge Health.\nTerm ends on ${writtenDay(end)}. Give 30 days notice before the end date.\nSigned for both parties through the demo's fictional envelope ${envelope}.`, note),
         certificate: sample('Summary.pdf', 'Certificate of Completion (fictional)', `SAMPLE ONLY - fictional completion summary for envelope ${envelope}.\nSigners: ${people.map(p => p.name).join(', ')}.`, note),
       })
+      recorded = await execution()
+    }
+    if (recorded?.status === 'needs_review') {
+      a = await agreement('demo-summit')
+      await run(owner, 'execution.resolve', {
+        agreementId: 'demo-summit', version: a!.version, executionId: recorded.id,
+        reason: 'Reviewed the fictional returned PDF against the demo package. Its changed sample wording and renewal dates are intentional; the envelope, signers and fictional completion summary belong to Summit Ridge. Accepted for this sample workspace only; this is not real signature evidence.',
+      })
+    }
+    a = await agreement('demo-summit')
+    if (a?.status === 'executed') {
       for (const [key, value, quote] of [['end_date', end, `Term ends on ${writtenDay(end)}.`], ['notice_days', '30', 'Give 30 days notice before the end date.']]) {
-        const term = await run(owner, 'term.propose', { agreementId: 'demo-summit', key, value, citation: { quote } })
-        await run(marcus, 'term.decide', { agreementId: 'demo-summit', termId: term.id, decision: 'confirm' })
+        const term = await env.DB.prepare("SELECT id, status FROM lk_terms WHERE agreement_id=? AND key=? AND status IN ('proposed','confirmed') ORDER BY created_at DESC LIMIT 1").bind('demo-summit', key).first<{ id: string; status: string }>()
+        if (term?.status === 'confirmed') continue
+        const termId = term?.id ?? (await run(owner, 'term.propose', { agreementId: 'demo-summit', key, value, citation: { quote } })).id
+        await run(marcus, 'term.decide', { agreementId: 'demo-summit', termId, decision: 'confirm' })
       }
-      await run(owner, 'obligation.add', { agreementId: 'demo-summit', description: 'Send the quarterly service review', ownerId: 'demo-onboarding', dueDate: date(24), recurrence: 'quarterly', citation: { quote: 'Scope: Platform subscription MSA.' } })
+      const description = 'Send the quarterly service review'
+      if (!(await env.DB.prepare('SELECT id FROM lk_obligations WHERE agreement_id=? AND description=?').bind('demo-summit', description).first())) {
+        await run(owner, 'obligation.add', { agreementId: 'demo-summit', description, ownerId: 'demo-onboarding', dueDate: addDays(executedOn, 24), recurrence: 'quarterly', citation: { quote: 'Between Fieldstone Software, Inc. and Summit Ridge Health.' } })
+      }
     }
 
     // A small DocuSign archive moved in by the owner: dry run, then apply exactly that.
