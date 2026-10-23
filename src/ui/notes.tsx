@@ -99,12 +99,13 @@ function FindingCard({ note, clause, state, a, locket }: { note: Note; clause: s
 function CommentCard({ note, state, zone }: { note: Note; state: LocketState; zone: string }) {
   const c = note.row
   const author=c.external_author_name??personName(state,c.author_id)
+  const audience=state.commentAudiences.some(side=>side.id===c.id&&side.audience==='external')?'External':'Internal'
   const role = state.operators.find(o => o.id === c.author_id)?.role
   return (
-    <article className="lk-note-card lk-tone-internal" aria-label={`Internal comment by ${author}`}>
+    <article className="lk-note-card lk-tone-internal" aria-label={`${audience} comment by ${author}`}>
       <div className="lk-note-head">
         <span className="lk-dot" aria-hidden="true" />
-        <h3>{c.resolved_at ? 'Resolved' : 'Internal'}</h3>
+        <h3>{c.resolved_at ? 'Resolved' : audience}</h3>
         <time>{stamp(c.at, { zone })}</time>
       </div>
       <div className="lk-note-by lk-note-by-top">

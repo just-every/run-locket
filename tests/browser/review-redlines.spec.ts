@@ -4,7 +4,8 @@ import { join } from 'node:path'
 import { clauseSession } from './clause-session.mjs'
 import { reviewRedlinesFixture } from '../api/review-redlines-fixture.mjs'
 test.use({ignoreHTTPSErrors:true})
-for(const width of [1440,390])test(`Reviewer edits three accepted findings, saves attributed browser and Word redlines and keeps reasons internal at ${width}px`,async({page})=>{
+test('Reviewer edits three accepted findings, saves attributed browser and Word redlines and keeps reasons internal at 1440px/390px',async({page})=>{
+ for(const width of [1440,390]){
  const p=await clauseSession(page,width)
  const shot=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-redlines-${name}.png`),fullPage:true})}}
  try{
@@ -19,7 +20,7 @@ for(const width of [1440,390])test(`Reviewer edits three accepted findings, save
   const pending=page.waitForResponse(response=>response.url()===p.origin+'/api/locket/commands'&&response.request().method()==='POST'&&response.request().postDataJSON().type==='review.redlines')
   await panel.getByRole('button',{name:'Save reviewed redlines',exact:true}).click();expect((await(await pending).json()).ok).toBe(true)
   await expect(panel).toContainText('3 changes saved by');await expect(panel).toContainText('synthetic-locket-91');await expect(panel.getByText(/Internal reason/)).toHaveCount(2);await expect(panel.getByText(/External reason/)).toHaveCount(1)
-  await shot('saved')
+  await panel.getByText('Source and model provenance',{exact:true}).first().click();await shot('saved')
   await panel.getByRole('link',{name:'Review browser redlines',exact:true}).click()
   const word=page.getByRole('region',{name:'Word tracked changes',exact:true})
   await expect(word).toBeVisible();await expect(word).toContainText('45 days')
@@ -27,8 +28,9 @@ for(const width of [1440,390])test(`Reviewer edits three accepted findings, save
   expect(JSON.parse(v.fields).reviewRedlines.changes).toHaveLength(3)
   const model=await(await page.request.get(p.origin+'/api/locket/word-review?versionId='+v.id)).json()
   expect(model.changes.filter((c:any)=>c.kind==='insertion')).toHaveLength(3);expect(model.changes.filter((c:any)=>c.kind==='deletion')).toHaveLength(3);expect(model.changes.every((c:any)=>c.author===state.actor.name)).toBe(true)
-  await shot('browser-word')
+  await expect(page.getByRole('article',{name:/External comment by/})).toHaveCount(1);await expect(page.getByRole('article',{name:/Internal comment by/})).toHaveCount(2);await shot('browser-word')
   const fold=page.getByRole('button',{name:/Show .*unchanged paragraph/}).first()
   if(await fold.count()){await fold.focus();await expect(page.getByRole('tooltip',{name:'Show unchanged',exact:true})).toBeVisible();await fold.blur();await fold.hover();await expect(page.getByRole('tooltip',{name:'Show unchanged',exact:true})).toBeVisible();await shot('tooltip')}
  }finally{await p.close()}
+ }
 })
