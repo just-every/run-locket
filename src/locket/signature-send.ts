@@ -64,7 +64,7 @@ export async function dispatchSignature(c:Ctx,id:string=c.commandId) {
    statements.push(sql("UPDATE lk_packages SET status='sent',envelope_id=?,sent_by=?,sent_at=? WHERE id=?",envelopeId,row.actor_id,transition.now,row.package_id),sql("UPDATE lk_agreements SET status='out_for_signature',version=version+1,updated_at=? WHERE id=?",transition.now,row.agreement_id),...history,...notifications)
   }
   const guard=crypto.randomUUID()
-  await c.db.batch([guardSql(guard,[sql('EXISTS(SELECT 1 FROM lk_signature_dispatches WHERE id=? AND status=? AND attempt_id IS ?)',id,previous,claimed?attempt:null)]),...statements,sql('DELETE FROM lk_guard WHERE id=?',guard)].map(s=>c.db.prepare(s.sql).bind(...s.params)))
+  try{await c.db.batch([guardSql(guard,[sql('EXISTS(SELECT 1 FROM lk_signature_dispatches WHERE id=? AND status=? AND attempt_id IS ?)',id,previous,claimed?attempt:null)]),...statements,sql('DELETE FROM lk_guard WHERE id=?',guard)].map(s=>c.db.prepare(s.sql).bind(...s.params)))}catch(error){if(!/LOCKET_GUARD/.test(String(error)))throw error}
  }
  let packet:ProviderPacket,connection:SignatureConnection,token:string
  try{
