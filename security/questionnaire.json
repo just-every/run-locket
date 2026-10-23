@@ -27,7 +27,7 @@
   "answers": {
     "dataFlows": "Contract records, originals, audit and attachments remain in the buyer Cloudflare account. Enabled connectors receive only the data required by an explicitly authorized operation. External exchange links expose the reviewed rendition and designated external comments to the bearer; reply addresses grant a separate inbound-only capability.",
     "encryption": "HTTPS protects provider transport. Cloudflare provides platform storage encryption. Operators must protect account access, local disks, private configuration and complete export archives. Application code does not claim customer-managed encryption keys or end-to-end encryption.",
-    "access": "Native owner and invited roles enforce current session, record, group and field access on server reads and guarded writes. Owner-created API tokens delegate explicit doors, expire within thirty days, and cease when the creator session ends. Public exchange capability possession does not verify identity.",
+    "access": "Native owner and invited roles enforce current session, record, group and field access on server reads and guarded writes. Owner-created API tokens delegate explicit doors, expire within thirty days, and cease when the creator session ends. Owner-approved workforce SAML sign-in and SCIM provisioning create only non-owner accounts whose roles follow immutable owner-approved group mappings; managed deactivation or membership changes revoke their sessions immediately. Public exchange capability possession does not verify identity.",
     "audit": "Native business commands, restricted reads, file downloads and exports retain attributed audit records. Public exchange activity identifies a designated contact by bearer possession; inbound sender addresses are not identity proof. Buyers must control database access and independent audit retention.",
     "backup": "The owner runs rer export and protects the resulting complete local archive, verifies integrity and tests restore into an empty installation. Hosted export is not supported by the pinned CLI. No automatic hosted backup service or recovery-time guarantee is claimed.",
     "incident": "Buyer operators revoke affected sessions, tokens and external exchanges, disable affected connectors, preserve audit and provider logs, assess exposure and arrange legally required notifications. Software vulnerabilities should be reported privately through repository security advisories.",
@@ -158,6 +158,17 @@
         "GOOGLE_CLIENT_SECRET",
         "MICROSOFT_CLIENT_ID",
         "MICROSOFT_CLIENT_SECRET"
+      ],
+      "enabledByDefault": false
+    },
+    {
+      "name": "Workforce identity provider: SAML sign-in and SCIM provisioning",
+      "data": "Owner-approved sign-in requests and signed assertions, and provisioned external subject, work email, display name, active state and mapped group membership",
+      "bindings": [
+        "WORKFORCE_SCIM_TOKEN",
+        "WORKFORCE_SAML_ISSUER",
+        "WORKFORCE_SAML_SSO_URL",
+        "WORKFORCE_SAML_CERT"
       ],
       "enabledByDefault": false
     }
