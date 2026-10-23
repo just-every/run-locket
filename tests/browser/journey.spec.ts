@@ -30,8 +30,8 @@ async function noOverflow(page: Page) {
   expect(overflow, 'page must not scroll sideways').toBeLessThanOrEqual(1)
 }
 
-for (const width of [1440, 390]) {
-  test(`MOBILE-001 owner runs an agreement from request to renewal notice at ${width}px`, async ({ page }) => {
+test(`MOBILE-001 owner runs an agreement from request to renewal notice at 1440px/390px`, async ({ page }) => {
+  for (const width of [1440, 390]) {
     const entry = process.env.LOCKET_OPEN
     if (!entry) throw new Error('Set LOCKET_OPEN privately to rer dev’s owner entry URL; this journey needs a real local installation.')
     const errors: string[] = []
@@ -236,16 +236,18 @@ for (const width of [1440, 390]) {
     await noOverflow(page)
     await shot(page, width, 'activity')
     expect(errors, errors.join('\n')).toEqual([])
-  })
-}
+  }
+})
 
 test.describe('Configurable intake forms', () => {
   test.use({ ignoreHTTPSErrors: true, actionTimeout: 15000, locale: 'en-US', timezoneId: 'America/New_York' })
-for (const width of [1440, 390]) test(`INTAKE-002 supplier form previews, publishes, freezes routes and limits launching at ${width}px`, async ({ page }) => {
-  const { metadataPage } = await import('./metadata-page.mjs')
-  const { intakeFormJourney } = await import('./intake-form-journey.mjs')
-  const p = await metadataPage(page, width)
-  try { await intakeFormJourney(page, width, p) } finally { await p.close() }
+test(`INTAKE-002 supplier form previews, publishes, freezes routes and limits launching at 1440px/390px`, async ({ page }) => {
+ for(const width of [1440,390]){
+   const { metadataPage } = await import('./metadata-page.mjs')
+   const { intakeFormJourney } = await import('./intake-form-journey.mjs')
+   const p = await metadataPage(page, width)
+   try { await intakeFormJourney(page, width, p) } finally { await p.close() }
+ }
 })
 
 })
@@ -253,10 +255,12 @@ for (const width of [1440, 390]) test(`INTAKE-002 supplier form previews, publis
 
 test.describe('Request queue',()=>{
  test.use({ignoreHTTPSErrors:true,actionTimeout:15000,timezoneId:'America/New_York'})
- for(const width of [1440,390])test(`INTAKE-006 request assignment, cancellation and service levels at ${width}px`,async({page})=>{
-  const {metadataPage}=await import('./metadata-page.mjs')
-  const {queueJourney}=await import('./queue-journey.mjs')
-  const p=await metadataPage(page,width)
-  try{await queueJourney(page,width,p)}finally{await p.close()}
+ test(`INTAKE-006 request assignment, cancellation and service levels at 1440px/390px`,async({page})=>{
+  for(const width of [1440,390]){
+   const {metadataPage}=await import('./metadata-page.mjs')
+   const {queueJourney}=await import('./queue-journey.mjs')
+   const p=await metadataPage(page,width)
+   try{await queueJourney(page,width,p)}finally{await p.close()}
+  }
  })
 })

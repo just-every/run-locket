@@ -6,8 +6,8 @@ import { file, pdf } from '../api/files.mjs'
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
 
-for (const width of [1440, 390]) {
-  test(`APPROVE-004 sets reminder intervals and a delegate, shows the scheduled reminders and escalation, and limits Remind approver at ${width}px`, async ({ page }) => {
+test(`APPROVE-004 sets reminder intervals and a delegate, shows the scheduled reminders and escalation, and limits Remind approver at 1440px/390px`, async ({ page }) => {
+  for (const width of [1440, 390]) {
     const p = await productPage(page, { width })
     const { h, origin, command, state } = p
     const screenshot = async (name: string) => {
@@ -69,13 +69,15 @@ for (const width of [1440, 390]) {
     } finally {
       await p.close()
     }
-  })
-}
+  }
+})
 
 
-for(const width of [1440,390])test(`APPROVE-002 publishes Finance Security CFO stages, delegates and withdraws changed-value decisions at ${width}px`,async({page})=>{
- const {metadataPage}=await import('./metadata-page.mjs')
- const {approvalRulesJourney}=await import('./approval-rules-journey.mjs')
- const p=await metadataPage(page,width)
- try{await approvalRulesJourney(page,width,p)}finally{await p.close()}
+test(`APPROVE-002 publishes Finance Security CFO stages, delegates and withdraws changed-value decisions at 1440px/390px`,async({page})=>{
+ for(const width of [1440,390]){
+  const {metadataPage}=await import('./metadata-page.mjs')
+  const {approvalRulesJourney}=await import('./approval-rules-journey.mjs')
+  const p=await metadataPage(page,width)
+  try{await approvalRulesJourney(page,width,p)}finally{await p.close()}
+ }
 })

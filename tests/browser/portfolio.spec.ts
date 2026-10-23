@@ -5,8 +5,8 @@ import { productPage } from './product-harness.mjs'
 import { portfolioFixture } from '../api/portfolio-fixture.mjs'
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
-for (const width of [1440, 390]) {
-  test(`REPORT-003 every portfolio tile opens its matching register at ${width}px`, async ({ page }) => {
+test(`REPORT-003 every portfolio tile opens its matching register at 1440px/390px`, async ({ page }) => {
+  for (const width of [1440, 390]) {
     const runtime = await productPage(page, { width, bindings: { TEST_NOW: String(Date.parse('2026-10-17T12:00:00Z')) } })
     try {
       const ids = await portfolioFixture(runtime.owner, String(width))
@@ -45,5 +45,5 @@ for (const width of [1440, 390]) {
       await page.getByRole('link', { name: 'Clear portfolio filter' }).click()
       await expect(page.locator(`[data-agreement-id="${ids.expired}"]`)).toBeVisible()
     } finally { await runtime.close() }
-  })
-}
+  }
+})
