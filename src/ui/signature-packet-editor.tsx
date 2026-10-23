@@ -13,7 +13,7 @@ export function SignaturePacketEditor({state,a,locket}:{state:LocketState;a:Row;
  const [recipients,setRecipients]=useState<Recipient[]>(()=>packet?parse(packet.recipients):contacts.length?[{name:contacts[0].name,email:contacts[0].email,action:'sign',partyRole:'counterparty'}]:[{name:'',email:'',action:'sign',partyRole:'counterparty'}])
  const [documents,setDocuments]=useState<any[]>(()=>packet?parse(packet.documents):[]),[fields,setFields]=useState<any[]>(()=>packet?parse(packet.fields):[])
  useEffect(()=>{if(packet){setRecipients(parse(packet.recipients));setDocuments(parse(packet.documents));setFields(parse(packet.fields))}},[packet?.revision])
- const files=state.artifacts.filter(f=>f.agreement_id===a.id&&['attachment','packet'].includes(f.role)&&f.media_type==='application/pdf')
+ const files=state.artifacts.filter(f=>f.agreement_id===a.id&&['attachment'].includes(f.role)&&f.media_type==='application/pdf')
  const primary=state.artifacts.find(f=>f.version_id===v?.id&&f.role==='rendition')??state.artifacts.find(f=>f.version_id===v?.id&&f.role==='original'&&f.media_type==='application/pdf')
  const [previewId,setPreviewId]=useState('main'),[page,setPage]=useState(1),[kind,setKind]=useState('signature'),[partyRole,setPartyRole]=useState('counterparty'),[dimensions,setDimensions]=useState<{width:number;height:number}[]>([])
  const selected=previewId==='main'?primary:files.find(f=>f.id===previewId),size=dimensions[page-1]??{width:595,height:842}

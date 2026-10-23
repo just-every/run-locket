@@ -38,7 +38,7 @@ const configure:Handler=async(c,p)=>{
  const documents:PacketDocument[]=[]
  for(const input of list(p,'documents',19)){
   const d=object(input),id=text(d,'artifactId',100),artifact=await c.db.prepare('SELECT * FROM lk_artifacts WHERE id=? AND agreement_id=?').bind(id,a.id).first<any>()
-  if(!artifact||!['attachment','packet'].includes(artifact.role)||artifact.media_type!==PDF)fail('PACKET_DOCUMENT','Choose a retained PDF attachment on this agreement.')
+  if(!artifact||!['attachment'].includes(artifact.role)||artifact.media_type!==PDF)fail('PACKET_DOCUMENT','Choose a retained PDF attachment on this agreement.')
   const provenance=JSON.parse(artifact.provenance),templateId=provenance.templateVersionId??null,blocks=await templateBlocks(c.db,templateId)
   documents.push({id,artifactId:id,filename:artifact.filename,sha256:artifact.sha256,purpose:oneOf(d,'purpose',['sign','reference'] as const),templateVersionId:templateId,blocks:blocks?JSON.parse(blocks.definition):[]})
   checks.push(sql('EXISTS(SELECT 1 FROM lk_artifacts WHERE id=? AND agreement_id=? AND sha256=?)',id,a.id,artifact.sha256))
@@ -84,7 +84,7 @@ const addDocument:Handler=async(c,p)=>{
   }
   provenance={...provenance,templateVersionId:id,blocksRevision:blocks?.revision??0}
  }else{const f=fileInput(p.file);if(!isPdf(f))fail('FILE_TYPE','Packet documents must be PDFs.');bytes=f.bytes;filename=f.filename}
- const stored=await storeArtifact({bytes,filename,mediaType:PDF},{agreementId:a.id,role:'packet',provenance,actorId:c.actor.id,at:c.now})
+ const stored=await storeArtifact({bytes,filename,mediaType:PDF},{agreementId:a.id,role:'attachment',provenance,actorId:c.actor.id,at:c.now})
  return {allowed:may.signature,result:{artifactId:stored.id,sha256:stored.sha256},checks,writes:[...stored.writes,bump(c,a)],audit:[{action:'signature.packet.document',agreementId:a.id,summary:`Retained ${filename} for explicit inclusion in a signing packet; no approval or provider send claimed.`}]}
 }
 export async function buildPacket(c:Ctx,a:AgreementRow,v:VersionRow,primary:{id:string;filename:string;sha256:string;bytes?:Uint8Array},inputRecipients:PacketRecipient[],signatoryEmail:string|null=null) {
