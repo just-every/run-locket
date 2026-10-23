@@ -25,8 +25,9 @@ export function signatureBase(provider:string,input:string,env:Bindings) {
 export async function providerRequest(base:string,path:string,token:string,body:unknown,method='POST',basic=false):Promise<any> {
  const multipart=body instanceof FormData
  let response:Response
- try{response=await fetch(base+path,{method,redirect:'error',signal:AbortSignal.timeout(25_000),headers:{authorization:basic?`Basic ${btoa(token+':')}`:`Bearer ${token}`,...(!multipart?{'content-type':'application/json'}:{})},body:multipart?body:JSON.stringify(body)})}
+ try{response=await fetch(base+path,{method,redirect:'manual',signal:AbortSignal.timeout(25_000),headers:{authorization:basic?`Basic ${btoa(token+':')}`:`Bearer ${token}`,...(!multipart?{'content-type':'application/json'}:{})},body:multipart?body:JSON.stringify(body)})}
  catch{throw new SignatureProviderFailure('uncertain','provider_outcome_unknown')}
+ if(response.status>=300&&response.status<400)throw new SignatureProviderFailure('rejected','provider_redirect_refused')
  if(!response.ok)throw new SignatureProviderFailure(response.status>=400&&response.status<500?'rejected':'uncertain',`provider_http_${response.status}`)
  try{return await response.json()}catch{throw new SignatureProviderFailure('uncertain','provider_receipt_unreadable')}
 }
