@@ -105,11 +105,11 @@ export async function notificationState(env: Bindings, actor: Actor) {
   if (!(await notificationCheck(env.DB, [authority(actor, notificationPeople)]))) fail('AUTHORITY', 'Sign in with a current human session.', 403)
   const preferences = await notificationPreferences(env.DB, actor.id)
   const auth = authority(actor, notificationPeople),access=agreementAccessSql(actor.id)
-  const items = (await notificationBind(env.DB, sql(`SELECT n.id,n.agreement_id,n.kind,n.created_at,n.read_at,n.email_status
+  const items = (await notificationBind(env.DB, sql(`SELECT n.id,n.event_key,n.agreement_id,n.kind,n.created_at,n.read_at,n.email_status
     FROM lk_notifications n JOIN lk_agreements a ON a.id=n.agreement_id
     WHERE n.recipient_id=? AND n.in_app=1 AND COALESCE((SELECT in_app FROM lk_person_preferences WHERE operator_id=?),1)=1
     AND (${auth.sql}) AND (${access.sql})
     ORDER BY n.created_at DESC,n.id`, actor.id, actor.id, ...auth.params, ...access.params))
-    .all<Pick<NotificationRow, 'id' | 'agreement_id' | 'kind' | 'created_at' | 'read_at' | 'email_status'>>()).results
+    .all<Pick<NotificationRow, 'id' | 'event_key' | 'agreement_id' | 'kind' | 'created_at' | 'read_at' | 'email_status'>>()).results
   return { preferences, items: items.map(row => ({ ...row, link: notificationLink(env, row) })) }
 }
