@@ -49,8 +49,10 @@ export async function prepareProviderTags(provider:TextTagProvider,p:ProviderPac
     fail('FIELD_BOUNDS','Provider text tags must fit inside their reviewed page.',409)
    const tag=providerTextTag(provider,p,f),fontSize=12
    // One literal text run, with its PDF text rectangle equal to the reviewed
-   // top-left point rectangle. Scaling does not change document/page geometry.
-   page.pushOperators(pushGraphicsState(),concatTransformationMatrix(f.width/font.widthOfTextAtSize(tag,fontSize),0,0,f.height/fontSize,f.x,f.pageHeight-f.y-f.height))
+   // top-left point rectangle. drawText emits Tj without kerning adjustments,
+   // so sum individual advances rather than pdf-lib’s kerned string width.
+   // Scaling does not change document/page geometry.
+   page.pushOperators(pushGraphicsState(),concatTransformationMatrix(f.width/Array.from(tag).reduce((width,char)=>width+font.widthOfTextAtSize(char,fontSize),0),0,0,f.height/fontSize,f.x,f.pageHeight-f.y-f.height))
    page.drawText(tag,{x:0,y:0,size:fontSize,font,color:rgb(1,1,1)})
    page.pushOperators(popGraphicsState())
    fields[p.fields.indexOf(f)].anchor=tag
@@ -80,7 +82,7 @@ export async function assertProviderTags(provider:TextTagProvider,p:ProviderPack
    if(f.anchor!==tag)throw new SignatureProviderFailure('rejected','provider_native_tags_required')
    const matches=pages.flatMap((page,i)=>page.items.flatMap(item=>Array.from({length:item.text.split(tag).length-1},()=>({page:i+1,item}))))
    if(matches.length!==1||matches[0].page!==f.page||Math.abs(matches[0].item.x-f.x)>.1||Math.abs(matches[0].item.y-f.y)>.1||Math.abs(matches[0].item.width-f.width)>.1||Math.abs(matches[0].item.height-f.height)>.1)
-    throw new SignatureProviderFailure('rejected','provider_tag_placement_mismatch_'+JSON.stringify({tag,expected:[f.page,f.x,f.y,f.width,f.height],actual:matches}))
+    throw new SignatureProviderFailure('rejected','provider_tag_placement_mismatch')
   }
  }
 }
