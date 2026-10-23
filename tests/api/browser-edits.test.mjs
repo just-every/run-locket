@@ -12,6 +12,8 @@ test('Word review preserves twelve authored revisions, resolves nine and rejects
  assert.equal(model.changes.length,12);assert.equal(model.comments.length,4);assert.equal(model.baseVersionId,x.initial.versionId)
  assert.deepEqual(new Set(model.changes.map(change=>change.kind)),new Set(['insertion','deletion','moveFrom','moveTo','formatting']))
  assert.deepEqual(new Set(model.changes.map(change=>change.author)),new Set(['Alicia Counsel','Morgan Supplier']))
+ const comparison=await(await h.owner.request(`/api/locket/compare?from=${x.initial.versionId}&to=${x.uploaded.versionId}`)).json()
+ assert.ok(comparison.lines.some(line=>line.op==='del'&&line.text.includes('60 days')));assert.ok(comparison.lines.some(line=>line.op==='add'&&line.text.includes('30 days')))
  for(const change of model.changes){assert.ok(change.start>=0&&change.end>=change.start&&change.end<=model.text.length);if(change.kind==='insertion'||change.kind==='moveTo')assert.equal(model.text.slice(change.start,change.end),change.after)}
  for(const comment of model.comments){assert.ok(comment.author);assert.equal(model.text.slice(comment.start,comment.end),comment.quote)}
  const roots=state.comments.filter(row=>row.version_id===x.uploaded.versionId),root=roots.find(row=>row.body===x.commentBodies[0])

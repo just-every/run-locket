@@ -20,18 +20,21 @@ export function wordReviewFixture(){
   `<w:p><w:pPr><w:jc w:val="center"/><w:pPrChange ${who(11)}><w:pPr><w:jc w:val="left"/></w:pPr></w:pPrChange></w:pPr>${run('8. Governing law: New York.')}</w:p>`,
  ].join('')
  const document=parts.find(([name])=>name==='word/document.xml')
+ const beforeBody=[paragraph(run('1. Payment: 60 days after invoice.')),paragraph(run('Invoice review remains with the accounts payable team.')),paragraph(run('Supporting records accompany each invoice.')),paragraph(run('2. Liability: $1,000,000 aggregate coverage.')),paragraph(run('3. Security: self-certification is required.')),paragraph(run('4. Notices: courier to the registered office.')),paragraph(run('5. Moved obligation: Maintain insurance.')),paragraph(run('6. Insurance: ')),`<w:p><w:r><w:rPr><w:i/></w:rPr><w:t>7. Confidentiality survives.</w:t></w:r></w:p>`,`<w:p><w:pPr><w:jc w:val="left"/></w:pPr>${run('8. Governing law: New York.')}</w:p>`].join('')
+ const baseParts=source.parts.map(([name,xml])=>[name,name==='word/document.xml'?xml.replace(/(<w:body>)[\s\S]*?(<w:tbl>)/,(_,open,table)=>open+beforeBody+table):xml])
  document[1]=document[1].replace(/(<w:body>)[\s\S]*?(<w:tbl>)/,(_,open,table)=>open+body+table)
  const commentBodies=['Please confirm the payment period.','Please confirm the liability cap.','Security report to be delivered annually.','This private negotiating position must stay internal.']
  parts.push(['word/comments.xml',`<?xml version="1.0"?><w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${commentBodies.map((text,id)=>`<w:comment ${who(id)}><w:p>${run(text)}</w:p></w:comment>`).join('')}</w:comments>`],['docProps/core.xml','<?xml version="1.0"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:creator>synthetic-locket-private-author</dc:creator><cp:lastModifiedBy>synthetic-locket-private-editor</cp:lastModifiedBy></cp:coreProperties>'])
  parts.find(([name])=>name==='[Content_Types].xml')[1]=parts.find(([name])=>name==='[Content_Types].xml')[1].replace('</Types>','<Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>')
  parts.find(([name])=>name==='word/_rels/document.xml.rels')[1]=parts.find(([name])=>name==='word/_rels/document.xml.rels')[1].replace('</Relationships>','<Relationship Id="comments" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/></Relationships>')
  parts.find(([name])=>name==='_rels/.rels')[1]=parts.find(([name])=>name==='_rels/.rels')[1].replace('</Relationships>','<Relationship Id="properties" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>')
- return {bytes:zip(parts),parts,commentBodies,decisions:Object.fromEntries(Array.from({length:12},(_,id)=>[String(id),[3,7,10].includes(id)?'reject':'accept']))}
+ return {bytes:zip(parts),baseBytes:zip(baseParts),parts,commentBodies,decisions:Object.fromEntries(Array.from({length:12},(_,id)=>[String(id),[3,7,10].includes(id)?'reject':'accept']))}
 }
 export async function uploadedWordReview(h){
- const initial=await h.owner.command('request.create',{title:'Supplier services renewal markup',type:'nda',party:{name:'Ridgeway Services',kind:'supplier',contacts:[{name:'Morgan Supplier',email:'synthetic-locket-26@example.test'}]},file:file('base.docx',wordTemplateFixture().source)})
+ const fixture=wordReviewFixture()
+ const initial=await h.owner.command('request.create',{title:'Supplier services renewal markup',type:'nda',party:{name:'Ridgeway Services',kind:'supplier',contacts:[{name:'Morgan Supplier',email:'synthetic-locket-26@example.test'}]},file:file('base.docx',fixture.baseBytes)})
  let a=(await h.owner.state()).agreements.find(row=>row.id===initial.id)
- const fixture=wordReviewFixture(),uploaded=await h.owner.command('version.upload',{agreementId:a.id,version:a.version,kind:'counterparty',file:file('supplier-markup.docx',fixture.bytes)})
+ const uploaded=await h.owner.command('version.upload',{agreementId:a.id,version:a.version,kind:'counterparty',file:file('supplier-markup.docx',fixture.bytes)})
  a=(await h.owner.state()).agreements.find(row=>row.id===a.id)
  return {...fixture,a,initial,uploaded}
 }
