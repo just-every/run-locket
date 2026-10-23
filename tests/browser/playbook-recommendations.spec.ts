@@ -17,7 +17,7 @@ for (const width of [1440, 390]) test(`AGENT-007 counsel reviews thirty negotiat
     body.generatedAt=Date.parse('2026-10-26T00:00:00Z')
     return Response.json(body)
   }
-  const p = await productPage(page, { width,bindings:{...reconciliationBindings,...serviceLevelBindings},outboundResponse })
+  const p = await productPage(page, { width,bindings:{...reconciliationBindings,...serviceLevelBindings,TEST_NOW:String(Date.parse('2026-10-23T12:00:00Z'))},outboundResponse })
   try {
     const f = await negotiationFixture(p.h,{nativeCredit:true})
     await page.context().clearCookies()

@@ -762,7 +762,7 @@ test('AGENT-007 measures thirty recorded negotiations, preserves twenty-two exac
     body.generatedAt=Date.parse('2026-10-26T00:00:00Z')
     return Response.json(body)
   }
-  const h = await installation({ bindings: {...reconciliationBindings, ...serviceLevelBindings}, outboundResponse }); t.after(() => h.close())
+  const h = await installation({ bindings: {...reconciliationBindings, ...serviceLevelBindings,TEST_NOW:String(Date.parse('2026-10-23T12:00:00Z'))}, outboundResponse }); t.after(() => h.close())
   const f = await negotiationFixture(h, { nativeCredit: true })
   const agent = await h.invite('synthetic-locket-agent@example.test', 'agent')
   const viewer = await h.invite('synthetic-locket-viewer@example.test', 'viewer')
