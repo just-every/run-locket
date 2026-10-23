@@ -38,7 +38,8 @@ test('Approved MSA plus DPA and template fields reach three real adapter network
   await h.owner.command('package.send',payload,{commandId})
   await h.owner.command('package.send',payload,{commandId})
   const request=edge.requests.at(-1),dispatch=(await h.owner.state()).signature.dispatches.find(d=>d.package_id===prepared.packageId)
-  if(provider!=='inkwell'){const delivered=await h.owner.state();assert.equal(delivered.notifications.items.filter(n=>n.agreement_id===id&&n.kind==='signature').length,1);assert.ok(delivered.workflowHistory.some(w=>w.agreement_id===id&&w.from_status==='approved'&&w.to_status==='out_for_signature'))}
+  assert.equal(dispatch.status,provider==='inkwell'?'provider_prepared':'sent',provider+': '+dispatch.outcome_code)
+  if(provider!=='inkwell'){const delivered=await h.owner.state();assert.equal(delivered.notifications.items.filter(n=>n.agreement_id===id&&n.kind==='signature').length,1,provider+' signature notification; '+JSON.stringify(delivered.notifications.items.map(n=>({kind:n.kind,agreementId:n.agreement_id}))));assert.ok(delivered.workflowHistory.some(w=>w.agreement_id===id&&w.from_status==='approved'&&w.to_status==='out_for_signature'))}
   assert.equal(dispatch.status,provider==='inkwell'?'provider_prepared':'sent');assert.equal(edge.requests.filter(r=>r.provider===provider).length,1)
   assert.deepEqual(request.documents.map(d=>d.sha256),manifest.documents.map(d=>d.sha256))
   for(const [i,d] of request.documents.entries())assert.deepEqual(Buffer.from(await (await h.owner.request('/api/locket/files/'+manifest.documents[i].artifactId)).arrayBuffer()),d.bytes)

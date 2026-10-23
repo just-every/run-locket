@@ -8,7 +8,7 @@ export const recipient={name:'Synthetic counterparty signer',email:'signer@examp
 async function detectedTags(documents,provider){
  const fields=[]
  for(const [documentIndex,d] of documents.entries()){
-  const pdf=await getDocumentProxy(d.bytes.slice(),{useWasm:false,useSystemFonts:false,disableFontFace:true,verbosity:0})
+  const pdf=await getDocumentProxy(Uint8Array.from(d.bytes),{useWasm:false,useSystemFonts:false,disableFontFace:true,verbosity:0})
   try{for(let page=1;page<=pdf.numPages;page++)for(const item of (await(await pdf.getPage(page)).getTextContent()).items){
    if(!('str'in item))continue
    const pattern=provider==='adobe-acrobat-sign'?/\{\{\*lk_d\d+_f\d+_es_:signer\d+:[^}]+\}\}/g:/\[(?:sig|initial|text|date)\|req\|signer\d+\|[^\]]+\]/g
