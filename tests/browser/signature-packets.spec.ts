@@ -77,7 +77,7 @@ test(`Signature coordinator reviews template packet, previews signer rules and p
   const pkg=await click('Prepare signature package')
   await page.getByRole('checkbox',{name:'I authorize this exact packet, recipients, fields and connection for this provider operation.'}).check()
   await click('Send approved packet')
-  await expect(page.getByRole('status')).toContainText('Provider operation: sent')
+  await expect(page.getByRole('status').filter({hasText:'Provider operation:'})).toContainText('Provider operation: sent')
   const sent=edge.requests.at(-1)
   expect(sent.documents[0].bytes).toEqual(source)
   expect(sent.body.recipients.carbonCopies[0].email).toBe('cc@example.test')
