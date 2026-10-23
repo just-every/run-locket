@@ -931,3 +931,17 @@ test('AGENT-007 measures thirty recorded negotiations, preserves twenty-two exac
   await f.counsel.command('playbook.recommendation.decide', { recommendationId: unknown.id, decision: 'reject', reason: 'Insufficient timing and operational history for a standard position.' })
   assert.equal((await f.counsel.state()).playbooks.find(p => p.status === 'active').id, approved.playbookId)
 })
+
+test('legacy DOCX text is read only within the part sizes its package declares', async t => {
+  const h = await installation(); t.after(() => h.close())
+  const word = docx(['synthetic-locket-4 '.repeat(65536)])
+  // The main document expands to over a megabyte while both headers declare one byte.
+  const end = word.length - 22
+  for (let at = word.readUInt32LE(end + 16); at < end; at += 46 + word.readUInt16LE(at + 28) + word.readUInt16LE(at + 30) + word.readUInt16LE(at + 32)) {
+    if (word.toString('utf8', at + 46, at + 46 + word.readUInt16LE(at + 28)) !== 'word/document.xml') continue
+    word.writeUInt32LE(1, at + 24)
+    word.writeUInt32LE(1, word.readUInt32LE(at + 42) + 22)
+  }
+  await h.owner.command('legacy.import', { title: 'synthetic-locket-4 archive', type: 'nda', party: { name: 'synthetic-locket-4 party', kind: 'other' }, sourceSystem: 'Shared drive', sourceId: 'synthetic-locket-4.docx', file: file('synthetic-locket-4.docx', word) }, { error: 'DOCX' })
+  assert.deepEqual((await h.owner.state()).agreements, [])
+})

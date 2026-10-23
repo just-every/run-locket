@@ -9,6 +9,8 @@ const u32=(b:Uint8Array,o:number)=>new DataView(b.buffer,b.byteOffset,b.byteLeng
 const table=Array.from({length:256},(_,n)=>{for(let k=0;k<8;k++)n=n&1?0xedb88320^(n>>>1):n>>>1;return n>>>0})
 const crc=(bytes:Uint8Array)=>{let n=0xffffffff;for(const b of bytes)n=table[(n^b)&255]^(n>>>8);return (n^0xffffffff)>>>0}
 export type WordPart={name:string;bytes:Uint8Array}
+/** The most any one package part may expand to when read. */
+export const MAX_WORD_PART_BYTES=20*1024*1024
 export async function readWord(bytes:Uint8Array,mode:'template'|'review'='template'):Promise<WordPart[]> {
  let end=-1
  for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65557);i--)if(u32(bytes,i)===0x06054b50&&i+22+u16(bytes,i+20)===bytes.length){end=i;break}
@@ -21,7 +23,7 @@ export async function readWord(bytes:Uint8Array,mode:'template'|'review'='templa
   if(offset+46>end||u32(bytes,offset)!==0x02014b50)fail('DOCX','The DOCX directory is damaged.')
   const flags=u16(bytes,offset+8),method=u16(bytes,offset+10),packed=u32(bytes,offset+20),length=u32(bytes,offset+24),nameLength=u16(bytes,offset+28),extra=u16(bytes,offset+30),comment=u16(bytes,offset+32),local=u32(bytes,offset+42)
   const name=decoder.decode(bytes.subarray(offset+46,offset+46+nameLength))
-  if(flags&1||![0,8].includes(method)||!name||name.startsWith('/')||name.includes('\\')||name.split('/').includes('..')||names.has(name)||length>20*1024*1024||(total+=length)>30*1024*1024)fail('DOCX','Unsupported, encrypted, duplicate or oversized DOCX part.')
+  if(flags&1||![0,8].includes(method)||!name||name.startsWith('/')||name.includes('\\')||name.split('/').includes('..')||names.has(name)||length>MAX_WORD_PART_BYTES||(total+=length)>30*1024*1024)fail('DOCX','Unsupported, encrypted, duplicate or oversized DOCX part.')
   if(local+30>directory||u32(bytes,local)!==0x04034b50||u16(bytes,local+8)!==method)fail('DOCX','The DOCX local header is invalid.')
   const start=local+30+u16(bytes,local+26)+u16(bytes,local+28)
   if(start+packed>directory||decoder.decode(bytes.subarray(local+30,local+30+u16(bytes,local+26)))!==name)fail('DOCX','The DOCX part bounds do not match.')

@@ -1,13 +1,33 @@
 // Reads the paragraph text of a DOCX (word/document.xml) for comparison and
 // review. The original DOCX bytes are always kept; this is a text rendition only.
 import { fail } from './model'
+import { MAX_WORD_PART_BYTES } from './word-template-document'
 
 const u16 = (b: Uint8Array, o: number) => b[o] | (b[o + 1] << 8)
 const u32 = (b: Uint8Array, o: number) => (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0
 
-async function inflateRaw(data: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([data as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
-  return new Uint8Array(await new Response(stream).arrayBuffer())
+/** Inflates a part, stopping as soon as it expands past the size its package declares. */
+async function inflateRaw(data: Uint8Array, declared: number): Promise<Uint8Array> {
+  const reader = new Blob([data as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate-raw')).getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for (;;) {
+    const chunk = await reader.read()
+    if (chunk.done) break
+    size += chunk.value.length
+    if (size > declared) {
+      await reader.cancel()
+      fail('DOCX', 'The DOCX main document expands beyond its declared size.')
+    }
+    chunks.push(chunk.value)
+  }
+  const out = new Uint8Array(size)
+  let at = 0
+  for (const chunk of chunks) {
+    out.set(chunk, at)
+    at += chunk.length
+  }
+  return out
 }
 
 async function zipEntry(zip: Uint8Array, wanted: string): Promise<Uint8Array | null> {
@@ -19,15 +39,16 @@ async function zipEntry(zip: Uint8Array, wanted: string): Promise<Uint8Array | n
   const decoder = new TextDecoder()
   for (let n = 0; n < count; n++) {
     if (u32(zip, offset) !== 0x02014b50) fail('DOCX', 'The DOCX central directory is damaged.')
-    const method = u16(zip, offset + 10), compressed = u32(zip, offset + 20)
+    const method = u16(zip, offset + 10), compressed = u32(zip, offset + 20), declared = u32(zip, offset + 24)
     const nameLength = u16(zip, offset + 28), extraLength = u16(zip, offset + 30), commentLength = u16(zip, offset + 32)
     const local = u32(zip, offset + 42)
     const name = decoder.decode(zip.subarray(offset + 46, offset + 46 + nameLength))
     if (name === wanted) {
+      if (declared > MAX_WORD_PART_BYTES) fail('DOCX', 'The DOCX main document is too large to read.')
       const start = local + 30 + u16(zip, local + 26) + u16(zip, local + 28)
       const data = zip.subarray(start, start + compressed)
       if (method === 0) return data
-      if (method === 8) return inflateRaw(data)
+      if (method === 8) return inflateRaw(data, declared)
       fail('DOCX', 'The DOCX uses an unsupported compression method.')
     }
     offset += 46 + nameLength + extraLength + commentLength
