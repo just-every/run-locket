@@ -94,7 +94,7 @@ export async function buildPacket(c:Ctx,a:AgreementRow,v:VersionRow,primary:{id:
  const selection=await agreementSigner(c.db,a,rulesetId)
  const recipients=row?JSON.parse(row.recipients) as PacketRecipient[]:inputRecipients
  if(selection&&!row)fail('PACKET_REVIEW','Save and review the rule-selected signer before approving this packet.',409)
- if(selection&&row&&recipients.find(r=>r.partyRole==='internal')?.email!==selection.person.email.toLowerCase())fail('SIGNER_CHANGED','Signer availability changed. Save the current packet to review the fallback and renew its approval.',409)
+ if(selection&&row&&(recipients.find(r=>r.partyRole==='internal')?.email!==selection.person.email.toLowerCase()||recipients.find(r=>r.partyRole==='internal')?.name!==selection.person.name))fail('SIGNER_CHANGED','Signer availability changed. Save the current packet to review the fallback and renew its approval.',409)
  if(!recipients.length){const party=await c.db.prepare('SELECT contacts,signatories FROM lk_parties WHERE id=?').bind(a.party_id).first<any>();const contact=party?[...JSON.parse(party.signatories??'[]'),...JSON.parse(party.contacts??'[]')][0]:null;if(contact)recipients.push({order:1,name:contact.name,email:contact.email,action:'sign',partyRole:'counterparty',signingFor:null})}
  if(selection){const internal=recipients.find(r=>r.partyRole==='internal')??recipients.find(r=>r.email===selection.person.email.toLowerCase());const chosen={name:selection.person.name,email:selection.person.email.toLowerCase(),action:'sign' as const,partyRole:'internal',signingFor:null};if(internal)Object.assign(internal,chosen);else recipients.push({order:recipients.length+1,...chosen})}
  const entity=await entityById(c,a.entity_id)

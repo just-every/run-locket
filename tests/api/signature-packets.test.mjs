@@ -100,6 +100,7 @@ test('Current coordinator group and requester relationship guard signer edits; e
  const proposal=await agent.command('proposal.prepare',{kind:'signature',payload:agentPayload,evidence:['The retained page-seven PDF and current coordinator routing.']})
  await approver.command('proposal.decide',{proposalId:proposal.id,decision:'approve'})
  assert.equal((await h.owner.state()).proposals.find(p=>p.id===proposal.id).decided_by,approver.id)
+ await approvePacket(h.owner,f.id)
  // Removing current membership takes effect without changing packet configuration.
  await h.owner.command('audience.save',{id:group.id,version:group.version,name:'Signature coordinators',kind:'group',memberIds:[]})
  await approver.command('package.prepare',{agreementId:f.id,version:(await agreement(h.owner,f.id)).version,provider:'docusign',recipients:[]},{error:'FORBIDDEN'})
