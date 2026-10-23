@@ -56,7 +56,7 @@ test(`Signature coordinator reviews template packet, previews signer rules and p
   await page.getByLabel('Reason for packet changes',{exact:true}).fill('Coordinator placed signature and date on page seven and added a CC.')
   await click('Save signing packet')
   const placement=page.getByRole('button',{name:'Place signature on page 7',exact:true})
-  await placement.focus();await expect(page.getByRole('tooltip',{name:'Place field',exact:true})).toBeVisible();await shot('field-tooltip');await placement.blur();await placement.hover();await expect(page.getByRole('tooltip',{name:'Place field',exact:true})).toBeVisible({timeout:1000});await shot('field-tooltip-hover');await page.mouse.move(0,0)
+  await placement.focus();await expect(page.getByRole('tooltip',{name:'Place field',exact:true})).toBeVisible();await shot('field-tooltip');await placement.blur();await page.mouse.move(0,0);await placement.hover();await expect(page.getByRole('tooltip',{name:'Place field',exact:true})).toBeVisible({timeout:1000});await shot('field-tooltip-hover');await page.mouse.move(0,0)
   await shot('page-seven-fields')
   await approvePacket(h.owner,request.id)
   await page.reload()
