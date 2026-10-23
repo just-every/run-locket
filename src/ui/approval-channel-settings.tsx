@@ -13,7 +13,7 @@ export interface ApprovalChannelWorkspace {
  providers:{email:boolean;slack:boolean;teams:boolean;nook:boolean}
 }
 type State=LocketState&{approvalChannels:ApprovalChannelWorkspace}
-export function ApprovalChannelSettings({state,locket}:{state:State;locket:Locket}){
+export function ApprovalChannelSettings({state,locket,personalOnly=false}:{state:State;locket:Locket;personalOnly?:boolean}){
  const w=state.approvalChannels
  if(state.actor.role==='agent')return null
  return <>
@@ -24,7 +24,7 @@ export function ApprovalChannelSettings({state,locket}:{state:State;locket:Locke
    </Form>
    <p><a href="#approval-word">Open Word and phone approval inbox</a> · <a href="/api/locket/approval-channels/word-manifest" download="locket-approvals.xml">Download Word add-in manifest</a></p>
   </section>
-  {can(state,'owner')&&<section className="lk-panel" aria-label="Approval channel configuration">
+  {!personalOnly&&can(state,'owner')&&<section className="lk-panel" aria-label="Approval channel configuration">
    <h2>Approval channel configuration</h2><p>Automatic requests ask the current unlocked named approver or delegate. Steps without a named approver ask every eligible role member with access. Requests contain only a generic sign-in link. Provider acceptance confirms neither delivery nor reading.</p>
    <Form key={w.settings.version} busy={locket.busy} submit="Save automatic approval requests" onSubmit={data=>void locket.run('approval.channel.configure',{version:w.settings.version,automatic:data.get('automatic')==='on'})}>
     <Field label="Enable automatic approval requests"><input name="automatic" type="checkbox" defaultChecked={w.settings.automatic}/></Field>

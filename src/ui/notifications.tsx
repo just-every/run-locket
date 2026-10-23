@@ -1,3 +1,4 @@
+import { ApprovalChannelSettings } from './approval-channel-settings'
 import { useState } from 'react'
 import type { LocketState } from './api'
 import type { Locket } from './app'
@@ -26,6 +27,7 @@ export function Notifications({ state, locket }: { state: LocketState; locket: L
   const unread = items.filter(item => item.read_at === null).length
   const shown = items.filter(item => !unreadOnly || item.read_at === null).sort((a, b) => b.created_at - a.created_at)
   return <div className="lk-stack">
+    <ApprovalChannelSettings state={state} locket={locket} personalOnly/>
     <div className="lk-titlebar"><div><h1>Notifications</h1><p className="lk-muted">Assignments, mentions, approvals, signature events and deadlines for agreements you can access.</p></div></div>
     <section className="lk-panel" aria-label="Notification inbox">
       <div className="lk-panel-head"><h2>Inbox</h2><span className="lk-muted">{unread} unread</span></div>
