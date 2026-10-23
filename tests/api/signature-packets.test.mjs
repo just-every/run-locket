@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { installation } from './harness.mjs'
-import { agreement,approvePacket,configureConnection,configurePacket,digest,manualPacket,preparePacket,recipient,sendPacket,signatureEdge,signerRules,signingTemplate,templatePacket } from './signature-packet-fixture.mjs'
+import { agreement,assertTemplatePlacements,approvePacket,configureConnection,configurePacket,digest,manualPacket,preparePacket,recipient,sendPacket,signatureEdge,signerRules,signingTemplate,templatePacket } from './signature-packet-fixture.mjs'
 
 test('Signer rules preview and freeze type, exact USD bounds, entity, department and unavailable fallback before packet approval',async t=>{
  const h=await installation();t.after(()=>h.close())
@@ -43,7 +43,7 @@ test('Approved MSA plus DPA and template fields reach three real adapter network
   assert.equal(dispatch.status,provider==='inkwell'?'provider_prepared':'sent');assert.equal(edge.requests.filter(r=>r.provider===provider).length,1)
   assert.deepEqual(request.documents.map(d=>d.sha256),manifest.documents.map(d=>d.sha256))
   for(const [i,d] of request.documents.entries())assert.deepEqual(Buffer.from(await (await h.owner.request('/api/locket/files/'+manifest.documents[i].artifactId)).arrayBuffer()),d.bytes)
-  if(provider==='docusign'){assert.equal(request.body.recipients.signers.length,2);assert.equal(request.body.recipients.signers.flatMap(s=>s.tabs.signHereTabs).length,4)}
+  if(provider==='docusign'){await assertTemplatePlacements(request.documents.map((d,i)=>({...d,id:manifest.documents[i].id})),manifest.fields);assert.equal(request.body.recipients.signers.length,2);assert.equal(request.body.recipients.signers.flatMap(s=>s.tabs.signHereTabs).length,4)}
   if(provider==='dropbox-sign')assert.equal(request.fields.length,manifest.fields.length)
   if(provider==='adobe-acrobat-sign'){assert.equal(request.fields.length,manifest.fields.length);assert.equal(request.sent,true)}
   if(provider==='inkwell'){assert.equal(request.body.fields.length,manifest.fields.length);assert.equal((await agreement(h.owner,id)).status,'approved')}

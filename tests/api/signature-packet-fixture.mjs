@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { file,pdf } from './files.mjs'
 import { getDocumentProxy } from 'unpdf'
+import { PDFDocument,StandardFonts } from 'pdf-lib'
 export const digest=bytes=>createHash('sha256').update(bytes).digest('hex')
 export const agreement=async(client,id)=>(await client.state()).agreements.find(a=>a.id===id)
 export const recipient={name:'Synthetic counterparty signer',email:'signer@example.test',action:'sign',partyRole:'counterparty'}
@@ -16,6 +17,23 @@ async function detectedTags(documents,provider){
   }}finally{await pdf.loadingTask.destroy()}
  }
  return fields
+}
+// These synthetic templates use unkerned Helvetica. Read their actual PDF text
+// to prove each canonical placement starts at its anchor, after the visible label.
+export async function assertTemplatePlacements(documents,fields){
+ const font=await(await PDFDocument.create()).embedFont(StandardFonts.Helvetica)
+ for(const [index,d] of documents.entries()){
+  const pdf=await getDocumentProxy(Uint8Array.from(d.bytes),{useWasm:false,useSystemFonts:false,disableFontFace:true,verbosity:0})
+  try{for(const f of fields.filter(f=>f.documentId===(index===0?'main':d.id))){
+   const page=await pdf.getPage(f.page),viewport=page.getViewport({scale:1}),items=(await page.getTextContent()).items
+   const item=items.find(item=>'str'in item&&item.str.includes(f.anchor))
+   assert.ok(item,'The original PDF contains the template anchor')
+   const prefix=item.str.slice(0,item.str.indexOf(f.anchor)),offset=Array.from(prefix).reduce((sum,char)=>sum+font.widthOfTextAtSize(char,item.height),0)
+   const [x,y]=viewport.convertToViewportPoint(item.transform[4],item.transform[5])
+   assert.ok(Math.abs(f.x-(x+offset))<.01,'The field starts at the anchor after its label')
+   assert.ok(Math.abs(f.y-(y-item.height))<.01,'The field retains the anchor baseline')
+  }}finally{await pdf.loadingTask.destroy()}
+ }
 }
 export function signatureEdge({failSend=false}={}) {
  const requests=[],attempts=[],uploads=new Map();let sequence=0

@@ -2,6 +2,7 @@ import { getDocumentProxy } from 'unpdf'
 import { may, requireRole } from './access'
 import type { Handler } from './commands'
 import { fail, integer, json, list, object, oneOf, optionalText, sql, text } from './model'
+import { pdfAnchorPages } from './pdf-text-geometry'
 
 export const fieldKinds=['signature','name','title','date','initials'] as const
 export type FieldKind=typeof fieldKinds[number]
@@ -42,11 +43,13 @@ export async function pdfPages(bytes:Uint8Array) {
 /** Coordinates are top-left PDF points, normalized to every provider in its adapter. Originals are never modified. */
 export async function fieldsForPdf(bytes:Uint8Array,documentId:string,blocks:SignatureBlock[],manual:unknown[]):Promise<SignatureField[]> {
  if(!blocks.length&&!manual.length)return []
- const pages=await pdfPages(bytes),fields:SignatureField[]=[]
+ const anchorPages=blocks.length?await pdfAnchorPages(bytes,blocks.map(b=>b.anchor)):[]
+ const pages=blocks.length?anchorPages:await pdfPages(bytes),fields:SignatureField[]=[]
  for(const b of blocks){
-  const matches=pages.flatMap((p,i)=>p.items.flatMap(item=>item.text.includes(b.anchor)?[{p,i,item}]:[]))
+  const matches=anchorPages.flatMap((p,i)=>p.matches.flatMap(item=>item.anchor===b.anchor?[{p,i,item}]:[]))
   if(matches.length!==1)fail('ANCHOR',`Signature anchor ${b.anchor} must occur exactly once in the reviewed PDF.`,409)
   const {p,i,item}=matches[0]
+  if(item.unsupported)fail('ANCHOR_GEOMETRY',`Signature anchor ${b.anchor} uses ${item.unsupported}. Place this field manually on the reviewed PDF.`,409)
   fields.push({id:b.id,documentId,kind:b.kind,partyRole:b.partyRole,anchor:b.anchor,page:i+1,x:item.x,y:item.y,width:b.width,height:b.height,pageWidth:p.width,pageHeight:p.height})
  }
  for(const input of manual){
