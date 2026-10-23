@@ -55,6 +55,9 @@ export const providerName = (id: string) => providers.find(p => p[0] === id)?.[1
 export const termLabel: Record<string, string> = {
   effective_date: 'Effective date',
   end_date: 'End date',
+  initial_term_months:'Initial term',
+  renewal_type:'Renewal type',
+  renewals_allowed:'Renewals allowed',
   auto_renew: 'Auto-renews',
   renewal_term_months: 'Renewal term',
   notice_days: 'Notice period',
@@ -65,7 +68,9 @@ export const termLabel: Record<string, string> = {
 export function termValue(key: string, value: string) {
   if (key.endsWith('_date')) return day(value)
   if (key === 'notice_days') return plural(Number(value), 'day')
-  if (key === 'renewal_term_months') return plural(Number(value), 'month')
+  if (key === 'renewal_term_months'||key==='initial_term_months') return plural(Number(value), 'month')
+  if(key==='renewals_allowed')return value===''?'Unlimited':value
+  if(key==='renewal_type')return ({fixed:'Fixed term',auto_renew:'Auto-renews',evergreen:'Evergreen',optional:'Optional renewal'} as Record<string,string>)[value]??value
   if (key === 'auto_renew') return value === 'yes' ? 'Yes' : 'No'
   return value
 }

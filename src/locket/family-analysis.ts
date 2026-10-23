@@ -46,7 +46,7 @@ const resolve:Handler=async(c,p)=>{
   return {key:conflict.key,candidate:conflict.candidates[integer(selected,'candidate',0,conflict.candidates.length-1)]}
  })
  if(p.scopeAgreementId!==current.root.id)fail('SCOPE','Confirm the parent agreement as the operational scope. Other agreements are not silently changed.')
- const writes:Sql[]=[],nextFacts:FamilyFacts=structuredClone(current.facts)
+ const writes:Sql[]=[],nextFacts:FamilyFacts=structuredClone(current.facts),pendingTerms:any[]=[]
  const confirmed=new Map(current.facts.terms.filter(t=>t.agreementId===current.root.id).map(t=>[t.key,t.value]))
  for(const choice of choices){
   if(!termKeys.includes(choice.key as any))continue // Nonstandard legal/price choices remain explicit governing interpretations.
@@ -55,6 +55,7 @@ const resolve:Handler=async(c,p)=>{
   const id=crypto.randomUUID(),candidate=choice.candidate
   const citation={source:'family-governing',analysisId:analysis.id,sourceAgreementId:candidate.agreementId,versionId:candidate.versionId,quote:candidate.quote,page:candidate.page}
   writes.push(sql("INSERT INTO lk_terms VALUES(?,?,?,?,?,'confirmed',?,?,?,?,?,?,?)",id,current.root.id,choice.key,candidate.value,json(citation),c.actor.id,analysis.id,c.actor.id,c.now,old[0]?.id??null,reason,c.now))
+  pendingTerms.push({id,agreement_id:current.root.id,key:choice.key,value:candidate.value,citation:json(citation),status:'confirmed'})
   nextFacts.terms=nextFacts.terms.filter(t=>!(t.agreementId===current.root.id&&t.key===choice.key))
   nextFacts.terms.push({id,agreementId:current.root.id,key:choice.key,value:candidate.value})
   confirmed.set(choice.key,candidate.value)
@@ -62,9 +63,8 @@ const resolve:Handler=async(c,p)=>{
  nextFacts.terms.sort((a,b)=>a.id.localeCompare(b.id))
  const settings=await installationSettings(c.db)
  const projected=lifecycle(current.root,nextFacts.terms.map(t=>({...t,agreement_id:t.agreementId,status:'confirmed'})),[],[],c.now,settings.rollNoticeDeadlines)
- const operational=new Map(confirmed)
- if(projected.end)operational.set('end_date',projected.end)
- const renewal=await renewalWrites(c,current.root,operational)
+ const stored=(await c.db.prepare("SELECT * FROM lk_terms WHERE agreement_id=? AND status='confirmed'").bind(current.root.id).all<any>()).results
+ const renewal=await renewalWrites(c,current.root,confirmed,[...stored.filter(t=>!pendingTerms.some(p=>p.key===t.key)),...pendingTerms])
  writes.push(...renewal.writes)
  const updates=list(p,'obligations',100).map(v=>object(v,'obligation'))
  if(new Set(updates.map(v=>v.obligationId)).size!==updates.length)fail('INVALID','Each derived obligation is selected once.')
@@ -85,6 +85,6 @@ const resolve:Handler=async(c,p)=>{
  // Future validation compares the post-propagation confirmed terms. Original
  // approved source snapshot and model passages remain immutable in sources.
  writes.push(sql("UPDATE lk_family_analyses SET status='resolved',facts=?,choices=?,resolved_by=?,resolved_at=?,reason=? WHERE id=?",json(nextFacts),json({terms:choices,obligations:dependencies,scopeAgreementId:current.root.id}),c.actor.id,c.now,reason,analysis.id),bump(c,current.root))
- return {allowed:['counsel'],result:{id:analysis.id,status:'resolved'},checks:[...current.checks,sql("(SELECT status FROM lk_family_analyses WHERE id=?)='pending'",analysis.id)],writes,audit:[{action:'family.analysis.resolve',agreementId:current.root.id,summary:`Counsel confirmed exact governing interpretations and root operational scope with reason; propagated ${choices.length} terms and ${dependencies.length} selected obligation dates. ${renewal.summary??''}`}]}
+ return {allowed:['counsel'],result:{id:analysis.id,status:'resolved'},checks:[...current.checks,...renewal.checks,sql("(SELECT status FROM lk_family_analyses WHERE id=?)='pending'",analysis.id)],writes,audit:[{action:'family.analysis.resolve',agreementId:current.root.id,summary:`Counsel confirmed exact governing interpretations and root operational scope with reason; propagated ${choices.length} terms and ${dependencies.length} selected obligation dates. ${renewal.summary??''}`}]}
 }
 export const familyAnalysisHandlers:Record<string,Handler>={'family.analysis.prepare':prepare,'family.analysis.run':run,'family.analysis.resolve':resolve}

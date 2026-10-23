@@ -28,3 +28,13 @@ export async function portfolioFixture(owner, tag = 'API') {
   return ids
 }
 
+
+/** Cited historic terms enter only through import, proposal and human approval. */
+export async function renewalScenario(owner, overrides = {}, tag = crypto.randomUUID(), options = {}) {
+  const quote = 'Agreed renewal terms and early termination clause.'
+  const a = await owner.command('legacy.import', {title:options.title??`Supplier services ${tag.slice(0,8)}`,type:'supplier',party:{name:options.counterparty??`Supplier ${tag.slice(0,8)}`,kind:'supplier'},value:options.value??'1000',sourceSystem:'Authorized archive',sourceId:tag,file:file('signed.pdf',pdf(quote+' Reference '+tag)),text:quote,signed:true,timezone:'America/New_York'})
+  const values={effective_date:'2022-03-01',end_date:'2023-02-28',renewal_type:'auto_renew',auto_renew:'yes',renewal_term_months:'12',renewals_allowed:'',notice_days:'60',governing_law:'New York',payment_terms:'Net 30',...overrides}
+  const proposal=await owner.command('proposal.prepare',{kind:'terms',payload:{agreementId:a.id,terms:Object.entries(values).filter(([,value])=>value!==null).map(([key,value])=>({key,value,citation:{quote}}))},evidence:[quote]})
+  await owner.command('proposal.decide',{proposalId:proposal.id,decision:'approve'})
+  return {id:a.id,quote,async correction(key,value){const term=await owner.command('term.propose',{agreementId:a.id,key,value,citation:{quote}});await owner.command('term.decide',{agreementId:a.id,termId:term.id,decision:'confirm'})},async current(){return (await owner.state()).agreements.find(x=>x.id===a.id)}}
+}

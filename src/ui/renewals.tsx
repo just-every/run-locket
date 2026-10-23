@@ -1,3 +1,4 @@
+import { RenewalCalendars, RenewalHistory } from './renewal-history'
 import { FamilyBlock } from './family-analysis'
 import { RenewalBrief } from './renewal-brief'
 import { NoticeAgentSource } from './notice-agent'
@@ -16,13 +17,15 @@ import { can, clock, day, daysUntil, deadline, partyName, personName } from './f
 const capital = (word: string) => word[0].toUpperCase() + word.slice(1)
 
 export function Renewals({ state, locket }: { state: LocketState; locket: Locket }) {
-  const renewals = [...state.renewals].sort((a, b) => a.deadline_at - b.deadline_at)
+  const renewals = state.renewals.filter(r=>r.deadline_at > 0).sort((a, b) => a.deadline_at - b.deadline_at)
   const [selected, setSelected] = useState(renewals[0]?.id ?? '')
   return (
     <div className="lk-renewals">
       <div className="lk-titlebar"><div><h1>Renewals</h1><p className="lk-muted">Notice deadlines from confirmed terms, decisions, and notices approved and sent. A prepared or approved notice is not a sent notice.</p></div></div>
       <DeadlineReminderSettings state={state} locket={locket} />
       <BulkReminders state={state} locket={locket} />
+      <RenewalCalendars state={state} locket={locket} />
+      {state.agreements.filter(a=>state.portfolio.lifecycle[a.id]?.renewalType==='evergreen').map(a=><RenewalHistory key={a.id} state={state} a={a} locket={locket}/>)}
       {renewals.length === 0 ? <section className="lk-panel"><Empty>No renewals yet. Confirm an end date and notice period on an executed agreement.</Empty></section> : (
         <>
           <Band state={state} renewals={renewals} selected={selected} />
@@ -80,6 +83,7 @@ function Steps({ state, r, a, locket }: { state: LocketState; r: Row; a: Row; lo
   const notices = state.notices.filter(n => n.renewal_id === r.id).sort((x, y) => y.created_at - x.created_at)
   return (
     <div className="lk-steps">
+      <RenewalHistory state={state} a={a} locket={locket}/>
       <RenewalBrief state={state} a={a} locket={locket}/>
       <section className="lk-card lk-step">
         <h3>1. Decision</h3>

@@ -24,7 +24,7 @@ export function Portfolio({ state }: { state: LocketState }) {
         return <li key={a.id}><a href={`#agreement/${a.id}`}>{a.title}</a>{!state.fieldAccess.hidden.includes('value')&&<span>{money(a.value_cents)} USD</span>}<span>{d.days} days left · {deadline(d.at, a.timezone)}</span><small>Term {term.term}: {day(term.start)} – {day(term.end)}</small></li>
       })}</ul>}
     </section>
-    <p className="lk-muted">Missing key terms means effective date, end date, auto-renewal, notice period, governing law, payment terms, or an auto-renewal term has not been confirmed. Current terms are projected from confirmed values; scheduled roll-forward history is not yet available.</p>
+    <p className="lk-muted">Missing key terms means a required effective date, term length or end date, renewal type, notice period, governing law, payment term or renewal length is unconfirmed. Current terms follow confirmed values. Committed renewals keep their source history, and corrected derivations remain visible as superseded.</p>
     <WorkflowAnalytics state={state} />
   </div>
 }

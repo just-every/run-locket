@@ -1,3 +1,4 @@
+import { reconcileRenewalWrites } from './renewal-lifecycle'
 import { remediationCompletionCheck } from './remediation-records'
 import { requireFamilyClear } from './family-analysis-guard'
 import { sourceChecks } from './notice-agent'
@@ -10,8 +11,6 @@ import { may, requireRole } from './access'
 import { fileInput, readArtifactBytes, storeArtifact } from './artifacts'
 import { quotedPage, readablePages } from './execution-comparison'
 import type { Ctx, Handler } from './commands'
-import { noticeDeadlineFor } from './business-days'
-import { installationSettings } from './installation'
 import { frozenLetter } from './notice-letters'
 import { initialTracking } from './notice-tracking'
 import { day, deadline as zoned, termLabel, termValue as termText } from './display'
@@ -19,11 +18,14 @@ import { date, fail, integer, json, object, oneOf, optionalDate, optionalText, s
 import { agreementGuards, bump, visibleAgreement, type AgreementRow } from './records'
 import { riskLevels } from './obligation-risk'
 
-export const termKeys = ['effective_date', 'end_date', 'auto_renew', 'renewal_term_months', 'notice_days', 'governing_law', 'payment_terms'] as const
+export const termKeys = ['effective_date', 'end_date', 'initial_term_months', 'auto_renew', 'renewal_type', 'renewal_term_months', 'renewals_allowed', 'notice_days', 'governing_law', 'payment_terms'] as const
 type TermKey = (typeof termKeys)[number]
 
 function termValue(key: TermKey, p: Record<string, unknown>): string {
   if (key === 'effective_date' || key === 'end_date') return date(p, 'value')
+  if (key === 'renewal_type') return oneOf(p, 'value', ['fixed', 'auto_renew', 'evergreen', 'optional'] as const)
+  if (key === 'renewals_allowed') return p.value === '' || p.value === null ? '' : String(integer({ value: Number(p.value) }, 'value', 0, 100000))
+  if (key === 'initial_term_months') return String(integer({ value: Number(p.value) }, 'value', 1, 1200))
   if (key === 'auto_renew') return oneOf(p, 'value', ['yes', 'no'] as const)
   if (key === 'renewal_term_months') return String(integer({ value: Number(p.value) }, 'value', 1, 120))
   if (key === 'notice_days') return String(integer({ value: Number(p.value) }, 'value', 0, 730))
@@ -75,30 +77,19 @@ const proposeTerm: Handler = async (c, p) => {
   requireRole(c.actor, may.review, 'propose terms')
   const a = await visibleAgreement(c, p.agreementId)
   const t = await termProposal(c, a, p, null)
-  return { allowed: may.review, result: { id: t.id }, writes: [t.write, bump(c, a)], checks: agreementGuards(c, a), audit: [{ action: 'term.propose', agreementId: a.id, summary: `Proposed ${termLabel[t.key].toLowerCase()}` }] }
+  return { allowed: may.review, result: { id: t.id }, writes: [t.write, bump(c, a)], checks: agreementGuards(c, a), audit: [{ action: 'term.propose', agreementId: a.id, summary: `Proposed ${(termLabel[t.key] ?? t.key.replaceAll('_',' ')).toLowerCase()}` }] }
 }
 
 /** Renewal row from confirmed terms; re-deciding is required when the dates move. */
-export async function renewalWrites(c: Ctx, a: AgreementRow, confirmed: Map<string, string>): Promise<{ writes: Sql[]; summary: string | null }> {
-  const end = confirmed.get('end_date'), days = confirmed.get('notice_days')
-  if (!end || days === undefined) return { writes: [sql('DELETE FROM lk_renewals WHERE agreement_id=? AND decision IS NULL AND NOT EXISTS(SELECT 1 FROM lk_notices n WHERE n.agreement_id=lk_renewals.agreement_id)', a.id)], summary: null }
-  const deadline = noticeDeadlineFor(end, Number(days), a.timezone, (await installationSettings(c.db)).rollNoticeDeadlines)
-  const autoRenew = confirmed.get('auto_renew') === 'yes' ? 1 : 0
-  return {
-    writes: [
-      sql(
-        `INSERT INTO lk_renewals VALUES(?,?,?,?,?,?,?,?,NULL,NULL,NULL,NULL,?)
-         ON CONFLICT(agreement_id) DO UPDATE SET
-           decision=CASE WHEN lk_renewals.end_date=excluded.end_date AND lk_renewals.notice_days=excluded.notice_days THEN lk_renewals.decision ELSE NULL END,
-           decided_by=CASE WHEN lk_renewals.end_date=excluded.end_date AND lk_renewals.notice_days=excluded.notice_days THEN lk_renewals.decided_by ELSE NULL END,
-           decided_at=CASE WHEN lk_renewals.end_date=excluded.end_date AND lk_renewals.notice_days=excluded.notice_days THEN lk_renewals.decided_at ELSE NULL END,
-           end_date=excluded.end_date, notice_days=excluded.notice_days, deadline_date=excluded.deadline_date, deadline_at=excluded.deadline_at,
-           timezone=excluded.timezone, auto_renew=excluded.auto_renew, updated_at=excluded.updated_at`,
-        crypto.randomUUID(), a.id, end, Number(days), deadline.date, deadline.at, a.timezone, autoRenew, c.now,
-      ),
-    ],
-    summary: `Notice deadline ${zoned(deadline.at, a.timezone)}`,
-  }
+export async function renewalWrites(c: Ctx, a: AgreementRow, confirmed: Map<string, string>, supplied?: any[]) {
+  const stored = supplied ?? (await c.db.prepare('SELECT * FROM lk_terms WHERE agreement_id=?').bind(a.id).all<any>()).results
+  const source = [...confirmed].map(([key,value]) => {
+    const t = [...stored].reverse().find(t => t.key === key && t.value === value && ['confirmed','proposed'].includes(t.status))
+    if (!t) fail('SOURCE','Supply the confirmed source row for each renewal term.',409)
+    return { ...t, agreement_id:a.id, key,value,status:'confirmed' }
+  })
+  const out = await reconcileRenewalWrites(c,a,source)
+  return { ...out, summary:out.current.deadline ? `Notice deadline ${zoned(out.current.deadline.at,a.timezone)}` : null }
 }
 
 async function confirmedTerms(c: Ctx, agreementId: string): Promise<Map<string, string>> {
@@ -120,8 +111,10 @@ export async function confirmTermsWrites(c: Ctx, a: AgreementRow, terms: { id: s
     } else checks.push(sql("NOT EXISTS(SELECT 1 FROM lk_terms WHERE agreement_id=? AND key=? AND status='confirmed')", a.id, term.key))
     writes.push(sql("UPDATE lk_terms SET status='confirmed', confirmed_by=?, confirmed_at=?, supersedes_id=? WHERE id=?", c.actor.id, c.now, previous?.id ?? null, term.id))
   }
-  const renewal = await renewalWrites(c, a, confirmed)
-  return { writes: [...writes, ...renewal.writes], checks, summary: renewal.summary, superseded }
+  const stored = (await c.db.prepare("SELECT * FROM lk_terms WHERE agreement_id=? AND status='confirmed'").bind(a.id).all<any>()).results
+  const keys = new Set(terms.map(t=>t.key))
+  const renewal = await renewalWrites(c, a, confirmed, [...stored.filter(t=>!keys.has(t.key)),...terms.map(t=>({...t,agreement_id:a.id,status:'confirmed'}))])
+  return { writes: [...writes, ...renewal.writes], checks:[...checks,...renewal.checks], summary: renewal.summary, superseded }
 }
 
 const decideTerm: Handler = async (c, p) => {
@@ -132,14 +125,14 @@ const decideTerm: Handler = async (c, p) => {
   if (!term || term.status !== 'proposed') fail('STATUS', 'Only a proposed term can be confirmed or rejected.', 409)
   const decision = oneOf(p, 'decision', ['confirm', 'reject'] as const)
   if (decision === 'reject')
-    return { allowed: may.confirmTerms, result: { id: term.id, status: 'rejected' }, writes: [sql("UPDATE lk_terms SET status='rejected', confirmed_by=?, confirmed_at=?, reason=? WHERE id=?", c.actor.id, c.now, optionalText(p, 'reason', 1000), term.id), bump(c, a)], checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_terms WHERE id=?)='proposed'", term.id)], audit: [{ action: 'term.reject', agreementId: a.id, summary: `Rejected proposed ${termLabel[term.key].toLowerCase()}` }] }
+    return { allowed: may.confirmTerms, result: { id: term.id, status: 'rejected' }, writes: [sql("UPDATE lk_terms SET status='rejected', confirmed_by=?, confirmed_at=?, reason=? WHERE id=?", c.actor.id, c.now, optionalText(p, 'reason', 1000), term.id), bump(c, a)], checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_terms WHERE id=?)='proposed'", term.id)], audit: [{ action: 'term.reject', agreementId: a.id, summary: `Rejected proposed ${(termLabel[term.key] ?? term.key.replaceAll('_',' ')).toLowerCase()}` }] }
   const out = await confirmTermsWrites(c, a, [term])
   return {
     allowed: may.confirmTerms,
     result: { id: term.id, status: 'confirmed', superseded: out.superseded[0] ?? null },
     writes: [...out.writes, bump(c, a)],
     checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_terms WHERE id=?)='proposed'", term.id), ...out.checks],
-    audit: [{ action: 'term.confirm', agreementId: a.id, summary: `Confirmed ${termLabel[term.key].toLowerCase()}: ${termText(term.key, term.value)}${out.superseded.length ? ' (corrects an earlier value)' : ''}${out.summary ? '; ' + out.summary : ''}` }],
+    audit: [{ action: 'term.confirm', agreementId: a.id, summary: `Confirmed ${(termLabel[term.key] ?? term.key.replaceAll('_',' ')).toLowerCase()}: ${termText(term.key, term.value)}${out.superseded.length ? ' (corrects an earlier value)' : ''}${out.summary ? '; ' + out.summary : ''}` }],
   }
 }
 
@@ -205,11 +198,15 @@ const decideRenewal: Handler = async (c, p) => {
   requireRole(c.actor, may.renewalDecision, 'decide renewals')
   const { r, a } = await renewalOf(c, p.renewalId)
   const decision = oneOf(p, 'decision', ['renew', 'renegotiate', 'terminate'] as const)
+  const family = await requireFamilyClear(c,a.id)
+  if (!r.deadline_at && !r.termination_date) fail('NO_DEADLINE','There is no current notice deadline to decide.',409)
+  const decisions = JSON.parse(r.decisions ?? '{}')
+  decisions[String(r.term_number ?? 1)] = { decision, decidedBy:c.actor.id, decidedAt:c.now }
   return {
     allowed: may.renewalDecision,
     result: { renewalId: r.id, decision },
-    writes: [sql('UPDATE lk_renewals SET decision=?, decided_by=?, decided_at=?, decision_reason=? WHERE id=?', decision, c.actor.id, c.now, optionalText(p, 'reason', 2000), r.id), bump(c, a)],
-    checks: [...agreementGuards(c, a), sql('(SELECT end_date FROM lk_renewals WHERE id=?)=?', r.id, r.end_date)],
+    writes: [sql('UPDATE lk_renewals SET decision=?, decided_by=?, decided_at=?, decision_reason=?, decisions=? WHERE id=?', decision, c.actor.id, c.now, optionalText(p, 'reason', 2000), json(decisions), r.id), bump(c, a)],
+    checks: [family,...agreementGuards(c, a), sql('(SELECT end_date FROM lk_renewals WHERE id=?)=? AND (SELECT generation_id FROM lk_renewals WHERE id=?) IS ? AND (SELECT term_number FROM lk_renewals WHERE id=?)=?', r.id, r.end_date,r.id,r.generation_id,r.id,r.term_number)],
     audit: [{ action: 'renewal.decide', agreementId: a.id, summary: `Decided to ${decision} (term ends ${day(r.end_date)})` }],
   }
 }
@@ -221,13 +218,13 @@ export async function noticeDraft(c: Ctx, renewalId: unknown, p: Record<string, 
   const id = crypto.randomUUID()
   const recipient = text(p, 'recipient', 1000), body = text(p, 'body', 20_000)
   const letter = await frozenLetter(c, { id, agreement_id: a.id, recipient, body })
-  return { id, a, r, familyCheck, writes: [sql('INSERT INTO lk_notices VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, r.id, a.id, recipient, body, c.actor.id, proposalId, 'draft', null, null, null, null, null, null, c.now), ...letter.writes] }
+  return { id, a, r, familyCheck, writes: [sql('INSERT INTO lk_notices(id,renewal_id,agreement_id,recipient,body,prepared_by,proposal_id,status,approved_by,approved_at,sent_method,sent_at,sent_recorded_by,evidence_artifact_id,created_at,term_number,generation_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, r.id, a.id, recipient, body, c.actor.id, proposalId, 'draft', null, null, null, null, null, null, c.now,r.term_number??1,r.generation_id??null), ...letter.writes] }
 }
 
 const prepareNotice: Handler = async (c, p) => {
   requireRole(c.actor, may.review, 'prepare notices')
   const n = await noticeDraft(c, p.renewalId, p, null)
-  return { allowed: may.review, result: { id: n.id, status: 'draft' }, writes: [...n.writes, bump(c, n.a)], checks: [n.familyCheck,...agreementGuards(c, n.a)], audit: [{ action: 'notice.prepare', agreementId: n.a.id, summary: `Prepared a ${n.r.decision} notice draft` }] }
+  return { allowed: may.review, result: { id: n.id, status: 'draft' }, writes: [...n.writes, bump(c, n.a)], checks: [n.familyCheck,...agreementGuards(c, n.a),sql('(SELECT generation_id FROM lk_renewals WHERE id=?) IS ? AND (SELECT term_number FROM lk_renewals WHERE id=?)=?',n.r.id,n.r.generation_id,n.r.id,n.r.term_number)], audit: [{ action: 'notice.prepare', agreementId: n.a.id, summary: `Prepared a ${n.r.decision} notice draft` }] }
 }
 
 async function noticeOf(c: Ctx, id: unknown) {
@@ -240,13 +237,15 @@ export const approveNotice = async (c: Ctx, p: Record<string, unknown>, schedule
   requireRole(c.actor, may.renewalDecision, 'approve notices for sending')
   const { n, a } = await noticeOf(c, p.noticeId)
   if (n.status !== 'draft') fail('STATUS', `This notice is already ${n.status}.`, 409)
+  const current = await c.db.prepare('SELECT generation_id,term_number FROM lk_renewals WHERE id=?').bind(n.renewal_id).first<any>()
+  if (!current || current.generation_id !== n.generation_id || current.term_number !== n.term_number) fail('STALE','This notice belongs to an earlier term or superseded derivation. Prepare a current notice.',409)
   if (!scheduled && await c.db.prepare('SELECT id FROM lk_notice_plans WHERE id=?').bind(n.id).first()) fail('APPROVAL', 'Approve this prepared draft with its exact method, PDF and local schedule.', 409)
   // The drafter is whoever prepared the text: the proposal's preparer when it came through one.
   const drafter = n.proposal_id ? (await c.db.prepare('SELECT prepared_by FROM lk_proposals WHERE id=?').bind(n.proposal_id).first<{ prepared_by: string }>())?.prepared_by : null
   if (c.actor.role !== 'owner' && (n.prepared_by === c.actor.id || drafter === c.actor.id)) fail('SELF_APPROVAL', 'Another approver or the owner must approve a notice you prepared.', 403)
   const letter = await c.db.prepare('SELECT sha256 FROM lk_notice_letters WHERE id=?').bind(n.id).first<{ sha256: string }>()
   if (!letter) fail('LETTER', 'Prepare and review the PDF letter before approval.', 409)
-  return { allowed: may.renewalDecision, result: { id: n.id, status: 'approved', pdfDigest: letter.sha256 }, writes: [sql("UPDATE lk_notices SET status='approved', approved_by=?, approved_at=? WHERE id=?", c.actor.id, c.now, n.id), bump(c, a)], checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='draft'", n.id)], audit: [{ action: 'notice.approve', agreementId: a.id, summary: 'Approved notice for sending (not yet sent)' }] }
+  return { allowed: may.renewalDecision, result: { id: n.id, status: 'approved', pdfDigest: letter.sha256 }, writes: [sql("UPDATE lk_notices SET status='approved', approved_by=?, approved_at=? WHERE id=?", c.actor.id, c.now, n.id), bump(c, a)], checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='draft'", n.id),sql('(SELECT generation_id FROM lk_renewals WHERE id=?) IS ? AND (SELECT term_number FROM lk_renewals WHERE id=?)=?',n.renewal_id,n.generation_id,n.renewal_id,n.term_number)], audit: [{ action: 'notice.approve', agreementId: a.id, summary: 'Approved notice for sending (not yet sent)' }] }
 }
 
 /** Separate evidence that the approved notice actually went out. */
@@ -258,7 +257,7 @@ const recordSent: Handler = async (c, p) => {
   const source = plan ? await c.db.prepare('SELECT * FROM lk_notice_sources WHERE id=?').bind(plan.source_id).first<any>() : null
   const sentAt = text(p, 'sentAt', 40)
   const at = Date.parse(sentAt)
-  if (Number.isNaN(at)) fail('INVALID', 'sentAt must be a date and time.', 400)
+  if (Number.isNaN(at) || at > c.now) fail('INVALID', 'sentAt must be an actual date and time no later than now.', 400)
   const method = oneOf(p, 'method', ['email', 'post', 'courier', 'hand', 'portal'] as const)
   if (plan && (plan.status !== 'ready' || method !== plan.method || at < plan.send_at || at > c.now || at >= source.deadline_at)) fail('APPROVAL', 'Record only the approved method after its scheduled time and before the deadline.', 409)
   const writes: Sql[] = initialTracking(c, p, n, method)

@@ -1,3 +1,4 @@
+import { RenewalHistory } from './renewal-history'
 import { ObligationRemediation } from './obligation-remediation'
 import { InvoiceReconciliation } from './reconciliation'
 import { ServiceLevels } from './service-levels'
@@ -13,7 +14,7 @@ import { usJurisdictions } from '../locket/us-defaults'
 import { fileToPayload } from './api'
 import { RiskLabel } from './counterparty'
 
-const keys = ['effective_date', 'end_date', 'auto_renew', 'renewal_term_months', 'notice_days', 'governing_law', 'payment_terms']
+const keys = ['effective_date', 'end_date', 'initial_term_months', 'auto_renew', 'renewal_type', 'renewal_term_months', 'renewals_allowed', 'notice_days', 'governing_law', 'payment_terms']
 const unread = (c: any) => (c.signedText === 'unreadable' ? ' (the signed PDF has no readable text; not checked against it)' : '')
 const cite = (c: any) => (c.source === 'family-governing' ? `Counsel-confirmed family source: “${c.quote}”${c.page ? ` (page ${c.page})` : ''}` : c.source === 'custom-field-passage' ? `Document v${c.versionNumber}: “${c.quote}” (characters ${c.start}–${c.end})` : c.source === 'import-manifest' ? `Import manifest row ${c.row} (not yet checked against the signed PDF)`
   : c.source === 'signed-pdf-text' ? `Signed PDF page ${c.page}: “${c.quote}” (found in the signed text)`
@@ -31,6 +32,7 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
   return (
     <div className="lk-tab-page">
       <FamilyBlock state={state} a={a} />
+      <RenewalHistory state={state} a={a} locket={locket} />
       {a.type==='supplier'&&<InvoiceReconciliation state={state} a={a} locket={locket} />}
       {a.type==='supplier'&&<ServiceLevels state={state} a={a} locket={locket} />}
       {a.type==='supplier'&&<ServicePerformance state={state} agreement={a} locket={locket} />}
@@ -58,8 +60,8 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
               const page = value(data, 'page')
               if (await run('term.propose', { agreementId: a.id, key: value(data, 'key'), value: value(data, 'value'), reason: value(data, 'reason') || undefined, citation: { quote: value(data, 'quote'), page: page ? Number(page) : undefined } })) form.reset()
             }}>
-              <Field label="Term"><select name="key">{keys.map(k => <option key={k} value={k}>{termLabel[k]}</option>)}</select></Field>
-              <Field label="Value" hint="Dates as YYYY-MM-DD; auto renew as yes or no; days and months as whole numbers; governing law from the US states and DC, or type another jurisdiction."><input name="value" list="lk-governing-law" required /></Field>
+              <Field label="Term"><select name="key">{keys.map(k => <option key={k} value={k}>{termLabel[k] ?? k.replaceAll('_',' ')}</option>)}</select></Field>
+              <Field label="Value" hint="Dates as YYYY-MM-DD; renewal type: fixed, auto_renew, evergreen or optional; auto renew: yes or no; days, months and renewals allowed: whole numbers. Blank renewals allowed means unlimited."><input name="value" list="lk-governing-law" /></Field>
               <datalist id="lk-governing-law">{usJurisdictions.map(j => <option key={j} value={j} />)}</datalist>
               <Field label="Words from the signed clause"><textarea name="quote" rows={2} required /></Field>
               <Field label="Signed PDF page (needed when there is no text)"><input name="page" inputMode="numeric" /></Field>

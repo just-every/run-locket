@@ -1,4 +1,5 @@
 import { familyClear } from './family-analysis-guard'
+import { currentRenewalNotice,renewalNoticeCheck } from './renewal-notice-guard'
 import { installationMail, installationMailLocal } from './installation-mail'
 import { may, requireRole, visibleSql } from './access'
 import { readArtifactBytes } from './artifacts'
@@ -20,6 +21,7 @@ export const emailNotice: Handler = async (c, p) => {
   const a = await visibleAgreement(c, n.agreement_id)
   if (await c.db.prepare('SELECT id FROM lk_notice_plans WHERE id=?').bind(n.id).first()) fail('APPROVAL', 'This notice sends only through its approved schedule.', 409)
   if (n.status !== 'approved') fail('STATUS', 'Approve the exact PDF and recipient before sending.', 409)
+  const currentNotice=await currentRenewalNotice(c,n.id)
   const letter = await c.db.prepare('SELECT * FROM lk_notice_letters WHERE id=?').bind(n.id).first<any>()
   if (!letter) fail('LETTER', 'This older approval has no frozen PDF. Prepare and approve a new notice before emailing it.', 409)
   if (!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(letter.recipient)) fail('RECIPIENT', 'Prepare a notice addressed to one email address before email approval.', 400)
@@ -28,7 +30,7 @@ export const emailNotice: Handler = async (c, p) => {
   return {
     allowed: may.signature, result: { id: c.commandId, noticeId: n.id, status: 'queued', pdfDigest: letter.sha256 },
     writes: [sql("INSERT INTO lk_notice_dispatches(id,notice_id,agreement_id,agreement_version,actor_id,recipient,pdf_artifact_id,pdf_sha256,sender,subject,message_text,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,'queued',?)", c.commandId, n.id, a.id, a.version, c.actor.id, letter.recipient, letter.artifact_id, letter.sha256, c.env.MAIL_FROM ?? '', 'Contract notice', 'Please find the approved notice letter attached.', c.now)],
-    checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", n.id), sql('(SELECT sha256 FROM lk_notice_letters WHERE id=?)=?', n.id, letter.sha256)],
+    checks: [currentNotice,...agreementGuards(c, a), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", n.id), sql('(SELECT sha256 FROM lk_notice_letters WHERE id=?)=?', n.id, letter.sha256)],
     audit: [{ action: 'notice.email.requested', agreementId: a.id, summary: 'Requested email of the exact approved PDF to its approved recipient; not yet sent.' }],
   }
 }
@@ -51,7 +53,7 @@ export async function dispatchNotice(c: Ctx, scheduledChecks?: Sql[]) {
     ])
   }
   try {
-    const claimChecks = [familyClear(row.agreement_id),visibleSql(c.actor, row.agreement_id), sql('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND version=?)', row.agreement_id, row.agreement_version), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", row.notice_id), sql('(SELECT sha256 FROM lk_notice_letters WHERE id=?)=?', row.notice_id, row.pdf_sha256), sql("(SELECT status FROM lk_notice_dispatches WHERE id=?)='queued'", c.commandId)]
+    const claimChecks = [renewalNoticeCheck(row.notice_id),familyClear(row.agreement_id),visibleSql(c.actor, row.agreement_id), sql('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND version=?)', row.agreement_id, row.agreement_version), sql("(SELECT status FROM lk_notices WHERE id=?)='approved'", row.notice_id), sql('(SELECT sha256 FROM lk_notice_letters WHERE id=?)=?', row.notice_id, row.pdf_sha256), sql("(SELECT status FROM lk_notice_dispatches WHERE id=?)='queued'", c.commandId)]
     const claim = sql("UPDATE lk_notice_dispatches SET status='sending',attempt_id=?,attempted_at=? WHERE id=? AND status='queued'", attempt, c.now, c.commandId)
     if (scheduledChecks) {
       const guard = crypto.randomUUID()

@@ -1,5 +1,7 @@
 import { runRenewalBriefs } from '../../src/locket/renewal-briefs'
 import { runRemediation } from '../../src/locket/remediation-mail'
+import { runRenewalLifecycle } from '../../src/locket/renewal-lifecycle'
+import { runRenewalCalendars } from '../../src/locket/renewal-calendar'
 import { runRetentionReminders } from '../../src/locket/retention-reminders'
 import { runRuleReminders } from '../../src/locket/approval-rules'
 import { runQueueEscalations } from '../../src/locket/request-queue'
@@ -19,6 +21,8 @@ export default {
   },
   async scheduled(controller: ScheduledController, env: any) {
     Date.now = env.TEST_NOW ? () => Number(env.TEST_NOW) : systemNow
+    await runRenewalLifecycle(env,controller.scheduledTime)
+    await runRenewalCalendars(env,controller.scheduledTime)
     await runRemediation(env,controller.scheduledTime)
     await runRuleReminders(env, controller.scheduledTime)
     await runQueueEscalations(env, controller.scheduledTime)
