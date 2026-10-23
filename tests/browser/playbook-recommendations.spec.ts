@@ -4,13 +4,22 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { productPage } from './product-harness.mjs'
 import { negotiationFixture } from '../api/playbook-recommendation-fixture.mjs'
+import { reconciliationBindings,reconciliationFake } from '../api/reconciliation-fixture.mjs'
+import { serviceLevelBindings,serviceLevelFake } from '../api/service-level-fixture.mjs'
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
 
 for (const width of [1440, 390]) test(`AGENT-007 counsel reviews thirty negotiations and twenty-two citations, then scopes a new playbook at ${width}px`, async ({ page }) => {
-  const p = await productPage(page, { width })
+  const accountingEdge=reconciliationFake([]),uptimeEdge=serviceLevelFake([])
+  const outboundResponse=async(request:Request)=>{
+    if(new URL(request.url).hostname.endsWith('intuit.com'))return accountingEdge(request)
+    const response=await uptimeEdge(request),body=await response.json()
+    body.generatedAt=Date.parse('2026-10-26T00:00:00Z')
+    return Response.json(body)
+  }
+  const p = await productPage(page, { width,bindings:{...reconciliationBindings,...serviceLevelBindings},outboundResponse })
   try {
-    const f = await negotiationFixture(p.h)
+    const f = await negotiationFixture(p.h,{nativeCredit:true})
     await page.context().clearCookies()
     await page.context().addCookies(f.counsel.cookie.split('; ').map((pair: string) => {
       const i = pair.indexOf('=')
@@ -32,9 +41,14 @@ for (const width of [1440, 390]) test(`AGENT-007 counsel reviews thirty negotiat
     await expect(recommendation).toContainText(`${analysis.acceptedCount} accepted citations from ${analysis.negotiations} recorded negotiations`)
     await expect(recommendation).toContainText(`${(analysis.cycleTime.predictedSavingMs / 3_600_000).toLocaleString('en-US', { maximumFractionDigits: 2 })} hours`)
     await recommendation.getByText('Affected agreements and exact citations (22)', { exact: true }).click()
-    await expect(recommendation.getByRole('link')).toHaveCount(22)
+    await expect(recommendation.getByRole('link')).toHaveCount(analysis.citations.length+analysis.creditEvidence.length)
+    await expect(recommendation.getByRole('link',{name:/Credit source/})).toHaveCount(2)
+    await expect(recommendation).toContainText('USD 4,000.00')
+    await expect(recommendation).toContainText('USD 1,000.00')
+    await expect(recommendation).toContainText('No supplier send recorded.')
     for (const citation of analysis.citations) await expect(recommendation.getByRole('link', { name: `${citation.title} · v${citation.version}`, exact: true })).toHaveAttribute('href', `#agreement/${citation.agreementId}/versions/${citation.version}/${citation.start}/${citation.end}`)
     await expect(recommendation).toContainText(analysis.citations.find((c: any) => c.issues.length).issues[0].description)
+    if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await recommendation.locator('li').filter({hasText:'USD 4,000.00'}).first().screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-agent-007-native-credit-evidence.png`)})}
     await recommendation.getByText('Affected agreements and exact citations (22)', { exact: true }).click()
     if (process.env.LOCKET_SCREENSHOTS) {
       await mkdir(process.env.LOCKET_SCREENSHOTS, { recursive: true })
