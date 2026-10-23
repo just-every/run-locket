@@ -3,7 +3,7 @@
 import type { Bindings } from '../auth.server'
 import { fileInput, isDocx, isPdf, DOCX, PDF, readArtifactBytes, storeArtifact } from './artifacts'
 import { auditSql, guardSql, type Ctx, type AuditEntry } from './commands'
-import { docxText } from './docx'
+import { importWordReview } from './word-review-records'
 import { exchangeChecks, externalComments, tokenDigest, type ExchangeRow } from './exchange'
 import { canonical, fail, json, list, object, optionalText, Problem, sha256, sql, text, type Sql } from './model'
 import { bump, invalidateApprovals, requireStatus, statusAfterChange, versionDigest, type AgreementRow } from './records'
@@ -93,10 +93,11 @@ export async function mutateExchange(request:Request,env:Bindings,row:ExchangeRo
         if(totalBytes>6*1024*1024)fail('FILE_SIZE','Reply attachments must total at most 6 MB.',413)
         if(!isDocx(file)&&!isPdf(file))fail('FILE_TYPE','Upload PDF or DOCX markups only.',415)
         file.mediaType=isDocx(file)?DOCX:PDF
-        const versionId=crypto.randomUUID(),number=(latest?.n??0)+versions.length+1,source=isDocx(file)?'docx':'none',content=isDocx(file)?await docxText(file.bytes):null
+        const versionId=crypto.randomUUID(),number=(latest?.n??0)+versions.length+1,source=isDocx(file)?'docx':'none'
+        const word=isDocx(file)?await importWordReview(c,a.id,versionId,file.bytes,row.version_id):null,content=word?.text??null,fields=word?.fields??null
         const artifact=await storeArtifact(file,{agreementId:a.id,versionId,role:'original',provenance:{exchangeId:row.id,counterpartyMarkup:true,sharedVersionId:row.version_id,receivedBy:action==='reply'?'postmark_reply':'secure_link'},actorId:c.actor.id,at:c.now})
-        const versionHash=await versionDigest({agreementId:a.id,number,files:[{role:'original',sha256:artifact.sha256}],text:content,fields:null})
-        writes.push(...artifact.writes,sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',versionId,a.id,number,'counterparty','Counterparty markup',null,null,content,source,versionHash,c.actor.id,c.now),sql("INSERT INTO lk_version_audiences VALUES(?,'external',1,?,?)",versionId,c.actor.id,c.now))
+        const versionHash=await versionDigest({agreementId:a.id,number,files:[{role:'original',sha256:artifact.sha256}],text:content,fields})
+        writes.push(...artifact.writes,sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',versionId,a.id,number,'counterparty','Counterparty markup',null,fields?json(fields):null,content,source,versionHash,c.actor.id,c.now),...(word?.writes??[]),sql("INSERT INTO lk_version_audiences VALUES(?,'external',1,?,?)",versionId,c.actor.id,c.now))
         versions.push({versionId,number,digest:versionHash,artifactDigest:artifact.sha256})
         audit.push({action:'exchange.uploaded',agreementId:a.id,summary:`Counterparty uploaded version ${number} through ${action==='reply'?'a provider-authenticated reply (sender identity not verified)':'the secure link'}; original artifact ${artifact.id}; SHA-256 ${artifact.sha256}.`})
       }

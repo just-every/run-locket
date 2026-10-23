@@ -2,13 +2,14 @@
 // Offsets refer to the exact plain-text browser rendition, never a regex match.
 import { MAX_FILE_BYTES } from './artifacts'
 import { fail } from './model'
+import { assertSafeWordParts } from './word-xml'
 const decoder=new TextDecoder('utf-8',{fatal:true}),encoder=new TextEncoder()
 const u16=(b:Uint8Array,o:number)=>new DataView(b.buffer,b.byteOffset,b.byteLength).getUint16(o,true)
 const u32=(b:Uint8Array,o:number)=>new DataView(b.buffer,b.byteOffset,b.byteLength).getUint32(o,true)
 const table=Array.from({length:256},(_,n)=>{for(let k=0;k<8;k++)n=n&1?0xedb88320^(n>>>1):n>>>1;return n>>>0})
 const crc=(bytes:Uint8Array)=>{let n=0xffffffff;for(const b of bytes)n=table[(n^b)&255]^(n>>>8);return (n^0xffffffff)>>>0}
 export type WordPart={name:string;bytes:Uint8Array}
-export async function readWord(bytes:Uint8Array):Promise<WordPart[]> {
+export async function readWord(bytes:Uint8Array,mode:'template'|'review'='template'):Promise<WordPart[]> {
  let end=-1
  for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65557);i--)if(u32(bytes,i)===0x06054b50&&i+22+u16(bytes,i+20)===bytes.length){end=i;break}
  if(end<0||u16(bytes,end+4)||u16(bytes,end+6)||u16(bytes,end+8)!==u16(bytes,end+10))fail('DOCX','Use a single-disk DOCX package.')
@@ -36,8 +37,9 @@ export async function readWord(bytes:Uint8Array):Promise<WordPart[]> {
  if(offset!==end||!names.has('[Content_Types].xml')||!names.has('word/document.xml'))fail('DOCX','The Word package is incomplete.')
  for(const part of parts)if(/\.(xml|rels)$/.test(part.name)){
   const xml=decoder.decode(part.bytes)
-  if(/<!DOCTYPE|<!ENTITY|vbaProject|macroEnabled|TargetMode\s*=\s*["']External["']|<w:(?:del|ins|moveFrom|moveTo|fldChar|instrText|txbxContent)\b/i.test(xml))fail('DOCX_UNSUPPORTED','Remove active content, external relationships, tracked changes, fields or text boxes before authoring this template. The source was not changed.')
+  if(mode==='template'&&/<!DOCTYPE|<!ENTITY|vbaProject|macroEnabled|TargetMode\s*=\s*["']External["']|<w:(?:del|ins|moveFrom|moveTo|fldChar|instrText|txbxContent)\b/i.test(xml))fail('DOCX_UNSUPPORTED','Remove active content, external relationships, tracked changes, fields or text boxes before authoring this template. The source was not changed.')
  }
+ if(mode==='review')assertSafeWordParts(parts)
  return parts
 }
 export function writeWord(parts:WordPart[]):Uint8Array {

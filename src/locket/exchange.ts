@@ -4,6 +4,7 @@ import { fullReaders, requireRole, authority, visibleSql } from './access'
 import { DOCX, storeArtifact } from './artifacts'
 import { auditSql, commit, type Ctx, type Handler } from './commands'
 import { externalDocx, type ExternalComment } from './exchange-document'
+import { externalWord } from './word-review'
 import { fail, integer, json, sha256, sql, text, type Actor, type Sql } from './model'
 import { agreementGuards, currentVersion, requireStatus, visibleAgreement } from './records'
 import { policyVersionCheck, repositoryPolicy, requireFullFields } from './repository-access'
@@ -64,7 +65,9 @@ const send: Handler = async (c, p) => {
   if (!v.text?.trim()) fail('NO_TEXT','Add readable document text before sharing.',409)
   const side = await c.db.prepare("SELECT revision FROM lk_version_audiences WHERE version_id=? AND audience='external'").bind(v.id).first<{revision:number}>()
   if (!side) fail('INTERNAL_VERSION','Explicitly mark this version external before sharing.',409)
-  if (p.confirmCleanRendition !== true) fail('CONSENT','Review and approve the plain external rendition. It removes original formatting, embedded comments and document metadata; only explicitly external Locket comments are included.')
+  const rendition=p.rendition??'plain'
+  if(!['plain','word-clean','word-redline'].includes(String(rendition)))fail('INVALID','Choose a plain, clean Word or redline Word rendition.')
+  if (p.confirmCleanRendition !== true) fail('CONSENT','Review and approve the outgoing rendition. Internal comments and document metadata are removed; only explicitly external Locket comments are included. Word outputs preserve formatting and redact revision author metadata; a redline still contains deleted text.')
   const recipientEmail = text(p,'recipientEmail',200).toLowerCase(), consent = text(p,'contactConsent',1000)
   const party = await c.db.prepare('SELECT contacts,version FROM lk_parties WHERE id=? AND merged_into IS NULL').bind(a.party_id).first<{contacts:string;version:number}>()
   const contact = party && JSON.parse(party.contacts).find((person:{email:string})=>person.email.toLowerCase()===recipientEmail)
@@ -73,7 +76,7 @@ const send: Handler = async (c, p) => {
   if (p.channel !== 'email' && p.channel !== 'link') fail('INVALID','Choose email or secure link.')
   if (p.channel === 'email' && c.env.AUTH_LOCAL !== 'true' && (c.env as {RER_DEMO?:string}).RER_DEMO !== '1' && (!c.env.POSTMARK_SERVER_TOKEN || !c.env.MAIL_FROM)) fail('MAIL_UNAVAILABLE','Configure Postmark and a sender address before emailing an exchange.',503)
   const hash = await tokenDigest(p.token), id = c.commandId, comments = await externalComments(c.db,v.id)
-  const artifact = await storeArtifact({filename:`external-v${v.number}.docx`,mediaType:DOCX,bytes:externalDocx(v.text,comments)},{agreementId:a.id,versionId:v.id,role:'attachment',provenance:{exchangeId:id,external:true,plainRendition:true},actorId:c.actor.id,at:c.now})
+  const artifact = await storeArtifact({filename:`external-v${v.number}.docx`,mediaType:DOCX,bytes:rendition==='plain'?externalDocx(v.text,comments):await externalWord(c,v.id,rendition==='word-clean')},{agreementId:a.id,versionId:v.id,role:'attachment',provenance:{exchangeId:id,external:true,plainRendition:rendition==='plain',rendition},actorId:c.actor.id,at:c.now})
   return {allowed:fullReaders,result:{id,status:p.channel==='email'?'queued':'ready',expiresAt:expiry,artifactDigest:artifact.sha256},checks:[
     ...agreementGuards(c,a,p),sql('(SELECT revision FROM lk_version_audiences WHERE version_id=?)=?',v.id,side.revision),
     sql('(SELECT version FROM lk_parties WHERE id=?)=?',a.party_id,party!.version),

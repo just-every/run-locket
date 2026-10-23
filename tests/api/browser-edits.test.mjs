@@ -3,6 +3,73 @@ import test from 'node:test'
 import { installation } from './harness.mjs'
 import { file, docx } from './files.mjs'
 import { erasureRequest, erasureConfirmation } from './erasure-fixture.mjs'
+import { uploadedWordReview, wordReviewFixture } from './word-review-fixture.mjs'
+
+test('Word review preserves twelve authored revisions, resolves nine and rejects three, round-trips comments and replies, and strips private outgoing content',async t=>{
+ const h=await installation();t.after(()=>h.close())
+ const x=await uploadedWordReview(h),view=async id=>(await(await h.owner.request('/api/locket/word-review?versionId='+id)).json())
+ let model=await view(x.uploaded.versionId),state=await h.owner.state(),a=state.agreements.find(row=>row.id===x.a.id)
+ assert.equal(model.changes.length,12);assert.equal(model.comments.length,4);assert.equal(model.baseVersionId,x.initial.versionId)
+ assert.deepEqual(new Set(model.changes.map(change=>change.kind)),new Set(['insertion','deletion','moveFrom','moveTo','formatting']))
+ assert.deepEqual(new Set(model.changes.map(change=>change.author)),new Set(['Alicia Counsel','Morgan Supplier']))
+ for(const change of model.changes){assert.ok(change.start>=0&&change.end>=change.start&&change.end<=model.text.length);if(change.kind==='insertion'||change.kind==='moveTo')assert.equal(model.text.slice(change.start,change.end),change.after)}
+ for(const comment of model.comments){assert.ok(comment.author);assert.equal(model.text.slice(comment.start,comment.end),comment.quote)}
+ const roots=state.comments.filter(row=>row.version_id===x.uploaded.versionId),root=roots.find(row=>row.body===x.commentBodies[0])
+ assert.equal(roots.length,4);assert.ok(roots.every(row=>!state.commentAudiences.some(side=>side.id===row.id&&side.audience==='external')))
+ const reply=await h.owner.command('comment.add',{agreementId:a.id,versionId:x.uploaded.versionId,parentId:root.id,body:'Our reply: the 30-day payment period is agreed.'})
+ for(const row of [...roots.filter(row=>row.body!==x.commentBodies[3]),{id:reply.commentId}]){
+  a=(await h.owner.state()).agreements.find(row=>row.id===a.id)
+  await h.owner.command('comment.audience',{agreementId:a.id,version:a.version,commentId:row.id,audience:'external',confirmExternal:true})
+ }
+ a=(await h.owner.state()).agreements.find(row=>row.id===a.id)
+ const changed=await h.owner.command('word.review',{agreementId:a.id,version:a.version,versionId:x.uploaded.versionId,decisions:x.decisions})
+ model=await view(changed.versionId);assert.equal(model.changes.length,0);assert.equal(model.comments.length,5)
+ assert.ok(model.text.includes('30 days'));assert.ok(!model.text.includes('60 days'));assert.ok(model.text.includes('$2,000,000'));assert.ok(!model.text.includes('$1,000,000'));assert.ok(model.text.includes('courier'));assert.ok(!model.text.includes('email'));assert.equal(model.text.match(/Maintain insurance\./g)?.length,1)
+ const state2=await h.owner.state(),next=state2.versions.find(row=>row.id===changed.versionId),newComments=state2.comments.filter(row=>row.version_id===next.id)
+ assert.ok(newComments.find(row=>row.body.includes('Our reply:')).parent_id)
+ a=state2.agreements.find(row=>row.id===a.id)
+ const firstWord=await h.owner.command('word.review',{agreementId:a.id,version:a.version,versionId:next.id,edit:{start:0,end:1,replacement:'One'}})
+ const attributed=await view(firstWord.versionId)
+ assert.deepEqual(attributed.changes.map(change=>change.kind),['deletion','insertion']);assert.ok(attributed.changes.every(change=>change.author===state.actor.name))
+ assert.ok(attributed.text.startsWith('One. Payment'))
+ a=(await h.owner.state()).agreements.find(row=>row.id===a.id)
+ await h.owner.command('word.output',{agreementId:a.id,version:a.version,versionId:firstWord.versionId,kind:'redline'},{error:'CONSENT'})
+ for(const kind of ['redline','clean']){
+  const out=await h.owner.command('word.output',{agreementId:a.id,version:a.version,versionId:firstWord.versionId,kind,confirmCleanup:true}),download=await h.owner.request('/api/locket/files/'+out.artifactId),bytes=Buffer.from(await download.arrayBuffer()),xml=bytes.toString()
+  assert.ok(xml.includes('Our reply:'));assert.ok(!xml.includes(x.commentBodies[3]));assert.ok(!xml.includes('synthetic-locket-private-author'));assert.ok(!xml.includes('synthetic-locket-private-editor'))
+  for(const part of ['word/styles.xml','word/numbering.xml','word/header1.xml','word/footer1.xml'])assert.ok(xml.includes(part),part)
+  assert.ok(xml.includes('Firm legal department'));assert.ok(xml.includes('Confidential template'));assert.ok(xml.includes('<w:tbl>'))
+  assert.equal(xml.includes('<w:del '),kind==='redline');assert.equal(xml.includes('<w:ins '),kind==='redline')
+ }
+ await h.owner.command('version.audience',{agreementId:a.id,version:a.version,versionId:firstWord.versionId,audience:'external',confirmExternal:true})
+ a=(await h.owner.state()).agreements.find(row=>row.id===a.id)
+ const token=freshToken()
+ await h.owner.command('exchange.send',{agreementId:a.id,version:a.version,versionId:firstWord.versionId,rendition:'word-redline',recipientEmail:'synthetic-locket-26@example.test',contactConsent:'Review this exact supplier Word markup and external comments.',confirmCleanRendition:true,channel:'link',token,expiresAt:Date.now()+3600000})
+ const exchanged=await h.request('/api/locket/exchange/download',{method:'POST',headers:{authorization:'Bearer '+token},body:{}}),outgoing=Buffer.from(await exchanged.arrayBuffer()).toString()
+ assert.equal(exchanged.status,200);assert.ok(outgoing.includes('word/header1.xml'));assert.ok(outgoing.includes('Our reply:'));assert.ok(!outgoing.includes(x.commentBodies[3]));assert.ok(!outgoing.includes('synthetic-locket-private-author'))
+ const original=state.artifacts.find(row=>row.version_id===x.uploaded.versionId&&row.role==='original'),res=await h.owner.request('/api/locket/files/'+original.id)
+ assert.equal(res.headers.get('x-locket-sha256'),createHash('sha256').update(x.bytes).digest('hex'));assert.deepEqual(Buffer.from(await res.arrayBuffer()),x.bytes)
+ const archive=await(await h.owner.request('/api/locket/export')).json()
+ assert.deepEqual(Buffer.from(archive.files.find(row=>row.id===original.id).base64,'base64'),x.bytes)
+ assert.equal(JSON.parse(archive.records.lk_versions.find(row=>row.id===changed.versionId).fields).wordReview.decidedBy,state.actor.id)
+})
+
+test('Word review refuses stale and unauthorized changes, mismatched move decisions and inaccessible originals',async t=>{
+ const h=await installation();t.after(()=>h.close());const x=await uploadedWordReview(h),a=x.a
+ const viewer=await h.invite('synthetic-locket-28@example.test','viewer'),agent=await h.invite('synthetic-locket-29@example.test','agent')
+ const payload={agreementId:a.id,version:a.version,versionId:x.uploaded.versionId,decisions:x.decisions}
+ for(const actor of [viewer,agent])await actor.command('word.review',payload,{error:'FORBIDDEN'})
+ await h.owner.command('word.review',{...payload,version:a.version+1},{error:'STALE'})
+ await h.owner.command('word.review',{...payload,decisions:{8:'accept',9:'reject'}},{error:'WORD_CHANGE'})
+ await h.owner.command('word.review',{...payload,decisions:{999:'accept'}},{error:'WORD_CHANGE'})
+ await h.owner.command('request.update',{agreementId:a.id,version:a.version,restricted:true})
+ assert.equal((await viewer.request('/api/locket/word-review?versionId='+x.uploaded.versionId)).status,404)
+ const current=(await h.owner.state()).agreements.find(row=>row.id===a.id)
+ const changed=await h.owner.command('word.review',{...payload,version:current.version})
+ await h.owner.command('word.review',payload,{error:'NOT_CURRENT'})
+ const result=await h.owner.request('/api/locket/word-review?versionId='+changed.versionId)
+ assert.equal(result.status,200)
+})
 
 const original = '1. Payment\nInvoices are due within 30 days.\n2. Liability\nLiability is capped at $100,000.\n3. Confidentiality\nBoth parties protect confidential information.'
 const edited = original.replace('30 days', '45 days').replace('$100,000', '$200,000')

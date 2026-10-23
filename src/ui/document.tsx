@@ -11,6 +11,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import type { LocketState, Row } from './api'
 import type { Locket } from './app'
 import { Icon } from './controls'
+import { Tooltip } from './tooltip'
 import { plural } from './format'
 import { findingTone, NoteCard, type Note } from './notes'
 import { cut, redline, type Paragraph, type Section } from './redline'
@@ -161,7 +162,7 @@ export function DocumentPage({ state, a, base, shown, passage, locket }: { state
     const close = (key: number) => {
       if (!run.length) return
       const n = run.length
-      out.push(<button key={`fold-${key}`} type="button" className="lk-ellipsis" title={`Show ${plural(n, 'unchanged paragraph')}`} onClick={() => setOpened(new Set([...opened, index]))}><span aria-hidden="true">…</span><span className="lk-visually-hidden">Show {plural(n, 'unchanged paragraph')}</span></button>)
+      out.push(<Tooltip key={`fold-${key}`} label="Show unchanged"><button type="button" className="lk-ellipsis" onClick={() => setOpened(new Set([...opened, index]))}><span aria-hidden="true">…</span><span className="lk-visually-hidden">Show {plural(n, 'unchanged paragraph')}</span></button></Tooltip>)
       run = []
     }
     section.paragraphs.forEach((p, i) => {

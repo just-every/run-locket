@@ -1,4 +1,5 @@
 import { servicePerformanceHandlers } from './service-performance'
+import { wordReviewHandlers, wordReviewView } from './word-review'
 import { playbookRecommendationHandlers } from './playbook-recommendations'
 import { reconciliationHandlers } from './reconciliation'
 import { serviceLevelHandlers } from './service-levels'
@@ -69,6 +70,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
+  ...wordReviewHandlers,
   ...serviceLevelHandlers,
   ...servicePerformanceHandlers,
   ...playbookRecommendationHandlers, ...reconciliationHandlers, ...familyAnalysisHandlers, ...wordTemplateHandlers, ...accountingHandlers, ...renewalBriefHandlers, ...exchangeHandlers, ...repositoryBulkHandlers, ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
@@ -127,6 +129,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     const bulk = await repositoryBulkResponse(request,env,actor)
     if(bulk)return bulk
     if(request.method==='GET'&&path==='/exchanges')return reply(await exchangeList(env,actor,url.searchParams.get('agreementId')??''))
+    if(request.method==='GET'&&path==='/word-review')return reply(await wordReviewView(env,actor,url.searchParams.get('versionId')??''))
     if (request.method === 'GET' && path === '/analytics') { await requireFullFields(env.DB,actor); return reply(workflowAnalytics(await state(env, actor), url.searchParams)) }
     if (request.method === 'GET' && path === '/clickwrap/acceptances') {
       const rows = await acceptanceRecords(env, actor, url.searchParams)

@@ -41,16 +41,17 @@ export function ExchangePanel({state,a,locket}:{state:LocketState;a:Row;locket:L
         })}
       </details>
       {external&&contacts.length>0&&<Form busy={locket.busy} submit="Share external version" onSubmit={async data=>{
-        const channel=value(data,'channel'),chosen={agreementId:a.id,version:a.version,versionId:version.id,recipientEmail:value(data,'recipientEmail'),channel,contactConsent:value(data,'contactConsent'),confirmCleanRendition:data.get('clean')==='on'},signature=JSON.stringify({...chosen,hours:value(data,'hours')})
+        const channel=value(data,'channel'),chosen={agreementId:a.id,version:a.version,versionId:version.id,recipientEmail:value(data,'recipientEmail'),channel,rendition:value(data,'rendition')||'plain',contactConsent:value(data,'contactConsent'),confirmCleanRendition:data.get('clean')==='on'},signature=JSON.stringify({...chosen,hours:value(data,'hours')})
         if(pending.current?.signature!==signature){const token=newToken();pending.current={signature,token,payload:{...chosen,token,expiresAt:Date.now()+Number(value(data,'hours'))*3600_000}}}
         const staged=pending.current,result=await locket.run('exchange.send',staged.payload)
         if(result){pending.current=null;setLink(`${window.location.origin}/exchange#${staged.token}`);await refresh();locket.setNotice(channel==='link'?'Secure link ready. Share it only with the selected contact.':result.mailReceipt?.status==='accepted'?'Postmark accepted the email. Mailbox delivery is unconfirmed.':`Email status: ${result.mailReceipt?.status??'queued'}.`)}
       }}>
         <Field label="Counterparty contact"><select required name="recipientEmail">{contacts.map(c=><option key={c.email} value={c.email}>{c.name} ({c.email})</option>)}</select></Field>
         <Field label="Share by"><select name="channel"><option value="link">Secure link</option><option value="email">Postmark email</option></select></Field>
+        {state.artifacts.some(file=>file.version_id===version.id&&file.role==='original'&&file.media_type==='application/vnd.openxmlformats-officedocument.wordprocessingml.document')&&<Field label="Outgoing document"><select name="rendition"><option value="plain">Plain Word rendition</option><option value="word-clean">Preserve Word formatting, clean</option><option value="word-redline">Preserve Word formatting, redline</option></select></Field>}
         <Field label="Link expires after"><select name="hours" defaultValue="24"><option value="1">1 hour</option><option value="24">24 hours</option><option value="168">7 days</option></select></Field>
         <Field label="Why this contact is authorized to receive this version"><textarea name="contactConsent" required maxLength={1000} /></Field>
-        <p role="note">The outgoing DOCX is rebuilt from the text shown above. Source formatting, embedded comments, tracked edits and document metadata are removed. Only comments explicitly marked external in Locket are included. Review the rendition before sharing.</p>
+        <p role="note">The plain DOCX is rebuilt from the text shown above. A format-preserving Word output keeps styles, tables, headers and footers. Every outgoing Word file removes internal comments and document metadata; only explicitly external comments are included. Revision authors are redacted; a redline still includes deleted words. Review the chosen rendition before sharing.</p>
         <Field label="I approve this clean plain rendition and explicit disclosure to the selected contact"><input type="checkbox" name="clean" required /></Field>
       </Form>}
       {!contacts.length&&<p>Add a counterparty contact before sharing.</p>}

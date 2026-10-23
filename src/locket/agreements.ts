@@ -15,6 +15,7 @@ import { may, requireRole } from './access'
 import { fileInput, isDocx, isPdf, PDF, storeArtifact, type FileInput } from './artifacts'
 import type { Ctx, Handler, Outcome } from './commands'
 import { docxText } from './docx'
+import { importWordReview } from './word-review-records'
 import { agreementReference, bool, fail, json, list, money, object, oneOf, optionalDate, optionalText, parse, sha256, sql, text, timezone, type Sql } from './model'
 import { agreementGuards, bump, invalidateApprovals, requireStatus, statusAfterChange, versionDigest, versionsOf, visibleAgreement, type AgreementRow } from './records'
 
@@ -108,23 +109,25 @@ interface NewVersion {
   number: number
 }
 /** Builds a version from an uploaded file, keeping its exact bytes. */
-async function uploadedVersion(c: Ctx, agreementId: string, number: number, kind: string, label: string, file: FileInput, suppliedText: string | null, priorFields: string | null = null): Promise<NewVersion> {
+async function uploadedVersion(c: Ctx, agreementId: string, number: number, kind: string, label: string, file: FileInput, suppliedText: string | null, priorFields: string | null = null, baseVersionId:string|null=null): Promise<NewVersion> {
   if (!isPdf(file) && !isDocx(file)) fail('FILE_TYPE', 'A contract version must be a PDF or DOCX file.', 415)
+  if(isDocx(file))file.mediaType='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   const id = crypto.randomUUID()
+  const word=isDocx(file)?await importWordReview(c,agreementId,id,file.bytes,baseVersionId):null
   let body = suppliedText, source = suppliedText ? 'person' : 'none'
-  if (isDocx(file) && !suppliedText) {
-    body = await docxText(file.bytes)
+  if (word) {
+    body = word.text
     source = 'docx'
   }
   const artifact = await storeArtifact(file, { agreementId, versionId: id, role: 'original', provenance: { uploadedAs: kind, label }, actorId: c.actor.id, at: c.now })
   const uses = retainedClauseUses(priorFields, body)
-  const fields = uses.length ? { clauseLibrary: uses } : null
+  const fields = word ? {...word.fields,...(uses.length?{clauseLibrary:uses}:{})} : uses.length ? { clauseLibrary: uses } : null
   const digest = await versionDigest({ agreementId, number, files: [{ role: 'original', sha256: artifact.sha256 }], text: body, fields })
   return {
     id,
     number,
     digest,
-    writes: [...artifact.writes, sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, kind, label, null, fields ? json(fields) : null, body, source, digest, c.actor.id, c.now)],
+    writes: [...artifact.writes, sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, kind, label, null, fields ? json(fields) : null, body, source, digest, c.actor.id, c.now),...(word?.writes??[])],
   }
 }
 async function templateVersion(c: Ctx, agreementId: string, number: number, p: Record<string, unknown>, extra: Record<string, string>, entity: EntityRow | null, agreementType:string, priorFields: string | null = null): Promise<NewVersion> {
@@ -295,7 +298,7 @@ const uploadVersion: Handler = async (c, p) => {
   const number = await nextVersion(c, a)
   const kind = oneOf(p, 'kind', ['upload', 'counterparty'] as const)
   const prior = await c.db.prepare('SELECT fields FROM lk_versions WHERE id=?').bind(a.current_version_id).first<{ fields: string | null }>()
-  const v = await uploadedVersion(c, a.id, number, kind, optionalText(p, 'label', 200) ?? (kind === 'counterparty' ? 'Counterparty markup' : 'Our revision'), fileInput(p.file), optionalText(p, 'text', 400_000), prior?.fields ?? null)
+  const v = await uploadedVersion(c, a.id, number, kind, optionalText(p, 'label', 200) ?? (kind === 'counterparty' ? 'Counterparty markup' : 'Our revision'), fileInput(p.file), optionalText(p, 'text', 400_000), prior?.fields ?? null,a.current_version_id)
   return versionOutcome(c, a, p, v, `Added version ${number} (${kind})`)
 }
 const generateVersion: Handler = async (c, p) => {
