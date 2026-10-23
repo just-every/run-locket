@@ -116,6 +116,27 @@ test('APPROVE-003 / MOBILE-001 / SEC-002 emails a generic authenticated review l
   assert.ok(exported.records.lk_approval_channel_requests.some(r=>r.id===channelsId))
   assert.equal(exported.records.lk_approval_channel_deliveries.filter(r=>r.request_id===channelsId).length,6)
 
+  // The same channel request joins the recipient's existing daily digest;
+  // opting out of email suppresses its next request without changing authority.
+  await h.owner.command('approval.channel.configure',{version:1,automatic:false})
+  await approver.command('approval.channel.preferences',{version:1,channels:['email','word']})
+  await approver.command('notification.preferences',{inApp:true,email:true,digest:true,timezone:'America/New_York'})
+  const digestAgreement=await review(requester,{title:'Private digest agreement 940271'}),digestRequest=await requester.command('approval.channel.request',{...payload(digestAgreement,approver.id),kind:'commercial'})
+  assert.equal((await approver.state()).approvalChannels.deliveries.find(d=>d.request_id===digestRequest.id&&d.channel==='email').code,'daily_digest')
+  const noon=new Date();noon.setUTCHours(18,0,0,0);if(noon.getTime()<Date.now())noon.setUTCDate(noon.getUTCDate()+1)
+  const beforeDigest=h.mails.filter(m=>m.to.includes('approver@example.test')).length
+  await h.scheduled(noon.getTime());await h.scheduled(noon.getTime())
+  const digestMails=h.mails.filter(m=>m.to.includes('approver@example.test'))
+  assert.equal(digestMails.length,beforeDigest+1)
+  assert.ok(digestMails.at(-1).text.includes(digestRequest.reviewUrl));assert.ok(!JSON.stringify(digestMails.at(-1)).includes(digestAgreement.title))
+  assert.equal((await approver.state()).approvalChannels.deliveries.find(d=>d.request_id===digestRequest.id&&d.channel==='email').status,'accepted')
+  await approver.command('notification.preferences',{inApp:true,email:false,digest:true,timezone:'America/New_York'})
+  const mutedAgreement=await review(requester),muted=await requester.command('approval.channel.request',{...payload(mutedAgreement,approver.id),kind:'commercial'})
+  assert.equal((await approver.state()).approvalChannels.deliveries.find(d=>d.request_id===muted.id&&d.channel==='email').code,'email_disabled')
+  assert.equal(h.mails.filter(m=>m.to.includes('approver@example.test')).length,digestMails.length)
+
+  await h.owner.command('approval.channel.configure',{version:2,automatic:true})
+
   // Channel doors inherit the frozen named route, unlocked stage, current
   // delegate and configured manual reminder limit without their own policy.
   const named=await approvalRuleFixture(h)
@@ -148,24 +169,6 @@ test('APPROVE-003 / MOBILE-001 / SEC-002 emails a generic authenticated review l
   assert.equal(namedState.ruleDecisions.find(r=>r.approval_id===delegateDecision.id).acted_as,'delegate')
   assert.ok((await named.security.state()).approvalChannels.requests.some(r=>r.agreement_id===namedId&&r.source==='automatic'))
 
-  // The same channel request joins the recipient's existing daily digest;
-  // opting out of email suppresses its next request without changing authority.
-  await h.owner.command('approval.channel.configure',{version:1,automatic:false})
-  await approver.command('approval.channel.preferences',{version:1,channels:['email','word']})
-  await approver.command('notification.preferences',{inApp:true,email:true,digest:true,timezone:'America/New_York'})
-  const digestAgreement=await review(requester,{title:'Private digest agreement 940271'}),digestRequest=await requester.command('approval.channel.request',{...payload(digestAgreement,approver.id),kind:'commercial'})
-  assert.equal((await approver.state()).approvalChannels.deliveries.find(d=>d.request_id===digestRequest.id&&d.channel==='email').code,'daily_digest')
-  const noon=new Date();noon.setUTCHours(18,0,0,0);if(noon.getTime()<Date.now())noon.setUTCDate(noon.getUTCDate()+1)
-  const beforeDigest=h.mails.filter(m=>m.to.includes('approver@example.test')).length
-  await h.scheduled(noon.getTime());await h.scheduled(noon.getTime())
-  const digestMails=h.mails.filter(m=>m.to.includes('approver@example.test'))
-  assert.equal(digestMails.length,beforeDigest+1)
-  assert.ok(digestMails.at(-1).text.includes(digestRequest.reviewUrl));assert.ok(!JSON.stringify(digestMails.at(-1)).includes(digestAgreement.title))
-  assert.equal((await approver.state()).approvalChannels.deliveries.find(d=>d.request_id===digestRequest.id&&d.channel==='email').status,'accepted')
-  await approver.command('notification.preferences',{inApp:true,email:false,digest:true,timezone:'America/New_York'})
-  const mutedAgreement=await review(requester),muted=await requester.command('approval.channel.request',{...payload(mutedAgreement,approver.id),kind:'commercial'})
-  assert.equal((await approver.state()).approvalChannels.deliveries.find(d=>d.request_id===muted.id&&d.channel==='email').code,'email_disabled')
-  assert.equal(h.mails.filter(m=>m.to.includes('approver@example.test')).length,digestMails.length)
 
 
 })
