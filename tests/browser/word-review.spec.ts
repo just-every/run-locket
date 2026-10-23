@@ -56,7 +56,7 @@ for(const width of [1440,390])test(`Word tracks twelve changes, nine accepts and
   let unhost=async()=>{}
   try{if(!process.env.LOCKET_CAMPAIGN_LIVE)unhost=await hostExchange(counterparty,p.origin)
    await counterparty.goto(link!);await expect(counterparty.getByRole('region',{name:'External comments',exact:true})).toContainText('Our reply:');await expect(counterparty.locator('body')).not.toContainText(x.commentBodies[3])
-   const downloaded=counterparty.waitForEvent('download');await counterparty.getByRole('button',{name:'Download clean Word',exact:true}).click();expect((await downloaded).suggestedFilename()).toContain('.docx')
+   const downloaded=counterparty.waitForEvent('download');await counterparty.getByRole('button',{name:'Download external Word rendition',exact:true}).click();expect((await downloaded).suggestedFilename()).toContain('.docx')
    expect(await counterparty.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
    if(process.env.LOCKET_SCREENSHOTS)await counterparty.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-word-counterparty.png`),fullPage:true})
   }finally{await unhost();await publicContext.close()}
