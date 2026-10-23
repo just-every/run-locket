@@ -1,3 +1,4 @@
+import { runOutcomeReports } from './locket/outcome-report-dispatch'
 import { runRenewalBriefs } from './locket/renewal-briefs'
 import { runRemediation } from './locket/remediation-mail'
 import { runRenewalLifecycle } from './locket/renewal-lifecycle'
@@ -65,5 +66,6 @@ export default withDemo({
     await runNotifications(runtimeBindings(env), controller.scheduledTime)
     await runNoticeAgent(runtimeBindings(env), controller.scheduledTime)
     await runReports(runtimeBindings(env), controller.scheduledTime)
+    await runOutcomeReports(runtimeBindings(env), controller.scheduledTime)
   },
 } satisfies ExportedHandler<Bindings>, { seed: seedDemo })

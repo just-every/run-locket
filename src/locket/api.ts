@@ -1,6 +1,7 @@
 import { servicePerformanceHandlers } from './service-performance'
 import { wordReviewHandlers, wordReviewView } from './word-review'
 import { inboundRemediationResponse } from './remediation-stops'
+import { outcomeReportHandlers, outcomeReport } from './outcome-report'
 import { reviewRedlineHandlers } from './review-redlines'
 import { remediationHandlers } from './remediation'
 import { renewalLifecycleHandlers } from './renewal-lifecycle'
@@ -78,6 +79,7 @@ export const handlers: Record<string, Handler> = {
   ...wordReviewHandlers,
   ...remediationHandlers,
   ...reviewRedlineHandlers,
+  ...outcomeReportHandlers,
   ...renewalLifecycleHandlers,...renewalCalendarHandlers,
   ...serviceLevelHandlers,
   ...servicePerformanceHandlers,
@@ -136,6 +138,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     const exchange = await publicExchangeResponse(request,env)
     if(exchange)return exchange
     const actor = await currentActor(request, env)
+    if(request.method==='GET'&&path==='/outcome-report')return reply(await outcomeReport(env,actor,url.searchParams.get('month')??''))
     const bulk = await repositoryBulkResponse(request,env,actor)
     if(bulk)return bulk
     if(request.method==='GET'&&path==='/exchanges')return reply(await exchangeList(env,actor,url.searchParams.get('agreementId')??''))

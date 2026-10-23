@@ -1,3 +1,4 @@
+import { runOutcomeReports } from '../../src/locket/outcome-report-dispatch'
 import { runRenewalBriefs } from '../../src/locket/renewal-briefs'
 import { runRemediation } from '../../src/locket/remediation-mail'
 import { runRenewalLifecycle } from '../../src/locket/renewal-lifecycle'
@@ -33,5 +34,6 @@ export default {
     await runNotifications(env, controller.scheduledTime)
     await runNoticeAgent(env, controller.scheduledTime)
     await runReports(env, controller.scheduledTime)
+    await runOutcomeReports(env, controller.scheduledTime)
   },
 }

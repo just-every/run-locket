@@ -1,3 +1,4 @@
+import { OutcomeReports } from './outcome-report'
 import { RequestQueue } from './request-queue'
 import { Counterparty } from './counterparty'
 import { useEffect, useState } from 'react'
@@ -55,6 +56,7 @@ export function LocketApp() {
         {notice && <div className="lk-note" role="status">{notice}</div>}
         {!state ? <p className="lk-empty">{error ? 'Locket could not load your agreements. Sign in again if your session ended.' : 'Loading agreements…'}</p> : (
           <>
+            {route.view === 'outcome-report' && <OutcomeReports state={state} locket={locket} month={route.id} />}
             {route.view === 'queue' && <RequestQueue state={state} locket={locket} />}
             {route.view === 'portfolio' && <Portfolio state={state} />}
             {route.view === 'agreements' && <Register state={state} locket={locket} query={query} portfolioFilter={route.id === 'portfolio' ? route.tab : ''} />}
