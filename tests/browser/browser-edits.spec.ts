@@ -100,7 +100,7 @@ for(const width of [1440,390])test(`NEG-006 sends external v2, receives counterp
     await page.reload() // Fixture writes occurred outside this already-open workspace.
     const panel=page.getByRole('region',{name:'Counterparty exchange',exact:true})
     await expect(panel).toBeVisible()
-    await expect(panel).toContainText('reply address carries the same capability as the link')
+    await expect(panel).toContainText('separate reply address permits only provider-authenticated replies')
     await expect(panel).toContainText('Access ends when your sending session expires or you sign out')
     await panel.getByLabel('Share by',{exact:true}).selectOption(live?'link':'email')
     await panel.getByLabel('Why this contact is authorized to receive this version',{exact:true}).fill('synthetic-locket-14 approved counterparty negotiation contact')

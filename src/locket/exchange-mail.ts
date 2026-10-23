@@ -9,10 +9,10 @@ export async function exchangeReceipt(c: Pick<Ctx,'db'|'commandId'>) {
   const row=await c.db.prepare('SELECT id,status,provider,provider_message_id FROM lk_exchanges WHERE id=?').bind(c.commandId).first()
   return row
 }
-export async function dispatchExchange(c:Ctx,token:unknown){
+export async function dispatchExchange(c:Ctx,token:unknown,replyToken:unknown){
   const row=await c.db.prepare('SELECT * FROM lk_exchanges WHERE id=?').bind(c.commandId).first<ExchangeRow>()
   if(!row||row.channel!=='email'||row.status!=='queued')return exchangeReceipt(c)
-  if(await tokenDigest(token)!==row.token_hash)return null
+  if(await tokenDigest(token)!==row.token_hash||await tokenDigest(replyToken)!==row.reply_token_hash)return null
   const attempt=crypto.randomUUID()
   const finish=async(status:string,provider:string|null,receipt:string|null)=>{
     const audit=auditSql(c,{action:`exchange.email.${status}`,agreementId:row.agreement_id,summary:status==='accepted'?'Postmark accepted the counterparty exchange email; mailbox delivery is unconfirmed.':status==='suppressed'?'Exchange email suppressed in local development or demo; no email was sent.':`Counterparty email outcome: ${status}.`})
@@ -39,7 +39,7 @@ export async function dispatchExchange(c:Ctx,token:unknown){
   // Fragment capabilities are not sent in referrers or ordinary page requests.
   const link=`${new URL(c.env.AUTH_ORIGIN).origin}/exchange#${token}`
   try{
-    const response=await fetch('https://api.postmarkapp.com/email',{method:'POST',headers:{'content-type':'application/json','accept':'application/json','X-Postmark-Server-Token':c.env.POSTMARK_SERVER_TOKEN},body:JSON.stringify({From:c.env.MAIL_FROM,To:row.recipient_email,Subject:'A document is ready for your review',...(replyDomain(c.env)&&c.env.POSTMARK_INBOUND_SECRET?{ReplyTo:`locket+${token}@${replyDomain(c.env)}`}:{ }),TextBody:`A document has been shared for your review. This link permits viewing, downloading, commenting and uploading a markup until ${new Date(row.expires_at).toISOString()}. Anyone holding the link can use it.\n\n${link}`,MessageStream:'outbound'})})
+    const response=await fetch('https://api.postmarkapp.com/email',{method:'POST',headers:{'content-type':'application/json','accept':'application/json','X-Postmark-Server-Token':c.env.POSTMARK_SERVER_TOKEN},body:JSON.stringify({From:c.env.MAIL_FROM,To:row.recipient_email,Subject:'A document is ready for your review',...(replyDomain(c.env)&&c.env.POSTMARK_INBOUND_SECRET?{ReplyTo:`locket+${replyToken}@${replyDomain(c.env)}`}:{ }),TextBody:`A document has been shared for your review. This link permits viewing, downloading, commenting and uploading a markup until ${new Date(row.expires_at).toISOString()}. Anyone holding the link can use it.\n\n${link}`,MessageStream:'outbound'})})
     const body=await response.json().catch(()=>null) as {MessageID?:string;ErrorCode?:number}|null
     if(!response.ok||body?.ErrorCode)return finish(response.status===429?'rate_limited':'rejected','postmark',null)
     return finish(body?.MessageID?'accepted':'uncertain','postmark',body?.MessageID??null)

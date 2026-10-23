@@ -14,6 +14,7 @@ import { authorizeServiceResult } from './service-level-records'
 import { dispatchServiceClaim } from './service-level-mail'
 import { familyCommandChecks } from './family-analysis-guard'
 import { refuseErasedAddress } from './erasure-addresses'
+import { exchangeResult, exchangeTokens } from './exchange'
 import { dispatchExchange } from './exchange-mail'
 import { authorizeRepositoryBulkResult } from './repository-bulk'
 import { syncRulePending } from './approval-rules'
@@ -110,7 +111,12 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     if(/^playbook\.(recommend$|recommendation\.)/.test(type)) requireRole(c.actor,['counsel'],'read measured playbook recommendation outcomes')
     if(type.startsWith('reconciliation.')) await authorizeReconciliationResult(c,type,payload,result)
     if(type==='reconciliation.email') await dispatchReconciliation(c)
-    if(type==='exchange.send') await dispatchExchange(c,payload.token)
+    if(type==='exchange.send'){
+      await exchangeResult(c,result)
+      const tokens=await exchangeTokens(c)
+      const mailReceipt=await dispatchExchange(c,tokens.token,tokens.replyToken)
+      result={...await exchangeResult(c,result),mailReceipt}
+    }
     if(/^repository\.bulk\./.test(type))await authorizeRepositoryBulkResult(c,result)
     await syncRulePending(env,c.now)
     await runApprovalChannels(env,c.now)

@@ -36,7 +36,7 @@ export async function inboundExchangeResponse(request:Request,env:Bindings):Prom
     const input=object(await request.json()),recipient=text(input,'OriginalRecipient',400).toLowerCase()
     const match=recipient.match(/^locket\+([a-f0-9]{64})@(.+)$/)
     if(!match||match[2]!==domain)fail('RECIPIENT','The inbound address is not an exchange on this installation.',403)
-    const row=await findExchangeToken(match[1],env)
+    const row=await findExchangeToken(match[1],env,'reply')
     const fromFull=input.FromFull===undefined?null:object(input.FromFull,'FromFull')
     const from=text(input,'From',320).toLowerCase()
     if(from!==row.recipient_email.toLowerCase()||(fromFull&&text(fromFull,'Email',320).toLowerCase()!==from))fail('SENDER','Only the designated counterparty contact may reply.',403)

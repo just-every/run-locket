@@ -24,9 +24,9 @@ async function commitPublic(c:Ctx,row:ExchangeRow,checks:Sql[],writes:Sql[],audi
     throw error
   }
 }
-export async function findExchangeToken(token:unknown,env:Bindings){
+export async function findExchangeToken(token:unknown,env:Bindings,purpose:'link'|'reply'='link'){
   const hash=await tokenDigest(token)
-  const row=await env.DB.prepare('SELECT * FROM lk_exchanges WHERE token_hash=?').bind(hash).first<ExchangeRow>()
+  const row=await env.DB.prepare(`SELECT * FROM lk_exchanges WHERE ${purpose==='reply'?'reply_token_hash':'token_hash'}=?`).bind(hash).first<ExchangeRow>()
   if(!row)fail('EXCHANGE_UNAVAILABLE','This exchange is unavailable or has expired.',404)
   const checks=exchangeChecks(row,Date.now())
   const ok=await env.DB.prepare(`SELECT CASE WHEN ${checks.map(s=>`(${s.sql})`).join(' AND ')} THEN 1 ELSE 0 END AS ok`).bind(...checks.flatMap(s=>s.params)).first<{ok:number}>()

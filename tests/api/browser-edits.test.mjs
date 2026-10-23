@@ -45,9 +45,8 @@ test('Word review preserves twelve authored revisions, resolves nine and rejects
  }
  await h.owner.command('version.audience',{agreementId:a.id,version:a.version,versionId:firstWord.versionId,audience:'external',confirmExternal:true})
  a=(await h.owner.state()).agreements.find(row=>row.id===a.id)
- const token=freshToken()
- await h.owner.command('exchange.send',{agreementId:a.id,version:a.version,versionId:firstWord.versionId,rendition:'word-redline',recipientEmail:'synthetic-locket-26@example.test',contactConsent:'Review this exact supplier Word markup and external comments.',confirmCleanRendition:true,channel:'link',token,expiresAt:Date.now()+3600000})
- const exchanged=await h.request('/api/locket/exchange/download',{method:'POST',headers:{authorization:'Bearer '+token},body:{}}),outgoing=Buffer.from(await exchanged.arrayBuffer()).toString()
+ const sharing=await h.owner.command('exchange.send',{agreementId:a.id,version:a.version,versionId:firstWord.versionId,rendition:'word-redline',recipientEmail:'synthetic-locket-26@example.test',contactConsent:'Review this exact supplier Word markup and external comments.',confirmCleanRendition:true,channel:'link',expiresAt:Date.now()+3600000})
+ const exchanged=await h.request('/api/locket/exchange/download',{method:'POST',headers:{authorization:'Bearer '+sharing.token},body:{}}),outgoing=Buffer.from(await exchanged.arrayBuffer()).toString()
  assert.equal(exchanged.status,200);assert.ok(outgoing.includes('word/header1.xml'));assert.ok(outgoing.includes('Our reply:'));assert.ok(!outgoing.includes(x.commentBodies[3]));assert.ok(!outgoing.includes('synthetic-locket-private-author'))
  const original=state.artifacts.find(row=>row.version_id===x.uploaded.versionId&&row.role==='original'),res=await h.owner.request('/api/locket/files/'+original.id)
  assert.equal(res.headers.get('x-locket-sha256'),createHash('sha256').update(x.bytes).digest('hex'));assert.deepEqual(Buffer.from(await res.arrayBuffer()),x.bytes)
@@ -150,9 +149,11 @@ test('NEG-006 sends a clean external v2 through Postmark, accepts an exact v3 ma
   const mail=h.mails.find(mail=>(mail.provider==='postmark'||mail.postmark)&&mail.text?.includes('/exchange#'))??h.mails.find(mail=>mail.text?.includes('/exchange#'))
   assert.ok(mail,'Postmark captured the email at the network edge')
   assert.deepEqual(mail.to,['synthetic-locket-3@example.test'])
-  assert.ok(mail.text.includes('/exchange#'+x.token));assert.equal(mail.ReplyTo,`locket+${x.token}@synthetic-locket.test`)
+  assert.ok(mail.text.includes('/exchange#'+x.token));assert.equal(mail.ReplyTo,`locket+${x.sent.replyToken}@synthetic-locket.test`);assert.notEqual(x.sent.replyToken,x.token)
   assert.deepEqual(await h.owner.command('exchange.send',x.payload,{commandId:x.sent.id}),x.sent)
   assert.equal(h.mails.filter(m=>m.text?.includes('/exchange#')).length,1)
+  assert.equal((await h.request('/api/locket/exchange/open',{method:'POST',headers:{authorization:'Bearer '+x.sent.replyToken},body:{}})).status,404)
+  await h.owner.command('exchange.send',{...x.payload,token:freshToken()},{error:'INVALID'})
   assert.ok(!mail.text.includes('private legal position'));assert.ok(!mail.text.includes('Invoices'))
   const opened=await x.request('open'),view=await opened.json()
   assert.equal(opened.status,200,JSON.stringify(view));assert.equal(view.version.number,2)
@@ -173,6 +174,7 @@ test('NEG-006 sends a clean external v2 through Postmark, accepts an exact v3 ma
   const uploaded=await(await x.request('upload',upload)).json()
   assert.equal(uploaded.ok,true,JSON.stringify(uploaded));assert.equal(uploaded.result.number,3)
   assert.deepEqual(await(await x.request('upload',upload)).json(),uploaded)
+  const stale=await x.request('upload',{commandId:randomUUID(),payload:upload.payload});assert.equal(stale.status,409);assert.equal((await stale.json()).error.code,'NOT_CURRENT')
   const state=await h.owner.state(),v3=state.versions.find(v=>v.id===uploaded.result.versionId)
   assert.equal(v3.kind,'counterparty');assert.equal(v3.text,counterpartyText);assert.equal(v3.digest,uploaded.result.digest)
   const artifact=state.artifacts.find(f=>f.version_id===v3.id)
@@ -182,11 +184,13 @@ test('NEG-006 sends a clean external v2 through Postmark, accepts an exact v3 ma
   assert.equal(c.external_author_name,'synthetic-locket-3');assert.equal(c.external_author_email,'synthetic-locket-3@example.test')
   for(const action of ['exchange.sent','exchange.opened','exchange.downloaded','exchange.commented','exchange.uploaded','exchange.email.accepted'])assert.ok(state.audit.some(e=>e.action===action),action)
   assert.ok(state.audit.filter(e=>['exchange.opened','exchange.uploaded'].includes(e.action)).every(e=>e.actor_role==='counterparty_link'))
-  const current=state.agreements.find(a=>a.id===x.a.id),replyToken=freshToken()
-  const replyExchange=await h.owner.command('exchange.send',{...x.payload,version:current.version,versionId:v3.id,token:replyToken})
+  const current=state.agreements.find(a=>a.id===x.a.id)
+  const replyExchange=await h.owner.command('exchange.send',{...x.payload,version:current.version,versionId:v3.id})
+  const replyToken=replyExchange.replyToken
   const replyFiles=[docx(['synthetic-locket-17 first email markup']),docx(['synthetic-locket-18 second email markup'])]
   const inbound={OriginalRecipient:`locket+${replyToken}@synthetic-locket.test`,From:'synthetic-locket-3@example.test',FromFull:{Email:'synthetic-locket-3@example.test',Name:'synthetic-locket-3'},MessageID:'synthetic-locket-19',StrippedTextReply:`synthetic-locket-20 email response ${replyToken}`,Attachments:replyFiles.map((bytes,i)=>({Name:`synthetic-locket-${i+4}.docx`,ContentType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',Content:bytes.toString('base64'),ContentLength:bytes.length}))}
   const inboundRequest=(body=inbound,authorization='Basic '+Buffer.from('locket:synthetic-locket-16').toString('base64'))=>h.request('/api/locket/exchange/inbound',{method:'POST',headers:{authorization,origin:''},body})
+  assert.equal((await inboundRequest({...inbound,OriginalRecipient:`locket+${replyExchange.token}@synthetic-locket.test`})).status,404)
   assert.equal((await inboundRequest(inbound,'Bearer wrong')).status,401)
   assert.equal((await inboundRequest({...inbound,From:'other@example.test'})).status,403)
   assert.equal((await inboundRequest({...inbound,OriginalRecipient:`locket+${replyToken}@other.example`})).status,403)
@@ -209,6 +213,7 @@ test('NEG-006 sends a clean external v2 through Postmark, accepts an exact v3 ma
   const archive=await(await h.owner.request('/api/locket/export')).json()
   assert.equal(archive.records.lk_exchanges.length,2);assert.equal(archive.records.lk_exchange_commands.length,3)
   assert.ok(!JSON.stringify(archive).includes(replyToken))
+  assert.ok(!JSON.stringify(archive).includes(x.sent.replyToken));assert.ok(!JSON.stringify(archive).includes(replyExchange.token))
   assert.ok(!JSON.stringify(archive).includes(x.token),'raw bearer token is not retained in any record')
   await h.setTime(x.payload.expiresAt+1)
   for(const action of ['open','download','comment','upload'])assert.equal((await x.request(action,action==='upload'?upload:comment)).status,404)
@@ -219,9 +224,9 @@ test('NEG-006 refuses internal versions, unsafe disclosure, forged scope, revoke
   const h=await installation();t.after(()=>h.close())
   const x=await exchangeFixture(h)
   const viewer=await h.invite('synthetic-locket-10@example.test','viewer'),agent=await h.invite('synthetic-locket-11@example.test','agent'),counsel=await h.invite('synthetic-locket-12@example.test','counsel')
-  for(const person of [viewer,agent])await person.command('exchange.send',{...x.payload,token:freshToken()},{error:'FORBIDDEN'})
-  await h.owner.command('exchange.send',{...x.payload,confirmCleanRendition:false,token:freshToken()},{error:'CONSENT'})
-  await h.owner.command('exchange.send',{...x.payload,recipientEmail:'other@example.test',token:freshToken()},{error:'RECIPIENT'})
+  for(const person of [viewer,agent])await person.command('exchange.send',{...x.payload},{error:'FORBIDDEN'})
+  await h.owner.command('exchange.send',{...x.payload,confirmCleanRendition:false},{error:'CONSENT'})
+  await h.owner.command('exchange.send',{...x.payload,recipientEmail:'other@example.test'},{error:'RECIPIENT'})
   assert.equal((await h.request('/api/locket/exchange/open',{method:'POST',body:{},headers:{authorization:'Bearer '+freshToken()}})).status,404)
   assert.equal((await h.request('/api/locket/exchange/open',{method:'POST',body:{},headers:{authorization:'Bearer '+x.token,origin:'https://other.example'}})).status,403)
   assert.equal((await viewer.request('/api/locket/exchanges?agreementId='+x.a.id)).status,403)
@@ -230,10 +235,10 @@ test('NEG-006 refuses internal versions, unsafe disclosure, forged scope, revoke
   let a=(await h.owner.state()).agreements.find(a=>a.id===x.a.id)
   await h.owner.command('version.audience',{agreementId:a.id,version:a.version,versionId:a.current_version_id,audience:'internal'})
   a=(await h.owner.state()).agreements.find(a=>a.id===x.a.id)
-  await h.owner.command('exchange.send',{...x.payload,version:a.version,token:freshToken()},{error:'INTERNAL_VERSION'})
+  await h.owner.command('exchange.send',{...x.payload,version:a.version},{error:'INTERNAL_VERSION'})
   await h.owner.command('version.audience',{agreementId:a.id,version:a.version,versionId:a.current_version_id,audience:'external',confirmExternal:true})
   a=(await h.owner.state()).agreements.find(a=>a.id===x.a.id)
-  const token=freshToken(),sent=await counsel.command('exchange.send',{...x.payload,version:a.version,token})
+  const sent=await counsel.command('exchange.send',{...x.payload,version:a.version}),token=sent.token
   await h.owner.command('role.set',{operatorId:counsel.id,role:'viewer'})
   assert.equal((await h.request('/api/locket/exchange/open',{method:'POST',body:{},headers:{authorization:'Bearer '+token}})).status,404)
   assert.ok(sent.id)
@@ -241,9 +246,8 @@ test('NEG-006 refuses internal versions, unsafe disclosure, forged scope, revoke
   // it could still contain the first contact's external comment identity.
   const party=(await h.owner.state()).parties.find(p=>p.id===a.party_id)
   await h.owner.command('party.save',{id:party.id,version:party.version,name:party.name,kind:party.kind,contacts:[...JSON.parse(party.contacts),{name:'synthetic-locket-23',email:'synthetic-locket-23@example.test'}],signatories:[]})
-  const originalToken=freshToken(),otherToken=freshToken()
-  await h.owner.command('exchange.send',{...x.payload,version:a.version,token:originalToken})
-  await h.owner.command('exchange.send',{...x.payload,version:a.version,token:otherToken,recipientEmail:'synthetic-locket-23@example.test'})
+  const originalToken=(await h.owner.command('exchange.send',{...x.payload,version:a.version})).token
+  const otherToken=(await h.owner.command('exchange.send',{...x.payload,version:a.version,recipientEmail:'synthetic-locket-23@example.test'})).token
   const scoped=(action,token,payload={})=>h.request('/api/locket/exchange/'+action,{method:'POST',headers:{authorization:'Bearer '+token},body:payload})
   assert.equal((await scoped('open',otherToken)).status,200)
   assert.equal((await scoped('comment',originalToken,{commandId:randomUUID(),payload:{body:'synthetic-locket-3 confirms this external comment'}})).status,200)
@@ -288,4 +292,39 @@ test('Review redlines refuse unaccepted, overlapping, stale and unauthorized app
  await h.owner.command('review.redlines',p)
  await h.owner.command('review.redlines',p,{error:'NOT_CURRENT'})
  assert.equal((await(await h.owner.request('/api/locket/export')).json()).records.lk_exchanges.length,0)
+})
+
+test('Exchange capabilities end when the contact, external comment or sending session is withdrawn',async t=>{
+ for(const boundary of ['contact','comment','signout','revocation']){
+  const h=await installation();t.after(()=>h.close())
+  const sender=await h.invite('synthetic-locket-'+boundary+'@example.test','counsel'),x=await exchangeFixture(h,{sender})
+  assert.equal((await x.request('open')).status,200)
+  if(boundary==='contact'){
+   const party=(await h.owner.state()).parties.find(p=>p.id===x.a.party_id)
+   await h.owner.command('party.save',{id:party.id,version:party.version,name:party.name,kind:party.kind,contacts:[],signatories:[]})
+  }else if(boundary==='comment'){
+   await sender.command('comment.audience',{agreementId:x.a.id,version:x.a.version,commentId:x.external.commentId,audience:'internal'})
+  }else if(boundary==='signout'){
+   const response=await sender.request('/auth/signout',{method:'POST',body:{}});assert.equal(response.status,204)
+  }else{
+   const sessions=await(await sender.request('/auth/sessions')).json()
+   const session=sessions.find(s=>s.active)
+   assert.ok(session)
+   const revoked=await sender.request('/auth/session/revoke',{method:'POST',body:{sessionId:session.id}});assert.equal(revoked.status,204)
+  }
+  for(const action of ['open','download','comment','upload'])assert.equal((await x.request(action,{commandId:randomUUID(),payload:{body:'synthetic-locket-30'}})).status,404,boundary+' '+action)
+ }
+})
+
+test('Rejected, uncertain and rate-limited exchange mail attempts retain honest outcomes and never resend',async t=>{
+ for(const outcome of ['rejected','uncertain','rate_limited']){
+  const h=await installation({bindings:{POSTMARK_SERVER_TOKEN:'synthetic-locket-31'},mailResponse:mail=>mail.From?(outcome==='rejected'?Response.json({ErrorCode:422},{status:422}):outcome==='rate_limited'?Response.json({ErrorCode:429},{status:429}):Response.json({ErrorCode:0})):Response.json({id:'synthetic-locket-32'})})
+  try{
+   const x=await exchangeFixture(h,{channel:'email'})
+   assert.equal(x.sent.mailReceipt.status,outcome)
+   for(let i=0;i<2;i++)assert.deepEqual(await h.owner.command('exchange.send',x.payload,{commandId:x.sent.id}),x.sent)
+   assert.equal(h.mails.filter(m=>m.From).length,1)
+   const state=await h.owner.state();assert.ok(state.audit.some(e=>e.action==='exchange.email.'+outcome))
+  }finally{await h.close()}
+ }
 })

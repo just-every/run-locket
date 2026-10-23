@@ -17,8 +17,8 @@ export async function exchangeFixture(h,{channel='link',sender=h.owner}={}){
   a=(await sender.state()).agreements.find(item=>item.id===created.id)
   await sender.command('version.audience',{agreementId:a.id,version:a.version,versionId:version.versionId,audience:'external',confirmExternal:true})
   a=(await sender.state()).agreements.find(item=>item.id===created.id)
-  const token=freshToken(),payload={agreementId:a.id,version:a.version,versionId:version.versionId,recipientEmail:'synthetic-locket-3@example.test',contactConsent:'synthetic-locket-8 recorded authority to receive this negotiation',channel,token,expiresAt:Date.now()+3600_000,confirmCleanRendition:true}
-  const sent=await sender.command('exchange.send',payload)
+  const payload={agreementId:a.id,version:a.version,versionId:version.versionId,recipientEmail:'synthetic-locket-3@example.test',contactConsent:'synthetic-locket-8 recorded authority to receive this negotiation',channel,expiresAt:Date.now()+3600_000,confirmCleanRendition:true}
+  const sent=await sender.command('exchange.send',payload),token=sent.token
   const request=(action,body={})=>h.request('/api/locket/exchange/'+action,{method:'POST',headers:{authorization:'Bearer '+token},body})
   return {created,version,source,external,internal,a,token,payload,sent,request}
 }
