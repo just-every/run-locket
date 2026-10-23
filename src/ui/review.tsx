@@ -1,4 +1,5 @@
 import { ApprovalChannelRequest } from './approval-channel-settings'
+import { SignatureApprovalSummary } from './signature-approval-summary'
 import { ReviewRedlines } from './review-redlines'
 import { ApprovalRoutingInputs, ApprovalAvailability } from './approval-rules'
 import type { LocketState, Row } from './api'
@@ -88,6 +89,7 @@ export function Approvals({ state, a, locket }: { state: LocketState; a: Row; lo
       <ApprovalMail state={state} a={a} locket={locket} />
       <ApprovalChannelRequest state={state} a={a} locket={locket}/>
       <ApprovalReminders state={state} a={a} locket={locket} />
+      <SignatureApprovalSummary state={state} a={a}/>
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Approval route for v{v?.number ?? '–'}</h2></div>
         {a.status === 'draft' && <p className="lk-muted">Submit the request for review to open its approvals.</p>}

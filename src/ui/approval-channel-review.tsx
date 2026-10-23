@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { fetchJson } from './api'
 import type { Locket } from './app'
 import { Field, Form, value } from './controls'
+import { PacketApprovalDetails } from './signature-approval-summary'
 
 interface Review {
  request:{id:string;versionId:string;versionDigest:string;contextDigest:string;source:string}
  agreement:{id:string;title:string;status:string}
  version:{id:string;number:number;digest:string;text:string|null}
- context:{valueCents:number|null}
+ context:{valueCents:number|null;signaturePacket?:any}
  files:{id:string;filename:string}[]
  findings:{id:string;clause_key:string;result:string;explanation:string;quote:string}[]
  label:string;current:boolean;canDecide:boolean;currentReviewUrl:string
@@ -27,6 +28,7 @@ export function ApprovalChannelReview({id,locket}:{id:string;locket:Locket}){
    {review.context.valueCents!==null&&<p>Agreement value: {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(review.context.valueCents/100)}</p>}
    {review.version.text!==null?<div style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',maxHeight:420,overflowY:'auto'}} aria-label="Exact stored version text">{review.version.text}</div>:<p>Read the stored document before deciding.</p>}
    <ul>{review.files.map(f=><li key={f.id}><a href={`/api/locket/files/${f.id}`} download>{f.filename}</a></li>)}</ul>
+   <PacketApprovalDetails packet={review.context.signaturePacket}/>
    {review.findings.length>0&&<section aria-label="Approval review findings"><h3>Review findings</h3>{review.findings.map(f=><div key={f.id}><strong>{f.clause_key} · {f.result}</strong><blockquote>{f.quote}</blockquote><p>{f.explanation}</p></div>)}</section>}
    {!saved&&review.canDecide&&<Form busy={locket.busy} submit="Record channel decision" onSubmit={async data=>{
     const result=await locket.run('approval.channel.decide',{requestId:id,versionId:review.request.versionId,versionDigest:review.request.versionDigest,contextDigest:review.request.contextDigest,decision:value(data,'decision'),reason:value(data,'reason')})

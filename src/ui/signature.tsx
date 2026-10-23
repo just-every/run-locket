@@ -14,7 +14,7 @@ export function Signature({ state, a, locket }: { state: LocketState; a: Row; lo
   const [provider,setProvider]=useState('docusign')
   return <div className="lk-tab-page">
     <SignatureSettings key={a.id} state={state} a={a} locket={locket} />
-    <SignaturePacketEditor key={a.id+'packet'} state={state} a={a} locket={locket} />
+    <SignaturePacketEditor key={a.id+'packet'+(workspace?.packets.find(p=>p.agreement_id===a.id)?.revision??0)} state={state} a={a} locket={locket} />
     <section className="lk-panel"><h2>Prepare approved packet</h2>{a.status==='approved'&&allowed?<Form busy={locket.busy} submit="Prepare signature package" onSubmit={()=>void locket.run('package.prepare',{agreementId:a.id,version:a.version,provider,recipients:[]})}><Field label="Signing service"><select value={provider} onChange={e=>setProvider(e.target.value)}>{[...providers,...(providers.some(([id])=>id==='inkwell')?[]:[['inkwell','Inkwell']])].map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></Field><p className="lk-muted">The exact approved main PDF and packet attachments travel together. Manual handoff remains available.</p></Form>:<p className="lk-muted">{a.status==='approved'?'Your role or coordinator group cannot prepare this packet.':'Approve the current packet before preparing it for signature.'}</p>}</section>
     <section className="lk-panel"><h2>Signature packages</h2>{packages.length===0?<Empty>No package prepared yet.</Empty>:packages.map(p=>{
       const manifest=parse(p.manifest),dispatch=workspace?.dispatches.find(d=>d.package_id===p.id),connection=workspace?.connections.find(c=>c.provider===p.provider)
