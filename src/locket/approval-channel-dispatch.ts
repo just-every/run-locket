@@ -37,7 +37,8 @@ async function send(c:Ctx,r:ChannelRequest,d:Delivery):Promise<{status:string;me
   endpoint=origin.origin+'/api/slack/chat.postMessage';token=env.APPROVAL_NOOK_TOKEN;body=slackBody
  }else return {status:'rejected',messageId:null,code:'unsupported_channel'}
  if(!token||!d.destination)return {status:'rejected',messageId:null,code:'channel_unconfigured'}
- const response=await fetch(endpoint,{method:'POST',redirect:'error',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)})
+ const response=await fetch(endpoint,{method:'POST',redirect:'manual',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)})
+ if(response.status>=300&&response.status<400)return {status:'rejected',messageId:null,code:'provider_redirect_refused'}
  if(response.status===429)return {status:'rate_limited',messageId:null,code:'provider_rate_limited'}
  if(response.status>=500)return {status:'uncertain',messageId:null,code:'provider_outcome_unknown'}
  if(!response.ok)return {status:'rejected',messageId:null,code:'provider_rejected'}
