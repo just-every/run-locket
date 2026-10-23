@@ -54,6 +54,7 @@ test(`NOTIFY-001 inbox, explicit mention, read state and personal channels at 14
         text: 'Both parties will protect confidential information.',
       })
       await page.goto(`${origin}/app#agreement/${agreement.id}`)
+      await page.reload()
       const comments = page.locator('section.lk-comments-card')
       await comments.getByLabel('Comment on v1', { exact: true }).fill('Please review the confidentiality wording before we submit this request.')
       await comments.getByRole('checkbox', { name: `Mention ${initial.actor.name}`, exact: false }).check()
