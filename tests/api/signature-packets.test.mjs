@@ -86,7 +86,8 @@ test('Current coordinator group and requester relationship guard signer edits; e
  await h.owner.command('signature.coordinators',{type:'nda',audienceId:group.id,version:0})
  const packet=(await h.owner.state()).signature.packets.find(p=>p.agreement_id===f.id),payload={agreementId:f.id,version:a.version,revision:packet.revision,documents:[],fields:JSON.parse(packet.fields),recipients:[{name:'CC',email:'cc@example.test',action:'copy',partyRole:'copy'},recipient],reason:'Reorder recipients'}
  for(const client of [requester,other,viewer])await client.command('package.configure',payload,{error:'FORBIDDEN'})
- await approver.command('package.configure',payload)
+ const editId=randomUUID()
+ await approver.command('package.configure',payload,{commandId:editId})
  assert.equal((await agreement(h.owner,f.id)).status,'in_review')
  assert.ok((await h.owner.state()).approvals.filter(a=>a.agreement_id===f.id).every(a=>a.invalidated_at))
  await h.owner.command('package.prepare',{agreementId:f.id,version:(await agreement(h.owner,f.id)).version,provider:'docusign',recipients:[]},{error:'STATUS'})
@@ -103,6 +104,7 @@ test('Current coordinator group and requester relationship guard signer edits; e
  await approvePacket(h.owner,f.id)
  // Removing current membership takes effect without changing packet configuration.
  await h.owner.command('audience.save',{id:group.id,version:group.version,name:'Signature coordinators',kind:'group',memberIds:[]})
+ await approver.command('package.configure',payload,{commandId:editId,error:'FORBIDDEN'})
  await approver.command('package.prepare',{agreementId:f.id,version:(await agreement(h.owner,f.id)).version,provider:'docusign',recipients:[]},{error:'FORBIDDEN'})
 })
 

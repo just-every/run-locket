@@ -8,8 +8,7 @@ import { prepareProviderTags } from './signature-provider-tags'
 import { requireCoordinator } from './signature-rules'
 import { may } from './access'
 
-export const taggedPackets=(db:D1Database,id:string)=>db.prepare('SELECT * FROM lk_signature_tag_renditions WHERE agreement_id=?').bind(id).all<any>()
-export async function signingPrimary(c:Pick<Ctx,'db'>,a:AgreementRow,v:VersionRow){
+async function signingPrimary(c:Pick<Ctx,'db'>,a:AgreementRow,v:VersionRow){
  const files=(await c.db.prepare("SELECT * FROM lk_artifacts WHERE version_id=? AND role IN ('original','rendition')").bind(v.id).all<any>()).results
  const f=files.find(f=>f.role==='rendition')??files.find(f=>f.role==='original'&&f.media_type===PDF)
  if(f)return {id:f.id,filename:f.filename,sha256:f.sha256,bytes:await readArtifactBytes(c.db,f.id)}

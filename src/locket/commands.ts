@@ -1,4 +1,5 @@
 import { dispatchSignature } from './signature-send'
+import { authorizeSignatureResult } from './signature-results'
 import { runApprovalChannels } from './approval-channel-automatic'
 import { authorizeChannelResult } from './approval-channel-requests'
 import { authorizeOutcomeReportResult } from './outcome-report'
@@ -93,6 +94,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const payload = object(input.payload)
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const completed = async (result: unknown) => {
+    if(type.startsWith('package.')||type.startsWith('signature.'))await authorizeSignatureResult(c,type,payload)
     if(type==='package.send')await dispatchSignature(c,(result as {id:string}).id)
     if(type.startsWith('approval.channel.'))await authorizeChannelResult(c,type,payload)
     if(type.startsWith('outcome-report.'))await authorizeOutcomeReportResult(c,type,payload)
