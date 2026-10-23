@@ -66,7 +66,7 @@ test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_Yo
       const created = await command('request.create', { title: `Phone approval ${tag}`, type: 'nda', party: { name: `Counterparty ${tag}`, kind: 'customer' }, file: file('review.pdf', pdf(`Confidentiality ${tag}`)), text: `Confidentiality ${tag}` })
       let s = await state(), a = s.agreements.find((x: any) => x.id === created.id)
       await command('agreement.submit', { agreementId: a.id, version: a.version })
-      await page.goto(`${origin}/app#agreement/${a.id}/review`)
+      await page.goto(`${origin}/app#agreement/${a.id}/review`);await page.reload()
       const email = page.getByRole('region', { name: 'Email approval link', exact: true })
       await email.getByLabel('Approval email recipient').selectOption(approver.id)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true)
