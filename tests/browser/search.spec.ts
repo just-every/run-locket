@@ -7,7 +7,9 @@ import { searchFixture, searchDefinition } from '../api/search-fixture.mjs'
 import { file, docx } from '../api/files.mjs'
 
 test.use({ ignoreHTTPSErrors: true, actionTimeout: 15000 })
-for (const width of [1440, 390]) test(`REPO-006 structured current-term search and exact current/older passages at ${width}px`, async ({ page }) => {
+test(`REPO-006 structured current-term search and exact current and older passages at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
   let close = async () => {}, owner: any, origin: string
   const live = !!process.env.LOCKET_SEARCH_LIVE
   if (live) {
@@ -74,4 +76,6 @@ for (const width of [1440, 390]) test(`REPO-006 structured current-term search a
     await expect(page).toHaveURL(new RegExp(ids.current+'/versions/1/'))
     await shot('current-passage')
   } catch (error) { console.error(String(error).replace(/https?:\/\/[^\s]+/g, '[URL]')); throw error } finally { await close() }
+
+  }
 })

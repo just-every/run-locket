@@ -213,3 +213,26 @@ for(const width of [1440,390])test(`Connection health read-only failure and reco
   await shot('recovered')
  }finally{await p.close()}
 })
+
+for(const width of [1440,390])test(`Workforce SAML sign-in, Counsel provisioning and immediate session refusal at ${width}px`,async({page})=>{
+ const {workforceBindings,enableWorkforce,provision,scim,oktaFake}=await import('../api/workforce-fixture.mjs')
+ const idp=await oktaFake()
+ const p=await productPage(page,{width,bindings:{...workforceBindings,WORKFORCE_SAML_SSO_URL:idp.origin+'/sso'}})
+ idp.setInstallation(p.h)
+ try{
+  await enableWorkforce(p.h);const user=await provision(p.h)
+  await page.context().clearCookies()
+  const shot=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-INT-003-${name}.png`),fullPage:true})}}
+  await page.goto(p.origin+'/signin')
+  const link=page.getByRole('link',{name:'Continue with workforce SSO',exact:true});await expect(link).toBeVisible();await link.focus();await shot('sign-in')
+  await link.click();await expect(page.getByRole('button',{name:'Sign in with Okta fake'})).toBeVisible();await page.getByRole('button',{name:'Sign in with Okta fake'}).click()
+  await expect(page).toHaveURL(p.origin+'/app',{timeout:15000});await page.reload();await expect(page.getByText('Synthetic Counsel',{exact:true}).first()).toBeVisible();expect(await page.evaluate(async()=>(await(await fetch('/api/locket/state')).json()).actor.role)).toBe('counsel');await shot('counsel-session')
+  for(const link of await page.getByRole('navigation',{name:'Locket',exact:true}).getByRole('link').all()){
+   const label='Open '+await link.getAttribute('aria-label');await link.focus();await expect(page.getByRole('tooltip',{name:label,exact:true})).toBeVisible();await link.blur();await page.mouse.move(0,0);await link.hover();await expect(page.getByRole('tooltip',{name:label,exact:true})).toBeVisible({timeout:1000});await page.mouse.move(0,0)
+  }
+  await shot('navigation-tooltips')
+  const patch=await scim(p.h,'Users/'+user.id,{method:'PATCH',body:{Operations:[{op:'replace',path:'active',value:false}]}});expect(patch.status).toBe(200)
+  const refused=await page.evaluate(async()=>{const response=await fetch('/api/locket/commands',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({commandId:crypto.randomUUID(),type:'request.create',payload:{}})});return response.status});expect(refused).toBe(401)
+  await page.reload();await expect(page.getByText('Locket could not load your agreements. Sign in again if your session ended.',{exact:true})).toBeVisible();await shot('session-revoked')
+ }finally{await page.close();await p.close();await idp.close()}
+})

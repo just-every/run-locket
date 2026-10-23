@@ -6,7 +6,9 @@ import { productPage } from './product-harness.mjs'
 
 test.use({ ignoreHTTPSErrors: true })
 
-for (const width of [1440, 390]) test(`NOTIFY-001 / APPROVE-004 owner routing preserves personal delivery choices at ${width}px`, async ({ page }) => {
+test(`NOTIFY-001 / APPROVE-004 owner routing preserves personal delivery choices at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
   const product = await productPage(page, { width })
   const { h, origin, owner } = product
   try {
@@ -59,5 +61,7 @@ for (const width of [1440, 390]) test(`NOTIFY-001 / APPROVE-004 owner routing pr
     }
   } finally {
     await product.close()
+  }
+
   }
 })

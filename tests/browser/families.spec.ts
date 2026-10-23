@@ -5,7 +5,9 @@ import { productPage } from './product-harness.mjs'
 import { familyFixture } from '../api/family-fixture.mjs'
 
 test.use({ignoreHTTPSErrors:true,locale:'en-US',timezoneId:'America/New_York'})
-for (const width of [1440,390]) test(`REPO-008 link MSA, orders and amendment and choose its governing end date at ${width}px`,async({page})=>{
+test(`REPO-008 link MSA, orders and amendment and choose its governing end date at 1440px and 390px`,async({page})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
   const runtime=await productPage(page,{width})
   try {
     const ids=await familyFixture(runtime.owner)
@@ -40,4 +42,6 @@ for (const width of [1440,390]) test(`REPO-008 link MSA, orders and amendment an
     await expect(page.getByRole('button',{name:'Select governing term'})).toHaveCount(0)
     await snapshot('requester')
   }finally{await runtime.close()}
+
+  }
 })

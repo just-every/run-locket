@@ -8,6 +8,7 @@ import { roleLabel } from './display'
 const setRole: Handler = async (c, p) => {
   requireRole(c.actor, may.manageRoles, 'assign roles')
   const operatorId = text(p, 'operatorId', 64)
+  if(await c.db.prepare('SELECT id FROM lk_workforce_users WHERE id=?').bind(operatorId).first())fail('WORKFORCE_MANAGED','Manage this role through the approved workforce groups.',409)
   const role = oneOf(p, 'role', ['counsel', 'approver', 'requester', 'viewer', 'agent'] as const)
   const operator = await c.db.prepare('SELECT display_name, role FROM oa_operators WHERE id=?').bind(operatorId).first<{ display_name: string; role: string }>()
   if (!operator) fail('NOT_FOUND', 'No invited operator has that identity.', 404)

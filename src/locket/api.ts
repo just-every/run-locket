@@ -1,3 +1,4 @@
+import { workforceHandlers, workforceResponse } from './workforce'
 import { chatIntakeResponse } from './chat-intake'
 import { chatHandlers } from './chat-notifications'
 import { integrationActor, scopedTokenHandlers } from './scoped-tokens'
@@ -86,7 +87,7 @@ import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
   ...signatureHandlers(),
-  ...chatHandlers, ...scopedTokenHandlers,
+  ...chatHandlers, ...scopedTokenHandlers, ...workforceHandlers,
   ...wordReviewHandlers,
   ...remediationHandlers,
   ...reviewRedlineHandlers,
@@ -133,6 +134,8 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
   if (!url.pathname.startsWith('/api/locket/')) return null
   const path = url.pathname.slice('/api/locket'.length)
   try {
+    const workforce=await workforceResponse(request,env)
+    if(workforce)return workforce
     const chatIntake=await chatIntakeResponse(request,env)
     if(chatIntake)return chatIntake
     const event = await noticeEventResponse(request, env)

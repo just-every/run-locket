@@ -184,9 +184,9 @@ test('Chat status consent, member mapping, receipts and navigation tooltips at 1
    expect(submitted.agreements.find((a:any)=>a.title==='Slack shortcut request').requester_id).toBe(initial.actor.id)
 
    const nav=page.getByRole('navigation',{name:'Locket',exact:true}).getByRole('link',{name:'Notifications',exact:true})
-   await nav.focus();await expect(page.getByRole('tooltip')).toHaveText('Notifications')
+   await nav.focus();await expect(page.getByRole('tooltip')).toHaveText('Open Notifications')
    await capture('focus-tooltip')
-   await nav.blur();await page.mouse.move(0,0);await nav.hover();await expect(page.getByRole('tooltip')).toHaveText('Notifications')
+   await nav.blur();await page.mouse.move(0,0);await nav.hover();await expect(page.getByRole('tooltip')).toHaveText('Open Notifications')
    await nav.click()
    const preferences=page.getByRole('region',{name:'Chat status notifications',exact:true})
    await preferences.getByLabel('Slack status updates').check();await submit(preferences,'Save chat updates')

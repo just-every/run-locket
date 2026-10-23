@@ -5,7 +5,9 @@ import { productPage } from './product-harness.mjs'
 import { reconciliationBindings,reconciliationFake,reconciliationFixture,isCreditMail } from '../api/reconciliation-fixture.mjs'
 
 test.use({ignoreHTTPSErrors:true,locale:'en-US',timezoneId:'America/New_York'})
-for(const width of [1440,390])test(`AGENT-001 reviews 3% versus 7%, confirms finance and approves one exact $4,000 credit request at ${width}px`,async({page})=>{
+test(`AGENT-001 reviews 3% versus 7%, confirms finance and approves one exact $4,000 credit request at 1440px and 390px`,async({page})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
  const product=await productPage(page,{width,bindings:reconciliationBindings,outboundResponse:reconciliationFake([])}),{h,origin}=product
  const click=async(scope:any,label:string)=>{
   const pending=page.waitForResponse(r=>r.url()===origin+'/api/locket/commands'&&r.request().method()==='POST')
@@ -69,4 +71,6 @@ for(const width of [1440,390])test(`AGENT-001 reviews 3% versus 7%, confirms fin
   expect(h.mails.filter(isCreditMail).length).toBe(1)
   await shot('accepted')
  }finally{await product.close()}
+
+  }
 })

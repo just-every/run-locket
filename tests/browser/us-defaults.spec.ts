@@ -6,8 +6,9 @@ import { file, pdf } from '../api/files.mjs'
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
 const quote = 'This agreement ends on December 26, 2026; either party may give 30 days notice.'
-for (const width of [1440, 390]) {
-  test(`US-001 sets the installation's Pacific zone and business-day rolling, shows USD and W-9 at intake, a GBP value at its recorded rate and a Thanksgiving deadline rolled to Wednesday at ${width}px`, async ({ page }) => {
+test(`US-001 sets the installation's Pacific zone and business-day rolling, shows USD and W-9 at intake, a GBP value at its recorded rate and a Thanksgiving deadline rolled to Wednesday at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
     const p = await productPage(page, { width })
     try {
       const screenshot = async (name: string) => {
@@ -74,5 +75,6 @@ for (const width of [1440, 390]) {
     } finally {
       await p.close()
     }
-  })
-}
+
+  }
+})

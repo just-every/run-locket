@@ -6,7 +6,9 @@ import { productPage } from './product-harness.mjs'
 import { reportFixture, reportView } from '../api/report-fixture.mjs'
 
 test.use({ignoreHTTPSErrors:true})
-for(const width of [1440,390])test(`REPORT-002 builds scoped renewal totals and schedules CSV/PDF at ${width}px`,async({page})=>{
+test(`REPORT-002 builds scoped renewal totals and schedules CSV and PDF at 1440px and 390px`,async({page})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
   const reportName=`Renewals by month ${width} ${randomUUID().slice(0,6)}`
   const live=Boolean(process.env.LOCKET_REPORT_LIVE)
   let close=async()=>{}
@@ -70,4 +72,6 @@ for(const width of [1440,390])test(`REPORT-002 builds scoped renewal totals and 
     await expect(card).toContainText('Stopped')
     if(dir)await panel.screenshot({path:join(dir,`${width}-REPORT-002-stopped.png`)})
   }finally{await close()}
+
+  }
 })

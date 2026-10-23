@@ -4,8 +4,9 @@ import { join } from 'node:path'
 import { pdf } from '../api/files.mjs'
 
 const origin = process.env.LOCKET_BASE_URL || 'http://127.0.0.1:8787'
-for (const width of [1440, 390]) {
-  test(`AUDIT-001 filters and matching CSV after approval, restricted view and download at ${width}px`, async ({ page }) => {
+test(`AUDIT-001 filters and matching CSV after approval, restricted view and download at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
     const entry = process.env.LOCKET_OPEN
     if (!entry) throw new Error('This journey requires the private local owner entry.')
     await page.setViewportSize({ width, height: 1000 })
@@ -79,5 +80,6 @@ for (const width of [1440, 390]) {
     await expect(log.locator('[data-audit-id]')).toHaveCount(0)
     await expect(log.getByText('No activity matches these filters.')).toBeVisible()
     if (process.env.LOCKET_SCREENSHOTS) await page.screenshot({ path: join(process.env.LOCKET_SCREENSHOTS, `${width}-audit-empty.png`), fullPage: true })
-  })
-}
+
+  }
+})

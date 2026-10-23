@@ -24,7 +24,7 @@ export const roleSql = `(SELECT CASE WHEN o.role='owner' THEN 'owner' ELSE COALE
 /** Scalar SQL: the actor's session is still current and their current role is allowed. */
 export function authority(actor: Actor, allowed: readonly Role[]): Sql {
   return sql(
-    `EXISTS(SELECT 1 FROM oa_sessions s JOIN oa_operators o ON o.id=s.operator_id WHERE s.id=? AND o.id=? AND o.status='active' AND s.operator_version=o.version AND s.revoked_at IS NULL AND s.expires_at>?) AND ${roleSql} IN (${allowed.map(() => '?').join(',')})`,
+    `EXISTS(SELECT 1 FROM oa_sessions s JOIN oa_operators o ON o.id=s.operator_id WHERE s.id=? AND o.id=? AND o.status='active' AND s.operator_version=o.version AND s.revoked_at IS NULL AND s.expires_at>? AND (o.role='owner' OR NOT EXISTS(SELECT 1 FROM lk_workforce_users WHERE id=o.id) OR EXISTS(SELECT 1 FROM lk_workforce_settings w JOIN oa_operators owner ON owner.id=w.approved_by WHERE w.enabled=1 AND owner.status='active' AND owner.role='owner' AND owner.version=w.owner_version))) AND ${roleSql} IN (${allowed.map(() => '?').join(',')})`,
     actor.sessionId,
     actor.id,
     Date.now(),

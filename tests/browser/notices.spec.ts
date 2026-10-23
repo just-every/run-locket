@@ -5,8 +5,9 @@ import { productPage } from './product-harness.mjs'
 import { noticeFixture, prepare, signedEvent, postEvent, webhookKey } from '../api/notice-fixture.mjs'
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
-for (const width of [1440, 390]) {
-  test(`RENEW-006 reviews frozen PDF, sends approved email, displays signed delivery and manual certified-mail evidence at ${width}px`, async ({ page }) => {
+test(`RENEW-006 reviews frozen PDF, sends approved email, displays signed delivery and manual certified-mail evidence at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
     const key = webhookKey()
     const product = await productPage(page, { width, bindings: { NOTICE_RESEND_WEBHOOK_SECRET: key } })
     const { h, origin, command, state } = product
@@ -66,11 +67,14 @@ for (const width of [1440, 390]) {
       await expect(mail).toContainText('signed for by reception')
       await shot('mail-delivered')
     } finally { await product.close() }
-  })
-}
+
+  }
+})
 
 
-for(const width of [1440,390])test(`RENEW-005 reviews cited cap and accounting spend then opens an intake-routed renegotiation at ${width}px`,async({page})=>{
+test(`RENEW-005 reviews cited cap and accounting spend then opens an intake-routed renegotiation at 1440px and 390px`,async({page})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
  const {accountingBindings,accountingFake,renewalBriefFixture}=await import('../api/renewal-brief-fixture.mjs')
  const product=await productPage(page,{width,bindings:{...accountingBindings,TEST_NOW:String(Date.parse('2026-10-17T14:00:00Z'))},outboundResponse:accountingFake([])})
  const shot=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-renew-005-${name}.png`),fullPage:true})}}
@@ -108,4 +112,6 @@ for(const width of [1440,390])test(`RENEW-005 reviews cited cap and accounting s
   await expect(section.getByRole('link',{name:'Open linked renewal request'})).toBeVisible()
   await shot('recorded')
  }finally{await product.close()}
+
+  }
 })

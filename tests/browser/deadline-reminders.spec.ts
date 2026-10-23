@@ -8,8 +8,9 @@ import { postEvent, signedEvent, webhookKey } from '../api/notice-fixture.mjs'
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
 const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10)
 
-for (const width of [1440, 390]) {
-  test(`RENEW-002 / NOTIFY-001 sets offsets and a personal digest preference, shows the sent reminder, its bounce and the alternate retry on the deadline at ${width}px`, async ({ page }) => {
+test(`RENEW-002 / NOTIFY-001 sets offsets and a personal digest preference, shows the sent reminder, its bounce and the alternate retry on the deadline at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
     const key = webhookKey()
     const p = await productPage(page, { width, bindings: { NOTICE_RESEND_WEBHOOK_SECRET: key } })
     const { h, origin, command, state } = p
@@ -73,5 +74,6 @@ for (const width of [1440, 390]) {
     } finally {
       await p.close()
     }
-  })
-}
+
+  }
+})

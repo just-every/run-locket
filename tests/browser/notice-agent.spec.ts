@@ -5,7 +5,9 @@ import { productPage } from './product-harness.mjs'
 import { agentFixture, localMinute, signedEvent, postEvent, webhookKey } from '../api/notice-fixture.mjs'
 
 test.use({ignoreHTTPSErrors:true,locale:'en-US',timezoneId:'America/New_York'})
-for(const width of [1440,390])test(`AGENT-003 cited draft, exact schedule, bounce alert and newly approved courier delivery at ${width}px`,async({page})=>{
+test(`AGENT-003 cited draft, exact schedule, bounce alert and newly approved courier delivery at 1440px and 390px`,async({page})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
  const key=webhookKey(),product=await productPage(page,{width,bindings:{NOTICE_RESEND_WEBHOOK_SECRET:key}}),{h,origin,state}=product
  const shot=async(name:string)=>{
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
@@ -57,4 +59,6 @@ for(const width of [1440,390])test(`AGENT-003 cited draft, exact schedule, bounc
   await expect(courier).toContainText('counsel makes that decision')
   await shot('courier-delivered')
  }finally{await product.close()}
+
+  }
 })

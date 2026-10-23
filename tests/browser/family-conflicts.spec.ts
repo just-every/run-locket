@@ -32,7 +32,9 @@ async function connection(page: any, width: number) {
   }
 }
 
-for (const width of [1440, 390]) test(`AGENT-005 family notice differences retain three citations and alternative deadlines at ${width}px`, async ({ page }) => {
+test(`AGENT-005 family notice differences retain three citations and alternative deadlines at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
   const p = await connection(page, width)
   try {
     if ('h' in p) await p.h.setTime(Date.parse('2026-10-17T16:00:00Z'))
@@ -63,9 +65,13 @@ for (const width of [1440, 390]) test(`AGENT-005 family notice differences retai
     await expect(page.locator('main')).toContainText(f.amendment.quote)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
   } finally { await p.close() }
+
+  }
 })
 
-for(const width of [1440,390])test(`AGENT-005 keeps local family review blocked until a live provider evaluation at ${width}px`,async({page})=>{
+test(`AGENT-005 keeps local family review blocked until a live provider evaluation at 1440px and 390px`,async({page})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
  const {familyModelBindings,familyModelFake,familyAnalysisFixture}=await import('../api/family-analysis-fixture.mjs')
  const calls:any[]=[],p=await productPage(page,{width,bindings:familyModelBindings,outboundResponse:familyModelFake(calls)})
  try{
@@ -87,4 +93,6 @@ for(const width of [1440,390])test(`AGENT-005 keeps local family review blocked 
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
   if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-agent-005-evaluation-required.png`),fullPage:true})}
  }finally{await p.close()}
+
+  }
 })

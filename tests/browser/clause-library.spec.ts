@@ -5,8 +5,9 @@ import { pdf } from '../api/files.mjs'
 
 test.use({ locale: 'en-US', timezoneId: 'America/New_York' })
 const origin = process.env.LOCKET_BASE_URL || 'http://127.0.0.1:8787'
-for (const width of [1440, 390]) {
-  test(`DRAFT-003 indemnity fallback insertion and executed acceptance at ${width}px`, async ({ page }) => {
+test(`DRAFT-003 indemnity fallback insertion and executed acceptance at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
     const entry = process.env.LOCKET_OPEN
     if (!entry) throw new Error('Set LOCKET_OPEN privately to the local owner entry URL.')
     await page.setViewportSize({ width, height: 1000 })
@@ -80,8 +81,9 @@ for (const width of [1440, 390]) {
       await authoring.locator('summary').click()
       await authoring.screenshot({ path: join(process.env.LOCKET_SCREENSHOTS, `${width}-draft-003-authoring.png`) })
     }
-  })
-}
+
+  }
+})
 
 
 test.describe('Word template authoring',()=>{

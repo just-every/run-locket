@@ -56,7 +56,7 @@ export function Shell({ active, board, crumb, state, query, onQuery, onSignOut, 
         </header>
         <nav className="lk-rail" aria-label="Locket">
           {sections.map(s => (
-            <Tooltip key={s.id} label={s.title}><a aria-label={s.title} href={`#${s.id}`} className={s.id === active ? 'lk-active' : undefined} aria-current={s.id === active ? 'page' : undefined}>
+            <Tooltip key={s.id} label={'Open '+s.title}><a aria-label={s.title} href={`#${s.id}`} className={s.id === active ? 'lk-active' : undefined} aria-current={s.id === active ? 'page' : undefined}>
               <Icon name={s.icon} /><span>{s.title}</span>
             </a></Tooltip>
           ))}

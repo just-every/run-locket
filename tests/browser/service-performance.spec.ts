@@ -7,7 +7,9 @@ import { servicePerformanceFixture,servicePerformanceBindings } from '../api/ser
 import { linenMcpFixture } from '../api/service-ticket-fixture.mjs'
 
 test.use({ignoreHTTPSErrors:true,locale:'en-US',timezoneId:'UTC'})
-for(const width of [1440,390])test(`Supplier response, resolution and delivery reports preserve unknowns and require exact owner approval before one credit send at ${width}px`,async({page})=>{
+test(`Supplier response, resolution and delivery reports preserve unknowns and require exact owner approval before one credit send at 1440px and 390px`,async({page})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
  const linen=linenMcpFixture()
  const p=await productPage(page,{width,bindings:{...servicePerformanceBindings,LINEN_ORIGIN:'https://synthetic-locket-linen.example.test',LINEN_MCP_TOKEN:'synthetic-locket-1'},outboundResponse:linen.handle}),{h,origin}=p
  const outbound=()=>h.mails.filter(isCreditMail)
@@ -142,4 +144,6 @@ for(const width of [1440,390])test(`Supplier response, resolution and delivery r
   expect(linen.requests).toHaveLength(2)
   expect(linen.requests.every((request:any)=>request.params.name==='work.get')).toBe(true)
  }finally{await p.close()}
+
+  }
 })

@@ -30,7 +30,9 @@ async function connect(page: any, width: number) {
   }
 }
 
-for (const width of [1440, 390]) test(`REPORT-001 measured workflow, entity/period filters and waiting-work links at ${width}px`, async ({ page }) => {
+test(`REPORT-001 measured workflow, entity and period filters and waiting-work links at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
   const p = await connect(page, width)
   try {
     const suffix = width === 1440 ? 'US' : 'Canada'
@@ -111,4 +113,6 @@ for (const width of [1440, 390]) test(`REPORT-001 measured workflow, entity/peri
     await expect(page.getByRole('heading', { name: 'Approval route for v1', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Record decision', exact: true })).toBeVisible()
   } finally { await p.close() }
+
+  }
 })

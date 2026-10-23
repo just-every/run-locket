@@ -6,7 +6,9 @@ import { file,pdf } from '../api/files.mjs'
 import { localMinute } from '../api/notice-fixture.mjs'
 
 test.use({locale:'en-US',timezoneId:'America/New_York'})
-for(const width of [1440,390])test(`AGENT-003 real rer dev selected-source preparation and frozen schedule approval at ${width}px`,async({page})=>{
+test(`AGENT-003 real rer dev selected-source preparation and frozen schedule approval at 1440px and 390px`,async({page})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
  test.skip(!process.env.LOCKET_NOTICE_LIVE,'Run through notice-agent-live.mjs for the real rer dev session.')
  const origin=process.env.LOCKET_BASE_URL!
  await page.setViewportSize({width,height:1000})
@@ -49,4 +51,6 @@ for(const width of [1440,390])test(`AGENT-003 real rer dev selected-source prepa
  await expect(notice).toContainText('Approved, not sent')
  await expect(notice).toContainText('counsel makes that decision')
  await shot('scheduled')
+
+  }
 })

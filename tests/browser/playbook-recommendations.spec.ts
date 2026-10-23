@@ -9,7 +9,9 @@ import { serviceLevelBindings,serviceLevelFake } from '../api/service-level-fixt
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
 
-for (const width of [1440, 390]) test(`AGENT-007 counsel reviews thirty negotiations and twenty-two citations, then scopes a new playbook at ${width}px`, async ({ page }) => {
+test(`AGENT-007 counsel reviews thirty negotiations and twenty-two citations, then scopes a new playbook at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
   const accountingEdge=reconciliationFake([]),uptimeEdge=serviceLevelFake([])
   const outboundResponse=async(request:Request)=>{
     if(new URL(request.url).hostname.endsWith('intuit.com'))return accountingEdge(request)
@@ -88,4 +90,6 @@ for (const width of [1440, 390]) test(`AGENT-007 counsel reviews thirty negotiat
       if(process.env.LOCKET_SCREENSHOTS)await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-agent-007-future-${type}-review.png`),fullPage:true})
     }
   } finally { await p.close() }
+
+  }
 })

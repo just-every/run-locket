@@ -6,7 +6,9 @@ import { productPage } from './product-harness.mjs'
 import { serviceLevelBindings,serviceLevelFake,serviceLevelFixture } from '../api/service-level-fixture.mjs'
 
 test.use({ignoreHTTPSErrors:true,locale:'en-US',timezoneId:'UTC'})
-for(const width of [1440,390])test(`AGENT-002 authorizes monitoring, confirms signed terms and approves one exact USD 1000 claim for 99.2% versus 99.9% at ${width}px`,async({page})=>{
+test(`AGENT-002 authorizes monitoring, confirms signed terms and approves one exact USD 1000 claim for 99.2% versus 99.9% at 1440px and 390px`,async({page})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
  const calls:any[]=[],p=await productPage(page,{width,bindings:serviceLevelBindings,outboundResponse:serviceLevelFake(calls,()=> 'exclusions')}),{h,origin}=p
  const outbound=()=>h.mails.filter(isCreditMail)
  const click=async(scope:any,label:string)=>{
@@ -109,4 +111,6 @@ for(const width of [1440,390])test(`AGENT-002 authorizes monitoring, confirms si
   expect(Buffer.from(await(await h.owner.request(`/api/locket/files/${read.artifact_id}`)).arrayBuffer())).toEqual(Buffer.from(bytesBefore))
   await shot('provider-accepted')
  }finally{await p.close()}
+
+  }
 })

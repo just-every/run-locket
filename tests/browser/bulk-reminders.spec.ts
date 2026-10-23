@@ -5,8 +5,9 @@ import { productPage } from './product-harness.mjs'
 import { bulkClock, bulkFixture } from '../api/bulk-reminders-fixture.mjs'
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
-for (const width of [1440, 390]) {
-  test(`RENEW-004 selects a filtered imported view, reviews 34 deadlines and 6 skips, stores 34 schedules at ${width}px`, async ({ page }) => {
+test(`RENEW-004 selects a filtered imported view, reviews 34 deadlines and 6 skips, stores 34 schedules at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
     const runtime = await productPage(page, { width, bindings: { TEST_NOW: String(bulkClock) } })
     try {
       const fixture = await bulkFixture(runtime.owner, `Browser-${width}`)
@@ -60,5 +61,6 @@ for (const width of [1440, 390]) {
       await page.evaluate(() => scrollTo(0, 0))
       if (process.env.LOCKET_SCREENSHOTS) await page.screenshot({ path: join(process.env.LOCKET_SCREENSHOTS, `${width}-renew-004-scheduled.png`), fullPage: true })
     } finally { await runtime.close() }
-  })
-}
+
+  }
+})

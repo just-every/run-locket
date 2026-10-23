@@ -15,8 +15,9 @@ test.beforeAll(async () => {
 test.afterAll(async () => { await new Promise<void>((resolve,reject) => websiteServer.close(error => error ? reject(error) : resolve())) })
 
 const origin = process.env.LOCKET_BASE_URL || 'http://127.0.0.1:8787'
-for (const width of [1440,390]) {
-  test(`SIGN-004 counsel publishes, website embed prompts again, and acceptance browser exports at ${width}px`, async ({page,browser}) => {
+test(`SIGN-004 counsel publishes, website embed prompts again, and acceptance browser exports at 1440px and 390px`, async ({page,browser}) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
     const entry=process.env.LOCKET_OPEN, key=process.env.CLICKWRAP_SIGNING_KEY
     if(!entry || !key) throw Error('This journey requires the private local owner entry and configured clickwrap signing key.')
     await page.setViewportSize({width,height:1000})
@@ -118,5 +119,6 @@ for (const width of [1440,390]) {
       expect(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
       if(process.env.LOCKET_SCREENSHOTS) await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-clickwrap-acceptances.png`),fullPage:true})
     } finally {await customer.close()}
-  })
-}
+
+  }
+})

@@ -5,8 +5,9 @@ import { productPage } from './product-harness.mjs'
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
 const parent = { legalName: 'Brightline Holdings, Inc.', entityType: 'Corporation', formation: 'Delaware, United States', taxIdKind: 'ein', taxId: '12-3456789', registeredAddress: '251 Little Falls Drive, Wilmington, DE 19808', noticeAddress: '100 Pine Street, New York, NY 10005', currency: 'USD', timezone: 'America/New_York', signatories: [{ name: 'Dana Park', email: 'dana@brightline.example', title: 'Chief Executive Officer' }] }
-for (const width of [1440, 390]) {
-  test(`ENTITY-001 records a UK subsidiary, offers only its template at intake and names it on the agreement at ${width}px`, async ({ page }) => {
+test(`ENTITY-001 records a UK subsidiary, offers only its template at intake and names it on the agreement at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
     const p = await productPage(page, { width })
     try {
       const screenshot = async (name: string) => {
@@ -53,5 +54,6 @@ for (const width of [1440, 390]) {
     } finally {
       await p.close()
     }
-  })
-}
+
+  }
+})

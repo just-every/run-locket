@@ -176,6 +176,26 @@
       "binding": "SIGNATURE_INKWELL_ORIGIN",
       "environment": "SIGNATURE_INKWELL_ORIGIN",
       "optional": true
+    },
+    {
+      "binding": "WORKFORCE_SCIM_TOKEN",
+      "environment": "WORKFORCE_SCIM_TOKEN",
+      "optional": true
+    },
+    {
+      "binding": "WORKFORCE_SAML_ISSUER",
+      "environment": "WORKFORCE_SAML_ISSUER",
+      "optional": true
+    },
+    {
+      "binding": "WORKFORCE_SAML_SSO_URL",
+      "environment": "WORKFORCE_SAML_SSO_URL",
+      "optional": true
+    },
+    {
+      "binding": "WORKFORCE_SAML_CERT",
+      "environment": "WORKFORCE_SAML_CERT",
+      "optional": true
     }
   ],
   "crons": [

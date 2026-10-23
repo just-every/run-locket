@@ -6,7 +6,9 @@ import { productPage } from './product-harness.mjs'
 import { file, docx } from '../api/files.mjs'
 
 test.use({ ignoreHTTPSErrors: true })
-for (const width of [1440, 390]) test(`NEG-004 two browser edits, selected mention, reply and resolution at ${width}px`, async ({ page }) => {
+test(`NEG-004 two browser edits, selected mention, reply and resolution at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
   let close = async () => {}, owner: any, counsel: any, origin: string
   const live = !!process.env.LOCKET_EDITS_LIVE
   if (live) {
@@ -78,11 +80,15 @@ for (const width of [1440, 390]) test(`NEG-004 two browser edits, selected menti
     await expect(thread).toContainText(`Resolved by ${live?initial.actor.name:'counsel'}`)
     await shot('resolved')
   } finally { await close() }
+
+  }
 })
 
 import { exchangeFixture, counterpartyText } from '../api/exchange-fixture.mjs'
 import { hostExchange } from './exchange-fixture.mjs'
-for(const width of [1440,390])test(`NEG-006 sends external v2, receives counterparty v3 and expires without an account at ${width}px`,async({page,browser})=>{
+test(`NEG-006 sends external v2, receives counterparty v3 and expires without an account at 1440px and 390px`,async({page,browser})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
   const live=!!process.env.LOCKET_EXCHANGE_LIVE
   const p:any=live?await (await import('./metadata-page.mjs')).metadataPage(page,width):await productPage(page,{width,bindings:{POSTMARK_SERVER_TOKEN:'synthetic-locket-1'}})
   let unhost=async()=>{},publicContext:any=null
@@ -149,4 +155,6 @@ for(const width of [1440,390])test(`NEG-006 sends external v2, receives counterp
     await shot('expired')
     expect(await counterparty.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
   }finally{await publicContext?.close();await unhost();await p.close()}
+
+  }
 })

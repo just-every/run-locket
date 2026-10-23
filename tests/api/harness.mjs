@@ -9,10 +9,11 @@ import { createServer } from 'node:net'
 import { join } from 'node:path'
 import { randomBytes, randomUUID } from 'node:crypto'
 import assert from 'node:assert/strict'
+import { builtinModules } from 'node:module'
 
 let bundled
 async function worker() {
-  bundled ??= (await build({ entryPoints: ['tests/api/worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], target: 'es2022', external: ['node:*', 'cloudflare:*'], loader: { '.css': 'text', '.svg': 'text' }, logLevel: 'silent' })).outputFiles[0].text
+  bundled ??= (await build({ entryPoints: ['tests/api/worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], target: 'es2022', external: ['node:*', 'cloudflare:*'], alias: Object.fromEntries(builtinModules.filter(n=>!n.startsWith('node:')).map(n=>[n,'node:'+n])), banner: { js: "import {createRequire} from 'node:module'; const require=createRequire('/locket-worker.mjs');" }, loader: { '.css': 'text', '.svg': 'text' }, logLevel: 'silent' })).outputFiles[0].text
   return bundled
 }
 

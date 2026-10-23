@@ -1,3 +1,5 @@
+import { workforceSettings } from './locket/workforce'
+import { workforceSamlResponse, samlAvailable } from './locket/workforce-saml'
 import { createDependencies } from './modules/dependencies/index.mjs'
 import { createOwnerClaimHandler, createIdpOwnerClaimHandler } from './modules/owner-claim/index.mjs'
 import { firstRunResponse } from './base/setup'
@@ -67,12 +69,21 @@ export interface Bindings {
 export const runtimeBindings = (env: Bindings): Bindings => env.RER_DEV_ORIGIN && env.AUTH_LOCAL === 'true' ? { ...env, AUTH_ORIGIN: env.RER_DEV_ORIGIN } : env
 export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', OWNER_EMAIL: env.OWNER_EMAIL, SESSION_SECRET: env.SESSION_SECRET, INSTALLATION_KEY: env.INSTALLATION_KEY, INSTALLATION_KEY_PREVIOUS: env.INSTALLATION_KEY_PREVIOUS, SETUP_TOKEN: env.SETUP_TOKEN, MAIL_FROM: env.MAIL_FROM, branding: { productName: branding.name, accentColor: branding.primaryColor, signInPath: '/signin', theme: theme.href } })
 export function operatorAuth(env: Bindings) {
- return createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+ const auth=createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+ const getSession=auth.getSession.bind(auth)
+ const managedSession: typeof auth.getSession=async request=>{
+  const session=await getSession(request)
+  if(session&&session.operator.role!=='owner'&&await env.DB.prepare('SELECT id FROM lk_workforce_users WHERE id=?').bind(session.operator.id).first()&&!await workforceSettings(env))return null
+  return session
+ }
+ return {...auth,getSession:managedSession}
 }
 
 const privateHeaders = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', 'x-robots-tag': 'noindex, nofollow' }
 export async function authResponse(request: Request, original: Bindings): Promise<Response | null> {
  const env = runtimeBindings(original), url = new URL(request.url)
+ const workforce=await workforceSamlResponse(request,env)
+ if(workforce)return workforce
  if (url.pathname.startsWith('/.well-known/rer-') || url.pathname.startsWith('/auth/dependencies/')) {
   const linked = await createDependencies({ db: env.DB, INSTALLATION_KEY: env.INSTALLATION_KEY, INSTALLATION_KEY_PREVIOUS: env.INSTALLATION_KEY_PREVIOUS, origin: env.AUTH_ORIGIN, name: branding.name, provider: env.IDENTITY_PROVIDER, local: env.AUTH_LOCAL === 'true', auth: operatorAuth(env), claimOwner: token => createIdpOwnerClaimHandler({db:env.DB,authConfig:authConfig(env),clientIp:()=>request.headers.get('CF-Connecting-IP')??''})(new Request(env.AUTH_ORIGIN+'/auth/owner-claim',{method:'POST',headers:{Host:new URL(env.AUTH_ORIGIN).host,Origin:env.AUTH_ORIGIN,'Content-Type':'application/json'},body:JSON.stringify({token})})) }).handle(request)
   if (linked) return linked
@@ -85,7 +96,7 @@ export async function authResponse(request: Request, original: Bindings): Promis
  if (url.pathname === '/auth/owner-claim') return createIdpOwnerClaimHandler({db:env.DB,authConfig:authConfig(env),clientIp:req=>req.headers.get('CF-Connecting-IP')??''})(request)
  // The shared server-rendered sign-in page: plain forms that work before any script.
  if (url.pathname === '/signin') {
-  const page = await createSignInHandler(operatorAuth(env), { defaultReturnTo: '/setup' })(request)
+  const page = await createSignInHandler(operatorAuth(env), { defaultReturnTo: '/setup', links: async()=>await samlAvailable(env)?[{href:'/auth/saml/start',label:'Continue with workforce SSO'}]:[] })(request)
   if (page) return framedDocument(await fontDocumentResponse(page))
  }
  if (url.pathname.startsWith('/auth/')) return framedDocument(await fontDocumentResponse(await createAuthHandler(operatorAuth(env))(request)))

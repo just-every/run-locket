@@ -5,8 +5,9 @@ import { productPage } from './product-harness.mjs'
 import { portfolioFixture } from '../api/portfolio-fixture.mjs'
 
 test.use({ ignoreHTTPSErrors: true, actionTimeout: 15000, locale: 'en-US', timezoneId: 'America/New_York' })
-for (const width of [1440, 390]) {
-  test(`REPO-007 saves ordered supplier renewal columns, shares to approvers, pins personally and exports only their visible rows at ${width}px`, async ({ page }) => {
+test(`REPO-007 saves ordered supplier renewal columns, shares to approvers, pins personally and exports only their visible rows at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
     const p = await productPage(page, { width, bindings: { TEST_NOW: String(Date.parse('2026-10-17T12:00:00Z')) } })
     try {
       const tag = `Views-${width}`, ids = await portfolioFixture(p.owner, tag)
@@ -76,10 +77,13 @@ for (const width of [1440, 390]) {
       expect(result.rows.map((row: any) => row.id)).toEqual([ids.old])
       await screenshot('exported')
     } finally { await p.close() }
-  })
-}
 
-for (const width of [1440, 390]) test(`REPO-005 defines typed fields, blocks incomplete approval, saves metadata views and accepts cited family values at ${width}px`, async ({ page }) => {
+  }
+})
+
+test(`REPO-005 defines typed fields, blocks incomplete approval, saves metadata views and accepts cited family values at 1440px and 390px`, async ({ page }) => {
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
   const { metadataPage } = await import('./metadata-page.mjs')
   const { fieldSpec, metadataText, metadataAgreement, customKey } = await import('../api/custom-metadata-fixture.mjs')
   const { pdf } = await import('../api/files.mjs')
@@ -245,18 +249,28 @@ for (const width of [1440, 390]) test(`REPO-005 defines typed fields, blocks inc
     await expect(page.getByRole('table').first()).toContainText('Cost center: Operations.')
     await shot('confirmed-custom-term')
   } finally { await p.close() }
+
+  }
 })
 
 
-for(const width of [1440,390])test(`REPO-009 Sales visibility, hidden value and current group shares at ${width}px`,async({page})=>{
+test(`REPO-009 Sales visibility, hidden value and current group shares at 1440px and 390px`,async({page})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
  const {repositoryAccessJourney}=await import('./repository-access-journey.mjs')
  const {metadataPage}=await import('./metadata-page.mjs')
  const p=await metadataPage(page,width)
  try{await repositoryAccessJourney(page,width,p)}finally{await p.close()}
+
+  }
 })
 
-for(const width of [1440,390])test(`REPO-011 reviews filtered bulk changes, exact CSV differences and reversible history at ${width}px`,async({page})=>{
+test(`REPO-011 reviews filtered bulk changes, exact CSV differences and reversible history at 1440px and 390px`,async({page})=>{
+  test.setTimeout(240_000)
+  for (const width of [1440, 390]) {
  const {repositoryBulkBrowserJourney}=await import('./repository-bulk-journey.mjs')
  const p=await productPage(page,{width})
  try{await repositoryBulkBrowserJourney(page,width,p)}finally{await p.close()}
+
+  }
 })

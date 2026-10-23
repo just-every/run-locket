@@ -52,6 +52,7 @@ const saveAudience: Handler = async (c, p) => {
   const id = existingId ?? crypto.randomUUID()
   const version = existingId ? integer(p, 'version', 1) : 0
   if (existingId) {
+    if(await c.db.prepare('SELECT id FROM lk_workforce_groups WHERE audience_id=?').bind(existingId).first())fail('WORKFORCE_MANAGED','Manage this membership through the workforce provider.',409)
     const row = await c.db.prepare('SELECT version FROM lk_intake_audiences WHERE id=?').bind(id).first<{ version: number }>()
     if (!row) fail('NOT_FOUND', 'No such intake group or department.', 404)
     if (row.version !== version) fail('STALE', 'This intake group or department changed. Reload before editing.', 409)
