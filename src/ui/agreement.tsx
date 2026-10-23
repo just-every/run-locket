@@ -134,19 +134,20 @@ function Details({ state, a, locket }: { state: LocketState; a: Row; locket: Loc
   const people = state.operators.filter(o => o.status === 'active')
   const audit = state.audit.filter(x => x.agreement_id === a.id)
   const editable = can(state, 'owner', 'counsel', 'approver', 'requester') && ['draft', 'in_review', 'approved'].includes(a.status)
+  const classifies = can(state, 'owner', 'counsel')
   return (
     <div className="lk-tab-page"><LegalHold state={state} a={a} locket={locket}/><AgreementDepartment state={state} a={a} locket={locket}/>
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Request details</h2></div>
         {editable ? (
-          <Form busy={busy} submit="Save details" onSubmit={data => void run('request.update', { agreementId: a.id, version: a.version, title: value(data, 'title'), value: value(data, 'value'), currency: value(data, 'currency').toUpperCase() || 'USD', ...(value(data, 'usdRate') ? { usdRate: value(data, 'usdRate') } : {}), ownerId: value(data, 'ownerId'), neededBy: value(data, 'neededBy'), restricted: data.get('restricted') === 'on' })}>
+          <Form busy={busy} submit="Save details" onSubmit={data => void run('request.update', { agreementId: a.id, version: a.version, title: value(data, 'title'), value: value(data, 'value'), currency: value(data, 'currency').toUpperCase() || 'USD', ...(value(data, 'usdRate') ? { usdRate: value(data, 'usdRate') } : {}), ownerId: value(data, 'ownerId'), neededBy: value(data, 'neededBy'), ...(classifies ? { restricted: data.get('restricted') === 'on' } : {}) })}>
             <Field label="Title"><input name="title" defaultValue={a.title} required /></Field>
             <Field label="Currency"><input name="currency" defaultValue={a.currency} maxLength={3} pattern="[A-Za-z]{3}" required /></Field>
             <Field label={`Value (${a.currency})`} hint="Changing the value, currency or rate withdraws earlier approvals."><input name="value" inputMode="decimal" defaultValue={(a.original_cents ?? a.value_cents) === null ? '' : String((a.original_cents ?? a.value_cents) / 100)} /></Field>
             <Field label="US dollars per 1 unit" hint="Only for a value in another currency."><input name="usdRate" inputMode="decimal" defaultValue={a.usd_rate ?? ''} /></Field>
             <Field label="Responsible person"><select name="ownerId" defaultValue={a.owner_id}>{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
             <Field label="Needed by"><input name="neededBy" type="date" defaultValue={a.needed_by ?? ''} /></Field>
-            <label className="lk-check"><input type="checkbox" name="restricted" defaultChecked={!!a.restricted} /> Restricted: only owner, counsel, requester, responsible person and people granted access can see it</label>
+            <label className="lk-check"><input type="checkbox" name="restricted" defaultChecked={!!a.restricted} disabled={!classifies} /> Restricted: only owner, counsel, requester, responsible person and people granted access can see it</label>
           </Form>
         ) : <p className="lk-muted">Request details are fixed once an agreement is out for signature or executed.</p>}
       </section>

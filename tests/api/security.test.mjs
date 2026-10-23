@@ -81,3 +81,23 @@ test('a restricted request prepared by an agent stays hidden, counterparty inclu
   await tm.counsel.command('access.set', { agreementId: decided.outcome.id, operatorId: viewer.id, grant: 'grant' })
   assert.equal(await mentions(viewer), true)
 })
+
+test('only the owner or counsel change whether an agreement is restricted', async t => {
+  const h = await installation(); t.after(() => h.close())
+  const tm = await team(h)
+  const viewer = await h.invite('viewer@example.test', 'viewer')
+  const made = await h.owner.command('request.create', { title: 'synthetic-locket-1 board paper', type: 'nda', party: { name: 'synthetic-locket-1 party', kind: 'other' }, restricted: true })
+  await h.owner.command('access.set', { agreementId: made.id, operatorId: tm.requester.id, grant: 'grant' })
+  // A person granted access keeps editing the details, but the restriction stays.
+  let a = await find(tm.requester, made.id)
+  await tm.requester.command('request.update', { agreementId: a.id, version: a.version, restricted: false }, { error: 'FORBIDDEN' })
+  await tm.requester.command('request.update', { agreementId: a.id, version: a.version, title: 'synthetic-locket-1 revised paper', restricted: true })
+  assert.deepEqual((await viewer.state()).agreements, [])
+  // Counsel lifts it; a requester cannot put it back.
+  a = await find(tm.counsel, made.id)
+  await tm.counsel.command('request.update', { agreementId: a.id, version: a.version, restricted: false })
+  assert.deepEqual((await viewer.state()).agreements.map(x => [x.id, x.title]), [[made.id, 'synthetic-locket-1 revised paper']])
+  a = await find(tm.requester, made.id)
+  await tm.requester.command('request.update', { agreementId: a.id, version: a.version, restricted: true }, { error: 'FORBIDDEN' })
+  assert.equal((await find(viewer, made.id)).restricted, 0)
+})
