@@ -83,12 +83,13 @@ const decideTemplate: Handler = async (c, p) => {
   if (decision === 'retire' && v.status === 'retired') fail('STATUS', `${v.name} v${v.number} is already retired.`, 409)
   const word=await c.db.prepare('SELECT * FROM lk_word_templates WHERE id=?').bind(v.id).first<any>()
   if(decision==='approve'&&word&&(word.preview_revision!==word.revision||!word.preview_artifact_id))fail('PREVIEW','Preview the current markings with sample answers before approving this Word template.',409)
+  const blocks=await c.db.prepare('SELECT revision FROM lk_signature_template_blocks WHERE template_version_id=?').bind(v.id).first<{revision:number}>()
   const status = decision === 'approve' ? 'approved' : 'retired'
   return {
     allowed: may.library,
     result: { versionId: v.id, status },
     writes: [sql('UPDATE lk_template_versions SET status=?, approved_by=COALESCE(approved_by,?), approved_at=COALESCE(approved_at,?) WHERE id=?', status, decision === 'approve' ? c.actor.id : null, decision === 'approve' ? c.now : null, v.id)],
-    checks: [sql('(SELECT status FROM lk_template_versions WHERE id=?)=?', v.id, v.status),...(word?[sql('(SELECT revision FROM lk_word_templates WHERE id=?)=?',v.id,word.revision)]:[])],
+    checks: [sql('COALESCE((SELECT revision FROM lk_signature_template_blocks WHERE template_version_id=?),0)=?',v.id,blocks?.revision??0),sql('(SELECT status FROM lk_template_versions WHERE id=?)=?', v.id, v.status),...(word?[sql('(SELECT revision FROM lk_word_templates WHERE id=?)=?',v.id,word.revision)]:[])],
     audit: [{ action: `template.${decision}`, summary: `${decision === 'approve' ? 'Approved' : 'Retired'} ${v.name} v${v.number}` }],
   }
 }

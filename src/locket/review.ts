@@ -1,3 +1,4 @@
+import { signaturePacketContext } from './signature-packets'
 import { applicableRecommendationPlaybook } from './playbook-recommendations'
 import { ruleRequirements, approvalSample, ruleDecision } from './approval-rules'
 import { approvalNotifications } from './notification-events'
@@ -41,7 +42,8 @@ export async function decisionContext(db: D1Database, a: AgreementRow, v: Versio
   const customValues = (await db.prepare('SELECT field_id,value FROM lk_custom_values WHERE agreement_id=? ORDER BY field_id').bind(a.id).all()).results
   const named=await ruleRequirements(db,a),sample=named.length?await approvalSample(db,a):null
   const routeContext=named.length?{ruleRoute:named.map(r=>({id:r.deviationId,approverId:r.approverId,order:r.order,rulesetId:r.rulesetId})),routingAnswers:sample}:{}
-  const context = { ...routeContext, versionDigest: v.digest, valueCents: a.value_cents, partyId: a.party_id, deviations, ...(customValues.length ? { customValues } : {}) }
+  const signaturePacket=await signaturePacketContext(db,a,v)
+  const context = { ...routeContext,...(signaturePacket?{signaturePacket}:{}), versionDigest: v.digest, valueCents: a.value_cents, partyId: a.party_id, deviations, ...(customValues.length ? { customValues } : {}) }
   return { context, digest: await sha256(canonical(context)) }
 }
 

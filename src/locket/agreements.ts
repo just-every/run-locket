@@ -1,3 +1,4 @@
+import { captureSignatureRuleSet } from './signature-rules'
 import { applicableRecommendationPlaybook } from './playbook-recommendations'
 import { populateWord } from './word-templates'
 import { captureRuleSet, ruleRequirements } from './approval-rules'
@@ -189,6 +190,8 @@ const createRequest: Handler = async (c, p) => {
       value.originalCents, value.rate, value.rateBy, value.rateAt,
     ),
   )
+  const signerSnapshot=await captureSignatureRuleSet(c,{id})
+  checks.push(...signerSnapshot.checks);writes.push(...signerSnapshot.writes)
   const approvalSnapshot=await captureRuleSet(c,{id})
   checks.push(...approvalSnapshot.checks);writes.push(...approvalSnapshot.writes)
   const work = await newRequestWork(c, {id,type,restricted:bool(p,'restricted')?1:0,owner_id:ownerId,requester_id:c.actor.id,timezone:zone,department:String(form?.answers.department??'')})

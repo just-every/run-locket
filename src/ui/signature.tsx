@@ -2,68 +2,40 @@ import { useState } from 'react'
 import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
 import { Badge, Empty, EnvelopeId, Field, Form, Icon, value } from './controls'
-import { signatories } from './entities'
+import { SignatureSettings,signatureWorkspace } from './signature-settings'
+import { SignaturePacketEditor } from './signature-packet-editor'
 import { ExecutionComparison, ExecutionFieldEvidence } from './execution-comparison'
 import { can, currentVersion, day, parse, personName, providerName, providers, versionsOf, when } from './format'
 
 
 export function Signature({ state, a, locket }: { state: LocketState; a: Row; locket: Locket }) {
-  const { run, busy } = locket
-  const [recipients, setRecipients] = useState([{ name: '', email: '', action: 'sign', signingFor: '' }])
-  const v = currentVersion(state, a)
-  const packages = state.packages.filter(p => p.agreement_id === a.id).sort((x, y) => y.created_at - x.created_at)
-  const versions = versionsOf(state, a.id)
-  const may = can(state, 'owner', 'approver', 'requester')
-  const entity = state.entities.find(e => e.id === a.entity_id)
-  return (
-    <div className="lk-tab-page">
-      <section className="lk-panel">
-        <div className="lk-panel-head"><h2>Send for signature</h2></div>
-        {a.status !== 'approved' ? <p className="lk-muted">{a.status === 'out_for_signature' ? 'Out for signature. Record the signed file under Execution when it comes back.' : 'Only an approved version can be packaged for signature.'}</p> : may ? (
-          <Form busy={busy} submit="Prepare signature package" onSubmit={data => void run('package.prepare', { agreementId: a.id, version: a.version, provider: value(data, 'provider'), recipients: recipients.map(r => ({ ...r, signingFor: r.signingFor || undefined })), ...(entity ? { signatoryEmail: value(data, 'signatoryEmail') } : {}) })}>
-            <p className="lk-muted">Locket packages the exact approved v{v?.number} PDF and a routing manifest. You send it through your existing signing service; Locket does not sign.</p>
-            {entity && <Field label={`Signs for ${entity.legal_name} *`} hint="Added to the routing as our signer."><select name="signatoryEmail">{signatories(entity).map(s => <option key={s.email} value={s.email}>{s.name}, {s.title}</option>)}</select></Field>}
-            <Field label="Signing service"><select name="provider">{providers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></Field>
-            <fieldset className="lk-recipients">
-              <legend>Recipients, in signing order</legend>
-              {recipients.map((r, i) => (
-                <div key={i} className="lk-recipient">
-                  <span>{i + 1}</span>
-                  <input aria-label={`Recipient ${i + 1} name`} placeholder="Name" value={r.name} onChange={e => setRecipients(recipients.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} required />
-                  <input aria-label={`Recipient ${i + 1} email`} type="email" placeholder="Email" value={r.email} onChange={e => setRecipients(recipients.map((x, j) => (j === i ? { ...x, email: e.target.value } : x)))} required />
-                  <select aria-label={`Recipient ${i + 1} role`} value={r.action} onChange={e => setRecipients(recipients.map((x, j) => (j === i ? { ...x, action: e.target.value } : x)))}><option value="sign">Signer</option><option value="copy">Receives a copy</option></select>
-                  {recipients.length > 1 && <button type="button" className="lk-small" onClick={() => setRecipients(recipients.filter((_, j) => j !== i))}>Remove</button>}
-                </div>
-              ))}
-              <button type="button" className="lk-small" onClick={() => setRecipients([...recipients, { name: '', email: '', action: 'sign', signingFor: '' }])}>Add recipient</button>
-            </fieldset>
-          </Form>
-        ) : <p className="lk-muted">Your role cannot send for signature.</p>}
-      </section>
-      <section className="lk-panel">
-        <div className="lk-panel-head"><h2>Signature packages</h2></div>
-        {packages.length === 0 ? <Empty>No package prepared yet.</Empty> : packages.map(p => {
-          const manifest = parse(p.manifest)
-          return (
-            <article key={p.id} className="lk-card">
-              <div className="lk-finding-head"><strong>v{versions.find(x => x.id === p.version_id)?.number} via {providerName(p.provider)}</strong><Badge value={p.status} /></div>
-              <p className="lk-file-links"><a href={`/api/locket/files/${p.pdf_artifact_id}`} download><Icon name="file" /> Signature-ready PDF</a><a href={`/api/locket/files/${p.manifest_artifact_id}`} download><Icon name="file" /> Routing manifest</a></p>
-              <ol className="lk-recipient-list">{manifest.recipients.map((r: any) => <li key={r.order}>{r.name} &lt;{r.email}&gt; · {r.action === 'sign' ? 'signer' : 'copy'}{r.signingFor ? ` for ${r.signingFor}` : ''}</li>)}</ol>
-              <small title={`PDF sha256 ${manifest.document.sha256}`}>Prepared {when(p.created_at)} by {personName(state, p.created_by)}</small>
-              {p.envelope_id && <p>Envelope <EnvelopeId id={p.envelope_id} />, handed off {when(p.sent_at)} by {personName(state, p.sent_by)}</p>}
-              {p.void_reason && <p className="lk-muted">Voided: {p.void_reason}</p>}
-              {may && p.status === 'prepared' && a.status === 'approved' && (
-                <Form busy={busy} submit="Mark sent" className="lk-inline" onSubmit={data => void run('package.sent', { agreementId: a.id, version: a.version, packageId: p.id, envelopeId: value(data, 'envelopeId') })}>
-                  <input name="envelopeId" placeholder="Envelope ID from the signing service" aria-label="Envelope ID" required />
-                </Form>
-              )}
-              {may && ['prepared', 'sent'].includes(p.status) && <button type="button" className="lk-small" disabled={busy} onClick={() => { const reason = window.prompt('Why void this package?'); if (reason) void run('package.void', { agreementId: a.id, version: a.version, packageId: p.id, reason }) }}>Void package</button>}
-            </article>
-          )
-        })}
-      </section>
-    </div>
-  )
+  const workspace=signatureWorkspace(state),packages=state.packages.filter(p=>p.agreement_id===a.id).sort((x,y)=>y.created_at-x.created_at)
+  const allowed=workspace?workspace.canCoordinate.includes(a.id):can(state,'owner','approver')||state.actor.role==='requester'&&a.requester_id===state.actor.id
+  const [provider,setProvider]=useState('docusign')
+  return <div className="lk-tab-page">
+    <SignatureSettings key={a.id} state={state} a={a} locket={locket} />
+    <SignaturePacketEditor key={a.id+'packet'} state={state} a={a} locket={locket} />
+    <section className="lk-panel"><h2>Prepare approved packet</h2>{a.status==='approved'&&allowed?<Form busy={locket.busy} submit="Prepare signature package" onSubmit={()=>void locket.run('package.prepare',{agreementId:a.id,version:a.version,provider,recipients:[]})}><Field label="Signing service"><select value={provider} onChange={e=>setProvider(e.target.value)}>{[...providers,...(providers.some(([id])=>id==='inkwell')?[]:[['inkwell','Inkwell']])].map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></Field><p className="lk-muted">The exact approved main PDF and packet attachments travel together. Manual handoff remains available.</p></Form>:<p className="lk-muted">{a.status==='approved'?'Your role or coordinator group cannot prepare this packet.':'Approve the current packet before preparing it for signature.'}</p>}</section>
+    <section className="lk-panel"><h2>Signature packages</h2>{packages.length===0?<Empty>No package prepared yet.</Empty>:packages.map(p=>{
+      const manifest=parse(p.manifest),dispatch=workspace?.dispatches.find(d=>d.package_id===p.id),connection=workspace?.connections.find(c=>c.provider===p.provider)
+      return <article className="lk-card" key={p.id}><div className="lk-finding-head"><strong>v{manifest.version.number} via {p.provider==='inkwell'?'Inkwell':providerName(p.provider)}</strong><Badge value={p.status} /></div>
+        <p className="lk-file-links"><a href={`/api/locket/files/${p.pdf_artifact_id}`} download>Signature-ready PDF</a><a href={`/api/locket/files/${p.manifest_artifact_id}`} download>Routing manifest</a></p>
+        {(manifest.documents??[]).map((d:any)=><p key={d.id} style={{overflowWrap:'anywhere'}}><a href={`/api/locket/files/${d.artifactId}`} download>{d.filename}</a> · {d.purpose==='reference'?'reference':'signable'}<br/><small>SHA-256 {d.sha256}</small></p>)}
+        <ol>{manifest.recipients.map((r:any)=><li key={r.order}>{r.name} &lt;{r.email}&gt; · {r.action==='copy'?'CC':'signer'}{r.signingFor?` for ${r.signingFor}`:''}</li>)}</ol>
+        {manifest.signerRule&&<p>Internal signer selected by {manifest.signerRule.fallback?'required fallback':'published rule'}.</p>}
+        {(manifest.fields??[]).map((f:any)=><p key={f.documentId+f.id}>{f.kind} · {f.partyRole} · page {f.page}{f.anchor?` · template anchor ${f.anchor}`:` · ${f.x}, ${f.y} PDF points`}</p>)}
+        <small>Prepared {when(p.created_at)} by {personName(state,p.created_by)}</small>
+        {p.envelope_id&&<p>Envelope <EnvelopeId id={p.envelope_id} /> · {when(p.sent_at)}</p>}
+        {dispatch&&<p role="status">Provider operation: {dispatch.status}{dispatch.envelope_id?` · ${dispatch.envelope_id}`:''}{dispatch.outcome_code?` · ${dispatch.outcome_code}`:''}{['sending','uncertain'].includes(dispatch.status)?' · Inspect the provider account; this operation will not be resent automatically.':''}{dispatch.status==='provider_prepared'?' · Draft only. Review and send it in Inkwell, then record the handoff here.':''}</p>}
+        {p.void_reason&&<p>{p.void_reason}</p>}
+        {allowed&&p.status==='prepared'&&a.status==='approved'&&<>
+          {state.actor.role==='owner'&&connection&&!dispatch&&<Form busy={locket.busy} submit={p.provider==='inkwell'?'Prepare Inkwell draft':'Send approved packet'} onSubmit={async data=>{const bytes=new TextEncoder().encode(p.manifest),digest=await crypto.subtle.digest('SHA-256',bytes);await locket.run('package.send',{agreementId:a.id,version:a.version,packageId:p.id,connectionVersion:connection.version,manifestDigest:[...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join(''),consent:data.get('consent')==='on',mode:p.provider==='inkwell'?'prepare':'send'})}}><label className="lk-check"><input type="checkbox" name="consent" required /> I authorize this exact packet, recipients, fields and connection for this provider operation.</label></Form>}
+          {!dispatch||!['queued','sending','uncertain'].includes(dispatch.status)?<Form busy={locket.busy} submit="Mark sent" className="lk-inline" onSubmit={data=>void locket.run('package.sent',{agreementId:a.id,version:a.version,packageId:p.id,envelopeId:value(data,'envelopeId')})}><input aria-label="Envelope ID" name="envelopeId" placeholder="Envelope ID from signing service" required /></Form>:null}
+        </>}
+        {allowed&&['prepared','sent'].includes(p.status)&&<button disabled={locket.busy} onClick={()=>{const reason=window.prompt('Why void this package?');if(reason)void locket.run('package.void',{agreementId:a.id,version:a.version,packageId:p.id,reason})}}>Void package</button>}
+      </article>
+    })}</section>
+  </div>
 }
 
 export function Execution({ state, a, locket }: { state: LocketState; a: Row; locket: Locket }) {

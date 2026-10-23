@@ -1,3 +1,4 @@
+import { signaturePacketHandlers } from './signature-packets'
 import { agentDraft, preparedNoticeText, sourceOf, sourceChecks } from './notice-agent'
 import { prepareCustomFields, applyCustomFields, customProposalAuthority } from './custom-proposals'
 // Agent work: an agent (or any preparer) records an evidence-backed proposal;
@@ -15,11 +16,12 @@ import { termLabel, termValue } from './display'
 import { deviationOutcome } from './review'
 import { seesIntake } from './views'
 
-const kinds = ['intake', 'review', 'family', 'terms', 'renewal', 'custom_fields'] as const
+const kinds = ['intake', 'review', 'family', 'terms', 'renewal', 'custom_fields', 'signature'] as const
 type Kind = (typeof kinds)[number]
 
 /** Who may approve each kind of prepared work. */
 export const deciders: Record<Kind, Role[]> = {
+  signature: ['owner','approver','requester'],
   custom_fields: ['owner', 'counsel', 'approver', 'requester', 'viewer'],
   intake: ['owner', 'counsel', 'approver', 'requester'],
   review: ['owner', 'counsel'],
@@ -65,6 +67,7 @@ async function apply(c: Ctx, kind: Kind, payload: Record<string, unknown>, propo
     const out=await agreementHandlers['request.create'](c,payload)
     return {...out,checks:[...(out.checks??[]),...checks]}
   }
+  if (kind === 'signature') return signaturePacketHandlers['package.configure'](c,payload)
   if (kind === 'family') return agreementHandlers['family.link'](c, { ...payload, version: (await visibleAgreement(c, payload.agreementId)).version })
   if (kind === 'review') {
     const a = await visibleAgreement(c, payload.agreementId)

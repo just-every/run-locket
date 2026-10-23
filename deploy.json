@@ -137,6 +137,31 @@
       "binding": "APPROVAL_NOOK_TOKEN",
       "environment": "APPROVAL_NOOK_TOKEN",
       "optional": true
+    },
+    {
+      "binding": "SIGNATURE_DOCUSIGN_TOKEN",
+      "environment": "SIGNATURE_DOCUSIGN_TOKEN",
+      "optional": true
+    },
+    {
+      "binding": "SIGNATURE_ACROBAT_TOKEN",
+      "environment": "SIGNATURE_ACROBAT_TOKEN",
+      "optional": true
+    },
+    {
+      "binding": "SIGNATURE_DROPBOX_KEY",
+      "environment": "SIGNATURE_DROPBOX_KEY",
+      "optional": true
+    },
+    {
+      "binding": "SIGNATURE_INKWELL_TOKEN",
+      "environment": "SIGNATURE_INKWELL_TOKEN",
+      "optional": true
+    },
+    {
+      "binding": "SIGNATURE_INKWELL_ORIGIN",
+      "environment": "SIGNATURE_INKWELL_ORIGIN",
+      "optional": true
     }
   ],
   "crons": [

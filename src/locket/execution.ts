@@ -6,6 +6,10 @@ import { fileInput, isPdf, PDF, readArtifactBytes, storeArtifact } from './artif
 import type { Ctx, Handler } from './commands'
 import { bool, date, fail, json, list, object, oneOf, optionalText, sha256, sql, text, type Sql } from './model'
 import { textPdf } from './pdf'
+import { buildPacket, packetRecipients } from './signature-packets'
+import { requireCoordinator } from './signature-rules'
+import { signatureHandlers } from './signature-workspace'
+import { confirmSignaturePackage } from './signature-send'
 import { compareExecutionPdf, comparisonCheck } from './execution-comparison'
 import { executionFieldsCheck, inspectExecutionFields } from './execution-fields'
 import { day, plural, providerName } from './display'
@@ -13,8 +17,7 @@ import { agreementGuards, bump, currentVersion, requireStatus, visibleAgreement,
 import { decisionContext, routing } from './review'
 import { entityById, signatoriesOf } from './entities'
 
-export const providers = ['docusign', 'adobe-acrobat-sign', 'dropbox-sign', 'pandadoc', 'documenso', 'docuseal', 'paper', 'other'] as const
-const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+export const providers = ['docusign', 'adobe-acrobat-sign', 'dropbox-sign', 'inkwell', 'pandadoc', 'documenso', 'docuseal', 'paper', 'other'] as const
 
 /** The approvals that still count for the current version and context. */
 async function confirmApproved(c: Ctx, a: AgreementRow) {
@@ -33,48 +36,57 @@ const preparePackage: Handler = async (c, p) => {
   requireStatus(a, ['approved'], 'go to signature')
   const { v, approvals } = await confirmApproved(c, a)
   const provider = oneOf(p, 'provider', providers)
-  const recipients = list(p, 'recipients', 20).map((value, i) => {
-    const r = object(value, `recipients[${i}]`)
-    const address = text(r, 'email', 200)
-    if (!email.test(address)) fail('INVALID', `${address} is not an email address.`)
-    return { order: i + 1, name: text(r, 'name', 200), email: address.toLowerCase(), action: oneOf(r, 'action', ['sign', 'copy'] as const), signingFor: optionalText(r, 'signingFor', 200) }
-  })
+  const coordinator = await requireCoordinator(c, a)
+  let recipients = packetRecipients(list(p, 'recipients', 20))
+  // The exact approved PDF: the version's own PDF or its attached signing PDF;
+  // only text Locket generated from a template is rendered here.
+  const files = (await c.db.prepare("SELECT id, role, filename, media_type, sha256 FROM lk_artifacts WHERE version_id=? AND role IN ('original','rendition')").bind(v.id).all<any>()).results
+  const pdfFile = files.find(f => f.role === 'rendition') ?? files.find(f => f.role === 'original' && f.media_type === PDF)
+  const writes: Sql[] = []
+  let pdf: { id: string; sha256: string; filename: string; bytes?: Uint8Array }
+  if (pdfFile) pdf = { id: pdfFile.id, sha256: pdfFile.sha256, filename: pdfFile.filename }
+  else if (v.kind === 'template' && v.text !== null && !files.some(f=>f.role==='original')) {
+    const bytes = textPdf(a.title, v.text, `${a.reference} v${v.number} - version digest ${v.digest.slice(0, 16)}`)
+    const stored = await storeArtifact({ filename: `${a.reference}-v${v.number}.pdf`, mediaType: PDF, bytes }, { agreementId: a.id, versionId: v.id, role: 'package', provenance: { renderedFrom: v.id, versionDigest: v.digest }, actorId: c.actor.id, at: c.now })
+    writes.push(...stored.writes)
+    pdf = { id: stored.id, sha256: stored.sha256, filename: `${a.reference}-v${v.number}.pdf`, bytes }
+  } else fail('NEEDS_PDF', `Version ${v.number} is a DOCX. Attach the PDF it will be signed as (and re-approve) so formatting is not lost in a conversion.`, 409)
+  let packet = await buildPacket(c, a, v, pdf, recipients, optionalText(p, 'signatoryEmail', 200)?.toLowerCase() ?? null)
+  if(provider==='adobe-acrobat-sign'||provider==='dropbox-sign'){
+    const tagged=await c.db.prepare('SELECT * FROM lk_signature_tag_renditions WHERE agreement_id=? AND provider=? AND version_id=?').bind(a.id,provider,v.id).first<any>()
+    if(!tagged||tagged.source_digest!==packet.packetDigest)fail('TAG_REVIEW','Prepare and review the current provider-tagged PDFs, then approve this exact packet before packaging.',409)
+    const definition=JSON.parse(tagged.definition)
+    packet={...packet,documents:definition.documents,fields:definition.fields,packetDigest:tagged.digest}
+  }
+  recipients = packet.recipients
   // ENTITY-001: our side signs through one of the contracting entity's recorded signatories.
   const entity = await entityById(c, a.entity_id)
   let ourSignatory: { name: string; email: string; title: string } | null = null
   if (entity) {
     const listed = signatoriesOf(entity)
     if (!listed.length) fail('NO_SIGNATORY', `${entity.legal_name} has no authorized signatory recorded. The owner records one with the entity.`, 409)
-    const chosen = optionalText(p, 'signatoryEmail', 200)?.toLowerCase()
+    const ruleSigner = packet.signerRule ? recipients.find(r => r.partyRole === 'internal') : null
+    const chosen = ruleSigner?.email ?? optionalText(p, 'signatoryEmail', 200)?.toLowerCase()
     ourSignatory = chosen ? listed.find(s => s.email === chosen) ?? fail('SIGNATORY', `${chosen} is not a recorded signatory of ${entity.legal_name}.`, 400, { field: 'signatoryEmail' }) : listed[0]
     for (const r of recipients)
       if (r.signingFor?.toLowerCase() === entity.legal_name.toLowerCase() && !listed.some(s => s.email === r.email)) fail('SIGNATORY', `${r.email} is not a recorded signatory of ${entity.legal_name}.`, 400, { field: 'recipients' })
     const present = recipients.find(r => r.email === ourSignatory!.email)
-    if (present) Object.assign(present, { action: 'sign', signingFor: entity.legal_name })
-    else recipients.push({ order: recipients.length + 1, name: ourSignatory.name, email: ourSignatory.email, action: 'sign', signingFor: entity.legal_name })
+    if (present) Object.assign(present, { action: 'sign', partyRole: 'internal', signingFor: entity.legal_name })
+    else recipients.push({ order: recipients.length + 1, name: ourSignatory.name, email: ourSignatory.email, action: 'sign', partyRole: 'internal', signingFor: entity.legal_name })
   }
-  if (!recipients.some(r => r.action === 'sign')) fail('INVALID', 'Name at least one signer.')
-  // The exact approved PDF: the version's own PDF or its attached signing PDF;
-  // only text Locket generated from a template is rendered here.
-  const files = (await c.db.prepare("SELECT id, role, filename, media_type, sha256 FROM lk_artifacts WHERE version_id=? AND role IN ('original','rendition')").bind(v.id).all<any>()).results
-  const pdfFile = files.find(f => f.role === 'rendition') ?? files.find(f => f.role === 'original' && f.media_type === PDF)
-  const writes: Sql[] = []
-  let pdf: { id: string; sha256: string; filename: string }
-  if (pdfFile) pdf = { id: pdfFile.id, sha256: pdfFile.sha256, filename: pdfFile.filename }
-  else if (v.kind === 'template' && v.text !== null && !files.some(f=>f.role==='original')) {
-    const bytes = textPdf(a.title, v.text, `${a.reference} v${v.number} - version digest ${v.digest.slice(0, 16)}`)
-    const stored = await storeArtifact({ filename: `${a.reference}-v${v.number}.pdf`, mediaType: PDF, bytes }, { agreementId: a.id, versionId: v.id, role: 'package', provenance: { renderedFrom: v.id, versionDigest: v.digest }, actorId: c.actor.id, at: c.now })
-    writes.push(...stored.writes)
-    pdf = { id: stored.id, sha256: stored.sha256, filename: `${a.reference}-v${v.number}.pdf` }
-  } else fail('NEEDS_PDF', `Version ${v.number} is a DOCX. Attach the PDF it will be signed as (and re-approve) so formatting is not lost in a conversion.`, 409)
   const packageId = crypto.randomUUID()
   const manifest = {
-    format: 'locket-signature-manifest/1',
+    format: 'locket-signature-manifest/2',
     agreement: { id: a.id, reference: a.reference, title: a.title },
     ...(entity ? { entity: { id: entity.id, legalName: entity.legal_name, signatory: ourSignatory } } : {}),
     version: { id: v.id, number: v.number, digest: v.digest },
     document: { filename: pdf.filename, sha256: pdf.sha256 },
     approvals,
+    documents: packet.documents,
+    fields: packet.fields,
+    packetDigest: packet.packetDigest,
+    signerRule: packet.signerRule,
+    changes: packet.changes,
     provider,
     recipients,
     preparedAt: new Date(c.now).toISOString(),
@@ -86,7 +98,7 @@ const preparePackage: Handler = async (c, p) => {
   writes.push(sql("UPDATE lk_packages SET status='voided', void_reason='Replaced by a newer package' WHERE agreement_id=? AND status='prepared'", a.id))
   writes.push(sql('INSERT INTO lk_packages VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', packageId, a.id, v.id, v.digest, pdf.id, stored.id, json(manifest), provider, 'prepared', null, null, null, null, c.actor.id, c.now))
   writes.push(bump(c, a))
-  return { allowed: may.signature, result: { packageId, pdfArtifactId: pdf.id, manifestArtifactId: stored.id, documentSha256: pdf.sha256, recipients }, writes, checks: [...agreementGuards(c, a, p), sql('(SELECT digest FROM lk_versions WHERE id=?)=?', v.id, v.digest), ...(entity ? [sql('(SELECT version FROM lk_entities WHERE id=?)=?', entity.id, entity.version)] : [])], audit: [{ action: 'package.prepare', agreementId: a.id, summary: `Prepared v${v.number} for ${providerName(provider)} with ${plural(recipients.length, 'recipient')}` }] }
+  return { allowed: may.signature, result: { packageId, pdfArtifactId: pdf.id, manifestArtifactId: stored.id, documentSha256: pdf.sha256, packetDigest: packet.packetDigest, recipients }, writes, checks: [...agreementGuards(c, a, p), coordinator, ...packet.checks, sql('(SELECT digest FROM lk_versions WHERE id=?)=?', v.id, v.digest), ...(entity ? [sql('(SELECT version FROM lk_entities WHERE id=?)=?', entity.id, entity.version)] : [])], audit: [{ action: 'package.prepare', agreementId: a.id, summary: `Prepared v${v.number} for ${providerName(provider)} with ${plural(recipients.length, 'recipient')}` }] }
 }
 
 async function packageOf(c: Ctx, a: AgreementRow, id: unknown) {
@@ -99,15 +111,18 @@ const markSent: Handler = async (c, p) => {
   requireRole(c.actor, may.signature, 'record a signature handoff')
   const a = await visibleAgreement(c, p.agreementId)
   requireStatus(a, ['approved'], 'be sent for signature')
+  const coordinator = await requireCoordinator(c, a)
   const pkg = await packageOf(c, a, p.packageId)
+  if (await c.db.prepare("SELECT 1 FROM lk_signature_dispatches WHERE package_id=? AND status IN ('queued','sending','uncertain')").bind(pkg.id).first()) fail('SEND_PENDING', 'This package has a pending or uncertain provider send. Inspect the provider outcome before recording another handoff.', 409)
   if (pkg.status !== 'prepared') fail('STATUS', `This package is ${pkg.status}.`, 409)
   if (pkg.version_id !== a.current_version_id) fail('NOT_CURRENT', 'This package was prepared for an earlier version. Prepare a new one.', 409)
+  const approved = await confirmSignaturePackage(c, a, pkg)
   const envelopeId = text(p, 'envelopeId', 200)
   return {
     allowed: may.signature,
     result: { packageId: pkg.id, status: 'sent' },
     writes: [sql("UPDATE lk_packages SET status='sent', envelope_id=?, sent_by=?, sent_at=? WHERE id=?", envelopeId, c.actor.id, c.now, pkg.id), bump(c, a, "status='out_for_signature'")],
-    checks: [...agreementGuards(c, a, p), sql("(SELECT status FROM lk_packages WHERE id=?)='prepared'", pkg.id)],
+    checks: [...agreementGuards(c, a, p), coordinator, ...approved.checks, sql("(SELECT status FROM lk_packages WHERE id=?)='prepared'", pkg.id)],
     audit: [{ action: 'package.sent', agreementId: a.id, summary: `Recorded handoff to ${providerName(pkg.provider)}, envelope ${envelopeId}` }],
   }
 }
@@ -115,6 +130,7 @@ const markSent: Handler = async (c, p) => {
 const voidPackage: Handler = async (c, p) => {
   requireRole(c.actor, may.signature, 'void a signature package')
   const a = await visibleAgreement(c, p.agreementId)
+  const coordinator = await requireCoordinator(c, a)
   const pkg = await packageOf(c, a, p.packageId)
   if (!['prepared', 'sent'].includes(pkg.status)) fail('STATUS', `This package is ${pkg.status}.`, 409)
   const reason = text(p, 'reason', 500)
@@ -122,7 +138,7 @@ const voidPackage: Handler = async (c, p) => {
     allowed: may.signature,
     result: { packageId: pkg.id, status: 'voided' },
     writes: [sql("UPDATE lk_packages SET status='voided', void_reason=? WHERE id=?", reason, pkg.id), bump(c, a, 'status=?', a.status === 'out_for_signature' ? 'approved' : a.status)],
-    checks: agreementGuards(c, a, p),
+    checks: [...agreementGuards(c, a, p), coordinator],
     audit: [{ action: 'package.void', agreementId: a.id, summary: `Voided signature package: ${reason}` }],
   }
 }
@@ -152,7 +168,9 @@ const recordExecution: Handler = async (c, p) => {
   const packagePdf = await readArtifactBytes(c.db, pkg.pdf_artifact_id)
   const comparison = await compareExecutionPdf(packagePdf, signed.bytes)
   const expectedPages = comparison.approvedPages, actualPages = comparison.signedPages
+  const packetDocuments = manifest.documents ?? []
   const checks = [
+    ...(packetDocuments.filter((d: any) => d.purpose === 'sign').length > 1 ? [{ check: 'packet_documents', ok: false, detail: 'This packet contains multiple signable documents. Review all returned document evidence before accepting execution; a single uploaded file is not automatic proof of every document.' }] : []),
     { check: 'envelope', ok: envelopeId === pkg.envelope_id, detail: envelopeId === pkg.envelope_id ? `Envelope ${envelopeId} matches the recorded handoff.` : `Envelope ${envelopeId} differs from the handoff's ${pkg.envelope_id}.` },
     { check: 'signers', ok: expectedSigners.size === actualSigners.size && [...expectedSigners].every(e => actualSigners.has(e)), detail: `Package signers: ${[...expectedSigners].join(', ')}. Signed by: ${[...actualSigners].join(', ') || 'nobody listed'}.` },
     { check: 'document', ok: bool(p, 'documentConfirmed') && (expectedPages === null || actualPages === null || actualPages >= expectedPages), detail: `${bool(p, 'documentConfirmed') ? 'Recorder confirmed' : 'Recorder did not confirm'} the signed file is the packaged document${pagesNote(expectedPages, actualPages)}.` },
@@ -202,6 +220,7 @@ function pagesNote(packaged: number | null, signed: number | null) {
 }
 
 export const executionHandlers: Record<string, Handler> = {
+  ...signatureHandlers,
   'package.prepare': preparePackage,
   'package.sent': markSent,
   'package.void': voidPackage,
