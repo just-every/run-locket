@@ -1,3 +1,6 @@
+import { approvalChannelConfigHandlers } from './approval-channel-config'
+import { approvalChannelHandlers, approvalChannelRequestView } from './approval-channel-requests'
+import { approvalChannelWordManifest } from './approval-channel-word'
 import { servicePerformanceHandlers } from './service-performance'
 import { wordReviewHandlers, wordReviewView } from './word-review'
 import { inboundRemediationResponse } from './remediation-stops'
@@ -80,6 +83,7 @@ export const handlers: Record<string, Handler> = {
   ...remediationHandlers,
   ...reviewRedlineHandlers,
   ...outcomeReportHandlers,
+  ...approvalChannelConfigHandlers,...approvalChannelHandlers,
   ...renewalLifecycleHandlers,...renewalCalendarHandlers,
   ...serviceLevelHandlers,
   ...servicePerformanceHandlers,
@@ -138,6 +142,8 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     const exchange = await publicExchangeResponse(request,env)
     if(exchange)return exchange
     const actor = await currentActor(request, env)
+    if(request.method==='GET'&&path.startsWith('/approval-channels/requests/'))return reply(await approvalChannelRequestView(env,actor,decodeURIComponent(path.slice('/approval-channels/requests/'.length))))
+    if(request.method==='GET'&&path==='/approval-channels/word-manifest')return approvalChannelWordManifest(env)
     if(request.method==='GET'&&path==='/outcome-report')return reply(await outcomeReport(env,actor,url.searchParams.get('month')??''))
     const bulk = await repositoryBulkResponse(request,env,actor)
     if(bulk)return bulk

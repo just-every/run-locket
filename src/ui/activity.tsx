@@ -1,3 +1,4 @@
+import { ApprovalChannelSettings } from './approval-channel-settings'
 import { useState } from 'react'
 import { fetchJson, type LocketState } from './api'
 import type { Locket } from './app'
@@ -34,6 +35,7 @@ export function Activity({ state, locket }: { state: LocketState; locket: Locket
     <div className="lk-activity">
       <div className="lk-titlebar"><div><h1>Activity</h1><p className="lk-muted">Every consequential change, who made it and in which role. Agents appear by name with the agent role.</p></div></div>
       <p><a href="#outcome-report">Monthly obligation and spend reports</a></p>
+      <ApprovalChannelSettings state={state} locket={locket}/>
       <section className="lk-panel lk-people-panel">
         <div className="lk-panel-head"><h2>People and access</h2><span className="lk-muted">Owner: everything. Counsel: library, legal exceptions, restricted agreements. Approver: commercial approval, renewals and notices. Requester: requests, versions and signature handoff. Viewer: reads. Agent: prepares proposals only.</span></div>
         <ul className="lk-people">{state.operators.map(o => (

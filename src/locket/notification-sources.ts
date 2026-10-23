@@ -1,3 +1,4 @@
+import { channelDigestChecks,channelDigestOutcome } from './approval-channel-dispatch'
 import { expiredDraftCheck } from './retention-reminders'
 import { rulePendingSql } from './approval-rules'
 import { routeRoleSql } from './intake-route'
@@ -18,6 +19,7 @@ export const notificationSourceTables: Record<NotificationSource, string> = {
 }
 
 export async function notificationSourceChecks(c: Ctx, event: NotificationRow): Promise<{ ready: boolean; checks: Sql[] }> {
+  if(event.kind==='channel_approval')return channelDigestChecks(c,event)
   if(event.kind==='draft_retention'){
     const [,ruleVersion,id,version]=event.event_key.split(':')
     return{ready:true,checks:[expiredDraftCheck(id,Number(version),Number(ruleVersion),c.now)]}
@@ -58,6 +60,7 @@ export async function notificationSourceChecks(c: Ctx, event: NotificationRow): 
 /** Guarded by ownership of the corresponding notification claim. A legacy
  * deadline digest stores its provider id once, on the real parent outbox row. */
 export function notificationSourceOutcome(event: NotificationRow, status: string, provider: string | null, messageId: string | null, code: string | null, ownership: Sql, deadlineDigestId: string | null): Sql[] {
+  if(event.kind==='channel_approval')return channelDigestOutcome(event,status,messageId,code,ownership)
   if (!event.source_kind) return []
   const deadline = event.source_kind === 'deadline'
   return [sql(`UPDATE ${notificationSourceTables[event.source_kind]} SET status=?,provider=?,provider_message_id=?,code=?${deadline && deadlineDigestId ? ',digest_id=?' : ''}

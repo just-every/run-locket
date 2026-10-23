@@ -117,6 +117,26 @@
       "binding": "MODELS_KEY",
       "environment": "MODELS_KEY",
       "optional": true
+    },
+    {
+      "binding": "APPROVAL_SLACK_TOKEN",
+      "environment": "APPROVAL_SLACK_TOKEN",
+      "optional": true
+    },
+    {
+      "binding": "APPROVAL_TEAMS_TOKEN",
+      "environment": "APPROVAL_TEAMS_TOKEN",
+      "optional": true
+    },
+    {
+      "binding": "APPROVAL_NOOK_ORIGIN",
+      "environment": "APPROVAL_NOOK_ORIGIN",
+      "optional": true
+    },
+    {
+      "binding": "APPROVAL_NOOK_TOKEN",
+      "environment": "APPROVAL_NOOK_TOKEN",
+      "optional": true
     }
   ],
   "crons": [

@@ -1,3 +1,4 @@
+import { runApprovalChannels } from './locket/approval-channel-automatic'
 import { runOutcomeReports } from './locket/outcome-report-dispatch'
 import { runRenewalBriefs } from './locket/renewal-briefs'
 import { runRemediation } from './locket/remediation-mail'
@@ -63,6 +64,7 @@ export default withDemo({
     await runDeadlineReminders(runtimeBindings(env), controller.scheduledTime)
     await runRenewalBriefs(runtimeBindings(env), controller.scheduledTime)
     await runRetentionReminders(runtimeBindings(env), controller.scheduledTime)
+    await runApprovalChannels(runtimeBindings(env), controller.scheduledTime)
     await runNotifications(runtimeBindings(env), controller.scheduledTime)
     await runNoticeAgent(runtimeBindings(env), controller.scheduledTime)
     await runReports(runtimeBindings(env), controller.scheduledTime)

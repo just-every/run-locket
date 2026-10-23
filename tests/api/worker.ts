@@ -1,3 +1,4 @@
+import { runApprovalChannels } from '../../src/locket/approval-channel-automatic'
 import { runOutcomeReports } from '../../src/locket/outcome-report-dispatch'
 import { runRenewalBriefs } from '../../src/locket/renewal-briefs'
 import { runRemediation } from '../../src/locket/remediation-mail'
@@ -31,6 +32,7 @@ export default {
     await runDeadlineReminders(env, controller.scheduledTime)
     await runRenewalBriefs(env, controller.scheduledTime)
     await runRetentionReminders(env, controller.scheduledTime)
+    await runApprovalChannels(env, controller.scheduledTime)
     await runNotifications(env, controller.scheduledTime)
     await runNoticeAgent(env, controller.scheduledTime)
     await runReports(env, controller.scheduledTime)

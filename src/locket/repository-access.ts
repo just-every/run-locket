@@ -80,6 +80,7 @@ export function redactWorkspace<T extends Record<string,any>>(workspace:T,hidden
  // at redaction, mutate originals or reveal it through labels, quotes or history.
  w.versions=workspace.versions.map((v:any)=>({...v,text:null,fields:null,label:'Document version'}))
  for(const key of ['renewalGenerations','renewalHistory','renewalTerminations','calendarEvents','familyAnalyses','renewalBriefs','accountingLinks','versionAudiences','commentAudiences','legalHolds','artifacts','comments','deviations','approvals','packages','executions','requestForms','proposals','noticeSources','noticePlans','noticeLetters','noticeDispatches','noticeEvents','noticeTracking','notices','audit','familyTerms'])w[key]=[]
+ if(workspace.approvalChannels)w.approvalChannels={...workspace.approvalChannels,requests:[],deliveries:[]}
  w.playbookRecommendations={outcomes:[],issues:[],recommendations:[],applications:[]};
  w.terms=[];w.routes={};w.reports=[];w.reportDeliveries=[];w.approvalInputs=[];w.ruleDecisions=[];w.rulePending=[];w.ruleReminders=[]
  w.requestQueue={...workspace.requestQueue,cancellations:workspace.requestQueue.cancellations.map((c:any)=>({...c,note:null,reopen_reason:c.reopen_reason?'Details withheld':null}))}

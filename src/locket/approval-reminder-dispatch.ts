@@ -1,3 +1,4 @@
+import { dispatchChannelReminder } from './approval-channel-automatic'
 import { routeNotification, notificationOutcome } from './notification-dispatch'
 // APPROVE-004 delivery: the hourly scheduled run and the "Remind approver" send.
 // Each reminder is a durable outbox row first; a one-use claim re-checks that the
@@ -55,6 +56,7 @@ export const reminderReceipt = (row: Row) => ({ id: row.id, status: row.status, 
 
 /** Claim and send one queued reminder. A person's manual reminder re-checks their session and role too. */
 export async function deliverReminder(c: Ctx, id: string, person: boolean) {
+  const channel=await dispatchChannelReminder(c,id,person);if(channel)return channel
   let row = await read(c.db, id)
   if (!row || row.status !== 'queued') return row && reminderReceipt(row)
   const attempt = crypto.randomUUID(), principal = person ? c.actor.role : 'scheduler'

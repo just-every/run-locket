@@ -6,13 +6,63 @@ import { file, pdf } from '../api/files.mjs'
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
 
-for (const width of [1440, 390]) {
-  test(`MOBILE-001 opens the received approval email, refuses a replaced version, approves the current version and uploads signed evidence at ${width}px`, async ({ page }) => {
-    const product = await productPage(page, { width })
+  test(`APPROVE-003 / MOBILE-001 opens the received approval email, refuses a replaced version, approves the current version and uploads signed evidence at 1440px/390px`, async ({ page }) => {
+   for (const width of [1440,390]) {
+    const chats:any[]=[]
+    const product = await productPage(page, { width,bindings:{MAIL_PROVIDER:'postmark',APPROVAL_SLACK_TOKEN:'synthetic-locket-21',APPROVAL_TEAMS_TOKEN:'synthetic-locket-22',APPROVAL_NOOK_TOKEN:'synthetic-locket-23',APPROVAL_NOOK_ORIGIN:'https://nook.example.test'},outboundResponse:async(request:Request)=>{
+      chats.push({url:request.url,body:await request.json()})
+      return Response.json(new URL(request.url).hostname==='graph.microsoft.com'?{id:`synthetic-locket-${chats.length}`}:{ok:true,ts:`synthetic-locket-${chats.length}`},{status:new URL(request.url).hostname==='graph.microsoft.com'?201:200})
+    } })
     const { h, origin, command, state } = product
     try {
       const tag = crypto.randomUUID().slice(0, 8)
       const approver = await h.invite(`approver-${tag}@example.test`, 'approver')
+      let bindingNumber=30
+      for(const channel of ['slack','teams','nook'])await command('approval.channel.bind',{operatorId:approver.id,channel,destination:`synthetic-locket-${bindingNumber++}`,version:0})
+      await approver.command('approval.channel.preferences',{version:0,channels:['email','slack','teams','nook','word','phone']})
+      const chatCreated=await command('request.create',{title:`Channel approval ${tag}`,type:'nda',party:{name:`Channel party ${tag}`,kind:'customer'},file:file('chat.pdf',pdf(`Chat confidentiality ${tag}`)),text:`Chat confidentiality ${tag}`})
+      let chatState=await state(),chatAgreement=chatState.agreements.find((x:any)=>x.id===chatCreated.id)
+      await command('agreement.submit',{agreementId:chatAgreement.id,version:chatAgreement.version})
+      await page.goto(`${origin}/app#agreement/${chatAgreement.id}/review`)
+      const channelForm=page.getByRole('region',{name:'Request approval through personal channels',exact:true})
+      await channelForm.getByLabel('Requested approver').selectOption(approver.id)
+      const channelResponse=page.waitForResponse(r=>r.url()===`${origin}/api/locket/commands`&&r.request().method()==='POST')
+      await channelForm.getByRole('button',{name:'Request approval',exact:true}).click()
+      const channelSent=await(await channelResponse).json()
+      expect(channelSent.ok,JSON.stringify(channelSent.error)).toBe(true)
+      await expect(channelForm.getByLabel('Approval channel receipts')).toContainText('Provider accepted; delivery and reading unconfirmed')
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1)).toBe(true)
+      const slack=chats.find(x=>new URL(x.url).hostname==='slack.com'),teams=chats.find(x=>new URL(x.url).hostname==='graph.microsoft.com'),nook=chats.find(x=>new URL(x.url).hostname==='nook.example.test')
+      const action=slack.body.blocks[1].elements[0].url
+      expect(JSON.parse(teams.body.attachments[0].content).actions[0].url).toBe(action)
+      expect(nook.body.blocks[1].elements[0].url).toBe(action)
+      expect(h.mails.at(-1).text).toContain(action)
+      for(const message of chats)expect(JSON.stringify(message.body)).not.toContain(chatAgreement.title)
+      await page.context().clearCookies()
+      await page.context().addCookies(approver.cookie.split('; ').map((pair:string)=>{const i=pair.indexOf('=');return{name:pair.slice(0,i),value:pair.slice(i+1),url:origin,secure:true,httpOnly:true,sameSite:'Lax' as const}}))
+      await page.goto(action);await page.reload()
+      const actionReview=page.getByRole('region',{name:'Authenticated approval request',exact:true})
+      await expect(actionReview.getByLabel('Exact stored version text')).toContainText(`Chat confidentiality ${tag}`)
+      await actionReview.getByRole('checkbox').check()
+      const channelDecision=page.waitForResponse(r=>r.url()===`${origin}/api/locket/commands`&&r.request().method()==='POST')
+      await actionReview.getByRole('button',{name:'Record channel decision',exact:true}).click()
+      const decided=await(await channelDecision).json()
+      expect(decided.ok,JSON.stringify(decided.error)).toBe(true)
+      chatState=await state()
+      expect(chatState.approvals.find((x:any)=>x.id===decided.result.id).actor_id).toBe(approver.id)
+      expect(decided.result.versionDigest).toBe(chatState.versions.find((x:any)=>x.id===chatAgreement.current_version_id).digest)
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1)).toBe(true)
+      await page.goto(`${origin}/app#approval-word`)
+      await expect(page.getByRole('heading',{name:'Word and phone approvals',exact:true})).toBeVisible()
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1)).toBe(true)
+      if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-approve-003-word-inbox.png`),fullPage:true})}
+      await page.goto(`${origin}/app#notifications`)
+      const preferences=page.getByRole('region',{name:'Personal approval channels',exact:true})
+      await expect(preferences.getByLabel('Slack approval requests')).toBeChecked()
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1)).toBe(true)
+      if(process.env.LOCKET_SCREENSHOTS)await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-approve-003-channel-preferences.png`),fullPage:true})
+      await page.context().clearCookies()
+      await page.context().addCookies(h.owner.cookie.split('; ').map((pair:string)=>{const i=pair.indexOf('=');return{name:pair.slice(0,i),value:pair.slice(i+1),url:origin,secure:true,httpOnly:true,sameSite:'Lax' as const}}))
       const created = await command('request.create', { title: `Phone approval ${tag}`, type: 'nda', party: { name: `Counterparty ${tag}`, kind: 'customer' }, file: file('review.pdf', pdf(`Confidentiality ${tag}`)), text: `Confidentiality ${tag}` })
       let s = await state(), a = s.agreements.find((x: any) => x.id === created.id)
       await command('agreement.submit', { agreementId: a.id, version: a.version })
@@ -95,5 +145,5 @@ for (const width of [1440, 390]) {
     } finally {
       await product.close()
     }
+   }
   })
-}

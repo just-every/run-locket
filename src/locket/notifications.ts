@@ -1,3 +1,4 @@
+import { requestLink } from './approval-channel-requests'
 // Person-scoped notifications. The business command inserts its events in the
 // same guarded batch as the change; readers and senders repeat current access.
 import type { Bindings } from '../auth.server'
@@ -61,7 +62,8 @@ export function notificationWrites(c: Ctx, input: NotificationInput): Sql[] {
     input.kind, input.agreementId, input.kind, input.agreementId, input.recipientId, input.recipientId, input.recipientId, ...checks.flatMap(s => s.params))]
 }
 
-export function notificationLink(env: Bindings, row: Pick<NotificationRow, 'agreement_id' | 'kind'>): string {
+export function notificationLink(env: Bindings, row: Pick<NotificationRow, 'agreement_id' | 'kind' | 'event_key'>): string {
+  if(row.kind==='channel_approval')return requestLink(env,row.event_key.slice('channel-digest:'.length))
   const section = /approval/.test(row.kind) ? 'review' : /^queue_/.test(row.kind) ? 'versions' : /signature/.test(row.kind) ? 'signature' : /obligation|deadline/.test(row.kind) ? 'terms' : 'versions'
   return `${new URL(env.AUTH_ORIGIN).origin}/app#agreement/${encodeURIComponent(row.agreement_id)}/${section}`
 }

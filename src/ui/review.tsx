@@ -1,3 +1,4 @@
+import { ApprovalChannelRequest } from './approval-channel-settings'
 import { ReviewRedlines } from './review-redlines'
 import { ApprovalRoutingInputs, ApprovalAvailability } from './approval-rules'
 import type { LocketState, Row } from './api'
@@ -25,6 +26,7 @@ export function Review({ state, a, locket }: { state: LocketState; a: Row; locke
   return (
     <div className="lk-tab-page">
       <ApprovalMail state={state} a={a} locket={locket} />
+      <ApprovalChannelRequest state={state} a={a} locket={locket}/>
       <ReviewRedlines key={v?.id} state={state} a={a} locket={locket} />
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Review findings</h2>{playbook && <span className="lk-muted">Playbook v{playbook.number}</span>}</div>
@@ -84,6 +86,7 @@ export function Approvals({ state, a, locket }: { state: LocketState; a: Row; lo
       <ApprovalRoutingInputs state={state} a={a} locket={locket}/>
       <ApprovalAvailability state={state} locket={locket}/>
       <ApprovalMail state={state} a={a} locket={locket} />
+      <ApprovalChannelRequest state={state} a={a} locket={locket}/>
       <ApprovalReminders state={state} a={a} locket={locket} />
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Approval route for v{v?.number ?? '–'}</h2></div>
