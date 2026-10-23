@@ -8,6 +8,7 @@ import { familyClear } from './family-analysis-guard'
 import { zonedInstant, addDays } from './dates'
 import { installationSettings } from './installation'
 import type { Actor, Sql } from './model'
+import type { AgreementRow } from './records'
 import { addFigure, emptyMonth, evidence, monthBounds, outcomeMonth, shiftMonth, type OutcomeReport } from './outcome-report-model'
 
 type Row={id:string;[key:string]:any}
@@ -91,5 +92,5 @@ export async function buildOutcomeReport(env:Bindings,actor:Actor,month:string,s
   }catch{mark('Complete USD accounting evidence unavailable; no zero spend inferred.')}
  }
  for(const m of report.months){const f=m.figures.pastEndSpend;if(f.unavailable.length&&f.evidence.length===0){f.count=null;f.cents=null}}
- return {report,agreements,checks,settingsVersion:settings.version}
+ return {report,agreements:agreements as AgreementRow[],checks,settingsVersion:settings.version}
 }
