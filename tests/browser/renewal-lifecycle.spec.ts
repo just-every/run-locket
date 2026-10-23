@@ -49,7 +49,10 @@ for(const width of [1440,390])test(`Current renewal terms, optional and evergree
   await shot('queue-calendar')
   await go(`agreement/${evergreen.id}/terms`);await expect(history).toContainText('Continues until notice');await expect(history).toContainText('Anniversary review')
   await history.getByLabel('Days before each anniversary',{exact:true}).fill('60')
-  await history.getByRole('button',{name:'Save anniversary review',exact:true}).click();await expect(page.getByRole('status')).toContainText('Saved.');await shot('evergreen')
+  const saved=page.waitForResponse(response=>response.url()===p.origin+'/api/locket/commands'&&response.request().method()==='POST'&&response.request().postDataJSON().type==='renewal.review.configure')
+  await history.getByRole('button',{name:'Save anniversary review',exact:true}).click();expect((await(await saved).json()).ok).toBe(true)
+  expect((await p.owner.state()).renewalSettings.find((row:any)=>row.agreement_id===evergreen.id).evergreen_lead_days).toBe(60)
+  await page.reload();await expect(history.getByLabel('Days before each anniversary',{exact:true})).toHaveValue('60');await shot('evergreen')
   await go(`agreement/${terminated.id}/terms`);await expect(history).toContainText('Terminated');await expect(history).toContainText('early termination');await shot('terminated')
  }finally{await p.close()}
 })
