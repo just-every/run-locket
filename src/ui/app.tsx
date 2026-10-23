@@ -68,7 +68,7 @@ export function LocketApp() {
             {route.view === 'agreements' && <Register state={state} locket={locket} query={query} portfolioFilter={route.id === 'portfolio' ? route.tab : ''} />}
             {route.view === 'agreement' && <AgreementPage key={route.id} state={state} id={route.id} tab={route.tab} shown={route.shown} passage={{ start: route.start, end: route.end }} locket={locket} />}
             {route.view === 'counterparty' && <Counterparty key={route.id} state={state} id={route.id} locket={locket} />}
-            {route.view === 'new' && <Intake state={state} locket={locket} />}
+            {route.view === 'new' && <Intake state={state} locket={locket} chatLaunch={route.id==='slack'?route.tab:undefined} />}
             {route.view === 'import-signed' && <LegacyImport state={state} locket={locket} />}
             {route.view === 'clickwrap' && <Clickwrap state={state} locket={locket} />}
             {route.view === 'library' && <Library state={state} locket={locket} />}

@@ -1,3 +1,4 @@
+import { chatLaunch } from './chat-intake'
 import { captureSignatureRuleSet } from './signature-rules'
 import { applicableRecommendationPlaybook } from './playbook-recommendations'
 import { populateWord } from './word-templates'
@@ -194,6 +195,7 @@ const createRequest: Handler = async (c, p) => {
       value.originalCents, value.rate, value.rateBy, value.rateAt,
     ),
   )
+  const chat=await chatLaunch(c,p,id);checks.push(...chat.checks);writes.push(...chat.writes)
   const signerSnapshot=await captureSignatureRuleSet(c,{id})
   checks.push(...signerSnapshot.checks);writes.push(...signerSnapshot.writes)
   const approvalSnapshot=await captureRuleSet(c,{id})
@@ -214,7 +216,7 @@ const createRequest: Handler = async (c, p) => {
     result: { id, reference, versionId: version?.id ?? null },
     writes,
     checks: entity ? [...checks, sql('EXISTS(SELECT 1 FROM lk_entities WHERE id=?)', entity.id)] : [...checks, sql('NOT EXISTS(SELECT 1 FROM lk_entities)')],
-    audit: [{ action: 'request.create', agreementId: id, summary: `Requested ${title} with ${party.name}${entity ? ` for ${entity.legal_name}` : ''}; ${amountWords(value)}; ${zone}` }],
+    audit: [...(p.chatLaunch?[{action:'request.chat',agreementId:id,summary:'Created through a signed Slack launch as the current mapped Locket person; native form and route checks applied.'}]:[]),{ action: 'request.create', agreementId: id, summary: `Requested ${title} with ${party.name}${entity ? ` for ${entity.legal_name}` : ''}; ${amountWords(value)}; ${zone}` }],
   }
 }
 

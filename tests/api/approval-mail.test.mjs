@@ -245,3 +245,132 @@ test('MOBILE-001 / NOTIFY-001 local suppression and uncertain provider outcomes 
   await failed.scheduled(Date.now());assert.equal(chatCalls,1)
 
 })
+
+test('Chat status updates verify current conversation members before disclosing generic approval and execution links', async t => {
+ const posts=[],audiences={slack:['synthetic-locket-person'],teams:['synthetic-locket-person']}
+ const h=await installation({bindings:{APPROVAL_SLACK_TOKEN:'synthetic-locket-1',APPROVAL_TEAMS_TOKEN:'synthetic-locket-2'},outboundResponse:async request=>{
+  const u=new URL(request.url),channel=u.hostname==='slack.com'?'slack':'teams'
+  if(u.pathname.endsWith('auth.test'))return Response.json({ok:true,user_id:'synthetic-locket-bot',bot_id:'synthetic-locket-service'})
+  if(request.method==='GET')return Response.json(channel==='slack'?{ok:true,members:[...audiences.slack,'synthetic-locket-bot']}:{value:audiences.teams.map(userId=>({userId}))})
+  posts.push({channel,body:await request.json()});return Response.json(channel==='slack'?{ok:true,ts:'synthetic-locket-receipt'}:{id:'synthetic-locket-receipt'})
+ }});t.after(()=>h.close())
+ const owner=(await h.owner.state()).actor.id,viewer=await h.invite('chat-viewer@example.test','viewer'),requester=await h.invite('chat-requester@example.test','requester')
+ for(const channel of ['slack','teams']){
+  await h.owner.command('notification.chat.identity',{channel,providerId:'synthetic-locket-person',operatorId:owner,version:0})
+  await h.owner.command('notification.chat.identity',{channel,providerId:'synthetic-locket-outsider',operatorId:viewer.id,version:0})
+  await h.owner.command('approval.channel.bind',{operatorId:owner,channel,destination:'synthetic-locket-conversation',version:0})
+ }
+ await h.owner.command('notification.chat.preferences',{version:0,channels:['slack','teams','nook']})
+ await h.owner.command('approval.channel.bind',{operatorId:owner,channel:'nook',destination:'synthetic-locket-conversation',version:0})
+ const a=await review(requester,{restricted:true})
+ for(const channel of ['slack','teams'])assert.ok(posts.some(p=>p.channel===channel&&JSON.stringify(p.body).includes(a.id)&&JSON.stringify(p.body).includes('needs approval')))
+ audiences.slack.push('synthetic-locket-outsider');audiences.teams.push('synthetic-locket-outsider')
+ await h.owner.command('approval.channel.preferences',{version:0,channels:['slack','teams','nook']})
+ const beforeApproval=posts.length
+ const withheld=await h.owner.command('approval.channel.request',{...payload(a,owner),kind:'commercial'})
+ assert.equal(posts.length,beforeApproval,'Existing restricted approval actions enforce the same conversation audience')
+ assert.ok((await h.owner.state()).approvalChannels.deliveries.filter(d=>d.request_id===withheld.id).every(d=>['suppressed','cancelled'].includes(d.status)))
+ audiences.slack=['synthetic-locket-person'];audiences.teams=['synthetic-locket-person']
+ const approved=await h.owner.command('approval.decide',{agreementId:a.id,version:a.version,versionId:a.current_version_id,kind:'commercial',decision:'approved'})
+ assert.equal(approved.status,'approved')
+ // Make the owner the responsible person so the native signature events address them.
+ let current=await find(h.owner,a.id)
+ await h.owner.command('request.update',{agreementId:a.id,version:current.version,title:a.title,ownerId:owner})
+ current=await find(h.owner,a.id)
+ if(current.status==='draft')await h.owner.command('agreement.submit',{agreementId:a.id,version:current.version})
+ current=await find(h.owner,a.id)
+ if(current.status==='in_review')await h.owner.command('approval.decide',{agreementId:a.id,version:current.version,versionId:current.current_version_id,kind:'commercial',decision:'approved'})
+ current=await find(h.owner,a.id)
+ const pkg=await h.owner.command('package.prepare',{agreementId:a.id,version:current.version,provider:'docusign',recipients:[{name:'Signer',email:'signer@example.test',action:'sign'}]})
+ current=await find(h.owner,a.id)
+ await h.owner.command('package.sent',{agreementId:a.id,version:current.version,packageId:pkg.packageId,envelopeId:'synthetic-locket-envelope'})
+ const bytes=await (await h.owner.request('/api/locket/files/'+pkg.pdfArtifactId)).arrayBuffer()
+ current=await find(h.owner,a.id)
+ await h.owner.command('execution.record',{agreementId:a.id,version:current.version,envelopeId:'synthetic-locket-envelope',documentConfirmed:true,signers:[{name:'Signer',email:'signer@example.test'}],signed:file('signed.pdf',Buffer.from(bytes)),certificate:file('certificate.pdf',pdf('Provider-issued evidence')),executedOn:'2026-10-23',terms:{},signaturesConfirmed:true})
+ assert.equal((await find(h.owner,a.id)).status,'executed')
+ for(const channel of ['slack','teams'])assert.ok(posts.some(p=>p.channel===channel&&JSON.stringify(p.body).includes('signature update')))
+ for(const p of posts){assert.ok(!JSON.stringify(p.body).includes(a.title));assert.ok(!JSON.stringify(p.body).includes('940271'))}
+ const before=posts.length
+ audiences.slack.push('synthetic-locket-outsider');audiences.teams.push('synthetic-locket-outsider')
+ const commandId=randomUUID(),mention={agreementId:a.id,versionId:current.current_version_id,body:'Hidden chat comment',mentionIds:[owner]}
+ await h.owner.command('comment.add',mention,{commandId})
+ assert.equal(posts.length,before,'A mapped member without restricted access prevents channel disclosure')
+ assert.ok((await h.owner.state()).chatNotifications.deliveries.some(d=>d.status==='cancelled'||d.code==='audience_unverified'))
+ audiences.slack=['synthetic-locket-person'];audiences.teams=['synthetic-locket-person']
+ await h.owner.command('comment.add',mention,{commandId})
+ assert.equal(posts.length,before,'Withheld deliveries are not automatically retried')
+ await requester.command('notification.chat.identity',{channel:'slack',providerId:'synthetic-locket-forged',operatorId:requester.id,version:0},{error:'FORBIDDEN'})
+ await requester.command('notification.chat.preferences',{operatorId:owner,channels:[],version:1},{error:'FORBIDDEN'})
+ const archive=await(await h.owner.request('/api/locket/export')).json()
+ assert.ok(archive.records.lk_chat_deliveries.some(d=>d.status==='accepted'))
+ assert.ok(archive.records.lk_chat_deliveries.some(d=>d.code==='audience_unverified'),'Unsupported Nook membership fails closed')
+ assert.equal((await requester.state()).chatNotifications.identities.length,0)
+})
+
+test('Chat delivery claims preserve consent, uncertain outcomes, complete membership and current access across retries',async t=>{
+ let mode='ok',posts=0,ownerId
+ const h=await installation({bindings:{APPROVAL_SLACK_TOKEN:'synthetic-locket-1'},outboundResponse:async request=>{
+  if(request.url.includes('auth.test'))return Response.json({ok:true,user_id:'synthetic-locket-bot',bot_id:'synthetic-locket-service'})
+  if(request.method==='GET')return Response.json({ok:true,members:mode==='unknown'?['synthetic-locket-person','synthetic-locket-unknown']:['synthetic-locket-person'],response_metadata:{next_cursor:mode==='paged'?'synthetic-locket-next':''}})
+  posts++;return mode==='uncertain'?new Response('',{status:503}):Response.json({ok:true,ts:'synthetic-locket-receipt'})
+ }});t.after(()=>h.close());ownerId=(await h.owner.state()).actor.id
+ await h.owner.command('notification.chat.identity',{channel:'slack',providerId:'synthetic-locket-person',operatorId:ownerId,version:0})
+ await h.owner.command('approval.channel.bind',{operatorId:ownerId,channel:'slack',destination:'synthetic-locket-dm',version:0})
+ const a=await h.owner.command('request.create',{title:'Private update',type:'nda',party:{name:'Party',kind:'customer'},file:file('draft.pdf',pdf('Confidentiality')),text:'Confidentiality'})
+ assert.equal(posts,0,'No status messages without separate personal consent')
+ await h.owner.command('notification.chat.preferences',{version:0,channels:['slack']})
+ assert.equal(posts,0,'Opt-in never backfills historical notifications')
+ const mention={agreementId:a.id,versionId:a.versionId,body:'Private mention',mentionIds:[ownerId]},commandId=randomUUID()
+ await Promise.all([h.owner.command('comment.add',mention,{commandId}),h.owner.command('comment.add',mention,{commandId})])
+ assert.equal(posts,1,'Concurrent command retries claim exactly one provider send')
+ for(const refusal of ['unknown','paged']){mode=refusal;await h.owner.command('comment.add',mention);assert.equal(posts,1)}
+ mode='uncertain';const uncertain=randomUUID();await h.owner.command('comment.add',mention,{commandId:uncertain});assert.equal(posts,2)
+ await h.owner.command('comment.add',mention,{commandId:uncertain});assert.equal(posts,2)
+ assert.ok((await h.owner.state()).chatNotifications.deliveries.some(d=>d.status==='uncertain'))
+ mode='ok';await h.owner.command('notification.preferences',{inApp:true,email:true,digest:true,timezone:'America/New_York'})
+ await h.owner.command('comment.add',mention);assert.equal(posts,2,'Digest preference never becomes an immediate chat send')
+ assert.ok((await h.owner.state()).chatNotifications.deliveries.some(d=>d.code==='chat_digest_not_available'))
+ await h.owner.command('notification.chat.preferences',{version:1,channels:[]})
+ await h.owner.command('notification.preferences',{inApp:true,email:true,digest:false,timezone:'America/New_York'})
+ await h.owner.command('comment.add',mention);assert.equal(posts,2)
+})
+
+test('Signed Slack commands and shortcuts launch native requests only for the mapped current person and consume each launch once',async t=>{
+ const {slackLaunch,launchToken}=await import('./chat-fixture.mjs'),replies=[]
+ const h=await installation({bindings:{CHAT_SLACK_SIGNING_SECRET:'synthetic-locket-signing'},outboundResponse:async request=>{assert.equal(new URL(request.url).hostname,'hooks.slack.com');replies.push(await request.json());return new Response('ok')}});t.after(()=>h.close())
+ const requester=await h.invite('slack-person@example.test','requester'),outsider=await h.invite('slack-other@example.test','requester')
+ await h.owner.command('notification.chat.identity',{channel:'slack',providerId:'synthetic-locket-person',operatorId:requester.id,version:0})
+ const input={title:'Chat intake',type:'nda',party:{name:'Intake party',kind:'customer'},file:file('draft.pdf',pdf('Confidentiality')),text:'Confidentiality'}
+ assert.equal((await slackLaunch(h,'synthetic-locket-person',{secret:'synthetic-locket-wrong'})).status,401)
+ assert.equal((await slackLaunch(h,'synthetic-locket-person',{timestamp:Math.floor(Date.now()/1000)-301})).status,401)
+ assert.ok(!(await(await slackLaunch(h,'synthetic-locket-unmapped')).json()).text.includes('#new'))
+ const slash=await(await slackLaunch(h,'synthetic-locket-person')).json(),token=launchToken(slash)
+ assert.equal(slash.response_type,'ephemeral')
+ await outsider.command('request.create',{...input,chatLaunch:token},{error:'CHAT_LAUNCH'})
+ const commandId=randomUUID(),created=await requester.command('request.create',{...input,chatLaunch:token},{commandId})
+ assert.equal((await find(requester,created.id)).requester_id,requester.id)
+ assert.deepEqual(await requester.command('request.create',{...input,chatLaunch:token},{commandId}),created)
+ await requester.command('request.create',{...input,chatLaunch:token},{error:'CHAT_LAUNCH'})
+ const body=new URLSearchParams({payload:JSON.stringify({type:'message_action',callback_id:'locket_contract',user:{id:'synthetic-locket-person'},response_url:'https://hooks.slack.com/actions/synthetic-locket-2'})}).toString()
+ const timestamp=Math.floor(Date.now()/1000)
+ assert.equal((await slackLaunch(h,'synthetic-locket-person',{body,timestamp})).status,200);assert.equal(replies.length,1)
+ await slackLaunch(h,'synthetic-locket-person',{body,timestamp});assert.equal(replies.length,1,'Provider retries do not repeat private outbound replies')
+ const shortcut=await requester.command('request.create',{...input,chatLaunch:launchToken(replies[0])})
+ assert.equal((await find(requester,shortcut.id)).requester_id,requester.id)
+ assert.ok((await h.owner.state()).audit.some(a=>a.action==='request.chat'&&a.actor_id===requester.id))
+ const draft=await h.owner.command('form.save',{definition:{name:'Chat NDA',type:'nda',fields:[{key:'purpose',label:'Purpose',kind:'text',required:true,options:[],when:[]}],requirements:[],launch:{roles:['requester'],audienceIds:[]},defaultRoute:{ownerId:requester.id,reviewerId:(await h.owner.state()).actor.id,approvalRole:'approver'},rules:[]}})
+ const published=await h.owner.command('form.publish',draft),formLaunch=launchToken(await(await slackLaunch(h,'synthetic-locket-person')).json())
+ await requester.command('request.create',{...input,chatLaunch:formLaunch},{error:'FORM_REQUIRED'})
+ await requester.command('request.create',{...input,chatLaunch:formLaunch,formVersionId:published.versionId,formAnswers:{}},{error:'FIELDS'})
+ const typed=await requester.command('request.create',{...input,chatLaunch:formLaunch,formVersionId:published.versionId,formAnswers:{purpose:'Supplier review'}})
+ const snapshot=(await requester.state()).requestForms.find(f=>f.agreement_id===typed.id)
+ assert.equal(snapshot.form_version_id,published.versionId);assert.equal(JSON.parse(snapshot.answers).purpose,'Supplier review')
+ const remapped=launchToken(await(await slackLaunch(h,'synthetic-locket-person')).json())
+ await h.owner.command('notification.chat.identity',{channel:'slack',providerId:'synthetic-locket-person',operatorId:outsider.id,version:1})
+ await requester.command('request.create',{...input,formVersionId:published.versionId,formAnswers:{purpose:'Supplier review'},chatLaunch:remapped},{error:'CHAT_LAUNCH'})
+ const expired=launchToken(await(await slackLaunch(h,'synthetic-locket-person')).json())
+ await h.setTime(Date.now()+601000)
+ await outsider.command('request.create',{...input,formVersionId:published.versionId,formAnswers:{purpose:'Supplier review'},chatLaunch:expired},{error:'CHAT_LAUNCH'})
+ const archive=JSON.stringify(await(await h.owner.request('/api/locket/export')).json())
+ assert.ok(!archive.includes(token));assert.ok(!archive.includes('synthetic-locket-signing'))
+})

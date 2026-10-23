@@ -1,3 +1,4 @@
+import { Tooltip } from './tooltip'
 // The app's frame, as the picked workspace draws it: a top bar with the mark,
 // the breadcrumb and the page's own tools; a slim icon rail (bottom tabs on a
 // phone); and the command bar along the bottom with search, the agent's chip
@@ -55,9 +56,9 @@ export function Shell({ active, board, crumb, state, query, onQuery, onSignOut, 
         </header>
         <nav className="lk-rail" aria-label="Locket">
           {sections.map(s => (
-            <a key={s.id} href={`#${s.id}`} className={s.id === active ? 'lk-active' : undefined} aria-current={s.id === active ? 'page' : undefined}>
+            <Tooltip key={s.id} label={s.title}><a aria-label={s.title} href={`#${s.id}`} className={s.id === active ? 'lk-active' : undefined} aria-current={s.id === active ? 'page' : undefined}>
               <Icon name={s.icon} /><span>{s.title}</span>
-            </a>
+            </a></Tooltip>
           ))}
           {state && <span className="lk-rail-me" aria-hidden="true"><Avatar name={state.actor.name} large /></span>}
         </nav>

@@ -128,6 +128,11 @@
       "optional": true
     },
     {
+      "binding": "CHAT_SLACK_SIGNING_SECRET",
+      "environment": "CHAT_SLACK_SIGNING_SECRET",
+      "optional": true
+    },
+    {
       "binding": "APPROVAL_SLACK_TOKEN",
       "environment": "APPROVAL_SLACK_TOKEN",
       "optional": true

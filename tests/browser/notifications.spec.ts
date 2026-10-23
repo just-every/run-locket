@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
+import { slackLaunch, launchToken } from '../api/chat-fixture.mjs'
 import { productPage } from './product-harness.mjs'
 import { file, pdf } from '../api/files.mjs'
 
@@ -136,4 +137,73 @@ test(`NOTIFY-001 inbox, explicit mention, read state and personal channels at 14
       await screenshot('reminder-digest')
     } finally { await close() }
   }
+})
+
+test('Chat status consent, member mapping, receipts and navigation tooltips at 1440 and 390 pixels',async({page})=>{
+ for(const width of [1440,390]){
+  const posts:any[]=[],replies:any[]=[]
+  const product=await productPage(page,{width,bindings:{APPROVAL_SLACK_TOKEN:'synthetic-locket-1',CHAT_SLACK_SIGNING_SECRET:'synthetic-locket-signing'},outboundResponse:async(request:Request)=>{
+   if(new URL(request.url).hostname==='hooks.slack.com'){replies.push(await request.json());return new Response('ok')}
+   if(request.url.includes('auth.test'))return Response.json({ok:true,user_id:'synthetic-locket-bot',bot_id:'synthetic-locket-service'})
+   if(request.method==='GET')return Response.json({ok:true,members:['synthetic-locket-person','synthetic-locket-bot']})
+   posts.push(await request.json());return Response.json({ok:true,ts:'synthetic-locket-receipt'})
+  }})
+  try{
+   const {owner,origin}=product,initial=await owner.state()
+   const capture=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-chat-${name}.png`),fullPage:true})}}
+   const submit=async(region:any,name:string)=>{
+    const response=page.waitForResponse(r=>r.url()===origin+'/api/locket/commands'&&r.request().method()==='POST')
+    await region.getByRole('button',{name,exact:true}).click();const result=await(await response).json();expect(result.ok,JSON.stringify(result.error)).toBe(true)
+   }
+   await page.goto(origin+'/app#activity')
+   const mapping=page.getByRole('region',{name:'Chat member mapping',exact:true})
+   await mapping.getByLabel('Provider member identity',{exact:true}).fill('synthetic-locket-person')
+   await mapping.getByLabel('Locket member',{exact:true}).selectOption(initial.actor.id)
+   await submit(mapping,'Map chat member')
+   await expect(mapping).toContainText('synthetic-locket-person')
+   const binding=page.getByRole('region',{name:'Approval channel configuration',exact:true})
+   await binding.getByLabel('Approval chat provider').selectOption('slack')
+   await binding.getByLabel('Provider conversation identity').fill('synthetic-locket-dm')
+   await submit(binding,'Bind approval conversation')
+   await capture('mapping')
+   await slackLaunch(product.h,'synthetic-locket-person',{shortcut:true})
+   const token=launchToken(replies[0])
+   await page.goto(origin+'/app#new/slack/'+token)
+   await expect(page.getByRole('status')).toContainText('Opened from Slack')
+   await page.getByLabel('Agreement title *',{exact:true}).fill('Slack shortcut request')
+   await page.getByLabel('Request type *',{exact:true}).selectOption('nda')
+   await page.getByLabel('Name',{exact:true}).fill('Shortcut counterparty')
+   await page.getByRole('radio',{name:'Attach draft',exact:true}).check()
+   await page.getByLabel('Draft (PDF or DOCX)',{exact:true}).setInputFiles({name:'draft.pdf',mimeType:'application/pdf',buffer:pdf('Confidentiality')})
+   await page.getByLabel('Text (optional for PDF)',{exact:true}).fill('Confidentiality')
+   await capture('shortcut-form')
+   await submit(page,'Create request')
+   await expect(page).toHaveURL(/#agreement\//)
+   const submitted=await owner.state()
+   expect(submitted.agreements.find((a:any)=>a.title==='Slack shortcut request').requester_id).toBe(initial.actor.id)
+
+   const nav=page.getByRole('navigation',{name:'Locket',exact:true}).getByRole('link',{name:'Notifications',exact:true})
+   await nav.focus();await expect(page.getByRole('tooltip')).toHaveText('Notifications')
+   await capture('focus-tooltip')
+   await nav.blur();await page.mouse.move(0,0);await nav.hover();await expect(page.getByRole('tooltip')).toHaveText('Notifications')
+   await nav.click()
+   const preferences=page.getByRole('region',{name:'Chat status notifications',exact:true})
+   await preferences.getByLabel('Slack status updates').check();await submit(preferences,'Save chat updates')
+   await page.reload();await expect(preferences.getByLabel('Slack status updates')).toBeChecked()
+   const created=await owner.command('request.create',{title:'Confidential chat screen',type:'nda',restricted:true,party:{name:'Private counterparty',kind:'customer'},file:file('draft.pdf',pdf('Confidential terms')),text:'Confidential terms'})
+   expect(posts.length).toBe(1);expect(posts[0].text).toContain(created.id);expect(posts[0].text).not.toContain('Confidential chat screen')
+   await page.reload();await expect(preferences.getByLabel('Chat update receipts')).toContainText('Provider accepted; delivery unconfirmed')
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1)).toBe(true)
+   await capture('accepted')
+   await preferences.getByLabel('Slack status updates').uncheck();await submit(preferences,'Save chat updates')
+   await page.reload();await expect(preferences.getByLabel('Slack status updates')).not.toBeChecked()
+   const notification=page.getByRole('region',{name:'Notification preferences',exact:true})
+   await notification.getByLabel('Daily email digest',{exact:true}).check();await submit(notification,'Save notification preferences')
+   await preferences.getByLabel('Slack status updates').check();await submit(preferences,'Save chat updates')
+   await owner.command('comment.add',{agreementId:created.id,versionId:created.versionId,body:'Private comment',mentionIds:[initial.actor.id]})
+   await page.reload();await expect(preferences.getByLabel('Chat update receipts')).toContainText('Chat digest unavailable')
+   expect(posts.length).toBe(1)
+   await capture('withheld')
+  }finally{await product.close()}
+ }
 })
