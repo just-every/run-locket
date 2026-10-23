@@ -986,8 +986,8 @@ REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 31 | 24 | 25 | 80 |
-| All | 50 | 24 | 25 | 99 |
+| Target and push further | 31 | 25 | 24 | 80 |
+| All | 50 | 25 | 24 | 99 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
