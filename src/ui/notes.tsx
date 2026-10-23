@@ -98,17 +98,18 @@ function FindingCard({ note, clause, state, a, locket }: { note: Note; clause: s
 
 function CommentCard({ note, state, zone }: { note: Note; state: LocketState; zone: string }) {
   const c = note.row
+  const author=c.external_author_name??personName(state,c.author_id)
   const role = state.operators.find(o => o.id === c.author_id)?.role
   return (
-    <article className="lk-note-card lk-tone-internal" aria-label={`Internal comment by ${personName(state, c.author_id)}`}>
+    <article className="lk-note-card lk-tone-internal" aria-label={`Internal comment by ${author}`}>
       <div className="lk-note-head">
         <span className="lk-dot" aria-hidden="true" />
         <h3>{c.resolved_at ? 'Resolved' : 'Internal'}</h3>
         <time>{stamp(c.at, { zone })}</time>
       </div>
       <div className="lk-note-by lk-note-by-top">
-        <Avatar name={personName(state, c.author_id)} />
-        <span><strong>{personName(state, c.author_id)}</strong> <span className="lk-muted">{role ? roleLabel[role] : ''}</span></span>
+        <Avatar name={author} />
+        <span><strong>{author}</strong> <span className="lk-muted">{c.external_author_name?'Attributed author':role ? roleLabel[role] : ''}</span></span>
       </div>
       <p className="lk-note-quote">{c.body}</p>
       {state.comments.some(reply => reply.parent_id === c.id) && <p className="lk-muted">{state.comments.filter(reply => reply.parent_id === c.id).length} {state.comments.filter(reply => reply.parent_id === c.id).length === 1 ? 'reply' : 'replies'} · see Comment threads below</p>}

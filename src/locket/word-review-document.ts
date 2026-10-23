@@ -12,6 +12,14 @@ interface ReviewModel {tree:XmlNode;text:string;ranges:Map<XmlNode,Range>;segmen
 const kinds:Record<string,WordReviewChange['kind']>={ins:'insertion',del:'deletion',moveFrom:'moveFrom',moveTo:'moveTo'}
 const propertyChange=(node:XmlNode)=>isWord(node)&&/^(?:rPr|pPr|tblPr|tblGrid|trPr|tcPr|sectPr)Change$/.test(local(node.name))
 const hiddenRevision=(node:XmlNode)=>isWord(node,'del')||isWord(node,'moveFrom')
+const propertyNames:Record<string,string>={b:'Bold',i:'Italic',u:'Underline',strike:'Strikethrough',color:'Text color',sz:'Font size (half points)',rFonts:'Font',jc:'Alignment',pStyle:'Paragraph style',rStyle:'Character style',spacing:'Spacing',ind:'Indentation',numPr:'Numbering',keepNext:'Keep with next',keepLines:'Keep lines together',pageBreakBefore:'Page break before',highlight:'Highlight'}
+function formatSummary(node:XmlNode):string {
+ const values=elements(node).filter(child=>!propertyChange(child)).map(child=>{
+  const name=local(child.name),value=wordAttr(child,'val'),details=Object.entries(child.attrs).filter(([key])=>!key.startsWith('xmlns')&&local(key)!=='val').map(([key,v])=>`${local(key)} ${v}`).join(', ')
+  return `${propertyNames[name]??name.replace(/([A-Z])/g,' $1')}${value?`: ${value}`:details?`: ${details}`:': on'}`
+ })
+ return values.join('; ')||'Default formatting'
+}
 const ancestor=(node:XmlNode,test:(node:XmlNode)=>boolean):XmlNode|undefined=>{for(let at=node.parent;at;at=at.parent)if(test(at))return at;return undefined}
 const revisionText=(node:XmlNode):string=>{
  if(isWord(node,'t')||isWord(node,'delText'))return xmlText(node)
@@ -79,7 +87,7 @@ function reviewModel(parts:WordPart[]):ReviewModel {
    range=ranges.get(owner)!
   }
   const value=revisionText(node)
-  changes.push({id:id!,kind,author:wordAttr(node,'author')??'',date:wordAttr(node,'date')??null,...range,before:kind==='deletion'||kind==='moveFrom'?value:kind==='formatting'?serializeXml(elements(node)[0]??node):'',after:kind==='insertion'||kind==='moveTo'?value:kind==='formatting'?serializeXml(node.parent!):''})
+  changes.push({id:id!,kind,author:wordAttr(node,'author')??'',date:wordAttr(node,'date')??null,...range,before:kind==='deletion'||kind==='moveFrom'?value:kind==='formatting'?formatSummary(elements(node)[0]??node):'',after:kind==='insertion'||kind==='moveTo'?value:kind==='formatting'?formatSummary(node.parent!):''})
  }
  if(!paragraphCount||text.length>200000)fail('DOCX_UNSUPPORTED','Word review needs a readable main body of at most 200,000 characters.')
  // Story revisions have no honest position in the main-body browser rendition.
