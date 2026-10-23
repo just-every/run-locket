@@ -24,7 +24,7 @@ export function checkReleaseHistory({releases,advisories,fixes,now=Date.now()}){
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
  const api=path=>JSON.parse(execFileSync('gh',['api',path],{encoding:'utf8',stdio:['ignore','pipe','inherit']}))
- const repo='repos/just-every/run-locket'
+ const repo='/repos/just-every/run-locket'
  const pages=path=>{const rows=[];for(let page=1;;page++){const next=api(repo+path+(path.includes('?')?'&':'?')+'per_page=100&page='+page);rows.push(...next);if(next.length<100)return rows}}
  const releases=pages('/releases'),advisories=pages('/security-advisories')
  const fixes=JSON.parse(await readFile(new URL('../security/security-fixes.json',import.meta.url),'utf8'))

@@ -414,4 +414,4 @@ in the provider reply address. Reply tokens cannot open or download documents,
 and link tokens cannot authenticate inbound replies. Provider authentication
 and the recorded contact address remain required. Legacy reply addresses cease
 working after migration; issue a fresh exchange. Neither capability is retained
-raw in a command result, audit or archive. Session-secret rotation ends access.
+raw in a command result, audit or archive. Token recovery requires the original active sending session.
