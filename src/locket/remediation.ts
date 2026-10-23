@@ -1,6 +1,7 @@
 import { may, requireRole } from './access'
 import type { Ctx, Handler } from './commands'
-import { installationMailReady } from './installation-mail'
+import { remediationStopHandlers, remediationSchedule, remediationReplyAddress } from './remediation-stops'
+import { installationMailLocal, installationMailReady } from './installation-mail'
 import { citation } from './obligations'
 import { canonical, date, fail, integer, json, list, object, oneOf, sha256, sql, text } from './model'
 import { agreementGuards, bump } from './records'
@@ -41,8 +42,9 @@ const approve:Handler=async(c,p)=>{
  if(c.actor.id!==e.o.owner_id)fail('FORBIDDEN','Only the obligation owner approves each request and its chase schedule.',403)
  if(r.status!=='draft'||p.consent!==true||p.digest!==r.digest||await remediationDigest(r.recipient,JSON.parse(r.source),e.occurrences)!==r.digest)fail('APPROVAL','Review and approve every exact message, recipient and scheduled time.',409)
  if(e.occurrences.some(o=>o.send_at<=c.now))fail('SCHEDULE','Prepare a future schedule before approval.',409)
+ if(JSON.parse(r.source).target==='supplier'&&!installationMailLocal(c.env)&&!remediationReplyAddress(c.env,r.id))fail('INBOUND_UNAVAILABLE','Configure the authenticated supplier reply address before approving requests.',503)
  if(!installationMailReady(c.env))fail('MAIL_UNAVAILABLE','Configure the installation mail provider and sender.',503)
- return {allowed:may.review,result:{id:r.id,status:'approved'},checks:[...e.checks,sql("(SELECT status FROM lk_remediation_requests WHERE id=?)='draft'",r.id)],writes:[sql("UPDATE lk_remediation_requests SET status='approved',approved_by=?,operator_version=?,sender=?,approved_at=? WHERE id=?",c.actor.id,c.actor.operatorVersion,c.env.MAIL_FROM??'',c.now,r.id)],audit:[{action:'remediation.approve',agreementId:e.a.id,summary:`Obligation owner explicitly approved every exact outbound request and all ${e.occurrences.length} finite scheduled occurrences.`}]}
+ return {allowed:may.review,result:{id:r.id,status:'approved'},checks:[...e.checks,sql("(SELECT status FROM lk_remediation_requests WHERE id=?)='draft'",r.id)],writes:[sql("UPDATE lk_remediation_requests SET status='approved',approved_by=?,operator_version=?,sender=?,approved_at=? WHERE id=?",c.actor.id,c.actor.operatorVersion,c.env.MAIL_FROM??'',c.now,r.id)],audit:[{action:'remediation.approve',agreementId:e.a.id,summary:`Obligation owner explicitly approved every exact outbound request and all ${e.occurrences.length} finite scheduled occurrences; maximum ${e.occurrences.length}, minimum spacing ${remediationSchedule(e.occurrences).minimumSpacingMs??'no repeat'} milliseconds.`}]}
 }
 const send:Handler=async(c,p)=>{
  requireRole(c.actor,may.review,'send approved obligation remediation')
@@ -63,9 +65,9 @@ const cancel:Handler=async(c,p)=>{
 }
 /** Replay must reauthorize source access before exposing stored command results. */
 export async function authorizeRemediationResult(c:Ctx,type:string,p:Record<string,unknown>,result:any){
- if(type==='remediation.cancel'){const request=await c.db.prepare('SELECT agreement_id FROM lk_remediation_requests WHERE id=?').bind(p.requestId).first<{agreement_id:string}>();if(request){const {visibleAgreement}=await import('./records');await visibleAgreement(c,request.agreement_id)}}
+ if(type==='remediation.cancel'||type==='remediation.stop'){const request=await c.db.prepare('SELECT agreement_id FROM lk_remediation_requests WHERE id=?').bind(p.requestId).first<{agreement_id:string}>();if(request){const {visibleAgreement}=await import('./records');await visibleAgreement(c,request.agreement_id)}}
  else if(type==='remediation.send'||type==='remediation.approve')await remediationRequest(c,p.requestId)
  else if(type==='remediation.prepare')await remediationRequirement(c,p.requirementId)
  else if(result?.id){const r=await c.db.prepare('SELECT agreement_id FROM lk_remediation_requirements WHERE id=? UNION ALL SELECT agreement_id FROM lk_remediation_evidence WHERE id=?').bind(result.id,result.id).first<{agreement_id:string}>();if(r){const {visibleAgreement}=await import('./records');await visibleAgreement(c,r.agreement_id)}}
 }
-export const remediationHandlers={'remediation.configure':configure,'remediation.prepare':prepare,'remediation.approve':approve,'remediation.send':send,'remediation.cancel':cancel,...remediationEvidenceHandlers}
+export const remediationHandlers={'remediation.configure':configure,'remediation.prepare':prepare,'remediation.approve':approve,'remediation.send':send,'remediation.cancel':cancel,...remediationStopHandlers,...remediationEvidenceHandlers}

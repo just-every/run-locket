@@ -49,6 +49,10 @@ const erase:Handler=async(c,p)=>{
    writes.push(sql('UPDATE lk_exchanges SET revoked_at=?,revision=revision+1 WHERE agreement_id=? AND revoked_at IS NULL',c.now,patch.agreementId))
   }
   if(patch.table==='lk_exchanges')sets.push('revoked_at='+c.now,'revision=revision+1')
+  if(patch.table==='lk_remediation_requests'){
+   sets.push("status='cancelled'","stop_kind='recipient_erased'")
+   writes.push(sql("DELETE FROM lk_remediation_occurrences WHERE request_id=? AND status='pending'",patch.id))
+  }
   if(patch.table==='lk_notice_plans')sets.push("status=CASE WHEN status='scheduled' THEN 'erased' ELSE status END")
   if(patch.table==='lk_notice_dispatches')sets.push("status=CASE WHEN status='pending' THEN 'cancelled' ELSE status END")
   writes.push(sql(`UPDATE ${patch.table} SET ${sets.join(',')} WHERE id=?`,...entries.map(([,v])=>v),patch.id));changedRecords++

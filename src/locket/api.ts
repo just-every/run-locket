@@ -1,5 +1,6 @@
 import { servicePerformanceHandlers } from './service-performance'
 import { wordReviewHandlers, wordReviewView } from './word-review'
+import { inboundRemediationResponse } from './remediation-stops'
 import { remediationHandlers } from './remediation'
 import { renewalLifecycleHandlers } from './renewal-lifecycle'
 import { renewalCalendarHandlers } from './renewal-calendar'
@@ -118,6 +119,8 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
   try {
     const event = await noticeEventResponse(request, env)
     if (event) return event
+    const remediationReply=await inboundRemediationResponse(request,env)
+    if(remediationReply)return remediationReply
     const inbound = await inboundExchangeResponse(request,env)
     if(inbound)return inbound
     if (request.method === 'POST') {

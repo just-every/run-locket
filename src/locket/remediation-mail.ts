@@ -4,6 +4,8 @@ import { auditSql, guardSql, type Ctx } from './commands'
 import { installationMail, installationMailLocal, installationMailReady } from './installation-mail'
 import { Problem, sql, type Actor } from './model'
 import { remediationRequest, type RemediationRow } from './remediation-records'
+import { remediationReplyAddress } from './remediation-stops'
+import { openErasedAddress } from './erasure-addresses'
 import { remediationDigest } from './remediation'
 
 /** Both cron and explicit send use the same one-use durable claim. No session is fabricated. */
@@ -22,9 +24,11 @@ export async function dispatchRemediation(c:Ctx,occurrenceId:string) {
  }
  try {
   const e=await remediationRequest(c,occurrence.request_id),r=e.request
+  const erased=(await c.db.prepare('SELECT address_ciphertext FROM lk_erasure_blocks').all<{address_ciphertext:string}>()).results
+  for(const row of erased)if((await openErasedAddress(c,row.address_ciphertext)).toLowerCase()===r.recipient.toLowerCase())return finish('cancelled',null,'recipient_erased')
   if(r.status!=='approved'||r.approved_by!==e.o.owner_id||c.actor.id!==r.approved_by||c.actor.operatorVersion!==r.operator_version||!may.review.includes(c.actor.role)||await remediationDigest(r.recipient,JSON.parse(r.source),e.occurrences)!==r.digest)return finish('cancelled',null,'authority_or_approval_changed')
   if(!installationMailReady(c.env)||r.sender!==(c.env.MAIL_FROM??''))return finish('cancelled',null,'sender_changed_or_unavailable')
-  const guard=crypto.randomUUID(),checks=[...e.checks,
+  const guard=crypto.randomUUID(),checks=[...e.checks,sql('(SELECT COUNT(*) FROM lk_erasure_blocks)=?',erased.length),
    sql("EXISTS(SELECT 1 FROM lk_remediation_requests WHERE id=? AND status='approved' AND approved_by=? AND operator_version=? AND digest=?)",r.id,c.actor.id,c.actor.operatorVersion,r.digest),
    sql("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND version=?)",c.actor.id,c.actor.operatorVersion),sql(`${roleSql} IN (SELECT value FROM json_each(?))`,c.actor.id,JSON.stringify(may.review)),
    sql("EXISTS(SELECT 1 FROM lk_remediation_occurrences WHERE id=? AND status='pending' AND send_at<=?)",occurrence.id,c.now)]
@@ -34,7 +38,7 @@ export async function dispatchRemediation(c:Ctx,occurrenceId:string) {
   claimed=true
   if(installationMailLocal(c.env))return finish('suppressed',null,'local_suppressed')
   try {
-   const result=await installationMail(c.env)!.send({deliveryId:occurrence.id,from:r.sender,to:[r.recipient],subject:occurrence.subject,text:occurrence.message_text,html:'',headers:{}})
+   const result=await installationMail(c.env)!.send({deliveryId:occurrence.id,from:r.sender,to:[r.recipient],subject:occurrence.subject,text:occurrence.message_text,html:'',headers:{},...(remediationReplyAddress(c.env,r.id)?{replyTo:remediationReplyAddress(c.env,r.id)!}:{})})
    return finish(result.status==='development'?'suppressed':result.status,result.providerMessageId,result.code??null)
   }catch{return finish('uncertain',null,'provider_outcome_unknown')}
  }catch(error){if(error instanceof Problem||/LOCKET_GUARD/.test(String(error)))return finish('cancelled',null,'authority_or_source_changed');throw error}

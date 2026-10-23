@@ -83,7 +83,7 @@ test('OBL-002 evidence before done, overdue owner notice, escalation to the resp
 })
 
 test('AGENT-008 owner approves exact requests and finite chases, rejects insufficient insurance and completes only with matching original evidence',async t=>{
- const h=await installation();t.after(()=>h.close())
+ const h=await installation({bindings:{POSTMARK_INBOUND_SECRET:'synthetic-locket-81',POSTMARK_REPLY_DOMAIN:'replies.example.test'}});t.after(()=>h.close())
  const {a,o,requirement}=await remediationFixture(h)
  await h.owner.command('obligation.update',{agreementId:a.id,obligationId:o.id,action:'done',file:file('bypass.pdf',certificate('1000000'))},{error:'REMEDIATION_REQUIRED'})
  const request=await h.owner.command('remediation.prepare',{requirementId:requirement.id,target:'supplier',recipient:'broker@example.test',occurrences:[{sendAt:at('2026-08-04T15:00:00Z'),subject:'Please replace expired insurance',message:'Please send current USD 2M coverage naming Harbor Couriers.'},{sendAt:at('2026-08-05T15:00:00Z'),subject:'Insurance chase',message:'Following up on the approved request for current USD 2M insurance.'}]})
@@ -120,7 +120,7 @@ test('AGENT-008 owner approves exact requests and finite chases, rejects insuffi
 })
 
 test('AGENT-008 uncertain installation mail is attempted once and the owner can withdraw future chases without waiving the obligation',async t=>{
- const h=await installation({mailResponse:mail=>mail.subject==='Request outcome unknown'?new Response('Unknown provider outcome',{status:503}):Response.json({id:'synthetic-locket-41'})});t.after(()=>h.close())
+ const h=await installation({bindings:{POSTMARK_INBOUND_SECRET:'synthetic-locket-81',POSTMARK_REPLY_DOMAIN:'replies.example.test'},mailResponse:mail=>mail.subject==='Request outcome unknown'?new Response('Unknown provider outcome',{status:503}):Response.json({id:'synthetic-locket-41'})});t.after(()=>h.close())
  const {o,requirement}=await remediationFixture(h)
  const drafted=await h.owner.command('remediation.prepare',{requirementId:requirement.id,target:'supplier',draftFromRequirement:true,occurrences:[{sendAt:at('2026-08-04T15:00:00Z')}]})
  let state=await h.owner.state(),item=state.remediation.occurrences.find(row=>row.request_id===drafted.id)
@@ -142,7 +142,7 @@ test('AGENT-008 uncertain installation mail is attempted once and the owner can 
 })
 
 test('AGENT-008 unreadable fields need human review and revoked contact approval cannot send',async t=>{
- const h=await installation();t.after(()=>h.close())
+ const h=await installation({bindings:{POSTMARK_INBOUND_SECRET:'synthetic-locket-81',POSTMARK_REPLY_DOMAIN:'replies.example.test'}});t.after(()=>h.close())
  const {a,o,requirement}=await remediationFixture(h)
  const returned=await h.owner.command('remediation.evidence',{requirementId:requirement.id,file:file('manual-review.pdf',pdf('Scanned certificate requires original document review'))})
  assert.equal(returned.status,'needs_confirmation')
@@ -156,5 +156,38 @@ test('AGENT-008 unreadable fields need human review and revoked contact approval
  assert.ok(!archive.records.lk_remediation_requests.some(row=>row.recipient==='broker@example.test'),'mutable request recipients follow the installation erasure rule')
  await h.scheduled(at('2026-08-04T15:00:00Z'))
  assert.equal(to(h,'broker@example.test','Replace insurance').length,0)
- assert.equal((await h.owner.state()).remediation.occurrences.find(x=>x.request_id===request.id).status,'cancelled')
+ assert.equal((await h.owner.state()).remediation.occurrences.filter(x=>x.request_id===request.id).length,0,'erasure removes pending schedules rather than retaining mutable copies')
+})
+
+
+test('AGENT-008 recipient replies and opt-outs stop every future chase; legal hold retains erased schedules without authorizing mail',async t=>{
+ const bindings={POSTMARK_INBOUND_SECRET:'synthetic-locket-81',POSTMARK_REPLY_DOMAIN:'replies.example.test'},h=await installation({bindings});t.after(()=>h.close())
+ const {a,o,requirement}=await remediationFixture(h)
+ const prepare=async()=>{
+  const r=await h.owner.command('remediation.prepare',{requirementId:requirement.id,target:'supplier',recipient:'broker@example.test',draftFromRequirement:true,occurrences:[{sendAt:at('2026-08-04T15:00:00Z')},{sendAt:at('2026-08-05T15:00:00Z')},{sendAt:at('2026-08-06T15:00:00Z')}]})
+  await h.owner.command('remediation.approve',{requestId:r.id,digest:r.digest,consent:true});return r
+ }
+ await h.owner.command('remediation.prepare',{requirementId:requirement.id,target:'supplier',recipient:'not-on-record@example.test',draftFromRequirement:true,occurrences:[{sendAt:at('2026-08-04T15:00:00Z')}]},{error:'RECIPIENT'})
+ const r=await prepare(),body={OriginalRecipient:`remediation+${r.id}@replies.example.test`,From:'broker@example.test',MessageID:'synthetic-locket-82'}
+ assert.equal((await h.request('/api/locket/remediation/inbound',{method:'POST',body})).status,401)
+ assert.equal((await h.request('/api/locket/remediation/inbound',{method:'POST',headers:{authorization:'Bearer synthetic-locket-81'},body:{...body,From:'outsider@example.test'}})).status,403)
+ await h.scheduled(at('2026-08-04T15:00:00Z'))
+ const sent=h.mails.filter(m=>m.to.includes('broker@example.test'));assert.equal(sent.length,1);assert.equal(sent[0].reply_to??sent[0].replyTo,body.OriginalRecipient)
+ for(let n=0;n<2;n++)assert.equal((await h.request('/api/locket/remediation/inbound',{method:'POST',headers:{authorization:'Bearer synthetic-locket-81'},body})).status,200)
+ await h.scheduled(at('2026-08-07T15:00:00Z'))
+ assert.equal(h.mails.filter(m=>m.to.includes('broker@example.test')).length,1)
+ let state=await h.owner.state();assert.equal(state.remediation.requests.find(x=>x.id===r.id).stop_kind,'recipient_reply');assert.equal(state.remediation.occurrences.filter(x=>x.request_id===r.id&&x.status==='cancelled').length,2)
+ // Restart at the fixture time through its public clock and sign-in door.
+ await h.setTime(at('2026-08-03T15:00:00Z'));Object.assign(h.owner,await h.signIn('owner@example.test'))
+ const optout=await prepare()
+ assert.equal((await h.request('/api/locket/remediation/inbound',{method:'POST',headers:{authorization:'Bearer synthetic-locket-81'},body:{...body,OriginalRecipient:`remediation+${optout.id}@replies.example.test`,MessageID:'synthetic-locket-83',OptOut:true}})).status,200)
+ const held=await prepare();state=await h.owner.state();const agreement=state.agreements.find(x=>x.id===a.id)
+ await h.owner.command('hold.set',{agreementId:a.id,version:agreement.version,active:true,holdVersion:0,reviewOn:'2026-09-01',reason:'Preserve original requests for the dispute.'})
+ const preview=await h.owner.command('person.erase.preview',{...erasureRequest('broker@example.test'),receivedOn:'2026-08-03'})
+ assert.ok(preview.retained.some(x=>x.table==='lk_remediation_requests'&&x.id===held.id&&x.reason==='legal_hold'))
+ await h.owner.command('person.erase',erasureConfirmation(preview,'broker@example.test',[]))
+ state=await h.owner.state();assert.equal(state.remediation.requests.find(x=>x.id===held.id).recipient,'broker@example.test');assert.equal(state.remediation.occurrences.filter(x=>x.request_id===held.id).length,3)
+ await h.scheduled(at('2026-08-07T15:00:00Z'))
+ assert.equal(h.mails.filter(m=>m.to.includes('broker@example.test')).length,1,'retaining held evidence does not authorize contacting an erased recipient')
+ assert.equal((await h.owner.state()).obligations.find(x=>x.id===o.id).status,'confirmed')
 })
