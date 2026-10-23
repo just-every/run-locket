@@ -3,7 +3,7 @@ import { fail } from './model'
 
 type Matrix = number[]
 type Point = [number, number]
-interface Font { fontMatrix:number[]; vertical?:boolean; isType3Font?:boolean; isInvalidPDFjsFont?:boolean }
+interface Font { fontMatrix?:number[]; vertical?:boolean; isType3Font?:boolean; isInvalidPDFjsFont?:boolean }
 interface TextState {
  ctm:Matrix; matrix:Matrix; x:number; y:number; lineX:number; lineY:number
  font:Font|null; size:number; scale:number; charSpacing:number; wordSpacing:number; rise:number; leading:number; unsupported?:string
@@ -76,7 +76,7 @@ async function textRuns(page:PdfPage,viewport:Matrix):Promise<Run[]> {
     if(!font)throw new Error('Text has no font')
     const matrix=multiply(viewport,multiply(state.ctm,state.matrix)),direction=size<0?-1:1,fontSize=Math.abs(size)
     const reason=state.unsupported??(font.vertical?'vertical text':font.isType3Font?'Type3 text':font.isInvalidPDFjsFont?'invalid font':
-     size<=0||scale<=0||!font.fontMatrix||font.fontMatrix[0]<=0?'nonstandard font scaling':
+     size<=0||scale<=0||(font.fontMatrix?.[0]??.001)<=0?'nonstandard font scaling':
      !near(matrix[1],0)||!near(matrix[2],0)||matrix[0]<=0||matrix[3]>=0?'rotated, skewed or mirrored text':undefined)
     const cursor=point(matrix,state.x,state.y+state.rise),top=point(matrix,state.x,state.y+state.rise+fontSize)[1],height=Math.abs(matrix[3]*fontSize)
     let run=previous
@@ -89,7 +89,8 @@ async function textRuns(page:PdfPage,viewport:Matrix):Promise<Run[]> {
       else state.x-=glyph*fontSize*scale*direction/1000
       continue
      }
-     const unit=fontSize*(font.fontMatrix?.[0]??0),advance=glyph.width*unit*scale*direction
+     // PDF.js uses the PDF default 0.001-em font matrix when a font omits it.
+     const unit=fontSize*(font.fontMatrix?.[0]??.001),advance=glyph.width*unit*scale*direction
      const origin=point(matrix,state.x,state.y+state.rise),end=point(matrix,state.x+advance,state.y+state.rise)
      const upper=point(matrix,state.x,state.y+state.rise+size),upperEnd=point(matrix,state.x+advance,state.y+state.rise+size)
      const start=run.text.length,unicode=glyph.unicode??''
