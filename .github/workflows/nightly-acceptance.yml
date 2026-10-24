@@ -22,6 +22,9 @@ jobs:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
       LOCKET_BROWSER_OUTPUT: ${{ runner.temp }}/locket-acceptance
+      # Retain controlled clocks and provider edges in the specs that declare
+      # them. Native-only specs still use the owned installation's private entry.
+      LOCKET_CAMPAIGN_LIVE: ''
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
