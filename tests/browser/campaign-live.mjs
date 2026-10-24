@@ -15,7 +15,7 @@ try{
  const port=await freePort()
  // The customer-site acceptance door needs the same ephemeral key in the
  // installation and its fixture website. Configure it through public setup.
- const clickwrapKey='synthetic-locket-'+randomUUID(),answers=join(parent,'answers.json')
+ const clickwrapKey='synthetic-locket-'+randomUUID(),answers=join(root,'.acceptance-answers.json')
  await writeFile(answers,JSON.stringify({OWNER_EMAIL:'owner@example.test',CLICKWRAP_SIGNING_KEY:clickwrapKey}),{mode:0o600,flag:'wx'})
  try{await command(join(root,'node_modules/.bin/rer'),['setup','--answers',answers,'--non-interactive','--port',String(port),'--no-queue'],root)}finally{await rm(answers,{force:true})}
  runtime=child(join(root,'node_modules/.bin/rer'),['dev','--foreground','--json','--port',String(port),'--no-queue'],root)
