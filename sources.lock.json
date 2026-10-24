@@ -4329,7 +4329,7 @@
       "executable": false
     },
     "tests/browser/browser-edits.spec.ts": {
-      "sha256": "d11e71b73952a4f8e793074ce6bcd83e5212e30c67d8999007afa4f6560fd461",
+      "sha256": "a9a8ee756af08619033133fed88bfe0419fc639ca5dc48bd6fa1eccab55bec17",
       "executable": false
     },
     "tests/browser/bulk-reminders.spec.ts": {

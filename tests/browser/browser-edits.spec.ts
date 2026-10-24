@@ -37,6 +37,7 @@ test(`NEG-004 two browser edits, selected mention, reply and resolution at 1440p
     const edited=original.replace('30 days','45 days').replace('$100,000','$200,000')
     const created=await owner.command('request.create',{title:`Northwind MSA ${tag}`,type:'nda',party:{name:`Northwind Technology ${tag}`,kind:'supplier'},file:file('northwind.docx',docx(original.split('\n')))})
     await page.goto(`${origin}/app#agreement/${created.id}`)
+    await page.reload()
     await page.getByRole('button',{name:'Add v2',exact:true}).click()
     await page.getByText('Edit document text in the browser',{exact:true}).click()
     await page.getByLabel('Edit v1 text',{exact:true}).fill(edited)
