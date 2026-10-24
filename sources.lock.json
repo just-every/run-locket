@@ -4341,7 +4341,7 @@
       "executable": false
     },
     "tests/browser/clause-library.spec.ts": {
-      "sha256": "6d75be6e323bb9752073bf7d663aae4435388f0c6c541c450fe460f33445469a",
+      "sha256": "0578788a44f0bf85eeb1c3d13fd0ed16613d7b374bf7fac80fc7de1dda0cccd9",
       "executable": false
     },
     "tests/browser/clause-session.mjs": {

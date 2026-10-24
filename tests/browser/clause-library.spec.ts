@@ -34,6 +34,7 @@ test(`DRAFT-003 indemnity fallback insertion and executed acceptance at 1440px a
     await command('playbook.activate', { id: playbook.id })
     const request = await command('request.create', { title: `Clause negotiation ${tag}`, type: 'nda', party: { name: `Counterparty ${tag}`, kind: 'customer' }, templateVersionId: template.versionId, fields: {} })
     await page.goto(`${origin}/app#agreement/${request.id}`)
+    await page.reload()
     await page.getByRole('button', { name: 'Add v2', exact: true }).click()
     const library = page.getByRole('region', { name: 'Approved clause library' })
     await library.getByRole('searchbox', { name: 'Search clauses by topic' }).fill(`indemnity ${tag}`)
