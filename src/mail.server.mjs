@@ -5,7 +5,7 @@ export function operatorMail(env) {
  if (env.RER_DEMO === '1' || env.AUTH_LOCAL === 'true') {
   return createMailSender({ provider: 'development', mode: 'development' })
  }
- if (!env.MAIL_PROVIDER || ['development', 'later'].includes(env.MAIL_PROVIDER)) return undefined
+ if (!env.MAIL_PROVIDER || env.MAIL_PROVIDER === 'development') return undefined
  if (env.MAIL_PROVIDER === 'postmark') return postmarkMail(env.MAIL_API_KEY)
  return {
   async send(message) {

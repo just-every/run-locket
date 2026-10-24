@@ -98,11 +98,11 @@
       "label": "Mail provider",
       "kind": "select",
       "required": true,
-      "default": "later",
+      "default": "development",
       "options": [
         {
-          "value": "later",
-          "label": "Configure when hosting"
+          "value": "development",
+          "label": "Local development only"
         },
         {
           "value": "rer",

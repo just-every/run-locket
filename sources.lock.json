@@ -133,7 +133,7 @@
       "executable": false
     },
     "deploy.json": {
-      "sha256": "7a0313afef532d813d4c5be7f204bdd4f401ccbd9325aaba8f0eae491bf2d450",
+      "sha256": "caeb9da30fba609b2bef7cd7601c67c2f9614c3ba63d747eff4783239abc2cab",
       "executable": false
     },
     "docs/agents-and-the-api.md": {
@@ -485,7 +485,7 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "d79373fd8f3fb5dc7e40a926ee5d604f76baa773af9503239e6d17fb742a9316",
+      "sha256": "7fa403bb0686c3ad83eeb6b47923fd34cf81754f1502dc96c5266d2be8af83f8",
       "executable": false
     },
     "package.json": {
@@ -609,11 +609,11 @@
       "executable": false
     },
     "rer-project.json": {
-      "sha256": "1dd476903d6d79d1c98f36c99b264b3ea46a60dc9724eb92fc194f728c57e47e",
+      "sha256": "ce63997caf58bf91408f8c504d46f017dddcb80640932edbc0b0c8787619c6fe",
       "executable": false
     },
     "rer-setup.json": {
-      "sha256": "af379b11019de12589d90b2215e6ed42221d7f71dec3d1cf2612004a0a6f8d1e",
+      "sha256": "0ecc3b42dc3510aef8c4cf9bd4a27dcbb89803d10292212afd8b4c077ee73c7d",
       "executable": false
     },
     "RUN-LOCALLY.md": {
@@ -813,7 +813,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "b3d02b01167084c77deb82a0460312f38899b34c6e5aaa05e230a746f808c453",
+      "sha256": "903e8e6c507e648a47fba0cdbc94f46558e39d26392810bfcdf254013a604a02",
       "executable": false
     },
     "src/base/actor.ts": {
@@ -1713,7 +1713,7 @@
       "executable": false
     },
     "src/mail.server.mjs": {
-      "sha256": "43a9e57921468ebedec56007b42307ba1bfab650fc27edef59442097c7aee46b",
+      "sha256": "e566cf2f1a711373da0e82873b7001814409ed5ebc119c2467299b8a24b2763f",
       "executable": false
     },
     "src/modules/ai/client.mjs": {
