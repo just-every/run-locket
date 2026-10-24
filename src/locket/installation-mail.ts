@@ -5,5 +5,5 @@ export const installationMailLocal=(env:Bindings)=>env.AUTH_LOCAL==='true'||(env
 export const installationMail=operatorMail
 export function installationMailReady(env:Bindings) {
  if(installationMailLocal(env))return true
- return Boolean(env.MAIL_FROM&&env.MAIL_API_KEY&&['resend','sendgrid','cloudflare','postmark'].includes(env.MAIL_PROVIDER??'')&&(env.MAIL_PROVIDER!=='cloudflare'||env.MAIL_ACCOUNT_ID)&&installationMail(env))
+ return Boolean(env.MAIL_FROM&&env.MAIL_API_KEY&&['rer','resend','sendgrid','cloudflare','postmark'].includes(env.MAIL_PROVIDER??'')&&(env.MAIL_PROVIDER!=='rer'||env.MAIL_RELAY_URL)&&(env.MAIL_PROVIDER!=='cloudflare'||env.MAIL_ACCOUNT_ID)&&installationMail(env))
 }

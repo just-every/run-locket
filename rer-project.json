@@ -1,7 +1,27 @@
 {
   "schema": 1,
   "projectId": "just-every/run-locket",
-  "name": "locket",
+  "name": "Locket",
   "sourceRepository": "https://github.com/just-every/run-locket",
-  "license": "MIT"
+  "license": "MIT",
+  "deployment": {
+    "target": "cloudflare-workers",
+    "artifactFile": "rer-worker-artifact.json"
+  },
+  "operations": {
+    "setup": "pnpm install --frozen-lockfile && pnpm exec rer install",
+    "build": "pnpm run build",
+    "verify": "pnpm exec rer check --profile first-party && pnpm run check:deployment-spec && pnpm run verify",
+    "artifact": "node scripts/delivery/base/cli.mjs artifact --config packaging.json",
+    "recovery": "Follow OPERATIONS.md: pause writes and scheduled work, retain exact source and private configuration, export data before changing deployment, restore only into fresh empty resources, re-export and compare bytes, then verify owner sessions before routing traffic. Preserve every applied migration name and byte."
+  },
+  "verification": {
+    "migrationDirectories": [
+      "migrations/core"
+    ]
+  },
+  "setup": {
+    "path": "rer-setup.json",
+    "sha256": "d0e6b229a55a64ecac2b2b5c290d1a7f2054be40be6ba0df2c1f0de15a39c333"
+  }
 }

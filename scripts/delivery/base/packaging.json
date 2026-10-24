@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "project": {
+    "schema": 1,
+    "projectId": "just-every/run-locket",
+    "name": "Locket",
+    "sourceRepository": "https://github.com/just-every/run-locket",
+    "license": "MIT",
+    "deployment": {
+      "target": "cloudflare-workers",
+      "artifactFile": "rer-worker-artifact.json"
+    },
+    "operations": {
+      "setup": "pnpm install --frozen-lockfile && pnpm exec rer install",
+      "build": "pnpm run build",
+      "verify": "pnpm exec rer check --profile first-party && pnpm run check:deployment-spec && pnpm run verify",
+      "artifact": "node scripts/delivery/base/cli.mjs artifact --config packaging.json",
+      "recovery": "Follow OPERATIONS.md: pause writes and scheduled work, retain exact source and private configuration, export data before changing deployment, restore only into fresh empty resources, re-export and compare bytes, then verify owner sessions before routing traffic. Preserve every applied migration name and byte."
+    },
+    "verification": {
+      "migrationDirectories": [
+        "migrations/core"
+      ]
+    }
+  },
+  "managed": {
+    "workflowRef": "runeditrun/delivery/.github/workflows/trusted-build.yml@86c8b37399c901bffd9a240dbd1148a65ec83b34",
+    "artifactFile": "rer-worker-artifact.json",
+    "buildProfile": "project",
+    "verificationProfiles": [
+      "full"
+    ]
+  },
+  "artifact": {
+    "specInputs": {
+      "publicVariableNames": [
+        "AUTH_ORIGIN",
+        "AUTH_LOCAL",
+        "MAIL_PROVIDER",
+        "MAIL_FROM",
+        "MAIL_RELAY_URL",
+        "MAIL_ACCOUNT_ID"
+      ],
+      "secretNames": [
+        "OWNER_EMAIL",
+        "SESSION_SECRET",
+        "INSTALLATION_KEY",
+        "SETUP_TOKEN"
+      ],
+      "optionalSecretNames": [
+        "INSTALLATION_KEY_PREVIOUS",
+        "MAIL_API_KEY",
+        "CLICKWRAP_SIGNING_KEY",
+        "NOTICE_RESEND_WEBHOOK_SECRET",
+        "POSTMARK_SERVER_TOKEN",
+        "POSTMARK_INBOUND_SECRET",
+        "POSTMARK_REPLY_DOMAIN",
+        "QUICKBOOKS_ACCESS_TOKEN",
+        "QUICKBOOKS_REALM_ID",
+        "QUICKBOOKS_SANDBOX",
+        "AI_TRAINING_PROHIBITED",
+        "AI_ENABLED",
+        "AI_MODEL",
+        "AI_BASE_URL",
+        "AI_API_KEY",
+        "MODELS_SERVICE",
+        "MODELS_KEY",
+        "CHAT_SLACK_SIGNING_SECRET",
+        "APPROVAL_SLACK_TOKEN",
+        "APPROVAL_TEAMS_TOKEN",
+        "APPROVAL_NOOK_ORIGIN",
+        "APPROVAL_NOOK_TOKEN",
+        "SIGNATURE_DOCUSIGN_TOKEN",
+        "SIGNATURE_ACROBAT_TOKEN",
+        "SIGNATURE_DROPBOX_KEY",
+        "SIGNATURE_INKWELL_TOKEN",
+        "SIGNATURE_INKWELL_ORIGIN",
+        "WORKFORCE_SCIM_TOKEN",
+        "WORKFORCE_SAML_ISSUER",
+        "WORKFORCE_SAML_SSO_URL",
+        "WORKFORCE_SAML_CERT"
+      ],
+      "migrationPrefix": "",
+      "healthPath": "/health",
+      "recovery": "Follow OPERATIONS.md: pause writes and scheduled work, retain exact source and private configuration, export data before changing deployment, restore only into fresh empty resources, re-export and compare bytes, then verify owner sessions before routing traffic. Preserve every applied migration name and byte.",
+      "providerEffects": [
+        "outbound-mail",
+        "ai",
+        "outbound-webhooks"
+      ],
+      "surfaces": {
+        "app": {
+          "path": "/signin",
+          "originVariable": "AUTH_ORIGIN",
+          "signIn": {
+            "path": "/signin",
+            "loginHint": false,
+            "ownerSignIn": "/auth/owner-claim"
+          }
+        }
+      },
+      "mail": {
+        "providers": [
+          "rer",
+          "resend",
+          "sendgrid",
+          "cloudflare"
+        ]
+      }
+    }
+  },
+  "setup": {
+    "manifestFile": "rer-setup.json"
+  }
+}

@@ -198,6 +198,259 @@
       }
     },
     {
+      "path": "scripts/delivery/base/artifact.mjs",
+      "originPath": "modules/delivery-producer/artifact.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/artifact.mjs": "129f210f1556e816ba94ffe74359ac553cd26466aaf8c6c299765e9cea29aa07"
+      },
+      "modes": {
+        "scripts/delivery/base/artifact.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/bindings.mjs",
+      "originPath": "modules/delivery-producer/bindings.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/bindings.mjs": "5548f71b7bb32c6e6c75442f0e6cf0af9da3226aebcaf964c7702ea549e48392"
+      },
+      "modes": {
+        "scripts/delivery/base/bindings.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/capabilities.mjs",
+      "originPath": "modules/delivery-producer/capabilities.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/capabilities.mjs": "5e4db1f4428f107c91b51be3c9c18e7757d7e23574dd977a872f6944abd32a1d"
+      },
+      "modes": {
+        "scripts/delivery/base/capabilities.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/cli.mjs",
+      "originPath": "modules/delivery-producer/cli.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/cli.mjs": "5d60954f6b03216613d17ec0d19464c339ce3a8a441c7972bf3f80ceea4f7ad5"
+      },
+      "modes": {
+        "scripts/delivery/base/cli.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/declarations.mjs",
+      "originPath": "modules/delivery-producer/declarations.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/declarations.mjs": "bf63076ba1c203c948fe57f41f28fe6ad06ec1e057eecf2b55aab5aeee7c5e2c"
+      },
+      "modes": {
+        "scripts/delivery/base/declarations.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/export.mjs",
+      "originPath": "modules/delivery-producer/export.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/export.mjs": "0e36cf60c02ff737528018c5f027b96970e9154dd9464d3de08c19c3a3a5f5a5"
+      },
+      "modes": {
+        "scripts/delivery/base/export.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/generators/integration.mjs",
+      "originPath": "modules/delivery-producer/generators/integration.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/generators/integration.mjs": "ec9689f03b339466ee20c4a77da5227ba39789cc3de52d33687127148d4889f3"
+      },
+      "modes": {
+        "scripts/delivery/base/generators/integration.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/generators/managed.mjs",
+      "originPath": "modules/delivery-producer/generators/managed.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/generators/managed.mjs": "275131025f7b1810b7757053caa7439f9cd8119bfec94512c4fa4cf1ee1a5c60"
+      },
+      "modes": {
+        "scripts/delivery/base/generators/managed.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/generators/project.mjs",
+      "originPath": "modules/delivery-producer/generators/project.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/generators/project.mjs": "29540e3e2d9ef0529a07c04ed70eb3e7fe0f73906fe826e53c55678ad8a364de"
+      },
+      "modes": {
+        "scripts/delivery/base/generators/project.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/generators/validation.mjs",
+      "originPath": "modules/delivery-producer/generators/validation.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/generators/validation.mjs": "ec5e0cdd38e4143530fd1366930b9e8e0e081a0729687926ed13a256834519a9"
+      },
+      "modes": {
+        "scripts/delivery/base/generators/validation.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/mail.mjs",
+      "originPath": "modules/delivery-producer/mail.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/mail.mjs": "2323205c7cbc1aea81ec85509d597df2e486abfc9443981ceaee04950db913a4"
+      },
+      "modes": {
+        "scripts/delivery/base/mail.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/migrations.mjs",
+      "originPath": "modules/delivery-producer/migrations.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/migrations.mjs": "41650d5f2c22c0dbf8c4d8640bc89d872907828b558df4af89c4f70059d4878f"
+      },
+      "modes": {
+        "scripts/delivery/base/migrations.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/native-export.mjs",
+      "originPath": "modules/delivery-producer/native-export.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/native-export.mjs": "5c0f90e688f5242dbc2f62416259cbb3074647298df8daa431a7022aa10d1a41"
+      },
+      "modes": {
+        "scripts/delivery/base/native-export.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/package.mjs",
+      "originPath": "modules/delivery-producer/package.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/package.mjs": "5a32dec3274b66474e12d5141e973542248ceeecf0f8464f6e9da87d60228cb4"
+      },
+      "modes": {
+        "scripts/delivery/base/package.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/paths.mjs",
+      "originPath": "modules/delivery-producer/paths.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/paths.mjs": "32af2ee0d6e8ce048d04978e2d70f476bdc2a690b1a270d580056641f87a1731"
+      },
+      "modes": {
+        "scripts/delivery/base/paths.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/payloads.mjs",
+      "originPath": "modules/delivery-producer/payloads.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/payloads.mjs": "da3a9d09860c33bdd0b287bca9abc6210b12d13439e569d178a5b31fec563ee5"
+      },
+      "modes": {
+        "scripts/delivery/base/payloads.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/schema",
+      "originPath": "schema",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/schema/dependencies.mjs": "4bfc30fa75029db2727a9d1fb095d4969dc756c5317ac55ce768202bb869e2b7",
+        "scripts/delivery/base/schema/json-schema.mjs": "243b8808b3a6540c8ccec586b69dc16c09d53c965863e5478d5dc1fbd229a5ae",
+        "scripts/delivery/base/schema/setup-validation.mjs": "7ee1a46a742570cd5d3df605732c0777473f419f7b63b6c5ad1c238406a1625f",
+        "scripts/delivery/base/schema/SETUP.schema.json": "946adc2e484ace3dfee960a58a6215fa55a600079aa7e2cf52264704ece74998"
+      },
+      "modes": {
+        "scripts/delivery/base/schema/dependencies.mjs": "100644",
+        "scripts/delivery/base/schema/json-schema.mjs": "100644",
+        "scripts/delivery/base/schema/setup-validation.mjs": "100644",
+        "scripts/delivery/base/schema/SETUP.schema.json": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/sign-in.mjs",
+      "originPath": "modules/delivery-producer/sign-in.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/sign-in.mjs": "951aada2c00131ab7c808974827654b0fda20bcaeed1f2f97194b25441c03aff"
+      },
+      "modes": {
+        "scripts/delivery/base/sign-in.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/spec.mjs",
+      "originPath": "modules/delivery-producer/spec.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/spec.mjs": "65179ca5222485513260e8d58aaae6740ae6fe1b27065e96f0d95d197fc6d3f0"
+      },
+      "modes": {
+        "scripts/delivery/base/spec.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/delivery/base/sql-statements.mjs",
+      "originPath": "modules/delivery-producer/sql-statements.mjs",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/delivery/base/sql-statements.mjs": "8819f7f91b7781905796ea35b01dd1a55e08ed3893ff6d8aafaf03d2f35c1c9a"
+      },
+      "modes": {
+        "scripts/delivery/base/sql-statements.mjs": "100644"
+      }
+    },
+    {
+      "path": "scripts/edition-authoring",
+      "originPath": "edition-authoring",
+      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
+      "files": {
+        "scripts/edition-authoring/base-copies.mjs": "ca2e3b86aec67aaa5cb28d1a8311612a905fbd2116fac999a34185fa776cf876",
+        "scripts/edition-authoring/cli.mjs": "d9bc25b361c056ec4bebe2b8e506baff95fdd06ec4d4f54a63f20d873025a89b",
+        "scripts/edition-authoring/files.mjs": "eb0b8a0b9958c4ed84735d85f5298f3d1307ef60ddee1c2a3329c6ed7af0902e",
+        "scripts/edition-authoring/manifest.mjs": "0c93bd39b1dd869b23a9d2727671fe8f9c933a9d56c7a3df1ba83c4a6f816e7b",
+        "scripts/edition-authoring/parent-comparison.mjs": "fba6c894e2fe5a48c2f8706ab74b09d1935bd7fa38049a264d3d91ff6d336003",
+        "scripts/edition-authoring/projection-lock.mjs": "bbb939b4e5bc6b5db8bf51156ec770fa30fc5df7a8fbb21a751c8ede69b1444b",
+        "scripts/edition-authoring/release.mjs": "40acdb670edbde2eafa731f535bbe7403360a3327b576ed47355936bcc4a543a",
+        "scripts/edition-authoring/sources.mjs": "1033adaaa5f1f52053c34552c0979b6f868907f00cc1005d39fd8f845df4be09",
+        "scripts/edition-authoring/updates.mjs": "54e7246025a618ed16ee042c22dc9a8dc27b06175c30f81c4c6568992ed04799"
+      },
+      "modes": {
+        "scripts/edition-authoring/base-copies.mjs": "100644",
+        "scripts/edition-authoring/cli.mjs": "100644",
+        "scripts/edition-authoring/files.mjs": "100644",
+        "scripts/edition-authoring/manifest.mjs": "100644",
+        "scripts/edition-authoring/parent-comparison.mjs": "100644",
+        "scripts/edition-authoring/projection-lock.mjs": "100644",
+        "scripts/edition-authoring/release.mjs": "100644",
+        "scripts/edition-authoring/sources.mjs": "100644",
+        "scripts/edition-authoring/updates.mjs": "100644"
+      }
+    },
+    {
       "path": "scripts/installer/seed.mjs",
       "originPath": "foundation/template/scripts/installer/seed.mjs",
       "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
@@ -547,26 +800,6 @@
       },
       "modes": {
         "src/mail.server.d.mts": "100644"
-      }
-    },
-    {
-      "path": "src/mail.server.mjs",
-      "originPath": "foundation/template/src/mail.server.mjs",
-      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
-      "files": {
-        "src/mail.server.mjs": "e9a55283ad92d2f4d5012b34d181d49e5fd0b453559bb0d98fc58595224328b9"
-      },
-      "modes": {
-        "src/mail.server.mjs": "100644"
-      },
-      "adapted": {
-        "src/mail.server.mjs": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b"
-      },
-      "acknowledged": {
-        "src/mail.server.mjs": {
-          "sha256": "838522eed5851383a14309ce042b774041e03871825a4e5a6e464a6777084e1b",
-          "mode": "100644"
-        }
       }
     },
     {
@@ -1510,26 +1743,6 @@
       },
       "modes": {
         "src/router.tsx": "100644"
-      }
-    },
-    {
-      "path": "src/server.dev.ts",
-      "originPath": "foundation/template/src/server.dev.ts",
-      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
-      "files": {
-        "src/server.dev.ts": "4892545be3afaf55d1a45b99933f017baa43512d7152f56b21422010aa70b8a5"
-      },
-      "modes": {
-        "src/server.dev.ts": "100644"
-      },
-      "adapted": {
-        "src/server.dev.ts": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b"
-      },
-      "acknowledged": {
-        "src/server.dev.ts": {
-          "sha256": "59046670eadff95ae12ecdefea0cff1312c06ca85e49c3fe84cb10258ed27a1f",
-          "mode": "100644"
-        }
       }
     },
     {

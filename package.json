@@ -1,6 +1,6 @@
 {
   "name": "@contracts/locket",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "license": "MIT",
   "repository": "https://github.com/just-every/run-locket",
@@ -32,7 +32,9 @@
     "rer": "rer",
     "test:api": "node --test --test-concurrency=1 tests/api/*.test.mjs",
     "test:portable": "node tests/portable.mjs",
-    "test:site": "node --test tests/site/*.test.mjs"
+    "test:site": "node --test tests/site/*.test.mjs",
+    "delivery:spec": "node scripts/build-deployment-spec.mjs",
+    "check:deployment-spec": "node scripts/build-deployment-spec.mjs --check"
   },
   "dependencies": {
     "@node-saml/node-saml": "5.1.0",

@@ -57,7 +57,8 @@ export interface Bindings {
  INSTALLATION_KEY?: string
  INSTALLATION_KEY_PREVIOUS?: string
  SETUP_TOKEN?: string
- MAIL_PROVIDER?: 'development' | 'resend' | 'sendgrid' | 'cloudflare' | 'postmark'
+ MAIL_PROVIDER?: 'development' | 'rer' | 'resend' | 'sendgrid' | 'cloudflare' | 'postmark'
+ MAIL_RELAY_URL?: string
  MAIL_FROM?: string
  POSTMARK_REPLY_DOMAIN?: string
  POSTMARK_INBOUND_SECRET?: string

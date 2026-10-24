@@ -107,3 +107,24 @@ The pinned CLI has no update verb. No automatic export-before-update or tested
 previous-release transition is claimed by these checks. Export and verify a
 complete archive before applying a deployment change; hosted export remains
 unsupported by the pinned CLI. OPS-001 remains partial.
+
+
+## Hosted delivery
+
+The source-owned policy in `packaging.json` packages the real Worker build and
+all unchanged SQL migrations. Run `pnpm run build`, `pnpm delivery:spec` and
+`pnpm check:deployment-spec` before packaging with
+`node scripts/delivery/base/cli.mjs package --config packaging.json --output rer-package`.
+The committed descriptor binds the exact setup manifest; the committed deployment
+specification is checked for freshness during hosted verification.
+
+Managed hosting assigns the `rer` mail provider, sender, relay URL and private
+installation credential. Assisted hosting asks for the selected Resend,
+SendGrid, Cloudflare or Postmark settings. Local development suppresses mail.
+The relay supports one recipient and ordinary text or HTML messages; it refuses
+attachments, reply-to, carbon copies and unsupported headers. Workflows that need
+those features require a direct provider with the corresponding capabilities.
+A configured provider is not proof of a live delivery or legally effective notice.
+Retain a complete export and the previous source before an update. Follow the
+recovery instructions above, restore only into empty resources and compare a
+fresh re-export before directing traffic to the restored installation.
