@@ -4337,7 +4337,7 @@
       "executable": false
     },
     "tests/browser/campaign-live.mjs": {
-      "sha256": "8a3ae7009c53a55f910282a7c07a1b8e04dd88ee5f0dec0f4e5f45096261be3b",
+      "sha256": "bf1c49898d7af0687424175864c4a42c7e0244b5d2be56a2fab9d72284506ba4",
       "executable": false
     },
     "tests/browser/clause-library.spec.ts": {
