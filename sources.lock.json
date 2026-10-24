@@ -68,6 +68,10 @@
     }
   ],
   "files": {
+    ".github/assets/release/locket-portfolio-1440.png": {
+      "sha256": "02b10b9f4dfa5b851be01c5cf186de0321190c3bb731591f5c7f4043e6b25dd7",
+      "executable": false
+    },
     ".github/scripts/verify.mjs": {
       "sha256": "d3e7c4e45591c13e602cb1b6cb6b4cb0488db18f94b57955d97bcebb1c0359ca",
       "executable": false
@@ -493,7 +497,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "f55f19edbd461d4ba743b628b73bda65f44dac37b6985cd6482386c4ada06035",
+      "sha256": "abc874247e9fa5ff0c0d737cde9bc050025aafcfcb513107a0e5084d06c26115",
       "executable": false
     },
     "packaging.json": {
@@ -601,15 +605,19 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "252d572c63bcc6a2ed694d46023388435038b317684419957dee1c9a04273959",
+      "sha256": "59eab7ffdbb80fc0aec85e43fb45bc42544840dea6b306f33d19cbcdb0bf7679",
       "executable": false
     },
     "release-history/0.1.0.json": {
       "sha256": "fc69bde6e63a6c59a6cf1cf3bc7bfd3b36338fb6b6ac0302511c7c88b708ea26",
       "executable": false
     },
-    "RELEASE.json": {
+    "release-history/0.1.1.json": {
       "sha256": "4b46e710f6186ed27ae438ba2a1bcd6fc2cbc3c100eee078101633accdbe9ea0",
+      "executable": false
+    },
+    "RELEASE.json": {
+      "sha256": "636036ce8244c10269b49806d8bed30ae5397cf47970c0ce5a918ee780df6dc2",
       "executable": false
     },
     "rer-project.json": {
@@ -837,7 +845,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "9cabfc6691d5848a39cc04fe3bfe6863ede2ee908f13746271ca4705b553c38d",
+      "sha256": "f2896f1c6e52b64d82bc8ebf70d46e2d588090ca6dc98b27a73faab9ba0e255e",
       "executable": false
     },
     "src/auth.server.ts": {
