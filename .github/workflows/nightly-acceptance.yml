@@ -64,3 +64,55 @@ jobs:
           path: ${{ runner.temp }}/locket-acceptance/screenshots
           if-no-files-found: warn
           retention-days: 7
+
+  supporting-journeys:
+    name: Acceptance (${{ matrix.journey }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - journey: intake-native
+            command: node tests/browser/intake-form-live.mjs
+          - journey: negotiation-native
+            command: node tests/browser/browser-edits-live.mjs
+          - journey: repository-scale
+            command: node tests/browser/repository-bulk-scale.mjs
+          - journey: word-open
+            command: node tests/browser/word-template-open.mjs
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+      LOCKET_BROWSER_OUTPUT: ${{ runner.temp }}/locket-acceptance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Make room for the native installation
+        run: sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /usr/local/.ghcup
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run deps
+      - run: pnpm exec playwright install chromium
+        if: matrix.journey == 'intake-native' || matrix.journey == 'negotiation-native'
+      - name: Install the actual Word document reader
+        if: matrix.journey == 'word-open'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libreoffice-writer
+      - name: Run the cited standalone journey
+        run: ${{ matrix.command }}
+      - name: Keep native clause screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: acceptance-${{ matrix.journey }}
+          path: ${{ runner.temp }}/locket-acceptance/screenshots
+          if-no-files-found: ignore
+          retention-days: 7
