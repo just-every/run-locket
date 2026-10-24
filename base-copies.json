@@ -35,26 +35,6 @@
       }
     },
     {
-      "path": "migrations/core/0001_owner.sql",
-      "originPath": "modules/operator-auth/accounts/schema/operator-auth.sql",
-      "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
-      "files": {
-        "migrations/core/0001_owner.sql": "389e6fc3201a73ab5e7280bbe4fdb793b652b84f157e444bab48cc3c25eb8c41"
-      },
-      "modes": {
-        "migrations/core/0001_owner.sql": "100644"
-      },
-      "adapted": {
-        "migrations/core/0001_owner.sql": "b70dbba0f53353eb6f3cdd2713f3cca0712b341b"
-      },
-      "acknowledged": {
-        "migrations/core/0001_owner.sql": {
-          "sha256": "389e6fc3201a73ab5e7280bbe4fdb793b652b84f157e444bab48cc3c25eb8c41",
-          "mode": "100644"
-        }
-      }
-    },
-    {
       "path": "migrations/core/0002_outbox.sql",
       "originPath": "modules/mail/src/development/schema.sql",
       "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",

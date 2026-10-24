@@ -15,7 +15,8 @@
         "paths": [
           "src/mail.server.mjs",
           "src/server.dev.ts",
-          "scripts/delivery/base/setup-manifest.mjs"
+          "scripts/delivery/base/setup-manifest.mjs",
+          "migrations/core/0001_owner.sql"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base",
@@ -24,7 +25,8 @@
           "paths": [
             "foundation/template/src/mail.server.mjs",
             "foundation/template/src/server.dev.ts",
-            "modules/delivery-producer/setup-manifest.mjs"
+            "modules/delivery-producer/setup-manifest.mjs",
+            "modules/operator-auth/accounts/schema/operator-auth.sql"
           ]
         },
         "mappings": [
@@ -39,6 +41,10 @@
           {
             "path": "scripts/delivery/base/setup-manifest.mjs",
             "originPath": "modules/delivery-producer/setup-manifest.mjs"
+          },
+          {
+            "path": "migrations/core/0001_owner.sql",
+            "originPath": "modules/operator-auth/accounts/schema/operator-auth.sql"
           }
         ]
       }

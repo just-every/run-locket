@@ -98,8 +98,12 @@
       "label": "Mail provider",
       "kind": "select",
       "required": true,
-      "default": "resend",
+      "default": "later",
       "options": [
+        {
+          "value": "later",
+          "label": "Configure when hosting"
+        },
         {
           "value": "rer",
           "label": "RER managed mail"
@@ -120,7 +124,8 @@
           "value": "postmark",
           "label": "Postmark"
         }
-      ]
+      ],
+      "help": "Local development suppresses mail. Select a provider and enter its settings before hosting."
     },
     {
       "name": "MAIL_FROM",
