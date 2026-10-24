@@ -72,6 +72,10 @@
       "sha256": "d3e7c4e45591c13e602cb1b6cb6b4cb0488db18f94b57955d97bcebb1c0359ca",
       "executable": false
     },
+    ".github/workflows/nightly-acceptance.yml": {
+      "sha256": "db8fa17ef9b74f4ea370aeba187fce3cbd9c463a0d6f1c584c7132c8352ba560",
+      "executable": false
+    },
     ".github/workflows/rer-managed.yml": {
       "sha256": "aa2861c9983f2ab90dadcc6f455b0b5c3e1bbeae0b9d9fec9bd27e9de591cb9a",
       "executable": false
@@ -4333,7 +4337,7 @@
       "executable": false
     },
     "tests/browser/campaign-live.mjs": {
-      "sha256": "ed86645ad06ee9e71b096e655dcd51203edcbf4cdcfab8069febd859aae63c08",
+      "sha256": "ce1895221c97c0cefebd0bc86312b2f796eab231bf6aac8629c79d9379f64f4b",
       "executable": false
     },
     "tests/browser/clause-library.spec.ts": {
