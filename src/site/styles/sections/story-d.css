@@ -39,7 +39,7 @@
 .pin-term5 { left: 1196px; top: 690px; width: 300px; }
 
 /* 12 */
-.movein-stage { height: 1010px; --hd-size: 87px; }
+.movein-stage { height: 1060px; --hd-size: 87px; }
 .movein-head { left: 130px; top: 52px; }
 .movein-lede { position: absolute; left: 897px; top: 108px; width: 530px; font-size: 26px; line-height: 1.5; }
 .strip { position: absolute; left: 116px; top: 284px; width: 1304px; height: 154px; padding: 16px 22px; }

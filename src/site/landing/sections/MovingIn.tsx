@@ -1,5 +1,18 @@
 import { CheckDot, Connector, Cursor, Eyebrow, Heading, Nw, Spark, dot } from '../parts'
 
+// The one start line every Run Edit Run page shows, and the alternative for people who already have Node.
+const START = 'curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-locket'
+const ALTERNATIVE = 'Already have Node 22 or later? npx -y @runeditrun/rer dev just-every/run-locket'
+
+/** A command that wraps only between words, keeping the installer's `install.sh | sh` together. */
+function words(line: string) {
+  return line.split(/(\S*install\.sh \| sh|\S+)/).map((part, index) => {
+    const pipe = /^(.*\/)(install\.sh \| sh)$/.exec(part)
+    if (pipe) return <span key={index}><span className="nw">{pipe[1]}</span><wbr /><span className="nw">{pipe[2]}</span></span>
+    return part.trim() ? <span key={index} className="nw">{part}</span> : part
+  })
+}
+
 const tiles: [string, string][] = [['50', 'sampled by Priya'], ['1,198', 'confirmed in bulk'], ['73', 'confirmed one by one'], ['612', 'auto-renewing, rolled forward']]
 
 /** 12, moving in: Fieldstone's Ironclad export, Northwind's record shown twice, and the one line that starts Locket. */
@@ -50,7 +63,7 @@ export function MovingIn() {
 
         <div className="terminal" role="group" aria-label="Start Locket on your computer">
           <p className="term-lights" aria-hidden="true"><i /><i /><i /></p>
-          <pre><code><span className="term-prompt" aria-hidden="true">$ </span><span className="nw">npx -y @runeditrun/rer dev</span> <span className="nw">just-every/run-locket</span>{'\n'}<span className="term-note"># clones, installs and starts Locket on your computer</span></code></pre>
+          <pre><code><span className="term-prompt" aria-hidden="true">$ </span>{words(START)}{'\n'}<span className="term-note"># {words(ALTERNATIVE)}</span></code></pre>
         </div>
         <Spark style={{ left: 798, top: 576 }} turn={-20} />
         <Spark style={{ left: 1464, top: 856 }} turn={30} />
