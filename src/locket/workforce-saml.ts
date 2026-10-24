@@ -16,6 +16,7 @@ function configuration(env:WorkforceBindings){
  return {issuer,entryPoint,cert,callback:env.AUTH_ORIGIN+'/auth/saml/callback',entity:env.AUTH_ORIGIN+'/auth/saml/metadata'}
 }
 export async function samlAvailable(env:Bindings){return !!configuration(env as WorkforceBindings)&&!!await workforceSettings(env)}
+export function samlIssuers(env:Bindings){const configured=configuration(env as WorkforceBindings);return configured?[configured.issuer]:[]}
 function requiredAttributes(xml:string,c:{issuer:string;callback:string},requestId:string){
  if(/<!DOCTYPE|<!ENTITY/i.test(xml))throw new Error('DTD refused')
  const doc=new DOMParser({errorHandler:{warning(){throw new Error('Invalid XML')},error(){throw new Error('Invalid XML')},fatalError(){throw new Error('Invalid XML')}}}).parseFromString(xml,'text/xml')
@@ -69,7 +70,7 @@ export async function workforceSamlResponse(request:Request,env:Bindings):Promis
   if(result.loggedOut||!subject||result.profile?.issuer!==c.issuer)throw new Error('Wrong identity issuer')
   const person=await db.prepare("SELECT o.email FROM lk_workforce_users u JOIN oa_operators o ON o.id=u.id WHERE u.subject=? AND o.status='active' AND o.role='member'").bind(subject).first<{email:string}>()
   if(!person)throw new Error('Identity not provisioned')
-  const auth=createOperatorAuth({db,config:{...authConfig(env),externalIssuers:[c.issuer]},clientIp:()=>request.headers.get('CF-Connecting-IP')??''})
+  const auth=createOperatorAuth({db,config:authConfig(env),clientIp:()=>request.headers.get('CF-Connecting-IP')??''})
   const admission=auth.createIdentityAdmission({issuer:c.issuer,subjectEmails:{[subject]:person.email}})
   const completed=await admission(request,{issuer:c.issuer,subject,provider:'workforce-saml'},{returnTo:'/app'})
   if((await workforceSettings(env))?.version!==s.version){await db.prepare('UPDATE oa_sessions SET revoked_at=? WHERE id=?').bind(Date.now(),completed.session.id).run();throw new Error('Workforce disabled')}
