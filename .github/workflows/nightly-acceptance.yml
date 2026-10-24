@@ -21,7 +21,6 @@ jobs:
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
-      LOCKET_BROWSER_OUTPUT: ${{ runner.temp }}/locket-acceptance
       # Retain controlled clocks and provider edges in the specs that declare
       # them. Native-only specs still use the owned installation's private entry.
       LOCKET_CAMPAIGN_LIVE: ''
@@ -44,6 +43,8 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install chromium
       - name: Run every cited browser test in an owned local installation
+        env:
+          LOCKET_BROWSER_OUTPUT: ${{ runner.temp }}/locket-acceptance
         run: >-
           node tests/browser/campaign-live.mjs
           analytics.spec.ts approval-reminders.spec.ts audit.spec.ts
@@ -85,7 +86,6 @@ jobs:
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
-      LOCKET_BROWSER_OUTPUT: ${{ runner.temp }}/locket-acceptance
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -107,6 +107,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends libreoffice-writer
       - name: Run the cited standalone journey
+        env:
+          LOCKET_BROWSER_OUTPUT: ${{ runner.temp }}/locket-acceptance
         run: ${{ matrix.command }}
       - name: Keep native clause screenshots
         if: always()
