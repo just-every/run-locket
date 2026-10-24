@@ -6,6 +6,9 @@ Locket keeps a small business's commercial agreements from request to renewal: a
 
 - Source code: [just-every/run-locket](https://github.com/just-every/run-locket).
 - Site: [run-locket.com](https://run-locket.com).
+- Run: [Run Locket](https://run-locket.com/run).
+- Listing ID: `locket` (the `id` in `seed.json`).
+- Stores files: `true`. Agreement originals, attachments, signed copies and certificates persist as D1 artifact BLOB chunks; this seed has no R2 binding.
 
 # Run it locally
 
