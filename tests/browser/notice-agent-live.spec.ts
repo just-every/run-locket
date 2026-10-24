@@ -26,6 +26,7 @@ test(`AGENT-003 real rer dev selected-source preparation and frozen schedule app
  const r=(await state()).renewals.find((r:any)=>r.agreement_id===a.id)
  await command('renewal.decide',{renewalId:r.id,decision:'terminate',reason:'Facilities supplier replacement approved.'})
  await page.goto(origin+'/app#renewals')
+ await page.reload()
  await page.getByRole('button',{name:`Cardinal facilities agreement ${width} ${tag}`,exact:true}).click()
  await page.getByText('Prepare a notice from the executed passage',{exact:true}).click()
  await page.getByLabel('Exact executed notice passage').fill(quote)
