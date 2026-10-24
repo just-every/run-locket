@@ -18,6 +18,7 @@ export const repositoryFields: RepositoryField[] = [
   { id: 'value', label: 'Value (USD)', kind: 'money' },
   { id: 'currency', label: 'Currency', kind: 'text' },
   { id: 'owner', label: 'Owner', kind: 'text' },
+  { id: 'department', label: 'Department', kind: 'text' },
   { id: 'requester', label: 'Requester', kind: 'text' },
   { id: 'restricted', label: 'Restricted', kind: 'text' },
   { id: 'needed_by', label: 'Needed by', kind: 'date' },

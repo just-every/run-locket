@@ -44,7 +44,12 @@ const all = async <T = any>(db: D1Database, query: string, ...params: unknown[])
 
 async function visibleIds(env: Bindings, actor: Actor) {
   const grants = await grantsFor(env, actor)
-  const every = await all(env.DB, 'SELECT * FROM lk_agreements ORDER BY updated_at DESC')
+  const every = await all(env.DB, `SELECT a.*,
+    (SELECT audience.name FROM lk_intake_audiences audience WHERE audience.kind='department'
+      AND audience.id=COALESCE(
+        (SELECT d.department_id FROM lk_agreement_departments d WHERE d.agreement_id=a.id),
+        (SELECT json_extract(f.answers,'$.department') FROM lk_request_forms f WHERE f.agreement_id=a.id))) AS department
+    FROM lk_agreements a ORDER BY a.updated_at DESC`)
   const agreements = every.filter(a => canSee(actor, a, grants))
   const shown = new Set<string>(agreements.map(a => a.party_id))
   // A counterparty known only through agreements this person cannot see is hidden with them.

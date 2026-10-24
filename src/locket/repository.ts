@@ -55,7 +55,7 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
       deviations: deviations.map(d => d.clause_key).join(', '),
       has_deviations: deviations.length ? 'yes' : 'no',
       counterparty: parties.get(a.party_id) ?? null, entity: entities.get(a.entity_id) ?? null, value: a.value_cents ?? null, currency: a.currency,
-      owner: people.get(a.owner_id) ?? null, requester: people.get(a.requester_id) ?? null,
+      department: a.department ?? null, owner: people.get(a.owner_id) ?? null, requester: people.get(a.requester_id) ?? null,
       restricted: a.restricted ? 'yes' : 'no', needed_by: a.needed_by, start_date: a.start_date,
       timezone: a.timezone, origin: a.origin,
       created_at: new Date(a.created_at).toISOString().slice(0, 10), updated_at: new Date(a.updated_at).toISOString().slice(0, 10),
