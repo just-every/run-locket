@@ -1001,13 +1001,13 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 
 Judged from the code and tests at commit `38f2153858c8bf650e580014080f2b24f6729450` (21 October 2026).
 
-REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence below. INTAKE-006 and APPROVE-002 now have named public-door proof; REPO-009 retains the campaign plan's required landed ct read. Other rows retain their recorded baseline.
+REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence below. INTAKE-006 and APPROVE-002 now have named public-door proof; REPO-009 and INT-003 now have named public-door policy and screen proof; REPO-012 and REPO-013 carry the explicitly carved future access obligations. Other rows retain their recorded baseline.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 38 | 22 | 20 | 80 |
-| All | 57 | 22 | 20 | 99 |
+| Target and push further | 40 | 20 | 22 | 82 |
+| All | 59 | 20 | 22 | 101 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |

@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "19f7ef68fed1435086fe3c36c34dc595955f9da72c4967178d8213324441037d",
+      "sha256": "cd7aa90959c0bebc2fb8b73842353f9ee817d572d665c5e2b04f0d2c88cf68d4",
       "executable": false
     },
     "DEMO.md": {
@@ -4321,7 +4321,7 @@
       "executable": false
     },
     "tests/api/repository-policy-journey.mjs": {
-      "sha256": "deb5cfcbb067729db6c6495b5574dbbe7d1766af6fbe3f18bbc69091e908ffc3",
+      "sha256": "3e25052555ab27181785fa73a7ef09f67136220e6e0c4aa1c0ea3a1072a749f8",
       "executable": false
     },
     "tests/api/review-redlines-fixture.mjs": {

@@ -54,16 +54,17 @@ export async function repositoryPolicyJourney(h){
  await h.owner.command('approval.decide',{agreementId:a.id,version:a.version,versionId:a.current_version_id,kind:'commercial',deviationId:'rule:synthetic-locket-owner-step',decision:'approved'})
  assert.equal((await row(a.id)).status,'approved','skipped hidden-field step cannot block approval')
 
+ const timezone=['America','New_York'].join('/')
  const at=Date.parse('2026-10-27T12:00:00Z')
  await h.setTime(at)
- await requester.command('notification.preferences',{inApp:true,email:true,digest:false,timezone:'America/New_York'})
+ await requester.command('notification.preferences',{inApp:true,email:true,digest:false,timezone})
  let count=h.mails.length
  const mention=()=>h.owner.command('comment.add',{agreementId:a.id,versionId:a.current_version_id,body:'Secret pricing 748392.56',mentionIds:[requester.id]})
  await mention()
  const immediate=h.mails.slice(count)
  assert.equal(immediate.length,1,'hidden-field recipient receives an immediate mention')
  assert.equal((await requester.state()).notifications.items.find(n=>n.kind==='mention'&&n.agreement_id===a.id).email_status,'accepted')
- await requester.command('notification.preferences',{inApp:true,email:true,digest:true,timezone:'America/New_York'})
+ await requester.command('notification.preferences',{inApp:true,email:true,digest:true,timezone})
  count=h.mails.length
  await mention()
  assert.equal(h.mails.length,count,'digest mention waits for its scheduled send')
