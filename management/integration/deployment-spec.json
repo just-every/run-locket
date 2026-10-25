@@ -414,6 +414,12 @@
       "name": "0070_workforce_identity.sql",
       "sha256": "38bcccede950b9ba3bca1db8e7755cb386e4917e321a9873487aa834352416a8",
       "sql": "-- Workforce provisioning is an explicit installation-owner grant.\nCREATE TABLE lk_workforce_settings (\n id TEXT PRIMARY KEY CHECK(id='installation'), enabled INTEGER NOT NULL CHECK(enabled IN (0,1)),\n version INTEGER NOT NULL, approved_by TEXT NOT NULL REFERENCES oa_operators(id), owner_version INTEGER NOT NULL\n);\nCREATE TABLE lk_workforce_groups (\n id TEXT PRIMARY KEY, name TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('counsel','approver','requester','viewer')),\n audience_id TEXT NOT NULL UNIQUE REFERENCES lk_intake_audiences(id)\n);\nCREATE TABLE lk_workforce_users (\n id TEXT PRIMARY KEY REFERENCES oa_operators(id), subject TEXT NOT NULL UNIQUE, version INTEGER NOT NULL DEFAULT 1\n);\nCREATE TABLE lk_workforce_members (\n group_id TEXT NOT NULL REFERENCES lk_workforce_groups(id), operator_id TEXT NOT NULL REFERENCES lk_workforce_users(id),\n PRIMARY KEY(group_id,operator_id)\n);\nCREATE TABLE lk_saml_requests (\n id TEXT PRIMARY KEY, instant TEXT NOT NULL, browser_hash TEXT NOT NULL, configuration TEXT NOT NULL,\n ip_hash TEXT NOT NULL, expires_at INTEGER NOT NULL, consumed_at INTEGER\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0071_connection_account.sql",
+      "sha256": "a351c51343b2ed2120d4932f3171326cb3b19e1aa38147983551fc16ac539261",
+      "sql": "-- A read-only probe records the provider account it actually verified.\nALTER TABLE lk_connection_health ADD COLUMN provider_account TEXT;\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
@@ -467,7 +473,8 @@
     "WORKFORCE_SCIM_TOKEN",
     "WORKFORCE_SAML_ISSUER",
     "WORKFORCE_SAML_SSO_URL",
-    "WORKFORCE_SAML_CERT"
+    "WORKFORCE_SAML_CERT",
+    "HUBSPOT_ACCESS_TOKEN"
   ],
   "schedules": [
     "0 * * * *"

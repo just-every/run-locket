@@ -198,6 +198,11 @@
       "binding": "WORKFORCE_SAML_CERT",
       "environment": "WORKFORCE_SAML_CERT",
       "optional": true
+    },
+    {
+      "binding": "HUBSPOT_ACCESS_TOKEN",
+      "environment": "HUBSPOT_ACCESS_TOKEN",
+      "optional": true
     }
   ],
   "crons": [

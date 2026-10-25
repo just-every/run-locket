@@ -128,13 +128,14 @@ test('An uncertain provider send is visible, has one network attempt and cannot 
 
 
 test('Connection checks expose credential failure, one owner alert, current affected agreements and read-only recovery',async t=>{
- let failing=true,probes=0
- const h=await installation({bindings:{SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-70',APPROVAL_SLACK_TOKEN:'synthetic-locket-71',APPROVAL_TEAMS_TOKEN:'synthetic-locket-72',QUICKBOOKS_ACCESS_TOKEN:'synthetic-locket-73',QUICKBOOKS_REALM_ID:'12345'},outboundResponse:async request=>{
+ let failing=true,probes=0,invalidHubspot=false
+ const h=await installation({bindings:{HUBSPOT_ACCESS_TOKEN:'synthetic-locket-69',SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-70',APPROVAL_SLACK_TOKEN:'synthetic-locket-71',APPROVAL_TEAMS_TOKEN:'synthetic-locket-72',QUICKBOOKS_ACCESS_TOKEN:'synthetic-locket-73',QUICKBOOKS_REALM_ID:'12345'},outboundResponse:async request=>{
   const url=new URL(request.url);probes++
   if(url.hostname==='demo.docusign.net'){
    assert.equal(request.method,'GET');assert.equal(url.pathname,'/restapi/v2.1/accounts/synthetic-locket-account')
    return failing?Response.json({error:'synthetic-locket-74'},{status:401}):Response.json({accountId:'synthetic-locket-account'})
   }
+  if(url.hostname==='api.hubapi.com'){assert.equal(request.method,'GET');assert.equal(url.pathname,'/account-info/v3/details');assert.equal(request.headers.get('authorization'),'Bearer synthetic-locket-69');return Response.json({portalId:invalidHubspot?'not-an-account':123456,accountType:'DEVELOPER_TEST'})}
   if(url.hostname==='slack.com')return Response.json({ok:true,user_id:'synthetic-locket-75'})
   if(url.hostname==='graph.microsoft.com')return Response.json({id:'synthetic-locket-76'})
   return Response.json({CompanyInfo:{Id:'12345'}})
@@ -159,10 +160,17 @@ test('Connection checks expose credential failure, one owner alert, current affe
  await h.owner.command('connection.check',{id:'docusign'})
  row=(await h.owner.state()).connections.find(c=>c.id==='docusign')
  assert.equal(row.status,'healthy');assert.ok(row.last_success_at);assert.equal(row.alert_status,null)
- for(const id of ['slack','teams','quickbooks'])await h.owner.command('connection.check',{id})
+ for(const id of ['hubspot','slack','teams','quickbooks'])await h.owner.command('connection.check',{id})
  assert.ok((await h.owner.state()).connections.filter(c=>c.probe).every(c=>c.status==='healthy'))
+ const verified=(await h.owner.state()).connections
+ for(const [id,account]of [['hubspot','123456'],['slack','synthetic-locket-75'],['teams','synthetic-locket-76'],['docusign','synthetic-locket-account']])assert.equal(verified.find(c=>c.id===id).provider_account,account)
+ invalidHubspot=true;await h.owner.command('connection.check',{id:'hubspot'})
+ const refused=(await h.owner.state()).connections.find(c=>c.id==='hubspot')
+ assert.equal(refused.status,'failing');assert.equal(refused.reason,'invalid_provider_receipt');assert.equal(refused.provider_account,null)
+ invalidHubspot=false;await h.owner.command('connection.check',{id:'hubspot'})
+ assert.equal((await h.owner.state()).connections.find(c=>c.id==='hubspot').provider_account,'123456')
  assert.deepEqual((await viewer.state()).connections,[])
  const archive=await(await h.owner.request('/api/locket/export')).json()
- assert.equal(archive.records.lk_connection_health.length,4)
- assert.ok(!JSON.stringify(archive).includes('synthetic-locket-70'))
+ assert.equal(archive.records.lk_connection_health.length,5)
+ for(const secret of ['synthetic-locket-69','synthetic-locket-70'])assert.ok(!JSON.stringify(archive).includes(secret))
 })

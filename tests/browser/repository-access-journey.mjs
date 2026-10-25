@@ -58,6 +58,13 @@ export async function repositoryAccessJourney(page,width,p){
  await expect(page.locator('.lk-board-card')).toHaveCount(1)
  await expect(page.locator('.lk-board-card')).toContainText('customer '+tag)
  await expect(page.locator('main')).not.toContainText('748,392.56')
+ for(const link of await page.getByRole('navigation',{name:'Locket',exact:true}).getByRole('link').all()){
+  const label='Open '+await link.getAttribute('aria-label')
+  await link.focus();await expect(page.getByRole('tooltip',{name:label,exact:true})).toBeVisible()
+  await link.blur();await page.mouse.move(0,0);await link.hover()
+  await expect(page.getByRole('tooltip',{name:label,exact:true})).toBeVisible({timeout:1000})
+  await page.mouse.move(0,0)
+ }
  await shot('sales-register-hidden-value')
  await page.getByRole('searchbox').fill('748392')
  await expect(page.locator('.lk-board-card')).toHaveCount(0)

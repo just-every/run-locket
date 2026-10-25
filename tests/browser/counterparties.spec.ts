@@ -195,12 +195,15 @@ for(const width of [1440,390])test(`ERASE-001 verified contact erasure, counsel 
 
 for(const width of [1440,390])test(`Connection health read-only failure and recovery at ${width}px`,async({page})=>{
  let failing=true
- const p=await productPage(page,{width,bindings:{SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-80'},outboundResponse:async()=>failing?Response.json({error:'synthetic-locket-81'},{status:401}):Response.json({accountId:'synthetic-locket-account'})})
+ const p=await productPage(page,{width,bindings:{HUBSPOT_ACCESS_TOKEN:'synthetic-locket-79',SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-80'},outboundResponse:async request=>new URL(request.url).hostname==='api.hubapi.com'?Response.json({portalId:123456}):failing?Response.json({error:'synthetic-locket-81'},{status:401}):Response.json({accountId:'synthetic-locket-account'})})
  try{
   await p.command('signature.connection.configure',{provider:'docusign',baseUrl:'https://demo.docusign.net/restapi/v2.1',accountId:'synthetic-locket-account',version:0})
   await page.goto(p.origin+'/app#connections');await page.reload()
+  const hubspot=page.getByRole('region',{name:'hubspot connection',exact:true})
+  await hubspot.getByRole('button',{name:'Check connection',exact:true}).click()
+  await expect(hubspot).toContainText('Healthy');await expect(hubspot).toContainText('123456')
   const panel=page.getByRole('region',{name:'docusign connection',exact:true})
-  const shot=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-INT-004-${name}.png`),fullPage:true})}}
+  const shot=async(name:string)=>{await page.evaluate(()=>window.scrollTo(0,0));expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-INT-004-${name}.png`),fullPage:true})}}
   await expect(panel).toContainText('Unverified')
   await panel.getByRole('button',{name:'Check connection',exact:true}).click()
   await expect(panel).toContainText('Credential rejected')
@@ -210,6 +213,13 @@ for(const width of [1440,390])test(`Connection health read-only failure and reco
   await panel.getByRole('button',{name:'Retry read-only check',exact:true}).click()
   await expect(panel).toContainText('Healthy')
   await expect(panel).toContainText('Read probe succeeded')
+  await expect(panel).toContainText('synthetic-locket-account')
+  for(const link of await page.getByRole('navigation',{name:'Locket',exact:true}).getByRole('link').all()){
+   const label='Open '+await link.getAttribute('aria-label')
+   await link.focus();await expect(page.getByRole('tooltip',{name:label,exact:true})).toBeVisible()
+   await link.blur();await page.mouse.move(0,0);await link.hover()
+   await expect(page.getByRole('tooltip',{name:label,exact:true})).toBeVisible({timeout:1000});await page.mouse.move(0,0)
+  }
   await shot('recovered')
  }finally{await p.close()}
 })

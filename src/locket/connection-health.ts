@@ -8,6 +8,7 @@ import { signatureBase } from './signature-provider'
 
 export async function connectionRegistry(env:Bindings){
  const db=env.DB,chat=channelEnv(env),rows:any[]=[]
+ if((env as any).HUBSPOT_ACCESS_TOKEN)rows.push({id:'hubspot',kind:'crm',account:'Server-bound HubSpot account',probe:true})
  if(env.MAIL_PROVIDER)rows.push({id:'mail',kind:'mail',account:env.MAIL_FROM??'Sender not configured',probe:false})
  if(env.QUICKBOOKS_REALM_ID)rows.push({id:'quickbooks',kind:'accounting',account:env.QUICKBOOKS_REALM_ID,probe:true})
  for(const id of ['slack','teams','nook'])if((chat as any)['APPROVAL_'+id.toUpperCase()+'_TOKEN'])rows.push({id,kind:'chat',account:id==='nook'?chat.APPROVAL_NOOK_ORIGIN??'Installation not configured':'Server-bound '+id+' account',probe:id!=='nook'})
@@ -15,7 +16,7 @@ export async function connectionRegistry(env:Bindings){
  const health=(await db.prepare('SELECT * FROM lk_connection_health').all<any>()).results
  for(const row of rows){
   const observation=health.find(h=>h.id===row.id&&h.account===row.account&&h.checked_at>=(row.configuredAt??0))
-  Object.assign(row,{status:'unverified',reason:'No supported read-only probe has completed.',last_success_at:null},observation??{})
+  Object.assign(row,{status:'unverified',reason:'No supported read-only probe has completed.',last_success_at:null,provider_account:null},observation??{})
   let ids:string[]=[]
   if(row.kind==='signing')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_packages WHERE provider=?').bind(row.id).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(row.kind==='accounting')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_accounting_links').all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
@@ -34,13 +35,14 @@ const check:Handler=async(c,p)=>{
   const connection=await c.db.prepare("SELECT * FROM lk_signature_connections WHERE provider='docusign'").first<any>()
   url=signatureBase(id,connection.base_url,c.env)+'/accounts/'+encodeURIComponent(connection.account_id);token=(c.env as any).SIGNATURE_DOCUSIGN_TOKEN??''
   sourceCheck=sql("(SELECT version FROM lk_signature_connections WHERE provider='docusign')=?",connection.version)
+ }else if(id==='hubspot'){url='https://api.hubapi.com/account-info/v3/details';token=(c.env as any).HUBSPOT_ACCESS_TOKEN??''
  }else if(id==='quickbooks'){
   if(!/^\d+$/.test(c.env.QUICKBOOKS_REALM_ID??''))fail('CONNECTION_PROBE','Configure a valid accounting realm.',409)
   const host=c.env.QUICKBOOKS_SANDBOX==='true'?'sandbox-quickbooks.api.intuit.com':'quickbooks.api.intuit.com'
   url=`https://${host}/v3/company/${c.env.QUICKBOOKS_REALM_ID}/companyinfo/${c.env.QUICKBOOKS_REALM_ID}`;token=c.env.QUICKBOOKS_ACCESS_TOKEN??''
  }else if(id==='slack'){url='https://slack.com/api/auth.test';token=channelEnv(c.env).APPROVAL_SLACK_TOKEN??'';method='POST'}
  else if(id==='teams'){url='https://graph.microsoft.com/v1.0/me';token=channelEnv(c.env).APPROVAL_TEAMS_TOKEN??''}
- let status='failing',reason='credential_missing'
+ let status='failing',reason='credential_missing',providerAccount:string|null=null
  if(token)try{
   const response=await fetch(url,{method,redirect:'manual',headers:{authorization:'Bearer '+token,accept:'application/json'},signal:AbortSignal.timeout(15000)})
   if(response.status===401||response.status===403)reason='credential_rejected'
@@ -48,14 +50,14 @@ const check:Handler=async(c,p)=>{
   else if(!response.ok)reason=response.status===429?'provider_rate_limited':'provider_unavailable'
   else{
    const data=await response.json() as any
-   const valid=id==='slack'?data.ok===true&&typeof data.user_id==='string':id==='teams'?typeof data.id==='string':id==='quickbooks'?!!data.CompanyInfo:typeof data.accountId==='string'&&data.accountId===(await c.db.prepare("SELECT account_id FROM lk_signature_connections WHERE provider='docusign'").first<any>()).account_id
-   if(valid){status='healthy';reason='read_probe_succeeded'}else reason='invalid_provider_receipt'
+   const valid=id==='hubspot'?Number.isSafeInteger(data.portalId)&&data.portalId>0:id==='slack'?data.ok===true&&typeof data.user_id==='string':id==='teams'?typeof data.id==='string':id==='quickbooks'?typeof data.CompanyInfo?.Id==='string'&&data.CompanyInfo.Id===c.env.QUICKBOOKS_REALM_ID:typeof data.accountId==='string'&&data.accountId===(await c.db.prepare("SELECT account_id FROM lk_signature_connections WHERE provider='docusign'").first<any>()).account_id
+   if(valid){status='healthy';reason='read_probe_succeeded';providerAccount=String(id==='hubspot'?data.portalId:id==='slack'?data.user_id:id==='teams'?data.id:id==='quickbooks'?data.CompanyInfo.Id:data.accountId)}else reason='invalid_provider_receipt'
   }
  }catch{reason='provider_unreachable'}
  const prior=await c.db.prepare('SELECT * FROM lk_connection_health WHERE id=?').bind(id).first<any>(),version=prior?.version??0
  const incident=status==='failing'?(prior?.status==='failing'?prior.incident_id:crypto.randomUUID()):null
  const alert=status==='failing'?(prior?.status==='failing'?prior.alert_status:'pending'):null
- return{allowed:['owner'],result:{id,status,reason},checks:[sourceCheck,sql('COALESCE((SELECT version FROM lk_connection_health WHERE id=?),0)=?',id,version)],writes:[sql('INSERT INTO lk_connection_health VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET account=excluded.account,status=excluded.status,reason=excluded.reason,checked_at=excluded.checked_at,last_success_at=excluded.last_success_at,incident_id=excluded.incident_id,alert_status=excluded.alert_status,version=excluded.version',id,entry.account,status,reason,c.now,status==='healthy'?c.now:prior?.last_success_at??null,incident,alert,version+1)],audit:[{action:'connection.check',summary:`Owner requested a read-only ${id} probe: ${status} (${reason}). No business operation was retried.`}]}
+ return{allowed:['owner'],result:{id,status,reason},checks:[sourceCheck,sql('COALESCE((SELECT version FROM lk_connection_health WHERE id=?),0)=?',id,version)],writes:[sql('INSERT INTO lk_connection_health(id,account,status,reason,checked_at,last_success_at,incident_id,alert_status,version,provider_account) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET account=excluded.account,status=excluded.status,reason=excluded.reason,checked_at=excluded.checked_at,last_success_at=excluded.last_success_at,incident_id=excluded.incident_id,alert_status=excluded.alert_status,version=excluded.version,provider_account=excluded.provider_account',id,entry.account,status,reason,c.now,status==='healthy'?c.now:prior?.last_success_at??null,incident,alert,version+1,providerAccount)],audit:[{action:'connection.check',summary:`Owner requested a read-only ${id} probe: ${status} (${reason}). No business operation was retried.`}]}
 }
 export async function alertConnectionFailure(env:Bindings,id:string){
  const db=env.DB,row=await db.prepare("SELECT * FROM lk_connection_health WHERE id=? AND status='failing' AND alert_status='pending'").bind(id).first<any>()

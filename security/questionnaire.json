@@ -171,6 +171,14 @@
         "WORKFORCE_SAML_CERT"
       ],
       "enabledByDefault": false
+    },
+    {
+      "name": "HubSpot",
+      "data": "Owner-requested read-only account identity and health; no agreement data sent by the health probe",
+      "bindings": [
+        "HUBSPOT_ACCESS_TOKEN"
+      ],
+      "enabledByDefault": false
     }
   ]
 }

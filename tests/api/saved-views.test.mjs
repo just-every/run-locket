@@ -268,18 +268,21 @@ test('REPO-005 required metadata fences review, signature handoff and reconciled
 
 
 test('REPO-009 current group and department grants intersect restricted access and hide fields before all repository projections',async t=>{
- const h=await installation();t.after(()=>h.close())
+ const clock=Date.parse('2026-10-25T12:00:00Z')
+ const h=await installation({bindings:{TEST_NOW:String(clock)}});t.after(()=>h.close())
  const sales=await h.invite('synthetic-locket-sales@example.test','viewer'),outside=await h.invite('synthetic-locket-outside@example.test','viewer')
+ const counsel=await h.invite('synthetic-locket-counsel@example.test','counsel')
  const group=await h.owner.command('audience.save',{name:'Sales',kind:'group',memberIds:[sales.id]})
  const dept=await h.owner.command('audience.save',{name:'Sales department',kind:'department',memberIds:[]})
  const hr=await h.owner.command('audience.save',{name:'HR department',kind:'department',memberIds:[]})
  const budget=await h.owner.command('field.save',fieldSpec('Pricing budget','money',{agreementTypes:['customer']}))
  const ids=[]
  for(const [i,type,department]of [[1,'customer',dept.id],[2,'supplier',dept.id],[3,'customer',hr.id]]){
-  const made=await h.owner.command('request.create',{title:'synthetic-locket-'+i,type,value:'748392.56',...(type==='customer'?{customValues:{[budget.id]:'12345.67'}}:{}),party:{name:'synthetic-locket-party-'+i,kind:type},file:file('pricing-schedule-'+i+'.pdf',pdf('Confidential pricing 748392.56 '+i)),text:'Confidential pricing 748392.56 '+i})
+  const made=await h.owner.command('request.create',{title:'synthetic-locket-'+i,type,restricted:i===1,value:'748392.56',...(type==='customer'?{customValues:{[budget.id]:'12345.67'}}:{}),party:{name:'synthetic-locket-party-'+i,kind:type},file:file('pricing-schedule-'+i+'.pdf',pdf('Confidential pricing 748392.56 '+i)),text:'Confidential pricing 748392.56 '+i})
   const a=(await h.owner.state()).agreements.find(a=>a.id===made.id)
   await h.owner.command('agreement.department',{agreementId:a.id,version:a.version,departmentId:department});ids.push(a.id)
  }
+ await h.owner.command('access.set',{agreementId:ids[0],operatorId:sales.id,grant:'grant'})
  const state=await h.owner.state(),source=state.artifacts.find(f=>f.agreement_id===ids[0]),bytes=Buffer.from(await(await h.owner.request('/api/locket/files/'+source.id)).arrayBuffer())
  const definition={query:'',filters:[],sort:{field:'title',direction:'asc'},columns:['title','value','custom:'+budget.id,'owner']}
  const shared=await h.owner.command('view.save',{name:'Sales agreements',definition,sharedRoles:[],sharedGroups:[group.id]})
@@ -289,10 +292,32 @@ test('REPO-009 current group and department grants intersect restricted access a
  const a=state.agreements.find(a=>a.id===ids[0])
  await h.owner.command('comment.add',{agreementId:a.id,versionId:a.current_version_id,body:'Confidential pricing 748392.56',mentionIds:[sales.id]})
  const policy={version:0,enabled:true,grants:[{audienceId:group.id,types:['customer'],departmentIds:[dept.id]}],hiddenFields:[{role:'viewer',fields:['value','pricing_schedules','custom:'+budget.id]}]}
+ const report=await sales.command('report.create',{name:'Sales private report',viewId:shared.id,groupField:'type',frequency:'weekly',format:'csv',firstAt:'2026-11-01T09:00',recipients:[sales.id]})
+ const privateDefinition={...definition,columns:['title','owner']}
+ await outside.command('view.save',{name:'Unowned group',definition:privateDefinition,sharedRoles:[],sharedGroups:[group.id]},{error:'FORBIDDEN'})
+ assert.ok(!(await outside.state()).savedViews.some(v=>v.name==='Unowned group'),'refused sharing saves no definition')
+ const ownShare=await sales.command('view.save',{name:'Own group',definition:privateDefinition,sharedRoles:[],sharedGroups:[group.id]})
+ assert.ok((await sales.state()).savedViews.some(v=>v.id===ownShare.id))
+ await sales.command('view.delete',{id:ownShare.id,version:ownShare.version})
  await outside.command('repository.access',policy,{error:'FORBIDDEN'})
+ await counsel.command('repository.access',policy,{error:'FORBIDDEN'})
  await h.owner.command('repository.access',policy)
  await h.owner.command('repository.access',policy,{error:'STALE'})
+ for(const reader of [h.owner,counsel]){
+  const full=await reader.state()
+  assert.deepEqual(full.agreements.map(a=>a.id).sort(),[...ids].sort())
+  assert.equal(full.agreements.find(a=>a.id===ids[0]).value_cents,74839256)
+  assert.equal(JSON.parse(full.customValues.find(v=>v.agreement_id===ids[0]&&v.field_id===budget.id).value),1234567)
+  assert.deepEqual(Buffer.from(await(await reader.request('/api/locket/files/'+source.id)).arrayBuffer()),bytes)
+ }
+ const policyAudit=(await h.owner.state()).audit.filter(a=>a.action==='repository.access')
+ assert.equal(policyAudit.length,1,'refused policy changes create no successful change event')
+ assert.equal(policyAudit[0].actor_id,state.actor.id)
+ assert.equal(policyAudit[0].actor_role,'owner')
  let s=await sales.state()
+ const restrictedRead=(await h.owner.state()).audit.find(a=>a.action==='agreement.view'&&a.agreement_id===ids[0]&&a.actor_id===sales.id)
+ assert.ok(restrictedRead,'structured restricted reads retain an attributed audit')
+ assert.equal(restrictedRead.actor_role,'viewer')
  assert.deepEqual(s.agreements.map(a=>a.id),[ids[0]])
  assert.deepEqual((await outside.state()).agreements,[])
  for(const key of ['value_cents','original_cents','usd_rate','currency'])assert.ok(!(key in s.agreements[0]),key+' must be absent')
@@ -320,6 +345,7 @@ test('REPO-009 current group and department grants intersect restricted access a
  for(const def of [{...definition,filters:[{field:'value',operator:'gte',value:'1'}]},{...definition,sort:{field:'value',direction:'desc'}}]){
   const r=await sales.request('/api/locket/repository?definition='+encodeURIComponent(JSON.stringify(def)));assert.equal(r.status,403);assert.equal((await r.json()).error.code,'FIELD_ACCESS')
  }
+ for(const suffix of ['', '?format=csv', '?format=pdf'])assert.equal((await sales.request('/api/locket/reports/'+report.id+suffix)).status,403)
  assert.equal((await sales.request('/api/locket/files/'+source.id)).status,403)
  assert.equal((await sales.request('/api/locket/compare?from='+a.current_version_id+'&to='+a.current_version_id)).status,403)
  await sales.command('request.update',{agreementId:a.id,version:a.version,value:'1'},{error:'FIELD_ACCESS'})
@@ -328,12 +354,17 @@ test('REPO-009 current group and department grants intersect restricted access a
  assert.deepEqual(Buffer.from(await(await h.owner.request('/api/locket/files/'+source.id)).arrayBuffer()),bytes)
  assert.ok((await sales.state()).notifications.items.some(n=>n.agreement_id===ids[0]&&n.kind==='mention'))
  const item=s.notifications.items.find(n=>n.kind==='mention')
+ await h.owner.command('repository.access',{...policy,version:1,grants:[]})
+ assert.deepEqual((await sales.state()).agreements,[],'policy changes apply to the next open-session request')
+ await h.owner.command('repository.access',{...policy,version:2})
+ assert.deepEqual((await sales.state()).agreements.map(a=>a.id),[ids[0]])
  await h.owner.command('audience.save',{id:group.id,version:group.version,name:'Sales',kind:'group',memberIds:[]})
+ await sales.command('view.save',{name:'Revoked group',definition:privateDefinition,sharedRoles:[],sharedGroups:[group.id]},{error:'FORBIDDEN'})
  s=await sales.state();assert.deepEqual(s.agreements,[]);assert.deepEqual(s.savedViews,[]);assert.deepEqual(s.notifications.items,[])
  const guessed=await sales.request('/api/locket/repository?viewId='+shared.id);assert.equal(guessed.status,404)
  await sales.command('view.pin',{viewId:shared.id,pinned:true},{error:'NOT_FOUND'})
  await sales.command('notification.read',{id:item.id},{error:'NOT_FOUND'})
- const calls=h.mails.length;await h.scheduled(Date.now()+86400000);assert.equal(h.mails.length,calls)
+ const calls=h.mails.length;await h.scheduled(clock+86400000);assert.equal(h.mails.length,calls)
  const archive=await(await h.owner.request('/api/locket/export')).json()
  assert.equal(archive.records.lk_repository_policy.length,1);assert.equal(archive.records.lk_view_groups.length,2)
  assert.equal(archive.records.lk_agreement_departments.length,3)

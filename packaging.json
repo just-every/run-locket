@@ -78,7 +78,8 @@
         "WORKFORCE_SCIM_TOKEN",
         "WORKFORCE_SAML_ISSUER",
         "WORKFORCE_SAML_SSO_URL",
-        "WORKFORCE_SAML_CERT"
+        "WORKFORCE_SAML_CERT",
+        "HUBSPOT_ACCESS_TOKEN"
       ],
       "migrationPrefix": "",
       "healthPath": "/health",
