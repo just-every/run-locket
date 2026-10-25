@@ -4365,7 +4365,7 @@
       "executable": false
     },
     "tests/api/operations.test.mjs": {
-      "sha256": "858f4092b48cebf6aa0c01c175ba786c05f60610ff5769ed86da61779d14bb65",
+      "sha256": "23a0f3f2f91b6b5ba5c2f470cb0120cab6a4a85c749f08c3e22d02cfc3fc0c86",
       "executable": false
     },
     "tests/api/outcome-report.test.mjs": {

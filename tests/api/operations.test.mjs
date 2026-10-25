@@ -34,6 +34,7 @@ test('Hosted export keeps records and file bytes in a verified restorable archiv
   await h.owner.command('request.create',{title:'Renewal services',type:'supplier',party:{name:'Fieldstone Services',kind:'supplier'},file:file('terms.pdf',pdf('Services for Fieldstone through 2028.'))})
   await cp(process.cwd(),directory,{recursive:true,filter:path=>{const rel=path.slice(process.cwd().length+1);return !['.git','node_modules','.rer','.seed','.wrangler','dist','.tanstack','.cache'].includes(rel.split('/')[0])&&!rel.startsWith('.dev.vars')&&!rel.startsWith('.env')}})
   await symlink(join(process.cwd(),'node_modules'),join(directory,'node_modules'),'dir')
+  await h.owner.command('calendar.connect',{provider:'google',calendarId:'synthetic-locket-1',accessToken:'synthetic-locket-2',scope:'all_accessible',consent:true})
   const edge=providerEdge(h.db)
   globalThis.fetch=edge.fetch
   Object.assign(process.env,{CI:'true',CLOUDFLARE_ACCOUNT_ID:edge.accountId,CLOUDFLARE_API_TOKEN:'synthetic-locket-1'})
@@ -49,9 +50,11 @@ test('Hosted export keeps records and file bytes in a verified restorable archiv
   assert.ok(edge.queries>0)
   await runCommand(project,parse(['export','--target','remote','--output',after,'--no-queue'],directory),out)
   assert.equal((await compareArchives(before,after)).files,inventory.files.length)
-  let rows=[]
-  for await(const record of fileRecords(before))if(record.kind==='part')rows.push(...record.items.filter(item=>item.kind==='row'&&item.table==='lk_agreements'))
+  let rows=[],calendar=[]
+  for await(const record of fileRecords(before))if(record.kind==='part'){rows.push(...record.items.filter(item=>item.kind==='row'&&item.table==='lk_agreements'));calendar.push(...record.items.filter(item=>item.kind==='row'&&item.table==='lk_calendar_connections'))}
   assert.equal(rows[0].row.title,'Renewal services')
+  assert.equal(calendar.length,1,'Calendar configuration record is retained')
+  assert.equal(calendar[0].row.token,undefined,'Provider credentials stay outside the recovery archive')
   edge.replace()
   await assert.rejects(runCommand(project,parse(['export','--target','remote','--output',join(directory,'exports/refused.rer'),'--no-queue'],directory),out),/update-owned-worker-replaced/)
   await assert.rejects(runCommand(project,parse(['import','--target','remote','--input',before,'--yes','--no-queue'],directory),out),/Hosted restore is unsupported/)
