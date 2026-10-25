@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { refuse } from '@runeditrun/rer/errors';
 import { deployment, exportHosted } from './hosted-archive.mjs';
 import { archiveInventory, compareArchives } from './archive-inventory.mjs';
 import { storeUpdateArchive } from './update-storage.mjs';
@@ -9,15 +10,15 @@ export { archiveInventory, compareArchives } from './archive-inventory.mjs';
 
 const git = (root,...args) => execFileSync('git',args,{cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
 function previousRelease(root,sha) {
- if (!/^[a-f0-9]{40}$/.test(sha)) throw Error('update-previous-source-invalid');
+ if (!/^[a-f0-9]{40}$/.test(sha)) throw refuse('Update refused: the deployed source record is invalid (update-previous-source-invalid). Restore the original deployment record before updating.');
  try { return JSON.parse(git(root,'show',`${sha}:RELEASE.json`)); }
- catch { throw Error('update-previous-release-unavailable: fetch the deployed source history before updating'); }
+ catch { throw refuse('Update refused: fetch the deployed source history before updating (update-previous-release-unavailable). No export or migration was started.'); }
 }
 
 export function updatingDeploy(native) {
  return Object.assign(async context => {
   const {root,options,store} = context, environment = options.environment ?? 'production';
-  if (options.rotateSecret || options.site || options.demo || options.platform === 'container') return native(context);
+  if (options.remove || options.setSecret || options.unsetSecret || options.rotateSecret || options.reopenInstallationKey || options.site || options.demo || options.platform === 'container') return native(context);
   const held = await deployment(root,environment);
   const release = JSON.parse(await readFile(join(root,'RELEASE.json'),'utf8'));
   let record, recordPath, directory, backupId;

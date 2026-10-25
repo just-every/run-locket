@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ed5891eb15dcecff15c0cc5e273db6be0e40beffece78e44551194498721a578",
+      "sha256": "a0f7f69fb4e97e34e7567c7b7c4d8618c2faebc92fc9f788829e312243d8898a",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "dec5428b8a48e61f19b754d1564b8045869585c0ffb758cdeef1ddf2733c860e",
+      "sha256": "994d8f5a4ebaaedeefe9bc83bfed1f2fce9b7935efcf922de616fb2a59c93d56",
       "executable": false
     },
     "DEMO.md": {
@@ -865,7 +865,7 @@
       "executable": false
     },
     "scripts/installer/update.mjs": {
-      "sha256": "0975ef25de5863d9544b7121b45269c90ff13b455c6337f4ee44a64b361492e4",
+      "sha256": "854bb20c997f5d64999b79e459e08afc97a6ce955eee0dffa32822d6246adf25",
       "executable": false
     },
     "scripts/operations-config.mjs": {
@@ -4361,11 +4361,11 @@
       "executable": false
     },
     "tests/api/operations-update-fixture.mjs": {
-      "sha256": "f192d604318707fab6d7133ea91866de64ac1c206352f23d0d8b5079bc7f93c7",
+      "sha256": "2b35a6d55981daab91c61272e608853ada286e626fd0ed94eeac012ce7fdd250",
       "executable": false
     },
     "tests/api/operations.test.mjs": {
-      "sha256": "23a0f3f2f91b6b5ba5c2f470cb0120cab6a4a85c749f08c3e22d02cfc3fc0c86",
+      "sha256": "d71bde46c30e4ef7a68eefe26d4e0c0ffde2430b454115aace4ac119fbfbe67c",
       "executable": false
     },
     "tests/api/outcome-report.test.mjs": {

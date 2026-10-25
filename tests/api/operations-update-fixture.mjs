@@ -5,7 +5,7 @@ export function providerEdge(db) {
  const accountId='1'.repeat(32),worker='locket-production',name=worker+'-db'
  const provider={versionId,deploymentId,etag:'synthetic-locket-1'}
  let replaced=false,queries=0
- const state={version:1,kind:'rer-deploy-owner-state',accountId,project:'contracts/locket',environment:'production',worker,owned:{worker:{status:'created'},d1:{[name]:{status:'created',id:databaseId}},r2:{},kv:{},queues:{}},receipt:{provider,resources:{d1:[{binding:'DB',name,id:databaseId}]}}}
+ const state={version:1,kind:'rer-deploy-owner-state',accountId,project:'contracts/locket',environment:'production',worker,owned:{worker:{status:'created'},d1:{[name]:{status:'created',id:databaseId}},r2:{},kv:{},queues:{}},receipt:{provider,source:{sha:'f'.repeat(40)},migrations:[],resources:{d1:[{binding:'DB',name,id:databaseId}]}}}
  const fetch=async (url,options={})=>{
   const path=new URL(url).pathname.split('/accounts/'+accountId)[1]
   let result

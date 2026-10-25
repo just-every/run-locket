@@ -55,6 +55,9 @@ test('Hosted export keeps records and file bytes in a verified restorable archiv
   assert.equal(rows[0].row.title,'Renewal services')
   assert.equal(calendar.length,1,'Calendar configuration record is retained')
   assert.equal(calendar[0].row.token,undefined,'Provider credentials stay outside the recovery archive')
+  const queries=edge.queries
+  await assert.rejects(runCommand(project,parse(['deploy','--dry-run','--non-interactive','--no-queue'],directory),out),/update-previous-release-unavailable/)
+  assert.equal(edge.queries,queries,'An unavailable previous release prevents exporting or migrating')
   edge.replace()
   await assert.rejects(runCommand(project,parse(['export','--target','remote','--output',join(directory,'exports/refused.rer'),'--no-queue'],directory),out),/update-owned-worker-replaced/)
   await assert.rejects(runCommand(project,parse(['import','--target','remote','--input',before,'--yes','--no-queue'],directory),out),/Hosted restore is unsupported/)
