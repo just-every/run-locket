@@ -513,7 +513,7 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "62ff49caf9cf4da117a0875bdeca5ff25aa3fa6588552f73ce2e96c51fe1cb62",
+      "sha256": "d3c365d4aa7cb35c69ba7fa0d444cd5fcd19a1813a69be0a3ce803486804fdcb",
       "executable": false
     },
     "package.json": {
@@ -653,7 +653,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "f8282e74dbb4d1db43c82fedcede848ec6bde3d727717915e93002835f1d070a",
+      "sha256": "b899383fc7c3eda0b64dd1c9b4d428802984b4e5cbd7ac9d32123fc4bddbb588",
       "executable": false
     },
     "scripts/build-deployment-spec.mjs": {

@@ -60,7 +60,8 @@ a forward migration and verified transition/recovery.
 ## Deployment
 
 `rer deploy --dry-run` validates the real owner-account
-deployment declaration and builds locally without provider requests. Real
+deployment declaration, builds locally and reads provider metadata without
+creating or changing provider resources. Real
 deployment requires privately supplied `CLOUDFLARE_ACCOUNT_ID` and
 `CLOUDFLARE_API_TOKEN`, the declared owner/session/setup secrets, and a real
 verified mail sender in `deploy.json`. Follow the owner-account deploy-kit

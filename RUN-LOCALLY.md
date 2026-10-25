@@ -210,14 +210,23 @@ operations and ambiguous or linked state.
 Local export creates a private archive with an integrity receipt and explicit
 exclusions. Import validates the archive and restores into an empty destination.
 After import, run setup to establish the owner and local configuration. Auth,
-private settings and transient runtime state are excluded. Remote
-transfer is unsupported by the maintained references and fails visibly.
+private settings and transient runtime state are excluded. Locket also supports
+`rer export --target remote --output exports/hosted.rer` for the recorded
+production owner-account deployment, with the deploying account's Cloudflare
+credentials. Hosted import is refused. Restore into an empty local installation
+and establish fresh authentication before use. Earlier backup copies are excluded
+from subsequent snapshots; retain them under the buyer's backup policy.
 
 Real deployment uses the owner-account procedure and its private credentials.
-`rer deploy --dry-run` validates and builds locally without a
-provider request. The default environment is `production`; select another with
-`--environment NAME`. Local validation does not establish provider acceptance,
-hosted health or mail delivery.
+`rer deploy --dry-run` builds locally and reads deployment metadata without
+creating or changing provider resources. For an existing installation it previews
+the previous release, candidate release notes and pending forward migrations.
+The default environment is `production`; select another with `--environment NAME`.
+`rer deploy` verifies a complete export before updating, retains the previous
+release record, and checks record and file preservation afterward. Keep writes
+paused and retain the same deployment checkout. See `OPERATIONS.md` for recovery
+copies, private R2 retention and explicit mail configuration. Local validation
+does not establish provider acceptance, hosted health or mail delivery.
 
 `rer describe` reads the current checkout's actual verbs,
 flags, aliases, pins, effects and local state without installing or running
