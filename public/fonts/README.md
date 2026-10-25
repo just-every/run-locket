@@ -18,9 +18,11 @@ Self-hosted under the SIL Open Font License 1.1; each folder keeps its licence.
   (upstream https://github.com/JetBrains/JetBrainsMono), for commands.
   Licence: `jetbrains-mono/LICENSE.txt`.
 
-`/fonts/fonts.css` declares the faces and the size-matched `Inter Fallback`
+`/rer-theme.css` declares the faces and the size-matched `Inter Fallback`
 (Arial scaled to Inter's advance widths; ascent and descent from Inter's
-1984/-494 per 2048 units, divided by the scale). `/rer-theme.css` names the
-stacks; the app, Base's frames, the run site and /run read them from there.
-The root document, `/setup` and the sign-in pages link `fonts.css` once
-through `src/base/font-head.ts`. Do not import either file from a component.
+1984/-494 per 2048 units, divided by the scale), beside the theme tokens that
+name the stacks, so rer's installer serves them too; the app, Base's frames,
+the run site and /run read them from there. `/fonts/fonts.css` sets the page
+font and holds Locket's own tokens. The root document, `/setup` and the
+sign-in pages link `fonts.css` once through `src/base/font-head.ts`. Do not
+import either file from a component.

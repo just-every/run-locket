@@ -1,6 +1,7 @@
 /* The run site's frame: the white grid page, the stage every homepage section is drawn on, the header, footer,
-   headings and actions. Tokens come from /rer-theme.css. Wide screens (1280 px and up) draw each section in the
-   design desk's 1536 px canvas, zoomed to the window (--z); narrower screens stack each section in one column. */
+   headings and actions. Tokens come from /rer-theme.css and /fonts/fonts.css. Wide screens (1280 px and up) draw
+   each section in the design desk's 1536 px canvas, zoomed to the window (--z); narrower screens stack each section
+   in one column. */
 :root { --z: 1; --gutter: 16px; }
 @media (max-width: 1535px) { :root { --z: .9375; } }
 @media (max-width: 1439px) { :root { --z: .889; } }

@@ -1,53 +1,53 @@
-/* Locket's faces, self-hosted (licences in each folder, public/fonts/README.md):
-   Inter (variable weight and optical size, so large headings take its Display
-   cut) for headings and text, Kalam for the handwritten notes and stickies,
-   Source Serif 4 for the contract pages the homepage draws, JetBrains Mono for commands. Inter has a size-matched Arial fallback so text
-   barely moves when the face arrives. */
-@font-face {
-  font-family: Inter;
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/inter/inter-variable-latin.woff2') format('woff2');
-}
-@font-face {
-  font-family: Kalam;
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/kalam/kalam-latin-400-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: Kalam;
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/kalam/kalam-latin-700-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Source Serif 4';
-  font-style: normal;
-  font-weight: 200 900;
-  font-display: swap;
-  src: url('/fonts/source-serif-4/source-serif-4-latin-wght-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'JetBrains Mono';
-  font-style: normal;
-  font-weight: 100 800;
-  font-display: swap;
-  src: url('/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Inter Fallback';
-  src: local('Arial'), local('ArialMT'), local('Liberation Sans');
-  size-adjust: 104.71%;
-  ascent-override: 92.52%;
-  descent-override: 23.04%;
-  line-gap-override: 0%;
-}
+/* Locket's page font, then what the theme grammar has no place for: Base's other --rer-* names and the site's own
+   tokens, read by the app (src/ui/style/tokens.css), the run site, Base's frames (public/brand/frame.css) and Base's
+   Run pages (public/brand/run.css). Each of those documents links this file with /rer-theme.css
+   (src/base/font-head.ts, the edition identity's fonts, src/site/pages.tsx), and rer's hosted demo inlines both.
+   The faces are in /rer-theme.css. */
 :root {
   --font-body: Inter, 'Inter Fallback', Arial, sans-serif;
   font-family: var(--font-body);
 }
 button, input, select, textarea { font-family: inherit; }
+:root {
+  /* Base's other --rer-* names: Base's pages read them, but they are not theme tokens. */
+  --rer-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --rer-button-radius: 14px;
+  --rer-code-background: #14151A;
+  --rer-code-text: #F3F4F6;
+  --rer-wordmark-weight: 800;
+  --rer-wordmark-tracking: -.035em;
+
+  /* The site's own tokens. */
+  --ink: var(--rer-text);
+  --body: var(--rer-muted);
+  --quiet: #6B7280;
+  --paper: var(--rer-page);
+  --grid: rgb(17 17 17 / .045);
+  --line: #E6E6EA;
+  --line-2: #F0F0F3;
+  --tint: #F6F6F8;
+  --claret: #8E0F34;
+  --claret-deep: #7B1230;
+  --claret-tint: #FBEFF2;
+  --copper: #C66B39;
+  --spark: #E8622A;
+  --heading-gradient: linear-gradient(90deg, #7D0A26 0%, #A30F2D 34%, #CC2A2B 66%, #E2571A 100%);
+  --done: #22A447;
+  --done-ink: #17703A;
+  --done-bg: #E8F6EC;
+  --fail: #C8102E;
+  --fail-bg: #FDECEE;
+  --amber-ink: #7A4B00;
+  --amber-bg: #FDEBC4;
+  --insert: #1F5FD6;
+  --insert-bg: #E7F0FF;
+  --theirs: #7A2BC2;
+  --theirs-bg: #EFE3FB;
+  --sticky: #FCEE8F;
+  --priya: #8E0F34;
+  --marcus: #F6A85D;
+  --marcus-ink: #3A1A05;
+  --jenna: #107E78;
+  --card-shadow: 0 1px 2px rgb(17 17 17 / .04), 0 14px 34px -14px rgb(17 17 17 / .16);
+  --font-hand: Kalam, 'Comic Sans MS', cursive;
+}

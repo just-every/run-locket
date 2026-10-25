@@ -1,5 +1,6 @@
-/* The app's tokens. Every colour and face is the edition theme's (public/rer-theme.css, shared with the run site);
-   the app adds only its own gradient pair (claret #8A1538 to copper #E8622A, the picked workspace's), sizes and roles. */
+/* The app's tokens. Every colour and face is the edition theme's (public/rer-theme.css and public/fonts/fonts.css,
+   shared with the run site); the app adds only its own gradient pair (claret #8A1538 to copper #E8622A, the picked
+   workspace's), sizes and roles. */
 :root {
   --lk-font: var(--rer-font-body);
   --lk-font-heading: var(--rer-font-heading);

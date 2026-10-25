@@ -1,6 +1,6 @@
 /* Locket's look on Base's shared Run, Contract and not-found pages (linked after their own style by src/site/pages.tsx):
    the homepage's grid page, header lockup, heavy headings, white hairline step cards and ink step numbers. Tokens come
-   from /rer-theme.css. */
+   from /rer-theme.css and /fonts/fonts.css. */
 .nw { white-space: nowrap; }
 body { background-color: var(--rer-page); background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px), linear-gradient(to bottom, var(--grid) 1px, transparent 1px); background-size: 40px 40px; }
 body > .bar { box-sizing: border-box; width: min(100% - 90px, 1440px); max-width: none; padding: 31px 6px 0 0; }

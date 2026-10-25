@@ -1,6 +1,7 @@
 /* Locket's sign-in, confirmation and first-run setup cards in the run site's look: the approved mark and name
    centered above one white hairline card on the faint square grid, heavy Inter headings, ink buttons.
-   Linked after Base's own hashed style by src/frame.ts; every value reads the edition theme (/rer-theme.css). */
+   Linked after Base's own hashed style by src/frame.ts; every value reads the edition theme (/rer-theme.css) or
+   Locket's own tokens (/fonts/fonts.css). */
 html.rer-themed body { display: block; min-height: 100vh; margin: 0; padding: 172px 20px 72px; background-color: var(--rer-page); background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px), linear-gradient(to bottom, var(--grid) 1px, transparent 1px); background-size: 40px 40px; color: var(--rer-text); font-family: var(--rer-font-body); }
 html.rer-themed main { position: relative; box-sizing: border-box; width: 100%; max-width: 640px; margin: 0 auto; padding: 42px 58px 50px; border: 1px solid var(--line); border-radius: 20px; background: var(--rer-surface); box-shadow: var(--card-shadow); text-align: left; }
 html.rer-themed body:not(:has(main dl)) { padding-top: 250px; }

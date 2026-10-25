@@ -525,7 +525,7 @@
       "executable": false
     },
     "public/brand/frame.css": {
-      "sha256": "2c8ec79566a5c941d314657f0517755021a01a3eca0ed9c8d0e8bba0d07500d6",
+      "sha256": "a94d75c6b28b2c825c77c9b6007a7a9cffc2d571ee99cb68863a348282246ed8",
       "executable": false
     },
     "public/brand/icon-192.png": {
@@ -541,7 +541,7 @@
       "executable": false
     },
     "public/brand/run.css": {
-      "sha256": "e74f70573e27b4bc66b5891bbd771d884c07ced058d141d3c8793b2ee95cebcf",
+      "sha256": "58e45970d834963da91d1ea63b3bad363a75e17b9d294b8d1063c5fc602da2b4",
       "executable": false
     },
     "public/favicon-16.svg": {
@@ -557,7 +557,7 @@
       "executable": false
     },
     "public/fonts/fonts.css": {
-      "sha256": "1e5f7798ad5775133da9aeda366b1447d22e1782e3ebffff54a4c9a3a26856cb",
+      "sha256": "cfb65eb140ab6be264be7d5f02ab88d59caa12e305454a8ab237e4bc8d33e6b6",
       "executable": false
     },
     "public/fonts/inter/inter-variable-latin.woff2": {
@@ -589,7 +589,7 @@
       "executable": false
     },
     "public/fonts/README.md": {
-      "sha256": "3484dfe8381e043c1a55fd1bfd9d32300677e7872ccdba85d563ae25e91c8667",
+      "sha256": "4702ab8188f74acc15b51cb3b36085180d5185f299debc65ba65329696af7ca9",
       "executable": false
     },
     "public/fonts/source-serif-4/LICENSE.txt": {
@@ -601,7 +601,7 @@
       "executable": false
     },
     "public/rer-theme.css": {
-      "sha256": "c42f906091d99eee07e590e14d18a7a2aa441f2373bded5a63885570c1551dd5",
+      "sha256": "dbe948bcf8d7c7f04f17ac12044044b7cd68586fab8cf20a25a2fb169a687330",
       "executable": false
     },
     "public/site/share.jpg": {
@@ -3537,7 +3537,7 @@
       "executable": false
     },
     "src/server.dev.ts": {
-      "sha256": "59046670eadff95ae12ecdefea0cff1312c06ca85e49c3fe84cb10258ed27a1f",
+      "sha256": "ea4ffc9f45dde1c637cfd35a5f3fe5959cc073f86551c25c90691a4a319a4faf",
       "executable": false
     },
     "src/server.ts": {
@@ -3725,7 +3725,7 @@
       "executable": false
     },
     "src/site/styles/site.css": {
-      "sha256": "4734ce09df9d016455f0bea4888b733f15b2a35c33692740383a24b9b0b8962c",
+      "sha256": "d8fd7034c9fdab21b06c62ee63982aab6d36fbf58efee123806199fdd8f2bc04",
       "executable": false
     },
     "src/site/text.ts": {
@@ -4109,7 +4109,7 @@
       "executable": false
     },
     "src/ui/style/tokens.css": {
-      "sha256": "6230cb8c70d66c88035d5eeb8fe0953a3f5f265bd719888ceec22c1dc43fbb78",
+      "sha256": "c30a4d9b3005f13c71933de672f340d1b9d8ae12c05449778439741d34b3cfc8",
       "executable": false
     },
     "src/ui/style/workflow-analytics.css": {
