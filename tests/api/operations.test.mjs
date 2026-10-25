@@ -41,7 +41,7 @@ test('Hosted export keeps records and file bytes in a verified restorable archiv
   await writeFile(join(directory,'.rer/deploy/production.json'),JSON.stringify(edge.state))
   const project=await resolveProject(directory)
   const out={progress(){},event(){},human(){}}
-  const before=join(directory,'before.rer'),after=join(directory,'after.rer')
+  const before=join(directory,'exports/before.rer'),after=join(directory,'exports/after.rer')
   await runCommand(project,parse(['export','--target','remote','--output',before,'--no-queue'],directory),out)
   const inventory=await archiveInventory(before)
   assert.equal(inventory.tables.lk_agreements,1)
@@ -53,7 +53,7 @@ test('Hosted export keeps records and file bytes in a verified restorable archiv
   for await(const record of fileRecords(before))if(record.kind==='part')rows.push(...record.items.filter(item=>item.kind==='row'&&item.table==='lk_agreements'))
   assert.equal(rows[0].row.title,'Renewal services')
   edge.replace()
-  await assert.rejects(runCommand(project,parse(['export','--target','remote','--output',join(directory,'refused.rer'),'--no-queue'],directory),out),/update-owned-worker-replaced/)
+  await assert.rejects(runCommand(project,parse(['export','--target','remote','--output',join(directory,'exports/refused.rer'),'--no-queue'],directory),out),/update-owned-worker-replaced/)
   await assert.rejects(runCommand(project,parse(['import','--target','remote','--input',before,'--yes','--no-queue'],directory),out),/Hosted restore is unsupported/)
  }finally{
   globalThis.fetch=savedFetch
