@@ -4740,6 +4740,14 @@
       "sha256": "53837fafaefb7f43c62b3635b00c65b4d7f144695929d055c608f33ed28a57ca",
       "executable": false
     },
+    "tests/operations-live-client.mjs": {
+      "sha256": "bbf1ff0d6c3ba530b1722efb0f0632933a60e611f05c4b9fb59d00ec5c2d31a3",
+      "executable": false
+    },
+    "tests/operations-live.mjs": {
+      "sha256": "5dc5edc569a59aa2dc1696687a4022a041cc7879506c0c5de66977bb06d2a2cf",
+      "executable": false
+    },
     "tests/portable.mjs": {
       "sha256": "bc93e06e37099ef98c0064d52c086e1e0d054656a87554c66b7ab42244413504",
       "executable": false
