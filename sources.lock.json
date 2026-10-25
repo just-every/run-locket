@@ -4745,7 +4745,7 @@
       "executable": false
     },
     "tests/operations-live.mjs": {
-      "sha256": "2f573011490d1c5dacc189067858ac86a30fa617f7d455f01b5c214c121814b2",
+      "sha256": "3b650e865e5a74aef7d049cecf955e08604851b243d14b4a73b8c08abf6a4ace",
       "executable": false
     },
     "tests/portable.mjs": {

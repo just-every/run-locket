@@ -2,9 +2,10 @@
 // this environment's own resources, including after an interrupted deployment.
 import assert from 'node:assert/strict';
 import { execFileSync,spawn } from 'node:child_process';
-import { lstat, readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { resolve,join } from 'node:path';
 import { ownerBrowser,command,redact } from './operations-live-client.mjs';
+import { deployment } from '../scripts/installer/hosted-archive.mjs';
 
 const environment='ops-i812';
 process.env.MAIL_ACCOUNT_ID=process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -39,7 +40,9 @@ try{
 }catch(error){failure=error}finally{
  await owner?.browser.close();
  if(git('rev-parse','HEAD')!==candidate)git('switch','--detach',candidate);
- if(await lstat(join('.rer/deploy',environment+'.json')).catch(error=>{if(error.code==='ENOENT')return null;throw error})){
+ const held=await deployment(process.cwd(),environment);
+ const owned=held?.state.owned;
+ if(owned&&(owned.worker||['d1','r2','kv','queues'].some(kind=>Object.keys(owned[kind]??{}).length))){
   try{await command(['deploy','--environment',environment,'--remove','--yes','--no-queue']);console.log('OPS-001 owned Worker, D1 database and R2 bucket removed and read back absent.')}catch(error){removed=false;failure??=error}
  }
  if(branch)git('switch',branch);
