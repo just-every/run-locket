@@ -104,6 +104,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     if(type.startsWith('package.')||type.startsWith('signature.'))await authorizeSignatureResult(c,type,payload)
     if(type==='package.send')await dispatchSignature(c,(result as {id:string}).id)
     if(type.startsWith('approval.channel.'))await authorizeChannelResult(c,type,payload)
+    if(type.startsWith('connection.'))requireRole(c.actor,['owner'],'read connection outcomes')
     if(type==='connection.check'){requireRole(c.actor,['owner'],'read connection checks');await alertConnectionFailure(env,(result as {id:string}).id)}
     await authorizeErasureResult(c,type,result)
     if(type.startsWith('outcome-report.'))await authorizeOutcomeReportResult(c,type,payload)

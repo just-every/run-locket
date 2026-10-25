@@ -197,6 +197,7 @@ for(const width of [1440,390])test(`Connection health read-only failure and reco
  let failing=true
  const p=await productPage(page,{width,bindings:{HUBSPOT_ACCESS_TOKEN:'synthetic-locket-79',SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-80'},outboundResponse:async request=>new URL(request.url).hostname==='api.hubapi.com'?Response.json({portalId:123456}):failing?Response.json({error:'synthetic-locket-81'},{status:401}):Response.json({accountId:'synthetic-locket-account'})})
  try{
+  const now=Date.UTC(2026,9,25,12);await p.h.setTime(now)
   await p.command('signature.connection.configure',{provider:'docusign',baseUrl:'https://demo.docusign.net/restapi/v2.1',accountId:'synthetic-locket-account',version:0})
   await page.goto(p.origin+'/app#connections');await page.reload()
   const hubspot=page.getByRole('region',{name:'hubspot connection',exact:true})
@@ -220,6 +221,17 @@ for(const width of [1440,390])test(`Connection health read-only failure and reco
    await link.blur();await page.mouse.move(0,0);await link.hover()
    await expect(page.getByRole('tooltip',{name:label,exact:true})).toBeVisible({timeout:1000});await page.mouse.move(0,0)
   }
+  await expect(panel).toContainText('Last successful operation')
+  await panel.getByLabel('Credential expiry (UTC)',{exact:true}).fill('2026-10-27T12:00')
+  await panel.getByLabel('I confirm this owner-recorded expiry change.',{exact:true}).check()
+  await panel.getByRole('button',{name:'Save credential expiry',exact:true}).click()
+  await expect(panel).toContainText('Renew within seven days.')
+  await p.h.scheduled(now);await page.reload()
+  await expect(page.getByRole('region',{name:'docusign connection',exact:true})).toContainText('Renewal alert: Accepted by provider; delivery unconfirmed')
+  await shot('expiry-warning')
+  await panel.getByLabel('I confirm this owner-recorded expiry change.',{exact:true}).check()
+  await panel.getByRole('button',{name:'Clear recorded expiry',exact:true}).click()
+  await expect(panel).toContainText('Expiry unknown; no automatic expiry claim.')
   await shot('recovered')
  }finally{await p.close()}
 })

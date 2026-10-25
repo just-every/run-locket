@@ -1,3 +1,4 @@
+import { runConnectionExpiry } from '../../src/locket/connection-expiry'
 import { runApprovalChannels } from '../../src/locket/approval-channel-automatic'
 import { runOutcomeReports } from '../../src/locket/outcome-report-dispatch'
 import { runRenewalBriefs } from '../../src/locket/renewal-briefs'
@@ -23,6 +24,7 @@ export default {
   },
   async scheduled(controller: ScheduledController, env: any) {
     Date.now = env.TEST_NOW ? () => Number(env.TEST_NOW) : systemNow
+    await runConnectionExpiry(env,controller.scheduledTime)
     await runRenewalLifecycle(env,controller.scheduledTime)
     await runRenewalCalendars(env,controller.scheduledTime)
     await runRemediation(env,controller.scheduledTime)

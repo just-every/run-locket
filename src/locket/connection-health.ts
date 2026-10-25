@@ -5,6 +5,7 @@ import type { Handler } from './commands'
 import { fail, sql, text } from './model'
 import { channelEnv } from './approval-channel-config'
 import { signatureBase } from './signature-provider'
+import { expiryHandler } from './connection-expiry'
 
 export async function connectionRegistry(env:Bindings){
  const db=env.DB,chat=channelEnv(env),rows:any[]=[]
@@ -12,11 +13,14 @@ export async function connectionRegistry(env:Bindings){
  if(env.MAIL_PROVIDER)rows.push({id:'mail',kind:'mail',account:env.MAIL_FROM??'Sender not configured',probe:false})
  if(env.QUICKBOOKS_REALM_ID)rows.push({id:'quickbooks',kind:'accounting',account:env.QUICKBOOKS_REALM_ID,probe:true})
  for(const id of ['slack','teams','nook'])if((chat as any)['APPROVAL_'+id.toUpperCase()+'_TOKEN'])rows.push({id,kind:'chat',account:id==='nook'?chat.APPROVAL_NOOK_ORIGIN??'Installation not configured':'Server-bound '+id+' account',probe:id!=='nook'})
- for(const c of(await db.prepare('SELECT * FROM lk_signature_connections').all<any>()).results)rows.push({id:c.provider,kind:'signing',account:c.account_id??c.base_url,configuredAt:c.configured_at,probe:c.provider==='docusign'})
+ for(const c of(await db.prepare('SELECT * FROM lk_signature_connections').all<any>()).results)rows.push({id:c.provider,kind:'signing',account:c.account_id??c.base_url,configuredAt:c.configured_at,connectionVersion:c.version,probe:c.provider==='docusign'})
  const health=(await db.prepare('SELECT * FROM lk_connection_health').all<any>()).results
+ const expiries=(await db.prepare('SELECT * FROM lk_connection_expiries').all<any>()).results
  for(const row of rows){
   const observation=health.find(h=>h.id===row.id&&h.account===row.account&&h.checked_at>=(row.configuredAt??0))
-  Object.assign(row,{status:'unverified',reason:'No supported read-only probe has completed.',last_success_at:null,provider_account:null},observation??{})
+  Object.assign(row,{status:'unverified',reason:'No supported read-only probe has completed.',last_success_at:null,last_sync_at:null,provider_account:null},observation??{})
+  const expiry=expiries.find(e=>e.id===row.id)
+  row.credentialExpiry=expiry?(expiry.account===row.account&&expiry.connection_version===(row.connectionVersion??0)?expiry:{version:expiry.version}):null
   let ids:string[]=[]
   if(row.kind==='signing')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_packages WHERE provider=?').bind(row.id).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(row.kind==='accounting')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_accounting_links').all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
@@ -71,10 +75,10 @@ export async function alertConnectionFailure(env:Bindings,id:string){
   else if(!owner||!mail||!env.MAIL_FROM)status='rejected'
   else{
    const url=(env.AUTH_ORIGIN??'').replace(/\/$/,'')+'/app#connections'
-   const sent=await mail.send({deliveryId:row.incident_id,from:env.MAIL_FROM,to:[owner.email],subject:'A Locket connection needs attention',text:'A connection check failed. Sign in to inspect its reason and affected agreements.\n\n'+url,html:'<p>A connection check failed. Sign in to Locket to inspect it.</p>',headers:{}})
+   const sent=await mail.send({deliveryId:row.incident_id,from:env.MAIL_FROM,to:[owner.email],subject:'A Locket connection needs attention',text:'A connection operation or check failed. Sign in to inspect its reason and affected agreements.\n\n'+url,html:'<p>A connection operation or check failed. Sign in to Locket to inspect it.</p>',headers:{}})
    status=sent.status==='development'?'suppressed':sent.status
   }
  }catch{}
  await db.prepare("UPDATE lk_connection_health SET alert_status=? WHERE id=? AND incident_id=? AND alert_status='sending'").bind(status,id,row.incident_id).run()
 }
-export const connectionHandlers:Record<string,Handler>={'connection.check':check}
+export const connectionHandlers:Record<string,Handler>={'connection.check':check,'connection.expiry':expiryHandler}

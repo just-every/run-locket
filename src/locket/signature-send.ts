@@ -1,4 +1,6 @@
 import { requireRole } from './access'
+import { signingObservation } from './connection-observations'
+import { alertConnectionFailure } from './connection-health'
 import { readArtifactBytes } from './artifacts'
 import { auditSql,commit,guardSql,type Ctx,type Handler } from './commands'
 import { commandNotifications } from './notification-events'
@@ -18,7 +20,7 @@ const configure:Handler=async(c,p)=>{
  requireRole(c.actor,['owner'],'configure a signing provider connection')
  const provider=oneOf(p,'provider',liveSignatureProviders),base=signatureBase(provider,text(p,'baseUrl',300),c.env),version=integer(p,'version',0),account=optionalText(p,'accountId',100)
  if(provider==='docusign'&&!account)fail('SIGNATURE_CONFIG','Docusign requires the connected account ID.')
- return {allowed:['owner'],result:{provider,version:version+1},checks:[sql('COALESCE((SELECT version FROM lk_signature_connections WHERE provider=?),0)=?',provider,version)],writes:[sql('INSERT INTO lk_signature_connections VALUES(?,?,?,1,?,?) ON CONFLICT(provider) DO UPDATE SET base_url=excluded.base_url,account_id=excluded.account_id,version=version+1,configured_by=excluded.configured_by,configured_at=excluded.configured_at',provider,base,account,c.actor.id,c.now)],audit:[{action:'signature.connection.configure',summary:`The owner configured ${provider}; credentials remain in the installation secret store. No send authorization was granted.`}]}
+ return {allowed:['owner'],result:{provider,version:version+1},checks:[sql('COALESCE((SELECT version FROM lk_signature_connections WHERE provider=?),0)=?',provider,version)],writes:[sql('INSERT INTO lk_signature_connections VALUES(?,?,?,1,?,?) ON CONFLICT(provider) DO UPDATE SET base_url=excluded.base_url,account_id=excluded.account_id,version=version+1,configured_by=excluded.configured_by,configured_at=excluded.configured_at',provider,base,account,c.actor.id,c.now),sql('DELETE FROM lk_connection_health WHERE id=?',provider)],audit:[{action:'signature.connection.configure',summary:`The owner configured ${provider}; credentials remain in the installation secret store. No send authorization was granted.`}]}
 }
 export async function confirmSignaturePackage(c:Ctx,a:AgreementRow,pkg:any) {
  requireStatus(a,['approved'],'send a signature packet')
@@ -63,8 +65,9 @@ export async function dispatchSignature(c:Ctx,id:string=c.commandId) {
    const history=await workflowWrites(transition,[event]),notifications=await commandNotifications(transition,'package.sent',{agreementId:row.agreement_id},{allowed:['owner'],result:{status:'sent'},writes:[],audit:[event]})
    statements.push(sql("UPDATE lk_packages SET status='sent',envelope_id=?,sent_by=?,sent_at=? WHERE id=?",envelopeId,row.actor_id,transition.now,row.package_id),sql("UPDATE lk_agreements SET status='out_for_signature',version=version+1,updated_at=? WHERE id=?",transition.now,row.agreement_id),...history,...notifications)
   }
+  if(claimed&&connection)statements.push(signingObservation(connection.provider,connection.account_id??connection.base_url,Date.now(),status==='sent'||status==='provider_prepared',code??'provider_operation_succeeded',connection.version))
   const guard=crypto.randomUUID()
-  try{await c.db.batch([guardSql(guard,[sql('EXISTS(SELECT 1 FROM lk_signature_dispatches WHERE id=? AND status=? AND attempt_id IS ?)',id,previous,claimed?attempt:null)]),...statements,sql('DELETE FROM lk_guard WHERE id=?',guard)].map(s=>c.db.prepare(s.sql).bind(...s.params)))}catch(error){if(!/LOCKET_GUARD/.test(String(error)))throw error}
+  try{await c.db.batch([guardSql(guard,[sql('EXISTS(SELECT 1 FROM lk_signature_dispatches WHERE id=? AND status=? AND attempt_id IS ?)',id,previous,claimed?attempt:null)]),...statements,sql('DELETE FROM lk_guard WHERE id=?',guard)].map(s=>c.db.prepare(s.sql).bind(...s.params)));if(claimed&&connection)await alertConnectionFailure(c.env,connection.provider)}catch(error){if(!/LOCKET_GUARD/.test(String(error)))throw error}
  }
  let packet:ProviderPacket,connection:SignatureConnection,token:string
  try{
