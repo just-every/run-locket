@@ -1073,7 +1073,7 @@
       "executable": false
     },
     "src/locket/approval-rules.ts": {
-      "sha256": "9ded870fb5d28fc9e9ab092c1cb8cb771c20211a4557c02c593027fd40962f39",
+      "sha256": "46c4945ac397b1d2fc7a83714a51bb6613a9a0e48457aec4c6d6849540528f1a",
       "executable": false
     },
     "src/locket/artifacts.ts": {

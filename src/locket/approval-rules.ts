@@ -30,8 +30,7 @@ export async function ruleRequirements(db:D1Database,a:AgreementRow):Promise<Req
  const version=await ruleSetFor(db,a.id);if(!version)return []
  const rules=matchingRules(JSON.parse(version.definition),await approvalSample(db,a)),steps:Requirement[]=[]
  for(const rule of rules){
-  const approver={id:rule.approverId,role:'approver'} as Actor
-  if((await hiddenFields(db,approver)).length)continue
+  if((await hiddenFields(db,{...scheduler,id:rule.approverId,role:'approver'})).length)continue
   const away=await db.prepare('SELECT * FROM lk_approval_absences WHERE operator_id=?').bind(rule.approverId).first<any>()
   const reminderDelegate=await db.prepare('SELECT delegate_id FROM lk_reminder_routing WHERE operator_id=?').bind(rule.approverId).first<{delegate_id:string|null}>()
   steps.push({kind:'commercial',deviationId:'rule:'+rule.id,label:rule.name,roles:['owner','approver'],approverId:rule.approverId,delegateId:away?.away?away.delegate_id:null,away:!!away?.away,absenceVersion:away?.version??0,order:rule.order,escalationId:rule.escalationId,escalationDelegateId:away?.delegate_id??reminderDelegate?.delegate_id??null,rulesetId:version.id})
