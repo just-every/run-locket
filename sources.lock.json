@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "a0f7f69fb4e97e34e7567c7b7c4d8618c2faebc92fc9f788829e312243d8898a",
+      "sha256": "01cc76de66a4cc5f3f87a7aa86adeebcfd2399a86e586376d0280a3714c3a1be",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "994d8f5a4ebaaedeefe9bc83bfed1f2fce9b7935efcf922de616fb2a59c93d56",
+      "sha256": "1b6c5d0079d18df9c60844b1ecad2d3d570b117e520a850311795dab34ec5ed6",
       "executable": false
     },
     "DEMO.md": {
@@ -865,7 +865,7 @@
       "executable": false
     },
     "scripts/installer/update.mjs": {
-      "sha256": "854bb20c997f5d64999b79e459e08afc97a6ce955eee0dffa32822d6246adf25",
+      "sha256": "590a0cdc406567d7887957834bdec9778ea42d4e71451aee5cda8a776e783726",
       "executable": false
     },
     "scripts/operations-config.mjs": {
@@ -881,7 +881,7 @@
       "executable": false
     },
     "security/build-connectors.mjs": {
-      "sha256": "68756da8fc72b0fb99e4478442f61fb26da367017db0c8cf341a6282bdf79142",
+      "sha256": "7710acf003da0f4867d098ad6eaeecab74c269e6a993ee93815d2efcdba7bed2",
       "executable": false
     },
     "security/caiq-responses.json": {

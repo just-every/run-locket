@@ -10,7 +10,7 @@ const quoted = text => [...text.matchAll(/['"]([^'"]+)['"]/g)].map(match => matc
 
 // Read provider registries and binding names, never configuration values or credentials.
 export function readBuildConnectors() {
- const paths = [...files('src/locket'), 'src/auth.server.ts', 'src/mail.server.mjs', 'src/modules/ai/config.mjs']
+ const paths = [...files('./src/locket'), 'src/auth.server.ts', 'src/mail.server.mjs', 'src/modules/ai/config.mjs']
  const texts = paths.map(read)
  const bindings = new Set(texts.flatMap(text => [
   ...[...text.matchAll(/(?:\benv|\))\.([A-Z][A-Z0-9_]+)/g)].map(match => match[1]),

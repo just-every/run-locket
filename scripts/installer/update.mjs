@@ -26,7 +26,7 @@ export function updatingDeploy(native) {
    const prior = held.state.receipt, previous = previousRelease(root,prior.source.sha);
    const applied = new Set(prior.migrations.flatMap(binding => binding.history.map(item => item.name)));
    const {readdir} = await import('node:fs/promises');
-   const pending = (await readdir(join(root,'migrations/core'))).filter(name => name.endsWith('.sql') && !applied.has(name)).sort();
+   const pending = (await readdir(join(root,'migrations','core'))).filter(name => name.endsWith('.sql') && !applied.has(name)).sort();
    store.report(`Update preview: ${previous.version} (${prior.source.sha}) to ${release.version}; forward migrations: ${pending.join(', ') || 'none'}.`);
    store.report(`Release notes: ${release.publicReleaseNotes}`);
    if (!options.dryRun) {
