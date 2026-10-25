@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "dab0e612de17c939c33f6e09e2602459b9360acae669e469d96c7199e3a5b790",
+      "sha256": "32678638bf22540ea12ea49716da4dff021a0aa186dd5a3e18ceb2f59df2f729",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9b17ac2effd6122603eff54732533475cc292569e243165dac7451f630cc049f",
+      "sha256": "19f7ef68fed1435086fe3c36c34dc595955f9da72c4967178d8213324441037d",
       "executable": false
     },
     "DEMO.md": {
@@ -1073,7 +1073,7 @@
       "executable": false
     },
     "src/locket/approval-rules.ts": {
-      "sha256": "42da6a07ede2bb3bd27ca440e6a1716b0ca2d5fd9f508c67413851793448317b",
+      "sha256": "9ded870fb5d28fc9e9ab092c1cb8cb771c20211a4557c02c593027fd40962f39",
       "executable": false
     },
     "src/locket/artifacts.ts": {
@@ -3985,7 +3985,7 @@
       "executable": false
     },
     "src/ui/repository-access.tsx": {
-      "sha256": "ec82297a1804747786800810215b5aa246267f05579cc372428d7dab7de5c3e0",
+      "sha256": "86c61499658e6b9893e4d09c8fb54886af2b73761fe5a0569eaaa2183d500910",
       "executable": false
     },
     "src/ui/repository-bulk.tsx": {
@@ -4320,12 +4320,16 @@
       "sha256": "68d857f8b6ae8251f62fba417f1c7cbe7796e8e91f4bc32d62b0e187bfb000d8",
       "executable": false
     },
+    "tests/api/repository-policy-journey.mjs": {
+      "sha256": "deb5cfcbb067729db6c6495b5574dbbe7d1766af6fbe3f18bbc69091e908ffc3",
+      "executable": false
+    },
     "tests/api/review-redlines-fixture.mjs": {
       "sha256": "92151504cc4235632115ae8c6628ba2b02695e9d689c49585318b87ecdd12101",
       "executable": false
     },
     "tests/api/saved-views.test.mjs": {
-      "sha256": "f6ffba690057b4d841b258f5d2df823000d6ee13114d900a6665cf674f1b331d",
+      "sha256": "59eb94ede67776860f7790e32f7d6bc861bbebcf1c344dd991d3294958152b50",
       "executable": false
     },
     "tests/api/search-fixture.mjs": {
@@ -4573,7 +4577,7 @@
       "executable": false
     },
     "tests/browser/repository-access-journey.mjs": {
-      "sha256": "e9b6bae37aa9655783c0800cfd217fd6a1098cf24e0f605558a5fdff19781c1e",
+      "sha256": "70c62eeea4bb8b81cd76bec7f3add1692657c4bf9ab6ce9a136aaca6d9443c9e",
       "executable": false
     },
     "tests/browser/repository-bulk-journey.mjs": {

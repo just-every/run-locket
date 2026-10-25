@@ -6,7 +6,7 @@ import {typeLabel} from './format'
 
 export function RepositoryAccess({state,locket}:{state:LocketState;locket:Locket}){
  if(state.actor.role!=='owner'||!state.repositoryPolicy)return null
- return <section className="lk-panel"><h2>Repository access</h2><p>Group and department rules further limit existing agreement access. Enabling rules denies access unless a current membership matches. Owner and counsel retain full access.</p><AccessEditor key={state.repositoryPolicy.version} state={state} locket={locket}/></section>
+ return <section className="lk-panel"><h2>Repository access</h2><p>Group and department rules further limit existing agreement access. Enabling rules denies access unless a current membership matches, even on a person’s own agreement. Unclassified agreements do not match department-scoped grants. Owner and counsel retain full access.</p><AccessEditor key={state.repositoryPolicy.version} state={state} locket={locket}/></section>
 }
 function AccessEditor({state,locket}:{state:LocketState;locket:Locket}){
  const policy=state.repositoryPolicy!,[enabled,setEnabled]=useState(policy.enabled),[grants,setGrants]=useState(policy.grants),[hidden,setHidden]=useState(policy.hiddenFields)
@@ -18,7 +18,7 @@ function AccessEditor({state,locket}:{state:LocketState;locket:Locket}){
  <fieldset className="lk-fieldset"><legend>Agreement departments (none means any)</legend>{state.intakeAudiences.filter(a=>a.kind==='department').map(d=><label className="lk-check" key={d.id}><input type="checkbox" checked={g.departmentIds.includes(d.id)} onChange={e=>setGrants(grants.map((v,n)=>n===i?{...v,departmentIds:e.target.checked?[...v.departmentIds,d.id]:v.departmentIds.filter(t=>t!==d.id)}:v))}/>{d.name}</label>)}</fieldset>
  <button type="button" onClick={()=>setGrants(grants.filter((_,n)=>n!==i))}>Remove grant {i+1}</button></fieldset>)}
  <button type="button" onClick={()=>setGrants([...grants,{audienceId:'',types:['customer'],departmentIds:[]}])}>Add visibility grant</button>
- <h3>Fields hidden by role</h3><p>Affected roles receive structured fields only. Original documents, comparisons, free-text evidence and consequential actions are withheld to prevent hidden values leaking; originals remain unchanged.</p>
+ <h3>Fields hidden by role</h3><p>Affected roles receive structured fields only. Original documents, comparisons, free-text evidence and business actions are withheld to prevent hidden values leaking; originals remain unchanged. Affected roles cannot request, update, approve, comment, coordinate signing or run reports. Approval rules skip these approvers.</p>
  {['approver','requester','viewer','agent'].map(role=><fieldset className="lk-fieldset" key={role}><legend>{role}</legend>{fields.map(f=><label className="lk-check" key={f.id}><input aria-label={`Hide ${f.name} from ${role}`} type="checkbox" checked={hidden.find(h=>h.role===role)?.fields.includes(f.id)??false} onChange={e=>{const kept=hidden.find(h=>h.role===role)?.fields??[];setHidden([...hidden.filter(h=>h.role!==role),{role,fields:e.target.checked?[...kept,f.id]:kept.filter(id=>id!==f.id)}])}}/>{f.name}</label>)}</fieldset>)}
  </Form>
 }

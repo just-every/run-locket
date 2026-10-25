@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { installation } from './harness.mjs'
+import {repositoryPolicyJourney} from './repository-policy-journey.mjs'
 import { portfolioFixture } from './portfolio-fixture.mjs'
 import { file, pdf } from './setup.mjs'
 import { fieldSpec, metadataFields, metadataAgreement, metadataText, customKey, customDefinition } from './custom-metadata-fixture.mjs'
@@ -369,6 +370,7 @@ test('REPO-009 current group and department grants intersect restricted access a
  assert.equal(archive.records.lk_repository_policy.length,1);assert.equal(archive.records.lk_view_groups.length,2)
  assert.equal(archive.records.lk_agreement_departments.length,3)
  assert.equal(archive.records.lk_notifications.find(n=>n.id===item.id).email_status,'cancelled')
+ await repositoryPolicyJourney(h)
 })
 
 test('REPO-011 reviewed bulk changes preserve custody, reassign open work, round-trip exact CSV differences and revert with history', async t => {
