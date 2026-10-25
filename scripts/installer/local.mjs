@@ -7,6 +7,10 @@ import { ownerDeploy } from '@runeditrun/rer/deploy';
 import { localPortability } from '@runeditrun/rer/portability';
 import * as model from './ui/seed.mjs';
 import { saveProductSecrets } from './product-secrets.mjs';
+import archivePolicy from './archive-policy.mjs';
+import { updatingDeploy } from './update.mjs';
+import { exportHosted } from './hosted-archive.mjs';
+import { refuse } from '@runeditrun/rer/errors';
 
 export { selectLocalState };
 const lifecycle = operatorInstaller({
@@ -21,9 +25,13 @@ const lifecycle = operatorInstaller({
 });
 export const adapter = lifecycle;
 export const { install } = lifecycle;
+const portable = localPortability({database:'contracts-locket',policy:archivePolicy,transient:['local runtime caches and logs']});
 export const commandAdapter = createCommandAdapter(lifecycle, {
- dev: developmentTarget, preview: previewTarget, verify: ['pnpm', ['run', 'verify:app']], deploy: ownerDeploy('deploy.json', lifecycle),
- portability: localPortability({ database: 'contracts-locket', policy: { includeTables: ['oa_operators','oa_bootstrap','oa_external_identities','oa_invitation_cancellations','oa_tokens','oa_auth_settings','oa_auth_audit','oa_domain_rules','oa_logout_events','oc_owner_claims','oc_idp_grants'], excludeTables: ['rer_dependency_keys','rer_dependency_pending','rer_dependency_codes','lk_guard','ik_d1_assertions'], product: 'contracts-locket', requiredConfiguration: ['OWNER_EMAIL', 'SESSION_SECRET', 'SETUP_TOKEN', 'AUTH_ORIGIN', 'MAIL_PROVIDER', 'MAIL_FROM'] }, transient: ['local runtime caches and logs'] }),
+ dev: developmentTarget, preview: previewTarget, verify: ['pnpm', ['run', 'verify:app']], deploy: updatingDeploy(ownerDeploy('deploy.json', lifecycle)),
+ portability: {...portable,remote:true,
+  export: async context => context.target === 'remote' ? (await exportHosted({...context,environment:'production'})).receipt : portable.export(context),
+  import: context => { if (context.target === 'remote') throw refuse('Hosted restore is unsupported. Restore the verified archive into an empty local installation.'); return portable.import(context); },
+ },
  setup: { manifestFile: 'rer-setup.json' }, browserModule: 'scripts/installer/ui/seed.mjs',
  // The public run site (run-locket.com): the homepage, /run and the docs, built by `rer build --site`.
  site: { entry: 'src/site/pages.tsx', output: 'dist/site', declaration: 'deploy-site.json', config: 'vite.site.config.ts' },
