@@ -1,5 +1,6 @@
 // Real provider adapters. Tokens never join permission-scoped state; responses
 // are retained only after the provider acknowledges the exact current event.
+import { observeOperation } from './connection-observations'
 import type { Bindings } from '../auth.server'
 import { agreementAccessSql, may, requireRole } from './access'
 import { guardSql, type Ctx, type Handler } from './commands'
@@ -16,7 +17,7 @@ const connect:Handler=async(c,p)=>{
  if(p.consent!==true||p.scope!=='all_accessible')fail('CONSENT','Approve this exact provider and calendar for all agreements you can access.')
  const provider=oneOf(p,'provider',['google','outlook'] as const),calendar=text(p,'calendarId',1000),token=text(p,'accessToken',8000)
  const prior=await c.db.prepare('SELECT id FROM lk_calendar_connections WHERE operator_id=? AND provider=? AND calendar_id=?').bind(c.actor.id,provider,calendar).first<{id:string}>(),id=prior?.id??crypto.randomUUID()
- return {allowed:['owner'],result:{id,provider,calendarId:calendar,status:'connected_not_synchronized'},writes:[sql('INSERT INTO lk_calendar_connections(id,operator_id,provider,calendar_id,token,last_error,created_at) VALUES(?,?,?,?,?,NULL,?) ON CONFLICT(operator_id,provider,calendar_id) DO UPDATE SET token=excluded.token,last_error=NULL',id,c.actor.id,provider,calendar,token,c.now)],audit:[{action:'calendar.connect',summary:`Approved ${provider} calendar ${calendar} for deadlines from all agreements the owner can currently access.`}]}
+ return {allowed:['owner'],result:{id,provider,calendarId:calendar,status:'connected_not_synchronized'},writes:[sql('INSERT INTO lk_calendar_connections(id,operator_id,provider,calendar_id,token,last_error,created_at) VALUES(?,?,?,?,?,NULL,?) ON CONFLICT(operator_id,provider,calendar_id) DO UPDATE SET token=excluded.token,last_error=NULL,version=version+1',id,c.actor.id,provider,calendar,token,c.now),sql('DELETE FROM lk_connection_health WHERE id=?','calendar:'+id)],audit:[{action:'calendar.connect',summary:`Approved ${provider} calendar ${calendar} for deadlines from all agreements the owner can currently access.`}]}
 }
 export const renewalCalendarHandlers:Record<string,Handler>={'calendar.connect':connect}
 export async function renewalCalendarState(db:D1Database,actor:Actor,ids:Set<string>) {
@@ -57,7 +58,7 @@ export async function runRenewalCalendars(env:Bindings,now:number) {
    const terms=await rows(db,"SELECT * FROM lk_terms WHERE agreement_id=? AND status='confirmed'",a.id),renewals=await rows(db,'SELECT * FROM lk_renewals WHERE agreement_id=?',a.id),notices=await rows(db,'SELECT * FROM lk_notices WHERE agreement_id=?',a.id)
    desired.push(...currentCalendarEvents(a,terms,renewals,notices,now,setting.rollNoticeDeadlines))
   }
-  let creating=false
+  let creating=false,synchronized=false
   try {
    const existing=await rows(db,'SELECT * FROM lk_calendar_events WHERE connection_id=?',connection.id)
    // Replacing a moved deadline updates the same event, retaining provider custody.
@@ -78,12 +79,13 @@ export async function runRenewalCalendars(env:Bindings,now:number) {
     if(typeof response?.id!=='string'||response.id.length>1000||!response.id.length)throw new Error('Calendar response lacks an event identity')
     const guard=crypto.randomUUID()
     await notificationBatch(db,[guardSql(guard,checks),sql('INSERT INTO lk_calendar_events VALUES(?,?,?,?,?,?,?) ON CONFLICT(connection_id,event_key) DO UPDATE SET provider_event_id=excluded.provider_event_id,deadline_at=excluded.deadline_at,synchronized_at=excluded.synchronized_at',old?.id??crypto.randomUUID(),connection.id,a.id,event.key,response.id,event.at,now),sql('UPDATE lk_calendar_connections SET last_error=NULL WHERE id=?',connection.id),sql('DELETE FROM lk_guard WHERE id=?',guard)])
-    creating=false
+    creating=false;synchronized=true
    }
    for(const old of existing.filter(e=>!desired.some(d=>d.key===e.event_key))) {
     await providerRequest(connection,'/'+encodeURIComponent(old.provider_event_id),'DELETE')
-    await db.prepare('DELETE FROM lk_calendar_events WHERE id=?').bind(old.id).run()
+    await db.prepare('DELETE FROM lk_calendar_events WHERE id=?').bind(old.id).run();synchronized=true
    }
-  } catch(error) { const detail=String(error instanceof Error?error.message:'Calendar synchronization failed').replaceAll(connection.token,'[redacted]').slice(0,300);await db.prepare('UPDATE lk_calendar_connections SET last_error=? WHERE id=?').bind(creating?`Uncertain calendar creation: ${detail}. Reconnect with explicit approval after checking the provider calendar.`:detail,connection.id).run() }
+   if(synchronized)await observeOperation(env,'calendar:'+connection.id,connection.provider+' calendar '+connection.calendar_id,true,'calendar_sync_succeeded',sql('(SELECT version FROM lk_calendar_connections WHERE id=?)=?',connection.id,connection.version))
+  } catch(error) { const detail=String(error instanceof Error?error.message:'Calendar synchronization failed').replaceAll(connection.token,'[redacted]').slice(0,300);await db.prepare('UPDATE lk_calendar_connections SET last_error=? WHERE id=?').bind(creating?`Uncertain calendar creation: ${detail}. Reconnect with explicit approval after checking the provider calendar.`:detail,connection.id).run();await observeOperation(env,'calendar:'+connection.id,connection.provider+' calendar '+connection.calendar_id,false,'calendar_sync_failed',sql('(SELECT version FROM lk_calendar_connections WHERE id=?)=?',connection.id,connection.version)) }
  }
 }

@@ -130,8 +130,8 @@ test('An uncertain provider send is visible, has one network attempt and cannot 
 
 
 test('Connection checks expose credential failure, one owner alert, current affected agreements and read-only recovery',async t=>{
- let failing=true,probes=0,invalidHubspot=false
- const h=await installation({bindings:{HUBSPOT_ACCESS_TOKEN:'synthetic-locket-69',SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-70',APPROVAL_SLACK_TOKEN:'synthetic-locket-71',APPROVAL_TEAMS_TOKEN:'synthetic-locket-72',QUICKBOOKS_ACCESS_TOKEN:'synthetic-locket-73',QUICKBOOKS_REALM_ID:'12345'},outboundResponse:async request=>{
+ let failing=true,probes=0,invalidHubspot=false,uncertainExpiry=false
+ const h=await installation({mailResponse:mail=>{if(uncertainExpiry&&mail.subject==='A Locket credential needs renewal')throw Error('synthetic-locket-mail-outcome');return Response.json({id:'synthetic-locket-mail-receipt'})},bindings:{HUBSPOT_ACCESS_TOKEN:'synthetic-locket-69',SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-70',APPROVAL_SLACK_TOKEN:'synthetic-locket-71',APPROVAL_TEAMS_TOKEN:'synthetic-locket-72',QUICKBOOKS_ACCESS_TOKEN:'synthetic-locket-73',QUICKBOOKS_REALM_ID:'12345'},outboundResponse:async request=>{
   const url=new URL(request.url);probes++
   if(url.hostname==='demo.docusign.net'){
    assert.equal(request.method,'GET');assert.equal(url.pathname,'/restapi/v2.1/accounts/synthetic-locket-account')
@@ -190,6 +190,19 @@ test('Connection checks expose credential failure, one owner alert, current affe
  await h.owner.command('connection.expiry',{id:'docusign',version:1,expiresAt:null,consent:true})
  await h.scheduled(now+20*86400000);assert.equal(warnings().length,1)
  assert.equal((await h.owner.state()).connections.find(c=>c.id==='docusign').credentialExpiry.expires_at,null)
+ await h.owner.command('connection.expiry',{id:'docusign',version:2,expiresAt,consent:true})
+ await h.owner.command('signature.connection.configure',{provider:'docusign',baseUrl:'https://demo.docusign.net/restapi/v2.1',accountId:'synthetic-locket-account',version:2})
+ row=(await h.owner.state()).connections.find(c=>c.id==='docusign')
+ assert.equal(row.status,'unverified');assert.equal(row.credentialExpiry.expires_at,undefined)
+ await h.scheduled(now+20*86400000);assert.equal(warnings().length,1)
+ uncertainExpiry=true
+ await h.owner.command('connection.expiry',{id:'docusign',version:3,expiresAt,consent:true})
+ await h.scheduled(now+20*86400000)
+ assert.equal(warnings().length,2)
+ assert.equal((await h.owner.state()).connections.find(c=>c.id==='docusign').credentialExpiry.alert_status,'uncertain')
+ await h.scheduled(now+21*86400000);assert.equal(warnings().length,2)
+ await h.owner.command('connection.check',{id:'docusign'})
+
  const archive=await(await h.owner.request('/api/locket/export')).json()
  assert.equal(archive.records.lk_connection_expiries.length,1)
  assert.equal(archive.records.lk_connection_health.length,5)

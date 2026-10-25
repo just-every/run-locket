@@ -14,7 +14,7 @@ export async function expiryHandler(c:Ctx,p:Record<string,unknown>):Promise<Outc
  const at=p.expiresAt===null?null:integer(p,'expiresAt',1)
  if(at!==null&&(!Number.isSafeInteger(at)||at>8640000000000000))fail('INVALID','Record a valid credential expiry time.')
  if(p.consent!==true)fail('CONSENT','Confirm this owner-recorded expiry; it does not verify or replace the credential.')
- return {allowed:['owner'],result:{id},checks:[...(entry.kind==='signing'?[sql('(SELECT version FROM lk_signature_connections WHERE provider=?)=?',id,entry.connectionVersion)]:[]),sql('COALESCE((SELECT version FROM lk_connection_expiries WHERE id=?),0)=?',id,version)],writes:[sql(`INSERT INTO lk_connection_expiries VALUES(?,?,?,?,?,?,?,NULL,?)
+ return {allowed:['owner'],result:{id},checks:[...(entry.kind==='calendar'?[sql('(SELECT version FROM lk_calendar_connections WHERE id=?)=?',entry.sourceId,entry.connectionVersion)]:[]),...(entry.kind==='signing'?[sql('(SELECT version FROM lk_signature_connections WHERE provider=?)=?',id,entry.connectionVersion)]:[]),sql('COALESCE((SELECT version FROM lk_connection_expiries WHERE id=?),0)=?',id,version)],writes:[sql(`INSERT INTO lk_connection_expiries VALUES(?,?,?,?,?,?,?,NULL,?)
  ON CONFLICT(id) DO UPDATE SET account=excluded.account,expires_at=excluded.expires_at,recorded_by=excluded.recorded_by,recorded_at=excluded.recorded_at,version=excluded.version,alert_id=excluded.alert_id,alert_status=NULL,connection_version=excluded.connection_version`,id,entry.account,at,c.actor.id,c.now,version+1,crypto.randomUUID(),entry.connectionVersion??0)],audit:[{action:'connection.expiry',summary:`Owner recorded ${at===null?'an unknown': 'the known'} credential expiry for ${id}; credentials were not read or changed.`}]}
 }
 

@@ -1,11 +1,13 @@
-import { sql } from './model'
+import type { Bindings } from '../auth.server'
+import { alertConnectionFailure } from './connection-health'
+import { sql, type Sql } from './model'
 
 /** Called only after a real provider operation, inside its durable outcome batch. */
-export function signingObservation(id:string,account:string,at:number,success:boolean,reason:string,connectionVersion:number) {
+export function operationObservation(id:string,account:string,at:number,success:boolean,reason:string,fence:Sql=sql('1')) {
  const incident=crypto.randomUUID()
  return sql(`INSERT INTO lk_connection_health
  (id,account,status,reason,checked_at,last_sync_at,incident_id,alert_status,version)
- SELECT ?,?,?,?,?,?,?,?,1 WHERE (SELECT version FROM lk_signature_connections WHERE provider=?)=?
+ SELECT ?,?,?,?,?,?,?,?,1 WHERE ${fence.sql}
  ON CONFLICT(id) DO UPDATE SET
  account=excluded.account,status=excluded.status,reason=excluded.reason,checked_at=excluded.checked_at,
  last_sync_at=CASE WHEN excluded.status='healthy' THEN excluded.last_sync_at WHEN account=excluded.account THEN last_sync_at ELSE NULL END,
@@ -13,5 +15,14 @@ export function signingObservation(id:string,account:string,at:number,success:bo
  provider_account=CASE WHEN account=excluded.account THEN provider_account ELSE NULL END,
  incident_id=CASE WHEN excluded.status='healthy' THEN NULL WHEN account=excluded.account AND status='failing' THEN incident_id ELSE excluded.incident_id END,
  alert_status=CASE WHEN excluded.status='healthy' THEN NULL WHEN account=excluded.account AND status='failing' THEN alert_status ELSE 'pending' END,
- version=version+1`,id,account,success?'healthy':'failing',reason,at,success?at:null,success?null:incident,success?null:'pending',id,connectionVersion)
+ version=version+1`,id,account,success?'healthy':'failing',reason,at,success?at:null,success?null:incident,success?null:'pending',...fence.params)
+}
+
+export function signingObservation(id:string,account:string,at:number,success:boolean,reason:string,connectionVersion:number){
+ return operationObservation(id,account,at,success,reason,sql('(SELECT version FROM lk_signature_connections WHERE provider=?)=?',id,connectionVersion))
+}
+export async function observeOperation(env:Bindings,id:string,account:string,success:boolean,reason:string,fence?:Sql){
+ const statement=operationObservation(id,account,Date.now(),success,reason,fence)
+ await env.DB.prepare(statement.sql).bind(...statement.params).run()
+ if(!success)await alertConnectionFailure(env,id)
 }

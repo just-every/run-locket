@@ -14,6 +14,7 @@ export async function connectionRegistry(env:Bindings){
  if(env.QUICKBOOKS_REALM_ID)rows.push({id:'quickbooks',kind:'accounting',account:env.QUICKBOOKS_REALM_ID,probe:true})
  for(const id of ['slack','teams','nook'])if((chat as any)['APPROVAL_'+id.toUpperCase()+'_TOKEN'])rows.push({id,kind:'chat',account:id==='nook'?chat.APPROVAL_NOOK_ORIGIN??'Installation not configured':'Server-bound '+id+' account',probe:id!=='nook'})
  for(const c of(await db.prepare('SELECT * FROM lk_signature_connections').all<any>()).results)rows.push({id:c.provider,kind:'signing',account:c.account_id??c.base_url,configuredAt:c.configured_at,connectionVersion:c.version,probe:c.provider==='docusign'})
+ for(const c of(await db.prepare('SELECT id,provider,calendar_id,created_at,version FROM lk_calendar_connections').all<any>()).results)rows.push({id:'calendar:'+c.id,sourceId:c.id,kind:'calendar',label:c.provider==='google'?'Google Calendar':'Outlook Calendar',account:c.provider+' calendar '+c.calendar_id,connectionVersion:c.version,probe:false})
  const health=(await db.prepare('SELECT * FROM lk_connection_health').all<any>()).results
  const expiries=(await db.prepare('SELECT * FROM lk_connection_expiries').all<any>()).results
  for(const row of rows){
@@ -25,6 +26,7 @@ export async function connectionRegistry(env:Bindings){
   if(row.kind==='signing')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_packages WHERE provider=?').bind(row.id).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(row.kind==='accounting')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_accounting_links').all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(row.kind==='chat')ids=(await db.prepare('SELECT DISTINCT r.agreement_id FROM lk_approval_channel_requests r JOIN lk_approval_channel_deliveries d ON d.request_id=r.id WHERE d.channel=?').bind(row.id).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
+  if(row.kind==='calendar')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_calendar_events WHERE connection_id=?').bind(row.sourceId).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(row.kind==='mail')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_notifications').all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   row.agreementIds=ids
  }

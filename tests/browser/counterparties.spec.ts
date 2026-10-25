@@ -199,7 +199,9 @@ for(const width of [1440,390])test(`Connection health read-only failure and reco
  try{
   const now=Date.UTC(2026,9,25,12);await p.h.setTime(now)
   await p.command('signature.connection.configure',{provider:'docusign',baseUrl:'https://demo.docusign.net/restapi/v2.1',accountId:'synthetic-locket-account',version:0})
+  const calendar=await p.command('calendar.connect',{provider:'google',calendarId:'synthetic-locket-calendar',accessToken:'synthetic-locket-82',scope:'all_accessible',consent:true})
   await page.goto(p.origin+'/app#connections');await page.reload()
+  await expect(page.getByRole('region',{name:'calendar:'+calendar.id+' connection',exact:true})).toContainText('Google Calendar')
   const hubspot=page.getByRole('region',{name:'hubspot connection',exact:true})
   await hubspot.getByRole('button',{name:'Check connection',exact:true}).click()
   await expect(hubspot).toContainText('Healthy');await expect(hubspot).toContainText('123456')

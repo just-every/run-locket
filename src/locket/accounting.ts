@@ -1,12 +1,13 @@
 // Read-only QuickBooks Online adapter. An owner explicitly links the vendor;
 // server credentials never enter commands, state, audit or the complete archive.
+import { observeOperation } from './connection-observations'
 import type { Bindings } from '../auth.server'
 import { may, requireRole } from './access'
 import type { Handler } from './commands'
 import { fail, sql, text } from './model'
 import { agreementGuards, bump, visibleAgreement } from './records'
 
-export async function accountingSpend(env: Bindings, vendorId: string, since: string, through: string) {
+async function readAccountingSpend(env: Bindings, vendorId: string, since: string, through: string) {
  if (!env.QUICKBOOKS_ACCESS_TOKEN || !env.QUICKBOOKS_REALM_ID || !/^\d+$/.test(env.QUICKBOOKS_REALM_ID)) fail('ACCOUNTING_UNAVAILABLE','Configure the server-only QuickBooks connection before reading spend.',409)
  const host=env.QUICKBOOKS_SANDBOX==='true'?'sandbox-quickbooks.api.intuit.com':'quickbooks.api.intuit.com'
  const bills:{id:string;date:string;totalCents:number;balanceCents:number}[]=[]
@@ -38,3 +39,14 @@ const link:Handler=async(c,p)=>{
  return {allowed:may.manageRoles,result:{agreementId:a.id},checks:agreementGuards(c,a,p),writes:[sql('INSERT INTO lk_accounting_links VALUES(?,?,?,?,1) ON CONFLICT(agreement_id) DO UPDATE SET vendor_id=excluded.vendor_id,linked_by=excluded.linked_by,linked_at=excluded.linked_at,version=lk_accounting_links.version+1',a.id,vendorId,c.actor.id,c.now),bump(c,a)],audit:[{action:'accounting.link',agreementId:a.id,summary:'Owner authorized a read-only QuickBooks vendor link and USD bills in this agreement’s renewal brief.'}]}
 }
 export const accountingHandlers={'accounting.link':link}
+
+export async function accountingSpend(env:Bindings,vendorId:string,since:string,through:string){
+ try{
+  const spend=await readAccountingSpend(env,vendorId,since,through)
+  await observeOperation(env,'quickbooks',env.QUICKBOOKS_REALM_ID!,true,'accounting_read_succeeded')
+  return spend
+ }catch(error){
+  if(env.QUICKBOOKS_REALM_ID)await observeOperation(env,'quickbooks',env.QUICKBOOKS_REALM_ID,false,(error as {code?:string}).code==='ACCOUNTING_DATA'?'invalid_provider_receipt':'accounting_read_failed')
+  throw error
+ }
+}

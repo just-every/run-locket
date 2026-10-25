@@ -5,3 +5,5 @@ CREATE TABLE lk_connection_expiries (
  recorded_by TEXT NOT NULL, recorded_at INTEGER NOT NULL, version INTEGER NOT NULL,
  alert_id TEXT NOT NULL, alert_status TEXT, connection_version INTEGER NOT NULL
 );
+
+ALTER TABLE lk_calendar_connections ADD COLUMN version INTEGER NOT NULL DEFAULT 1;

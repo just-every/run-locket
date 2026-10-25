@@ -528,10 +528,12 @@ test('RENEW-005 refuses stale, inaccessible and unauthorized workflows; failed a
  assert.equal((await h.owner.state()).renewalBriefs.length,0)
  assert.match((await h.owner.state()).renewalBriefSettings[0].last_error,/not prepared/)
  await h.owner.command('renewal.brief.prepare',{agreementId:f.source.id},{error:'ACCOUNTING_UNAVAILABLE'})
+ const failed=(await h.owner.state()).connections.find(c=>c.id==='quickbooks');assert.equal(failed.status,'failing');assert.equal(failed.last_sync_at,null);assert.equal(failed.alert_status,'accepted');assert.ok(failed.agreementIds.includes(f.source.id))
  mode='currency';await h.owner.command('renewal.brief.prepare',{agreementId:f.source.id},{error:'ACCOUNTING_DATA'})
  assert.equal((await h.owner.state()).renewalBriefs.length,0)
  mode='ok';await h.scheduled(f.due)
  let s=await h.owner.state();const b=s.renewalBriefs[0]
+ const recovered=s.connections.find(c=>c.id==='quickbooks');assert.equal(recovered.status,'healthy');assert.ok(recovered.last_sync_at);assert.equal(recovered.last_success_at,null);assert.equal(h.mails.filter(m=>m.subject==='A Locket connection needs attention').length,1)
  assert.equal((await viewer.state()).renewalBriefs.length,0)
  assert.equal((await viewer.request(`/api/locket/files/${b.artifact_id}`)).status,404)
  await viewer.command('renewal.workflow.open',{briefId:b.id},{error:'FORBIDDEN'})

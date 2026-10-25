@@ -156,9 +156,11 @@ test('RENEW-007 evergreen anniversaries have owner-configured review lead time a
 })
 
 test('RENEW-007 calendar provider and reminder delivery follow the durable current term and remove ended events',async t=>{
+ let failing=false
  const events=new Map(),requests=[]
  const h=await installation({bindings:{TEST_NOW:String(clock)},outboundResponse:async request=>{
   assert.equal(new URL(request.url).hostname,'www.googleapis.com')
+  if(failing)return Response.json({error:'synthetic-locket-62'},{status:401})
   const path=new URL(request.url).pathname,id=decodeURIComponent(path.split('/').at(-1))
   if(request.method==='DELETE'){events.delete(id);requests.push({method:'DELETE',id});return new Response(null,{status:204})}
   const body=await request.json(),identity=request.method==='POST'?body.id:id
@@ -169,13 +171,20 @@ test('RENEW-007 calendar provider and reminder delivery follow the durable curre
  await h.owner.command('calendar.connect',{provider:'google',calendarId:'synthetic-locket-calendar',accessToken:'synthetic-locket-61',scope:'all_accessible',consent:true})
  await h.scheduled(clock)
  assert.equal(events.size,2,JSON.stringify((await h.owner.state()).calendarConnections))
+ const connection=(await h.owner.state()).connections.find(c=>c.kind==='calendar');assert.equal(connection.status,'healthy');assert.ok(connection.last_sync_at);assert.equal(connection.last_success_at,null);assert.ok(connection.agreementIds.includes(a.id))
  assert.equal([...events.values()].find(x=>x.summary==='Notice deadline').start.dateTime,'2026-12-31T04:59:59.000Z')
  assert.equal([...events.values()].find(x=>x.summary==='Agreement end').start.dateTime,'2027-03-01T04:59:59.000Z')
  assert.ok([...events.values()].every(x=>x.description.includes(a.id)))
  const reminder=Date.parse('2026-10-31T13:00:00Z');await advance(h,reminder);await h.scheduled(reminder)
  let state=await h.owner.state()
  assert.ok(state.deadlineReminders.sent.some(x=>x.agreement_id===a.id&&x.deadline_date==='2026-12-30'&&x.offset_days===60&&x.status==='accepted'))
- const after=Date.parse('2026-12-31T05:00:00Z');await advance(h,after);await h.scheduled(after);await h.scheduled(after)
+ const after=Date.parse('2026-12-31T05:00:00Z');await advance(h,after)
+ failing=true;await h.scheduled(after)
+ const failedConnection=(await h.owner.state()).connections.find(c=>c.kind==='calendar')
+ assert.equal(failedConnection.status,'failing');assert.equal(failedConnection.reason,'calendar_sync_failed');assert.ok(failedConnection.last_sync_at);assert.equal(failedConnection.alert_status,'accepted')
+ failing=false;await h.scheduled(after);await h.scheduled(after)
+ const recoveredConnection=(await h.owner.state()).connections.find(c=>c.kind==='calendar')
+ assert.equal(recoveredConnection.status,'healthy');assert.equal(recoveredConnection.alert_status,null);assert.equal(h.mails.filter(m=>m.subject==='A Locket connection needs attention').length,1)
  assert.equal(events.size,2)
  assert.equal([...events.values()].find(x=>x.summary==='Notice deadline').start.dateTime,'2028-01-01T04:59:59.000Z')
  assert.equal(requests.filter(x=>x.method==='POST').length,2)
