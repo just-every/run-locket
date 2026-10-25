@@ -26,3 +26,8 @@ export async function observeOperation(env:Bindings,id:string,account:string,suc
  await env.DB.prepare(statement.sql).bind(...statement.params).run()
  if(!success)await alertConnectionFailure(env,id)
 }
+
+export async function observeChat(env:Bindings,id:string,success:boolean,reason:string){
+ const account=id==='nook'?(env as any).APPROVAL_NOOK_ORIGIN??'Installation not configured':'Server-bound '+id+' account'
+ await observeOperation(env,id,account,success,reason)
+}

@@ -1,3 +1,4 @@
+import { observeChat } from './connection-observations'
 import type { Bindings } from '../auth.server'
 import { may, requireRole } from './access'
 import { channelEnv } from './approval-channel-config'
@@ -125,7 +126,7 @@ export async function runChatNotifications(env:Bindings,now:number){
   const guard=crypto.randomUUID()
   try{await notificationBatch(c.db,[guardSql(guard,checks),sql("UPDATE lk_chat_deliveries SET status='sending',attempt_id=?,attempted_at=? WHERE id=? AND status='queued'",attempt,now,d.id),sql('DELETE FROM lk_guard WHERE id=?',guard)])}catch(error){if(!/LOCKET_GUARD/.test(String(error)))throw error;await finish('cancelled','authority_or_source_changed');continue}
   if((await c.db.prepare('SELECT attempt_id FROM lk_chat_deliveries WHERE id=?').bind(d.id).first<{attempt_id:string}>())?.attempt_id!==attempt)continue
-  try{const result=await post(c,d,n);await finish(result.status,result.code,result.id,true)}catch{await finish('uncertain','provider_outcome_unknown',null,true)}
+  const result=await post(c,d,n).catch(()=>({status:'uncertain',code:'provider_outcome_unknown',id:null}));await finish(result.status,result.code,result.id,true);await observeChat(env,d.channel,result.status==='accepted',result.code??'chat_send_succeeded')
  }
 }
 export async function chatState(env:Bindings,actor:Actor,visible:Set<string>){

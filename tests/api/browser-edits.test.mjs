@@ -182,6 +182,7 @@ test('NEG-006 sends a clean external v2 through Postmark, accepts an exact v3 ma
   assert.deepEqual(Buffer.from(await(await h.owner.request('/api/locket/files/'+artifact.id)).arrayBuffer()),markup)
   const c=state.comments.find(c=>c.id===commented.result.commentId)
   assert.equal(c.external_author_name,'synthetic-locket-3');assert.equal(c.external_author_email,'synthetic-locket-3@example.test')
+  const observed=state.connections.find(c=>c.id==='exchange-mail');assert.equal(observed.status,'healthy');assert.ok(observed.last_sync_at)
   for(const action of ['exchange.sent','exchange.opened','exchange.downloaded','exchange.commented','exchange.uploaded','exchange.email.accepted'])assert.ok(state.audit.some(e=>e.action===action),action)
   assert.ok(state.audit.filter(e=>['exchange.opened','exchange.uploaded'].includes(e.action)).every(e=>e.actor_role==='counterparty_link'))
   const current=state.agreements.find(a=>a.id===x.a.id)

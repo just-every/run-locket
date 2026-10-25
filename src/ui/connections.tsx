@@ -16,7 +16,7 @@ function CredentialExpiry({connection:c,locket,now}:{connection:any;locket:Locke
  const expiry=c.credentialExpiry
  const [value,setValue]=useState(''),[consent,setConsent]=useState(false)
  const save=async(clear=false)=>{const at=clear?null:Date.parse(value+'Z');if(!clear&&!Number.isFinite(at))return;await locket.run('connection.expiry',{id:c.id,version:expiry?.version??0,expiresAt:at,consent});setConsent(false);setValue('')}
- return <div><h3>Credential expiry</h3><p>{expiry?.expires_at?<>Owner-recorded expiry: {when(expiry.expires_at)}. {expiry.expires_at<=now?'Expired.':expiry.expires_at<=now+7*86400000?'Renew within seven days.':''}</>:'Expiry unknown; no automatic expiry claim.'}</p>
+ return <div><h3>Credential expiry</h3><p>{expiry?.expires_at?<>{expiry.source==='provider'?'Provider-discovered expiry':'Owner-recorded expiry'}: {when(expiry.expires_at)}. {expiry.expires_at<=now?'Expired.':expiry.expires_at<=now+7*86400000?'Renew within seven days.':''}</>:'Expiry unknown; no automatic expiry claim.'}</p>
  {expiry?.alert_status&&<p>Renewal alert: {expiry.alert_status==='accepted'?'Accepted by provider; delivery unconfirmed':words(expiry.alert_status)}</p>}
  <p>Record the expiry given by the provider. This does not change the credential. The hourly check sends one generic owner warning within seven days, including overdue dates.</p>
  <label>Credential expiry (UTC)<input type="datetime-local" value={value} onChange={e=>setValue(e.target.value)} /></label>

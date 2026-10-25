@@ -130,14 +130,27 @@ test('An uncertain provider send is visible, has one network attempt and cannot 
 
 
 test('Connection checks expose credential failure, one owner alert, current affected agreements and read-only recovery',async t=>{
- let failing=true,probes=0,invalidHubspot=false,uncertainExpiry=false
- const h=await installation({mailResponse:mail=>{if(uncertainExpiry&&mail.subject==='A Locket credential needs renewal')throw Error('synthetic-locket-mail-outcome');return Response.json({id:'synthetic-locket-mail-receipt'})},bindings:{HUBSPOT_ACCESS_TOKEN:'synthetic-locket-69',SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-70',APPROVAL_SLACK_TOKEN:'synthetic-locket-71',APPROVAL_TEAMS_TOKEN:'synthetic-locket-72',QUICKBOOKS_ACCESS_TOKEN:'synthetic-locket-73',QUICKBOOKS_REALM_ID:'12345'},outboundResponse:async request=>{
+ let failing=true,probes=0,invalidHubspot=false,uncertainExpiry=false,discoverExpiry=false,invalidProbe=false
+ const h=await installation({mailResponse:mail=>{if(uncertainExpiry&&mail.subject==='A Locket credential needs renewal')throw Error('synthetic-locket-mail-outcome');return Response.json({id:'synthetic-locket-mail-receipt'})},bindings:{TEST_NOW:String(Date.UTC(2026,9,25,12)),POSTMARK_SERVER_TOKEN:'synthetic-locket-86',HUBSPOT_ACCESS_TOKEN:'synthetic-locket-69',SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-70',SIGNATURE_ACROBAT_TOKEN:'synthetic-locket-83',SIGNATURE_DROPBOX_KEY:'synthetic-locket-84',APPROVAL_SLACK_TOKEN:'synthetic-locket-71',APPROVAL_TEAMS_TOKEN:'synthetic-locket-72',QUICKBOOKS_ACCESS_TOKEN:'synthetic-locket-73',QUICKBOOKS_REALM_ID:'12345'},outboundResponse:async request=>{
   const url=new URL(request.url);probes++
   if(url.hostname==='demo.docusign.net'){
    assert.equal(request.method,'GET');assert.equal(url.pathname,'/restapi/v2.1/accounts/synthetic-locket-account')
    return failing?Response.json({error:'synthetic-locket-74'},{status:401}):Response.json({accountId:'synthetic-locket-account'})
   }
-  if(url.hostname==='api.hubapi.com'){assert.equal(request.method,'GET');assert.equal(url.pathname,'/account-info/v3/details');assert.equal(request.headers.get('authorization'),'Bearer synthetic-locket-69');return Response.json({portalId:invalidHubspot?'not-an-account':123456,accountType:'DEVELOPER_TEST'})}
+  if(url.hostname==='api.hubapi.com'){
+   assert.equal(request.method,'GET');assert.equal(request.headers.get('authorization'),'Bearer synthetic-locket-69')
+   if(url.pathname.startsWith('/oauth/'))return Response.json(discoverExpiry?{hub_id:123456,expires_in:2*86400}:{},{status:discoverExpiry?200:400})
+   assert.equal(url.pathname,'/account-info/v3/details');return Response.json({portalId:invalidHubspot?'not-an-account':123456,accountType:'DEVELOPER_TEST'})
+  }
+  if(['api.na1.adobesign.com','api.hellosign.com','www.googleapis.com','api.resend.com','api.postmarkapp.com'].includes(url.hostname)||url.hostname==='graph.microsoft.com'&&url.pathname.includes('/calendars/')){
+   assert.equal(request.method,'GET')
+   if(invalidProbe)return Response.json({id:''})
+   if(url.hostname==='api.na1.adobesign.com'){assert.equal(url.pathname,'/api/rest/v6/users/me');return Response.json({id:'synthetic-locket-adobe-user'})}
+   if(url.hostname==='api.hellosign.com'){assert.equal(url.pathname,'/v3/account');assert.equal(request.headers.get('authorization'),'Basic '+Buffer.from('synthetic-locket-84:').toString('base64'));return Response.json({account:{account_id:'synthetic-locket-dropbox-user'}})}
+   if(url.hostname==='api.postmarkapp.com'){assert.equal(url.pathname,'/server');assert.equal(request.headers.get('X-Postmark-Server-Token'),'synthetic-locket-86');return Response.json({ID:654321})}
+   if(url.hostname==='api.resend.com'){assert.equal(url.pathname,'/domains');return Response.json({data:[{id:'synthetic-locket-domain',name:'example.test',status:'verified'}]})}
+   return Response.json({id:url.pathname.includes('/calendars/')?'synthetic-locket-calendar':'synthetic-locket-google-user'})
+  }
   if(url.hostname==='slack.com')return Response.json({ok:true,user_id:'synthetic-locket-75'})
   if(url.hostname==='graph.microsoft.com')return Response.json({id:'synthetic-locket-76'})
   return Response.json({CompanyInfo:{Id:'12345'}})
@@ -162,7 +175,16 @@ test('Connection checks expose credential failure, one owner alert, current affe
  await h.owner.command('connection.check',{id:'docusign'})
  row=(await h.owner.state()).connections.find(c=>c.id==='docusign')
  assert.equal(row.status,'healthy');assert.ok(row.last_success_at);assert.equal(row.alert_status,null)
- for(const id of ['hubspot','slack','teams','quickbooks'])await h.owner.command('connection.check',{id})
+ await configureConnection(h.owner,'adobe-acrobat-sign');await configureConnection(h.owner,'dropbox-sign')
+ const calendars=[]
+ for(const provider of ['google','outlook'])calendars.push(await h.owner.command('calendar.connect',{provider,calendarId:'synthetic-locket-calendar',accessToken:'synthetic-locket-85',scope:'all_accessible',consent:true}))
+ const additional=['mail','exchange-mail','adobe-acrobat-sign','dropbox-sign',...calendars.map(c=>'calendar:'+c.id)]
+ for(const id of ['hubspot','slack','teams','quickbooks',...additional])await h.owner.command('connection.check',{id})
+ for(const [id,account] of [['mail','synthetic-locket-domain'],['exchange-mail','654321'],['adobe-acrobat-sign','synthetic-locket-adobe-user'],['dropbox-sign','synthetic-locket-dropbox-user'],['calendar:'+calendars[0].id,'synthetic-locket-google-user'],['calendar:'+calendars[1].id,'synthetic-locket-76']])assert.equal((await h.owner.state()).connections.find(c=>c.id===id).provider_account,account)
+ invalidProbe=true
+ for(const id of additional){await h.owner.command('connection.check',{id});const row=(await h.owner.state()).connections.find(c=>c.id===id);assert.equal(row.status,'failing');assert.equal(row.reason,'invalid_provider_receipt');assert.equal(row.provider_account,null)}
+ invalidProbe=false
+ for(const id of additional)await h.owner.command('connection.check',{id})
  assert.ok((await h.owner.state()).connections.filter(c=>c.probe).every(c=>c.status==='healthy'))
  const verified=(await h.owner.state()).connections
  for(const [id,account]of [['hubspot','123456'],['slack','synthetic-locket-75'],['teams','synthetic-locket-76'],['docusign','synthetic-locket-account']])assert.equal(verified.find(c=>c.id===id).provider_account,account)
@@ -203,8 +225,19 @@ test('Connection checks expose credential failure, one owner alert, current affe
  await h.scheduled(now+21*86400000);assert.equal(warnings().length,2)
  await h.owner.command('connection.check',{id:'docusign'})
 
+ discoverExpiry=true;uncertainExpiry=false
+ const warningCount=warnings().length,metadataTime=now+86400000
+ await h.setTime(metadataTime)
+ await h.owner.command('connection.check',{id:'hubspot'})
+ row=(await h.owner.state()).connections.find(c=>c.id==='hubspot')
+ assert.equal(row.credentialExpiry.source,'provider');assert.equal(row.credentialExpiry.expires_at,metadataTime+2*86400000)
+ await Promise.all([h.scheduled(metadataTime),h.scheduled(metadataTime)])
+ assert.equal(warnings().length,warningCount+1)
+ await h.owner.command('connection.check',{id:'hubspot'});await h.scheduled(metadataTime)
+ assert.equal(warnings().length,warningCount+1,'Repeated metadata does not start another expiry warning')
  const archive=await(await h.owner.request('/api/locket/export')).json()
- assert.equal(archive.records.lk_connection_expiries.length,1)
- assert.equal(archive.records.lk_connection_health.length,5)
+ assert.equal(archive.records.lk_connection_expiries.length,2)
+ assert.equal(archive.records.lk_connection_health.length,11)
+ assert.equal(archive.records.lk_connection_expiries.find(r=>r.id==='hubspot').source,'provider')
  for(const secret of ['synthetic-locket-69','synthetic-locket-70'])assert.ok(!JSON.stringify(archive).includes(secret))
 })

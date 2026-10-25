@@ -1,3 +1,4 @@
+import { observeOperation } from './connection-observations'
 import { requireRole } from './access'
 import type { Handler } from './commands'
 import { fail,list,sha256,text } from './model'
@@ -22,7 +23,9 @@ export const performanceTickets:Handler=async(c,p)=>{
  if(!credential)fail('LINEN_CONFIG','Configure the server-only owner-minted read-only Linen MCP credential for the exact installation.',409)
  const queueIds=list(p,'queueIds',20),recordIds=list(p,'recordIds',20)
  if(queueIds.some(id=>typeof id!=='string')||recordIds.some(id=>typeof id!=='string'))fail('LINEN_SCOPE','Select explicit string queue and record IDs.')
- const evidence=await readLinenTicketEvidence({installation:origin,credential,queueIds:queueIds as string[],recordIds:recordIds as string[]})
+ let evidence:Awaited<ReturnType<typeof readLinenTicketEvidence>>
+ try{evidence=await readLinenTicketEvidence({installation:origin,credential,queueIds:queueIds as string[],recordIds:recordIds as string[]});await observeOperation(c.env,'linen',origin,true,'ticket_read_succeeded')}
+ catch(error){await observeOperation(c.env,'linen',origin,false,'ticket_read_failed');throw error}
  // Native calendar-hour observations can inform a counsel-confirmed wall clock.
  // Business policies lack the contractual calendar; closure cannot establish resolution.
  const records=evidence.records.map(r=>({...r,firstPublicResponseAt:r.clockBasis==='calendar'?r.firstPublicResponseAt:null,resolvedAt:null}))

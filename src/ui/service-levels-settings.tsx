@@ -1,4 +1,4 @@
-import { uptimeDenominatorPolicy } from '../locket/service-level-evidence'
+import { uptimeDenominatorPolicy } from '../locket/service-level-policy'
 import { Field, Form, value } from './controls'
 import { can, parse } from './format'
 import type { ServiceLevelProps } from './service-levels'

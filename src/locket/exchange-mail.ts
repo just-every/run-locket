@@ -1,4 +1,5 @@
 // Postmark is the network edge. A claimed or uncertain attempt is never resent.
+import { observeOperation } from './connection-observations'
 import { auditSql, commit, type Ctx } from './commands'
 import { fullReaders } from './access'
 import { exchangeChecks, tokenDigest, type ExchangeRow } from './exchange'
@@ -20,6 +21,7 @@ export async function dispatchExchange(c:Ctx,token:unknown,replyToken:unknown){
       c.db.prepare("UPDATE lk_exchanges SET status=?,provider=?,provider_message_id=? WHERE id=? AND status='sending' AND attempt_id=?").bind(status,provider,receipt,row.id,attempt),
       c.db.prepare(`INSERT INTO lk_audit SELECT ${audit.params.map(()=>'?').join(',')} WHERE EXISTS(SELECT 1 FROM lk_exchanges WHERE id=? AND status=? AND attempt_id=?)`).bind(...audit.params,row.id,status,attempt),
     ])
+    if(provider==='postmark')await observeOperation(c.env,'exchange-mail',c.env.MAIL_FROM??'Sender not configured',status==='accepted',status==='accepted'?'mail_send_succeeded':'mail_'+status)
     return exchangeReceipt(c)
   }
   try{

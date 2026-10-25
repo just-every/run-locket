@@ -16,6 +16,7 @@ test('AGENT-002 confirms signed SLA, preserves exact Uptime evidence, records su
  await f.counsel.command('service-level.confirm',await f.confirmPayload())
  const result=await f.read(agent),claim=await f.claim(result.claimId),body=JSON.parse(claim.content),read=(await h.owner.state()).serviceLevels.reads.find(r=>r.id===result.id)
  assert.equal(result.status,'breached');assert.equal(result.amountCents,100000)
+ const observed=(await h.owner.state()).connections.find(c=>c.id==='uptime');assert.equal(observed.status,'healthy');assert.ok(observed.last_sync_at);assert.ok(observed.agreementIds.includes(f.source.id))
  assert.equal(body.metrics.upMs,2571264000);assert.equal(body.metrics.observedMs,2592000000)
  assert.equal(body.formula.targetBps,9990);assert.equal(body.formula.creditBps,1000);assert.equal(body.formula.monthlyCents,1000000)
  assert.equal(body.citation.quote,f.quote);assert.equal(claim.deadline_at,Date.parse('2026-10-30T23:59:59Z'))
@@ -80,8 +81,11 @@ test('AGENT-002 refuses unconfirmed formulas and incomplete, wrong-policy or una
   assert.equal((await h.owner.state()).serviceLevels.claims.length,0,bad)
   assert.equal((await h.owner.state()).serviceLevels.reads.length,0,bad)
   assert.match((await h.owner.state()).serviceLevels.links[0].last_error,/UPTIME_/)
+  assert.equal((await h.owner.state()).connections.find(c=>c.id==='uptime').status,'failing')
  }
  mode='met';assert.equal((await f.read()).status,'met');assert.equal((await h.owner.state()).serviceLevels.claims.length,0)
+ assert.equal((await h.owner.state()).connections.find(c=>c.id==='uptime').status,'healthy')
+ assert.equal(h.mails.filter(m=>m.subject==='A Locket connection needs attention').length,1)
  mode='tier';const outOfTier=await f.read();assert.equal(outOfTier.code,'SLA_TIER');assert.equal((await h.owner.state()).serviceLevels.claims.length,0)
  mode='exclusions';const result=await f.read(),claim=await f.claim(result.claimId),metrics=JSON.parse(claim.content).metrics
  assert.equal(result.amountCents,100000);assert.equal(metrics.unknownMs,500);assert.equal(metrics.pausedMs,500);assert.equal(metrics.maintenanceMs,500)
@@ -604,6 +608,7 @@ test('AGENT-002 exact scoped Linen MCP evidence supports observed response time 
  await f.counsel.command('service-performance.tickets',payload,{error:'FORBIDDEN'})
  const response=await h.owner.command('service-performance.tickets',payload)
  assert.equal(response.status,'breached');assert.equal(response.amountCents,150000)
+ const synced=(await h.owner.state()).connections.find(c=>c.id==='linen');assert.equal(synced.status,'healthy');assert.ok(synced.last_sync_at)
  const report=(await h.owner.state()).serviceLevels.performanceReports.find(r=>r.id===response.id),original=JSON.parse(await(await h.owner.request(`/api/locket/files/${report.artifact_id}`)).text())
  assert.equal(original.provider,'linen');assert.equal(JSON.parse(original.responses[0].body).result.structuredContent.response_at,responseAt)
  selected={...ticket,sla:{...ticket.sla,policy:{...ticket.sla.policy,hours:'business'}}}
@@ -616,5 +621,7 @@ test('AGENT-002 exact scoped Linen MCP evidence supports observed response time 
  const deliveryTerm=await f.counsel.command('service-performance.confirm',{...await f.confirmPayload(),metric:'delivery',thresholdMinutes:0})
  await h.owner.command('service-performance.tickets',{...payload,termId:deliveryTerm.id},{error:'REPORT_UNAVAILABLE'})
  await h.owner.command('service-performance.tickets',{...payload,queueIds:['synthetic-locket-unselected']},{error:'LINEN_SCOPE'})
+ const failed=(await h.owner.state()).connections.find(c=>c.id==='linen');assert.equal(failed.status,'failing');assert.ok(failed.last_sync_at);assert.equal(failed.alert_status,'accepted')
+ await h.owner.command('service-performance.tickets',payload);assert.equal((await h.owner.state()).connections.find(c=>c.id==='linen').status,'healthy')
  assert.equal((await h.owner.state()).serviceLevels.performanceClaims.length,1)
 })

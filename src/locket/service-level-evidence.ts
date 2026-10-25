@@ -1,9 +1,11 @@
+import { observeOperation } from './connection-observations'
 import type { Bindings } from '../auth.server'
 import { addDays,zonedInstant } from './dates'
 import { fail,sha256 } from './model'
 
 // Primary contract: run-uptime docs/metrics.md and domain/metrics/snapshot.server.ts.
-export const uptimeDenominatorPolicy='Healthy time as a share of observed scheduled time (healthy + not passing). Unknown, paused and maintenance time are excluded from the uptime and SLA denominator and shown separately.'
+import { uptimeDenominatorPolicy } from './service-level-policy'
+export { uptimeDenominatorPolicy } from './service-level-policy'
 export interface UptimeEvidenceMetrics {
  monitorId:string;generatedAt:number;denominatorPolicy:string;providerDisplayPercent:number
  windowMs:number;observedMs:number;upMs:number;notPassingMs:number;unknownMs:number;pausedMs:number;maintenanceMs:number
@@ -30,7 +32,7 @@ async function boundedBytes(response:Response):Promise<Uint8Array> {
  try{while(true){const next=await reader.read();if(next.done)break;size+=next.value.length;if(size>2*1024*1024){await reader.cancel();fail('UPTIME_DATA','Uptime response exceeds 2 MiB; no partial evidence used.',502)}parts.push(next.value)}}finally{reader.releaseLock()}
  const bytes=new Uint8Array(size);let at=0;for(const part of parts){bytes.set(part,at);at+=part.length}return bytes
 }
-export async function readUptime(env:Bindings,origin:string,monitorId:string,period:{from:number;to:number},now:number) {
+async function readUptimeEvidence(env:Bindings,origin:string,monitorId:string,period:{from:number;to:number},now:number) {
  if(!env.UPTIME_METRICS_KEY||uptimeOrigin(env.UPTIME_ORIGIN)!==origin)fail('UPTIME_UNAVAILABLE','The server-only Uptime metrics connection is missing or changed. Reauthorize the exact installation.',409)
  const url=new URL('/api/v1/metrics',origin)
  url.search=new URLSearchParams({format:'json',monitor:monitorId,period:'custom',from:new Date(period.from).toISOString(),to:new Date(period.to).toISOString(),timeZone:'UTC'}).toString()
@@ -45,4 +47,9 @@ export async function readUptime(env:Bindings,origin:string,monitorId:string,per
  if(typeof a.uptimePercent!=='number'||!Number.isFinite(a.uptimePercent)||a.uptimePercent<0||a.uptimePercent>100)fail('UPTIME_DATA','Uptime returned an invalid displayed availability.',502)
  const metrics:UptimeEvidenceMetrics={monitorId,generatedAt:raw.generatedAt,denominatorPolicy:raw.denominatorPolicy,windowMs:a.windowMs,observedMs:a.observedMs,upMs:a.upMs,notPassingMs:a.notPassingMs,unknownMs:a.unknownMs,pausedMs:a.pausedMs,maintenanceMs:a.maintenanceMs,providerDisplayPercent:a.uptimePercent}
  return {bytes,sha256:await sha256(bytes),metrics}
+}
+
+export async function readUptime(env:Bindings,origin:string,monitorId:string,period:{from:number;to:number},now:number){
+ try{const evidence=await readUptimeEvidence(env,origin,monitorId,period,now);await observeOperation(env,'uptime',origin,true,'metrics_read_succeeded');return evidence}
+ catch(error){await observeOperation(env,'uptime',origin,false,'metrics_read_failed');throw error}
 }

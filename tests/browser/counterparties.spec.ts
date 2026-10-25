@@ -195,7 +195,7 @@ for(const width of [1440,390])test(`ERASE-001 verified contact erasure, counsel 
 
 for(const width of [1440,390])test(`Connection health read-only failure and recovery at ${width}px`,async({page})=>{
  let failing=true
- const p=await productPage(page,{width,bindings:{HUBSPOT_ACCESS_TOKEN:'synthetic-locket-79',SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-80'},outboundResponse:async request=>new URL(request.url).hostname==='api.hubapi.com'?Response.json({portalId:123456}):failing?Response.json({error:'synthetic-locket-81'},{status:401}):Response.json({accountId:'synthetic-locket-account'})})
+ const p=await productPage(page,{width,bindings:{HUBSPOT_ACCESS_TOKEN:'synthetic-locket-79',SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-80'},outboundResponse:async request=>new URL(request.url).hostname==='api.hubapi.com'?Response.json(new URL(request.url).pathname.startsWith('/oauth/')?{hub_id:123456,expires_in:2*86400}:{portalId:123456}):failing?Response.json({error:'synthetic-locket-81'},{status:401}):Response.json({accountId:'synthetic-locket-account'})})
  try{
   const now=Date.UTC(2026,9,25,12);await p.h.setTime(now)
   await p.command('signature.connection.configure',{provider:'docusign',baseUrl:'https://demo.docusign.net/restapi/v2.1',accountId:'synthetic-locket-account',version:0})
@@ -205,6 +205,9 @@ for(const width of [1440,390])test(`Connection health read-only failure and reco
   const hubspot=page.getByRole('region',{name:'hubspot connection',exact:true})
   await hubspot.getByRole('button',{name:'Check connection',exact:true}).click()
   await expect(hubspot).toContainText('Healthy');await expect(hubspot).toContainText('123456')
+  await expect(hubspot).toContainText('Provider-discovered expiry')
+  await p.h.scheduled(now);await page.reload()
+  await expect(hubspot).toContainText('Renewal alert: Accepted by provider; delivery unconfirmed')
   const panel=page.getByRole('region',{name:'docusign connection',exact:true})
   const shot=async(name:string)=>{await page.evaluate(()=>window.scrollTo(0,0));expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-INT-004-${name}.png`),fullPage:true})}}
   await expect(panel).toContainText('Unverified')

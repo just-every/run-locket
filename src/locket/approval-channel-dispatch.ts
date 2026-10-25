@@ -1,3 +1,4 @@
+import { observeChat } from './connection-observations'
 import { chatAudienceChecks } from './chat-notifications'
 // One claimed attempt per delivery, even when the provider outcome is unknown.
 import type { Bindings } from '../auth.server'
@@ -90,7 +91,7 @@ export async function dispatchApprovalChannels(env:Bindings,now=Date.now(),reque
   try{await env.DB.batch([guardSql(guard,checks),sql("UPDATE lk_approval_channel_deliveries SET status='sending',attempt_id=?,attempted_at=? WHERE id=? AND status='queued'",attempt,now,d.id),sql('DELETE FROM lk_guard WHERE id=?',guard)].map(s=>env.DB.prepare(s.sql).bind(...s.params)))}catch(error){if(error instanceof Problem||/LOCKET_GUARD/.test(String(error))){await finish('cancelled','authority_or_record_changed');continue}throw error}
   const claimed=await env.DB.prepare('SELECT attempt_id FROM lk_approval_channel_deliveries WHERE id=?').bind(d.id).first<{attempt_id:string}>()
   if(claimed?.attempt_id!==attempt)continue
-  try{const result=await send(c,r,d);await finish(result.status,result.code,result.messageId,true)}catch{await finish('uncertain','provider_outcome_unknown',null,true)}
+  const result=await send(c,r,d).catch(()=>({status:'uncertain',code:'provider_outcome_unknown',messageId:null}));await finish(result.status,result.code,result.messageId,true);if(d.channel!=='email'&&result.status!=='suppressed')await observeChat(env,d.channel,result.status==='accepted',result.code??'chat_send_succeeded')
  }
 }
 

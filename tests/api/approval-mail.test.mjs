@@ -71,6 +71,7 @@ test('APPROVE-003 / MOBILE-001 / SEC-002 emails a generic authenticated review l
   assert.ok(h.mails.at(-1).TextBody, 'The approval email reached the Postmark network edge.')
   const emailLink=h.mails.at(-1).text.match(/https?:\/\/[^\s]+/)[0]
   assert.equal(emailLink,requested.reviewUrl);assert.equal(chats.length,3)
+  for(const id of ['mail','slack','teams','nook']){const c=(await h.owner.state()).connections.find(c=>c.id===id);assert.equal(c.status,'healthy');assert.ok(c.last_sync_at);assert.equal(c.last_success_at,null)}
   const slack=chats.find(m=>new URL(m.url).hostname==='slack.com'),teams=chats.find(m=>new URL(m.url).hostname==='graph.microsoft.com'),nook=chats.find(m=>new URL(m.url).hostname==='nook.example.test')
   assert.equal(slack.url,'https://slack.com/api/chat.postMessage')
   assert.equal(nook.url,'https://nook.example.test/api/slack/chat.postMessage')
@@ -86,7 +87,8 @@ test('APPROVE-003 / MOBILE-001 / SEC-002 emails a generic authenticated review l
     assert.ok(!content.includes(everywhere.title));assert.ok(!content.includes('940271'));assert.ok(!content.includes(viewed.version.digest))
   }
   assert.deepEqual(await requester.command('approval.channel.request',{...payload(everywhere,approver.id),kind:'commercial'},{commandId:channelsId}),requested)
-  assert.equal(chats.length,3);assert.equal(h.mails.length,beforeChannelMail+1)
+  assert.equal(chats.length,3)
+  for(const id of ['mail','slack','teams','nook']){const c=(await h.owner.state()).connections.find(c=>c.id===id);assert.equal(c.status,'healthy');assert.ok(c.last_sync_at);assert.equal(c.last_success_at,null)};assert.equal(h.mails.length,beforeChannelMail+1)
   const acted=await approver.command('approval.channel.decide',{requestId:channelsId,versionId:viewed.request.versionId,versionDigest:viewed.request.versionDigest,contextDigest:viewed.request.contextDigest,decision:'approved'})
   assert.equal(acted.versionDigest,viewed.version.digest)
   const exact=(await requester.state()).approvals.find(r=>r.id===acted.id)
@@ -229,6 +231,7 @@ test('MOBILE-001 / NOTIFY-001 local suppression and uncertain provider outcomes 
   const failed = await installation({bindings:{APPROVAL_SLACK_TOKEN:'synthetic-locket-4'},outboundResponse:async()=>{chatCalls++;throw new Error('Network outcome unknown')}, mailResponse: () => new Response('Provider unavailable', { status: 503 }) }); t.after(() => failed.close())
   const pending = await review(failed.owner), recipientId = (await failed.owner.state()).actor.id, failedId = randomUUID()
   const beforeExplicit = failed.mails.length
+  const healthBefore=(await failed.owner.state()).connections.find(c=>c.id==='mail');assert.equal(healthBefore.status,'failing');assert.ok(healthBefore.incident_id)
   const outcome = await failed.owner.command('approval.email', payload(pending, recipientId), { commandId: failedId })
   assert.equal(outcome.status, 'queued')
   const uncertain = await delivery(failed.owner, pending, recipientId, failedId)
@@ -243,6 +246,10 @@ test('MOBILE-001 / NOTIFY-001 local suppression and uncertain provider outcomes 
   assert.equal(unknown.status,'uncertain');assert.equal(unknown.provider_message_id,null)
   assert.deepEqual(await failed.owner.command('approval.channel.request',{...payload(pending,recipientId),kind:'commercial'},{commandId:chatId}),chatRequest)
   await failed.scheduled(Date.now());assert.equal(chatCalls,1)
+  const health=(await failed.owner.state()).connections
+  assert.equal(health.find(c=>c.id==='slack').status,'failing');assert.equal(health.find(c=>c.id==='slack').reason,'provider_outcome_unknown')
+  assert.equal(health.find(c=>c.id==='mail').incident_id,healthBefore.incident_id)
+  assert.equal(failed.mails.filter(m=>m.subject==='A Locket connection needs attention').length,2,'Each failing connection claims one alert; alert failure cannot recurse')
 
 })
 
@@ -323,16 +330,20 @@ test('Chat delivery claims preserve consent, uncertain outcomes, complete member
  const mention={agreementId:a.id,versionId:a.versionId,body:'Private mention',mentionIds:[ownerId]},commandId=randomUUID()
  await Promise.all([h.owner.command('comment.add',mention,{commandId}),h.owner.command('comment.add',mention,{commandId})])
  assert.equal(posts,1,'Concurrent command retries claim exactly one provider send')
+ const synced=(await h.owner.state()).connections.find(c=>c.id==='slack');assert.equal(synced.status,'healthy');assert.ok(synced.last_sync_at)
  for(const refusal of ['unknown','paged']){mode=refusal;await h.owner.command('comment.add',mention);assert.equal(posts,1)}
  mode='uncertain';const uncertain=randomUUID();await h.owner.command('comment.add',mention,{commandId:uncertain});assert.equal(posts,2)
  await h.owner.command('comment.add',mention,{commandId:uncertain});assert.equal(posts,2)
  assert.ok((await h.owner.state()).chatNotifications.deliveries.some(d=>d.status==='uncertain'))
+ const failed=(await h.owner.state()).connections.find(c=>c.id==='slack');assert.equal(failed.status,'failing');assert.equal(failed.last_sync_at,synced.last_sync_at);assert.equal(failed.alert_status,'accepted')
+ mode='ok';await h.owner.command('comment.add',mention);assert.equal(posts,3)
+ assert.equal((await h.owner.state()).connections.find(c=>c.id==='slack').status,'healthy')
  mode='ok';await h.owner.command('notification.preferences',{inApp:true,email:true,digest:true,timezone:'America/New_York'})
- await h.owner.command('comment.add',mention);assert.equal(posts,2,'Digest preference never becomes an immediate chat send')
+ await h.owner.command('comment.add',mention);assert.equal(posts,3,'Digest preference never becomes an immediate chat send')
  assert.ok((await h.owner.state()).chatNotifications.deliveries.some(d=>d.code==='chat_digest_not_available'))
  await h.owner.command('notification.chat.preferences',{version:1,channels:[]})
  await h.owner.command('notification.preferences',{inApp:true,email:true,digest:false,timezone:'America/New_York'})
- await h.owner.command('comment.add',mention);assert.equal(posts,2)
+ await h.owner.command('comment.add',mention);assert.equal(posts,3)
 })
 
 test('Signed Slack commands and shortcuts launch native requests only for the mapped current person and consume each launch once',async t=>{

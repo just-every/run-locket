@@ -792,6 +792,15 @@
       },
       "modes": {
         "src/mail.server.d.mts": "100644"
+      },
+      "adapted": {
+        "src/mail.server.d.mts": "11f94fec479228d71ba6d7dd6ea7796c0d42c544"
+      },
+      "acknowledged": {
+        "src/mail.server.d.mts": {
+          "sha256": "b6a01f3e4d95d590d35b21c3d1be141e60f0049c4025535e1e102b6ca24ca979",
+          "mode": "100644"
+        }
       }
     },
     {
