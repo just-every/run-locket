@@ -1,0 +1,8 @@
+{
+  "version": "0.1.2",
+  "publicReleaseNotes": "Add a real application capture from the existing Fieldstone demo workspace for the Locket listing. Retain the hosted installation descriptor, Managed workflow, persisted agreement files and existing brand artwork.",
+  "previousVersion": "0.1.1",
+  "migrations": [],
+  "breaking": false,
+  "agentUpdateInstructions": "Retain the prior source and a complete data export. Apply only unapplied forward migrations and verify owner sign-in before routing traffic."
+}
