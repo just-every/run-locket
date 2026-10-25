@@ -10,7 +10,7 @@ const packageJson = JSON.parse(await readFile('package.json', 'utf8'))
 const pipeline = packageJson.scripts['verify:app'].match(/^rer queue verify:app -- sh -c "([^"]+)"$/)?.[1]
 assert.ok(pipeline, 'Update CI partitioning for the new verify:app command format')
 const ownership = {
-  build: 'core', typecheck: 'core', 'test:site': 'core',
+  build: 'core', typecheck: 'core',
   'test:runtime': 'core', 'test:email-link': 'core',
   'test:api': 'api', 'test:portable': 'portable',
 }

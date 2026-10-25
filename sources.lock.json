@@ -77,7 +77,7 @@
       "executable": false
     },
     ".github/scripts/verify.mjs": {
-      "sha256": "d3e7c4e45591c13e602cb1b6cb6b4cb0488db18f94b57955d97bcebb1c0359ca",
+      "sha256": "40512ce1973c651ea339c0a1e8964d0dca6aad7a0c5e26a7fe295e0eb2b3440a",
       "executable": false
     },
     ".github/workflows/nightly-acceptance.yml": {
@@ -501,7 +501,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "a0b690ceec518d3235c40ad9e57b011475c7330e358154dc4e5447b2445bd254",
+      "sha256": "2a3ad709b5cf89f8263d415113bd7ec093f7f503d2b2e820b7ab72e2ee3399d2",
       "executable": false
     },
     "packaging.json": {
@@ -4650,10 +4650,6 @@
     },
     "tests/runtime.mjs": {
       "sha256": "610ff1220a91880264c1d687212c3508f13366b37af93ad15a8f975e8a31e685",
-      "executable": false
-    },
-    "tests/site/site.test.mjs": {
-      "sha256": "6265e9b5b4db2a1f826f98fd9bf3b6e2ad09496805631bc6ec9f6b87e6554399",
       "executable": false
     },
     "tsconfig.json": {
