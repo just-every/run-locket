@@ -147,7 +147,9 @@ using owner-account Cloudflare credentials. Hosted import is refused; restore
 into an empty local installation with `rer import --input FILE --yes`, compare
 the restored records, and configure fresh private authentication before use.
 Local and hosted exports share exactly one archive policy. Operational recovery
-copies, runtime state and private configuration are explicit exclusions.
+copies, runtime state and private configuration are explicit exclusions. Calendar connection records and
+events are retained, while their provider tokens are excluded; a restored
+installation requires the owner to reconnect its calendars.
 
 A fresh installation uses the same deploy command, without a previous-release
 backup. Configure `MAIL_PROVIDER`, `MAIL_FROM` and `MAIL_ACCOUNT_ID` through the

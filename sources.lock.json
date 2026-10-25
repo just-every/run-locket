@@ -513,7 +513,7 @@
       "executable": false
     },
     "OPERATIONS.md": {
-      "sha256": "d3c365d4aa7cb35c69ba7fa0d444cd5fcd19a1813a69be0a3ce803486804fdcb",
+      "sha256": "e4668b5e8f2ad2fa51281bb8e3d4f98f58e188d796508178010435ae2ae7a024",
       "executable": false
     },
     "package.json": {
@@ -829,7 +829,7 @@
       "executable": false
     },
     "scripts/installer/archive-policy.mjs": {
-      "sha256": "acfc50fe6d12d4a454ef831effd9d63894a8bc7753ae932d9c154fef1561ada1",
+      "sha256": "07e85340a4bfb037b18343d04157bbf8292e833230d32507ab8a6216ac340e7b",
       "executable": false
     },
     "scripts/installer/cloudflare-database.mjs": {
