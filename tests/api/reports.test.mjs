@@ -94,12 +94,14 @@ test('REPORT-002 retains rejected and locally suppressed outcomes without claimi
       const own=(await h.owner.state()).actor.id
       const v=await h.owner.command('view.save',{name:'Empty report',definition:reportView,sharedRoles:[]})
       const r=await h.owner.command('report.create',{name:'Empty report',viewId:v.id,groupField:'counterparty',frequency:'weekly',format:'csv',firstAt:'2026-10-21T08:00',recipients:[own]})
-      const before=h.mails.length
+      const reportMails=()=>h.mails.filter(m=>m.subject==='Your scheduled Locket report'),before=reportMails().length
       await h.setTime(Date.parse('2026-10-21T12:00:00Z'));await h.scheduled(Date.parse('2026-10-21T12:00:00Z'))
       const delivery=(await h.owner.state()).reportDeliveries.find(d=>d.report_id===r.id)
       assert.equal(delivery.status,local?'suppressed':'rejected');assert.equal(delivery.provider_message_id,null)
-      assert.equal(h.mails.length,before+(local?0:1))
-      await h.scheduled(Date.parse('2026-10-21T12:00:00Z'));assert.equal(h.mails.length,before+(local?0:1))
+      assert.equal(reportMails().length,before+(local?0:1))
+      await h.scheduled(Date.parse('2026-10-21T12:00:00Z'));assert.equal(reportMails().length,before+(local?0:1))
+      const alerts=h.mails.filter(m=>m.subject==='A Locket connection needs attention');assert.equal(alerts.length,local?0:1)
+      if(!local){assert.deepEqual(alerts[0].to,['owner@example.test']);const health=(await h.owner.state()).connections.find(c=>c.id==='mail');assert.equal(health.status,'failing');assert.equal(health.alert_status,'rejected')}
     }finally{await h.close()}
   }
 })

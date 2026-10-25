@@ -250,6 +250,10 @@ test('MOBILE-001 / NOTIFY-001 local suppression and uncertain provider outcomes 
   assert.equal(health.find(c=>c.id==='slack').status,'failing');assert.equal(health.find(c=>c.id==='slack').reason,'provider_outcome_unknown')
   assert.equal(health.find(c=>c.id==='mail').incident_id,healthBefore.incident_id)
   assert.equal(failed.mails.filter(m=>m.subject==='A Locket connection needs attention').length,2,'Each failing connection claims one alert; alert failure cannot recurse')
+  const missing=await installation({bindings:{MAIL_API_KEY:''}});t.after(()=>missing.close())
+  const unavailable=await review(missing.owner),missingOwner=(await missing.owner.state()).actor.id
+  await missing.owner.command('approval.email',payload(unavailable,missingOwner))
+  const unconfigured=(await missing.owner.state()).connections.find(c=>c.id==='mail');assert.equal(unconfigured.status,'failing');assert.equal(unconfigured.reason,'mail_outcome_unknown');assert.equal(unconfigured.alert_status,'uncertain');assert.equal(missing.mails.length,0,'Invalid mail configuration makes no provider attempt')
 
 })
 

@@ -110,7 +110,10 @@ test('AGENT-009 consent, source and access changes remain scoped and rejected or
  await h.owner.command('accounting.link',{agreementId:a.id,version:(await current(h,a.id)).version,vendorId:'43',consent:true})
  assert.match(JSON.stringify(await report(h.owner,'2026-09')),/Accounting consent changed/)
  await h.owner.command('outcome-report.deliver',{month:'2026-09',version:1,consent:false},{error:'CONSENT'})
- for(const [month,outcome]of [['2026-08','rejected'],['2026-09','uncertain']]){mailMode=outcome;const before=h.mails.length;await h.owner.command('outcome-report.deliver',{month,version:1,consent:true});await h.owner.command('outcome-report.deliver',{month,version:1,consent:true});assert.equal(h.mails.length,before+2);assert.ok((await h.owner.state()).outcomeReports.deliveries.filter(d=>d.month===month).every(d=>d.status===outcome))}
+ const monthlyMails=()=>h.mails.filter(m=>m.subject==='Your monthly Locket report is ready'),alerts=()=>h.mails.filter(m=>m.subject==='A Locket connection needs attention'),priorAlerts=alerts().length
+ for(const [month,outcome]of [['2026-08','rejected'],['2026-09','uncertain']]){mailMode=outcome;const before=monthlyMails().length;await h.owner.command('outcome-report.deliver',{month,version:1,consent:true});await h.owner.command('outcome-report.deliver',{month,version:1,consent:true});assert.equal(monthlyMails().length,before+2);assert.ok((await h.owner.state()).outcomeReports.deliveries.filter(d=>d.month===month).every(d=>d.status===outcome))}
+ assert.equal(alerts().length,priorAlerts+1,'One generic owner alert accompanies the mail incident; the two monthly recipients are never retried')
+ const health=(await h.owner.state()).connections.find(c=>c.id==='mail');assert.equal(health.status,'failing');assert.equal(health.alert_status,'accepted')
  await h.owner.command('repository.access',{version:0,enabled:false,grants:[],hiddenFields:[{role:'viewer',fields:['value']}]})
  assert.equal((await viewer.request('/api/locket/outcome-report?month=2026-09')).status,403)
  await h.owner.command('outcome-report.configure',{...payload,version:1,accountingLinks:[],recipients:[ownerId],enabled:false})

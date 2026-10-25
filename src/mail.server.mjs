@@ -6,7 +6,6 @@ export function operatorMail(env, { health = true } = {}) {
   return createMailSender({ provider: 'development', mode: 'development' })
  }
  if (!env.MAIL_PROVIDER || env.MAIL_PROVIDER === 'development') return undefined
- const sender = env.MAIL_PROVIDER === 'postmark' ? postmarkMail(env.MAIL_API_KEY) : createMailSender({ provider: env.MAIL_PROVIDER, mode: 'production', apiKey: env.MAIL_API_KEY, ...(env.MAIL_PROVIDER === 'rer' ? { relayUrl: env.MAIL_RELAY_URL } : {}), ...(env.MAIL_PROVIDER === 'cloudflare' ? { accountId: env.MAIL_ACCOUNT_ID } : {}) })
  async function observe(success, reason) {
   if (!env.DB) return
   const { observeOperation } = await import('./locket/connection-observations')
@@ -15,7 +14,7 @@ export function operatorMail(env, { health = true } = {}) {
  return {
   async send(message) {
    let result
-   try { result = await sender.send(message) } catch (error) {
+   try { const sender = env.MAIL_PROVIDER === 'postmark' ? postmarkMail(env.MAIL_API_KEY) : createMailSender({ provider: env.MAIL_PROVIDER, mode: 'production', apiKey: env.MAIL_API_KEY, ...(env.MAIL_PROVIDER === 'rer' ? { relayUrl: env.MAIL_RELAY_URL } : {}), ...(env.MAIL_PROVIDER === 'cloudflare' ? { accountId: env.MAIL_ACCOUNT_ID } : {}) }); result = await sender.send(message) } catch (error) {
     if (health) await observe(false, 'mail_outcome_unknown')
     throw error
    }
