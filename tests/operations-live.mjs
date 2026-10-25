@@ -1,7 +1,7 @@
 // Explicit held-key journey. It is never part of push Verify and always removes
 // this environment's own resources, including after an interrupted deployment.
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync,spawn } from 'node:child_process';
 import { lstat, readdir, readFile } from 'node:fs/promises';
 import { resolve,join } from 'node:path';
 import { ownerBrowser,command,redact } from './operations-live-client.mjs';
@@ -14,7 +14,7 @@ const branch=git('branch','--show-current'),candidate=git('rev-parse','HEAD');
 const previous=process.argv[process.argv.indexOf('--previous-ref')+1];
 if(!process.argv.includes('--fresh')&&!process.argv.includes('--previous-ref'))throw Error('Choose --fresh or --previous-ref TAG.');
 if(evidence===process.cwd()||evidence.startsWith(process.cwd()+'/'))throw Error('Screenshots must stay outside the checkout.');
-let owner,failure;
+let owner,failure,removed=true;
 try{
  if(process.argv.includes('--previous-ref'))git('switch','--detach',previous);
  await command(['deploy','--environment',environment,'--owner-name','Run Edit Run Operations','--non-interactive','--no-queue']);
@@ -40,8 +40,19 @@ try{
  await owner?.browser.close();
  if(git('rev-parse','HEAD')!==candidate)git('switch','--detach',candidate);
  if(await lstat(join('.rer/deploy',environment+'.json')).catch(error=>{if(error.code==='ENOENT')return null;throw error})){
-  try{await command(['deploy','--environment',environment,'--remove','--yes','--no-queue']);console.log('OPS-001 owned Worker, D1 database and R2 bucket removed and read back absent.')}catch(error){failure??=error}
+  try{await command(['deploy','--environment',environment,'--remove','--yes','--no-queue']);console.log('OPS-001 owned Worker, D1 database and R2 bucket removed and read back absent.')}catch(error){removed=false;failure??=error}
  }
  if(branch)git('switch',branch);
 }
-if(failure){console.error(redact(failure.message));process.exitCode=1}
+if(failure){
+ console.error(redact(failure.message));
+ // Continue the separate fresh-install case after cleanup; the failed previous
+ // release case remains failed and keeps the overall journey nonzero.
+ if(removed&&process.argv.includes('--previous-ref')){
+  console.log('Previous release case failed. Running the independent current fresh-install case after cleanup.');
+  const fresh=spawn(process.execPath,['tests/operations-live.mjs','--fresh'],{env:process.env,stdio:'inherit'});
+  const code=await new Promise((resolve,reject)=>{fresh.once('error',reject);fresh.once('close',resolve)});
+  console.log('Independent fresh-install case exit: '+code);
+ }
+ process.exitCode=1;
+}
