@@ -420,6 +420,12 @@
       "name": "0071_connection_account.sql",
       "sha256": "a351c51343b2ed2120d4932f3171326cb3b19e1aa38147983551fc16ac539261",
       "sql": "-- A read-only probe records the provider account it actually verified.\nALTER TABLE lk_connection_health ADD COLUMN provider_account TEXT;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0074_connection_observations.sql",
+      "sha256": "0592fd8e828d4e8d3b9b847d62d4a7c2f47cc2639fc505c55b0dcb4027859fc5",
+      "sql": "-- Operational success is distinct from a successful read-only probe.\nALTER TABLE lk_connection_health ADD COLUMN last_sync_at INTEGER;\nCREATE TABLE lk_connection_expiries (\n id TEXT PRIMARY KEY, account TEXT NOT NULL, expires_at INTEGER,\n recorded_by TEXT NOT NULL, recorded_at INTEGER NOT NULL, version INTEGER NOT NULL,\n alert_id TEXT NOT NULL, alert_status TEXT, connection_version INTEGER NOT NULL\n);\n\nALTER TABLE lk_calendar_connections ADD COLUMN version INTEGER NOT NULL DEFAULT 1;\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
