@@ -10,7 +10,7 @@ async function read(url:string,token:string,{method='GET',basic=false,postmark=f
  try{return await response.json() as any}catch{throw new ProbeFailure('invalid_provider_receipt')}
 }
 export async function probeConnection(env:Bindings,entry:any,now:number){
- let providerAccount:string|null=null,expiresAt:number|null=null
+ let providerAccount:string|null=null,expiresAt:number|null=null,resourceVerified=false
  try{
   const id=entry.id
   let data:any
@@ -63,10 +63,10 @@ export async function probeConnection(env:Bindings,entry:any,now:number){
     data=await read('https://api.resend.com/domains',token)
     const domain=(env.MAIL_FROM??'').match(/@([^>\s]+)>?$/)?.[1]?.toLowerCase()
     const match=Array.isArray(data.data)?data.data.find((d:any)=>d.name===domain&&d.status==='verified'&&identity(d.id)):null
-    if(match)providerAccount=match.id
+    if(match)resourceVerified=true
    }
   }
-  if(!providerAccount)throw new ProbeFailure('invalid_provider_receipt')
+  if(!providerAccount&&!resourceVerified)throw new ProbeFailure('invalid_provider_receipt')
   return {status:'healthy',reason:'read_probe_succeeded',providerAccount,expiresAt}
  }catch(error){return {status:'failing',reason:error instanceof ProbeFailure?error.message:'provider_unreachable',providerAccount:null,expiresAt:null}}
 }

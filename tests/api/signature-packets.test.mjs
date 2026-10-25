@@ -180,12 +180,13 @@ test('Connection checks expose credential failure, one owner alert, current affe
  for(const provider of ['google','outlook'])calendars.push(await h.owner.command('calendar.connect',{provider,calendarId:'synthetic-locket-calendar',accessToken:'synthetic-locket-85',scope:'all_accessible',consent:true}))
  const additional=['mail','exchange-mail','adobe-acrobat-sign','dropbox-sign',...calendars.map(c=>'calendar:'+c.id)]
  for(const id of ['hubspot','slack','teams','quickbooks',...additional])await h.owner.command('connection.check',{id})
- for(const [id,account] of [['mail','synthetic-locket-domain'],['exchange-mail','654321'],['adobe-acrobat-sign','synthetic-locket-adobe-user'],['dropbox-sign','synthetic-locket-dropbox-user'],['calendar:'+calendars[0].id,'synthetic-locket-google-user'],['calendar:'+calendars[1].id,'synthetic-locket-76']])assert.equal((await h.owner.state()).connections.find(c=>c.id===id).provider_account,account)
+ for(const [id,account] of [['exchange-mail','654321'],['adobe-acrobat-sign','synthetic-locket-adobe-user'],['dropbox-sign','synthetic-locket-dropbox-user'],['calendar:'+calendars[0].id,'synthetic-locket-google-user'],['calendar:'+calendars[1].id,'synthetic-locket-76']])assert.equal((await h.owner.state()).connections.find(c=>c.id===id).provider_account,account)
  invalidProbe=true
  for(const id of additional){await h.owner.command('connection.check',{id});const row=(await h.owner.state()).connections.find(c=>c.id===id);assert.equal(row.status,'failing');assert.equal(row.reason,'invalid_provider_receipt');assert.equal(row.provider_account,null)}
  invalidProbe=false
  for(const id of additional)await h.owner.command('connection.check',{id})
  assert.ok((await h.owner.state()).connections.filter(c=>c.probe).every(c=>c.status==='healthy'))
+ assert.equal((await h.owner.state()).connections.find(c=>c.id==='mail').provider_account,null,'A verified sender domain is not an acting account identity')
  const verified=(await h.owner.state()).connections
  for(const [id,account]of [['hubspot','123456'],['slack','synthetic-locket-75'],['teams','synthetic-locket-76'],['docusign','synthetic-locket-account']])assert.equal(verified.find(c=>c.id===id).provider_account,account)
  invalidHubspot=true;await h.owner.command('connection.check',{id:'hubspot'})

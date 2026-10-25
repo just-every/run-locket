@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "f22b6214f3b6071d31731e93758a59d3646fd959e5a2f044fd55f73a7896e419",
+      "sha256": "2203b5bb0dbaae7652897c4b25718b4caeaef6a2e27ffc61918f397633351b35",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "08910bfe44b806f714afe75f842b67fbf95dc39a40452798d264d87ee4b9fdfe",
+      "sha256": "16f54468882932194c0b96598d6b5e032b9231501134129a8da9be2fef57dc45",
       "executable": false
     },
     "DEMO.md": {
@@ -1161,7 +1161,7 @@
       "executable": false
     },
     "src/locket/connection-probe.ts": {
-      "sha256": "458101a0c9b774877a748386dceedd6251c04e65a9fa440d5059394e1badfce2",
+      "sha256": "0c71f310298c2f356654a90f3f56ec463308017ebeb4e15b3cb67120339b5076",
       "executable": false
     },
     "src/locket/counterparties.ts": {
@@ -4389,7 +4389,7 @@
       "executable": false
     },
     "tests/api/signature-packets.test.mjs": {
-      "sha256": "045dacffd163af11f1d57ace2fb46912e31293bed548332e266460829e109235",
+      "sha256": "4667e54069b164e05de75b32f24b564d65f129d45a6a6ebce4dc28fc42ca079c",
       "executable": false
     },
     "tests/api/us-defaults.test.mjs": {
