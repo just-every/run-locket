@@ -1,3 +1,4 @@
+import { redactedRenditionHandlers } from './redacted-renditions'
 import { workforceHandlers, workforceResponse } from './workforce'
 import { chatIntakeResponse } from './chat-intake'
 import { chatHandlers } from './chat-notifications'
@@ -86,7 +87,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...signatureHandlers(),
+  ...signatureHandlers(), ...redactedRenditionHandlers,
   ...chatHandlers, ...scopedTokenHandlers, ...workforceHandlers,
   ...wordReviewHandlers,
   ...remediationHandlers,

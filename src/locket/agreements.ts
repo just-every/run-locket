@@ -241,7 +241,7 @@ const updateRequest: Handler = async (c, p) => {
   const writes = [bump(c, a, 'title=?, value_cents=?, currency=?, original_cents=?, usd_rate=?, rate_recorded_by=?, rate_recorded_at=?, owner_id=?, needed_by=?, restricted=?, status=?', title, m.valueCents, m.currency, m.originalCents, m.rate, m.rateBy, m.rateAt, ownerId, neededBy, restricted, contextChanged ? statusAfterChange(a) : a.status)]
   if (ownerId !== a.owner_id) writes.push(...notificationWrites(c,{key:c.commandId,agreementId:a.id,recipientId:ownerId,kind:'assignment'}))
   if (contextChanged) writes.push(invalidateApprovals(c, a.id, 'Contract value changed'))
-  return { allowed, result: { id: a.id }, writes, checks: agreementGuards(c, a, p), audit: [{ action: 'request.update', agreementId: a.id, summary: contextChanged ? `Changed request details and value to ${amountWords(m as Amount)}; earlier approvals no longer count` : 'Changed request details' }] }
+  return { allowed, result: { id: a.id }, writes, checks: agreementGuards(c, a, p), audit: [...(restricted!==a.restricted?[{action:'agreement.classification',agreementId:a.id,summary:json({before:{restricted:!!a.restricted},after:{restricted:!!restricted}})}]:[]),{ action: 'request.update', agreementId: a.id, summary: contextChanged ? `Changed request details and value to ${amountWords(m as Amount)}; earlier approvals no longer count` : 'Changed request details' }] }
 }
 
 const addRequirement: Handler = async (c, p) => {

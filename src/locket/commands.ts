@@ -63,8 +63,11 @@ export const auditSql = (c: Ctx, entry: AuditEntry, principalRole: string = c.ac
   sql('INSERT INTO lk_audit VALUES(?,?,?,?,?,?,?,?,?)', crypto.randomUUID(), c.now, c.actor.id, c.actor.name, principalRole, entry.action, entry.agreementId ?? null, entry.summary, c.commandId)
 
 export function guardSql(id: string, conditions: Sql[]): Sql {
+  // Keep all predicates while avoiding SQLite's expression-depth limit as
+  // schema-derived custody plans acquire more child tables.
+  const conjunction = (parts: string[]): string => parts.length === 0 ? '1' : parts.length === 1 ? `(${parts[0]})` : `(${conjunction(parts.slice(0, Math.floor(parts.length / 2)))} AND ${conjunction(parts.slice(Math.floor(parts.length / 2)))})`
   return sql(
-    `INSERT INTO lk_guard VALUES(?, CASE WHEN ${conditions.map(c => `(${c.sql})`).join(' AND ')} THEN 1 ELSE 0 END)`,
+    `INSERT INTO lk_guard VALUES(?, CASE WHEN ${conjunction(conditions.map(c => c.sql))} THEN 1 ELSE 0 END)`,
     id,
     ...conditions.flatMap(c => c.params),
   )

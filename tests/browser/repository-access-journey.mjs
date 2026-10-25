@@ -1,6 +1,7 @@
 import {expect} from '@playwright/test'
 import {randomUUID} from 'node:crypto'
-import {mkdir} from 'node:fs/promises'
+import {mkdir,mkdtemp,writeFile,rm} from 'node:fs/promises'
+import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {file,pdf} from '../api/files.mjs'
 
@@ -100,10 +101,71 @@ export async function repositoryAccessJourney(page,width,p){
  await page.goto(p.origin+'/app#counterparty/'+party);await page.reload()
  await expect(page.locator('[data-party-total]')).toHaveText('Hidden')
  await shot('counterparty-hidden-totals')
+ // The same agreement and Sales audience exercise the rendition continuation.
+ const counsel=await p.h.invite(`synthetic-locket-counsel-${tag}@example.test`,'counsel')
+ const signIn=async client=>{
+  await page.context().clearCookies()
+  await page.context().addCookies(client.cookie.split('; ').map(pair=>{const at=pair.indexOf('=');return{name:pair.slice(0,at),value:pair.slice(at+1),url:p.origin,secure:true,httpOnly:true,sameSite:'Lax'}}))
+ }
+ await signIn(owner)
+ await page.goto(p.origin+`/app#agreement/${ids[0]}/versions`);await page.reload()
+ await page.getByText('Redacted renditions',{exact:true}).click()
+ const renditionPanel=page.locator('details').filter({has:page.getByText('Redacted renditions',{exact:true})}).last()
+ const uploadDir=await mkdtemp(join(tmpdir(),'locket-rendition-'))
+ try{
+ const uploadPath=join(uploadDir,'redacted.pdf');await writeFile(uploadPath,pdf('Public approved terms'));await renditionPanel.getByLabel('Redacted file',{exact:true}).setInputFiles(uploadPath)
+ await renditionPanel.getByLabel('Redacted text',{exact:true}).fill('Public approved terms')
+ const uploading=page.waitForResponse(r=>r.url()===p.origin+'/api/locket/commands'&&r.request().method()==='POST')
+ await renditionPanel.getByRole('button',{name:'Upload redacted rendition',exact:true}).click()
+ expect((await(await uploading).json()).ok).toBe(true)
+ }finally{await rm(uploadDir,{recursive:true,force:true})}
+ await expect(renditionPanel).toContainText('Awaiting counsel approval')
+ await shot('rendition-uploaded')
+ await signIn(counsel)
+ await page.reload()
+ await page.getByText('Redacted renditions',{exact:true}).click()
+ await renditionPanel.getByLabel('viewer',{exact:true}).check()
+ const approving=page.waitForResponse(r=>r.url()===p.origin+'/api/locket/commands'&&r.request().method()==='POST')
+ await renditionPanel.getByRole('button',{name:'Approve rendition',exact:true}).click()
+ expect((await(await approving).json()).ok).toBe(true)
+ await expect(renditionPanel).toContainText('Approval recorded')
+ await shot('counsel-approved-rendition')
+ await signIn(viewer);await page.reload()
+ await expect(page.locator('main')).toContainText('Public approved terms')
+ await expect(page.locator('main')).not.toContainText('748392')
+ const renditionDownload=page.waitForEvent('download')
+ await page.getByRole('link',{name:'Approved rendition',exact:true}).click()
+ const approvedDownload=await renditionDownload,approvedStream=await approvedDownload.createReadStream(),approvedChunks=[]
+ for await(const chunk of approvedStream)approvedChunks.push(chunk)
+ expect(Buffer.concat(approvedChunks)).toEqual(pdf('Public approved terms'))
+ await shot('sales-approved-rendition')
+ const current=(await owner.state()).agreements.find(a=>a.id===ids[0])
+ await owner.command('version.upload',{agreementId:current.id,version:current.version,kind:'upload',file:file('next.pdf',pdf('New secret 748392')),text:'New secret 748392'})
+ await page.reload()
+ await expect(page.getByRole('link',{name:'Approved rendition',exact:true})).toHaveCount(0)
+ await expect(page.locator('main')).not.toContainText('Public approved terms')
+ await shot('new-version-withheld')
  await owner.command('audience.save',{id:group.id,version:group.version,name:'Sales '+tag,kind:'group',memberIds:[]})
  await page.goto(p.origin+'/app#agreements');await page.reload()
  await expect(views).toBeVisible()
  await expect(page.locator('.lk-board-card')).toHaveCount(0)
  await expect(views.getByLabel('Saved view',{exact:true}).locator('option').filter({hasText:'Sales agreements '+tag})).toHaveCount(0)
  await shot('revoked-membership')
+ await signIn(owner)
+ await page.goto(p.origin+'/app#activity');await page.reload()
+ const log=page.locator('.lk-activity-log')
+ await expect(log).toHaveAttribute('aria-busy','false')
+ await log.getByLabel('Action',{exact:true}).selectOption('repository.access')
+ await log.getByRole('button',{name:'Apply filters',exact:true}).click()
+ await expect(log).toHaveAttribute('aria-busy','false')
+ await expect(log).toContainText('"before"')
+ await expect(log).toContainText('"after"')
+ const auditDownload=page.waitForEvent('download')
+ await log.getByRole('link',{name:'Export audit CSV',exact:true}).click()
+ const auditFile=await auditDownload,auditStream=await auditFile.createReadStream(),auditChunks=[]
+ for await(const chunk of auditStream)auditChunks.push(chunk)
+ const auditText=Buffer.concat(auditChunks).toString()
+ expect(auditText).toContain('""before""');expect(auditText).toContain('""after""')
+ await shot('policy-audit-diff')
+
 }

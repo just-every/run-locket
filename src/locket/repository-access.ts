@@ -50,14 +50,15 @@ const configure:Handler=async(c,p)=>{
   return {role,fields:[...new Set(fields)]}
  })
  if(new Set(hidden.map(h=>h.role)).size!==hidden.length)fail('INVALID','Each role may appear once.')
- return {allowed:may.manageRoles,result:{version:version+1},checks,writes:[sql("INSERT INTO lk_repository_policy VALUES('installation',?,?,?,1) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled,grants=excluded.grants,hidden_fields=excluded.hidden_fields,version=lk_repository_policy.version+1",Number(p.enabled),json(grants),json(hidden))],audit:[{action:'repository.access',summary:'Owner explicitly configured repository group/type/department visibility and role field restrictions.'}]}
+ return {allowed:may.manageRoles,result:{version:version+1},checks,writes:[sql("INSERT INTO lk_repository_policy VALUES('installation',?,?,?,1) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled,grants=excluded.grants,hidden_fields=excluded.hidden_fields,version=lk_repository_policy.version+1",Number(p.enabled),json(grants),json(hidden))],audit:[{action:'repository.access',summary:json({before:{enabled:prior.enabled,grants:prior.grants,hiddenFields:prior.hiddenFields},after:{enabled:p.enabled,grants,hiddenFields:hidden}})}]}
 }
 const department:Handler=async(c,p)=>{
  requireRole(c.actor,may.manageRoles,'classify agreement departments')
  const a=await visibleAgreement(c,p.agreementId),departmentId=text(p,'departmentId',100)
+ const before=await c.db.prepare('SELECT department_id FROM lk_agreement_departments WHERE agreement_id=?').bind(a.id).first<{department_id:string}>()
  const d=await c.db.prepare("SELECT version FROM lk_intake_audiences WHERE id=? AND kind='department'").bind(departmentId).first<{version:number}>()
  if(!d)fail('INVALID','Choose a current department.')
- return {allowed:may.manageRoles,result:{id:a.id,departmentId},checks:[...agreementGuards(c,a,p),sql('(SELECT version FROM lk_intake_audiences WHERE id=?)=?',departmentId,d.version)],writes:[sql('INSERT INTO lk_agreement_departments VALUES(?,?) ON CONFLICT(agreement_id) DO UPDATE SET department_id=excluded.department_id',a.id,departmentId),invalidateApprovals(c,a.id,'Agreement department changed'),bump(c,a,'status=?',statusAfterChange(a))],audit:[{action:'agreement.department',agreementId:a.id,summary:'Owner recorded the agreement department.'}]}
+ return {allowed:may.manageRoles,result:{id:a.id,departmentId},checks:[...agreementGuards(c,a,p),sql('(SELECT version FROM lk_intake_audiences WHERE id=?)=?',departmentId,d.version)],writes:[sql('INSERT INTO lk_agreement_departments VALUES(?,?) ON CONFLICT(agreement_id) DO UPDATE SET department_id=excluded.department_id',a.id,departmentId),invalidateApprovals(c,a.id,'Agreement department changed'),bump(c,a,'status=?',statusAfterChange(a))],audit:[{action:'agreement.department',agreementId:a.id,summary:json({before:{departmentId:before?.department_id??null},after:{departmentId}})}]}
 }
 export const repositoryAccessHandlers:Record<string,Handler>={'repository.access':configure,'agreement.department':department}
 
@@ -66,7 +67,7 @@ export const repositoryAccessHandlers:Record<string,Handler>={'repository.access
 export async function requireFullFields(db:D1Database,actor:Actor){
  if((await hiddenFields(db,actor)).length)fail('FIELD_ACCESS','This role has hidden fields. Unredacted documents, comparisons and business commands require a role with full field access.',403)
 }
-export function redactWorkspace<T extends Record<string,any>>(workspace:T,hidden:string[]):T{
+export function redactWorkspace<T extends Record<string,any>>(workspace:T,hidden:string[],renditions:any[]=[]):T{
  if(!hidden.length)return {...workspace,fieldAccess:{hidden,documentsWithheld:false}}
  const w:any={...workspace,fieldAccess:{hidden,documentsWithheld:true}}
  const moneyKeys=['value_cents','currency','original_cents','usd_rate','rate_recorded_by','rate_recorded_at']
@@ -79,6 +80,7 @@ export function redactWorkspace<T extends Record<string,any>>(workspace:T,hidden
  // Any arbitrary text or immutable file may repeat a hidden value. Do not guess
  // at redaction, mutate originals or reveal it through labels, quotes or history;
  // obligation wording, citations and evidence notes are withheld with them.
+ w.redactedRenditions=[]
  w.versions=workspace.versions.map((v:any)=>({...v,text:null,fields:null,label:'Document version'}))
  for(const key of ['renewalGenerations','renewalHistory','renewalTerminations','calendarEvents','familyAnalyses','renewalBriefs','accountingLinks','versionAudiences','commentAudiences','legalHolds','artifacts','comments','deviations','approvals','packages','executions','requestForms','proposals','noticeSources','noticePlans','noticeLetters','noticeDispatches','noticeEvents','noticeTracking','notices','audit','familyTerms','obligations'])w[key]=[]
  if(workspace.signature)w.signature={...workspace.signature,packets:[],renditions:[],dispatches:[],canCoordinate:[]}
@@ -88,6 +90,10 @@ export function redactWorkspace<T extends Record<string,any>>(workspace:T,hidden
  w.terms=[];w.routes={};w.reports=[];w.reportDeliveries=[];w.approvalInputs=[];w.ruleDecisions=[];w.rulePending=[];w.ruleReminders=[]
  w.requestQueue={...workspace.requestQueue,cancellations:workspace.requestQueue.cancellations.map((c:any)=>({...c,note:null,reopen_reason:c.reopen_reason?'Details withheld':null}))}
  // State summaries contain derived dollar totals and are recalculated downstream.
+ // Expose only an approved rendition's text and metadata, never its original.
+ const approved=renditions.filter(r=>workspace.agreements.some((a:any)=>a.id===r.agreement_id))
+ w.versions=w.versions.map((v:any)=>({...v,text:approved.find(r=>r.version_id===v.id)?.text??null}))
+ w.artifacts=workspace.artifacts.filter((f:any)=>approved.some(r=>r.artifact_id===f.id)).map((f:any)=>({...f,role:'redacted',filename:'Approved redacted rendition',provenance:'{}'}))
  w.counterparties={}
  return w
 }

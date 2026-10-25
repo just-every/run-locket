@@ -1,3 +1,4 @@
+import { RedactedRenditions } from './versions'
 import { ExchangePanel } from './exchange'
 import { WordReview } from './word-review'
 import { LegalHold } from './erasure'
@@ -32,7 +33,7 @@ const tabs = [
   { id: 'family', title: 'Family' },
   { id: 'details', title: 'Details and access' },
 ]
-const fileLabel: Record<string, string> = { original: 'Original', rendition: 'Signing PDF', signed: 'Signed PDF', package: 'Signature-ready PDF', manifest: 'Routing manifest' }
+const fileLabel: Record<string, string> = { redacted: 'Approved rendition', original: 'Original', rendition: 'Signing PDF', signed: 'Signed PDF', package: 'Signature-ready PDF', manifest: 'Routing manifest' }
 
 export function AgreementPage({ state, id, tab, shown: shownNumber, passage, locket }: { state: LocketState; id: string; tab: string; shown: string; passage: { start: string; end: string }; locket: Locket }) {
   const a = state.agreements.find(x => x.id === id)
@@ -47,7 +48,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, passage, loc
   const selected = tabs.some(t => t.id === tab) ? tab : 'versions'
   const parent = a.parent_id ? state.agreements.find(x => x.id === a.parent_id) : null
   // The shown version's own file: the original upload, the signing PDF, or the signed PDF an import kept.
-  const files = shown ? state.artifacts.filter(f => f.version_id === shown.id && ['original', 'rendition', 'signed'].includes(f.role)) : []
+  const files = shown ? state.artifacts.filter(f => f.version_id === shown.id && ['original', 'rendition', 'signed', 'redacted'].includes(f.role)) : []
   const original = files.find(f => f.role === 'original') ?? files.find(f => f.role === 'signed') ?? files.find(f => f.role === 'rendition')
   const route = state.routes[a.id] ?? []
   const live = liveApprovals(state, a)
@@ -88,6 +89,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, passage, loc
           {(adding || versions.length === 0) && <AddVersion state={state} a={a} locket={locket} onDone={() => setAdding(false)} />}
           {(a.status === 'draft' || state.requirements.some(r => r.agreement_id === a.id && !r.artifact_id && !r.waived_reason)) && <Attachments state={state} a={a} locket={locket} />}
           {shown && <ExchangePanel state={state} a={a} locket={locket}/>}
+          {shown && <RedactedRenditions state={state} a={a} shown={shown} locket={locket}/>}
           {shown && <ClauseProvenance version={shown} />}
           {shown && <WordReview state={state} a={a} shown={shown} locket={locket}/>}
           {shown ? <DocumentPage state={state} a={a} base={base} shown={shown} passage={passage} locket={locket} /> : <Empty>Add a version to see its text.</Empty>}

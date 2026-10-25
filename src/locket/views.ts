@@ -1,3 +1,4 @@
+import { approvedRenditions } from './redacted-renditions'
 import { chatState, chatTables } from './chat-notifications'
 import { connectionRegistry } from './connection-health'
 import { signatureState,signatureArchiveTables } from './signature-workspace'
@@ -91,6 +92,7 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
   const applications=await all(db,'SELECT id,source_playbook_id,scope FROM lk_playbook_applications')
   const activePlaybook=playbooks.find(p=>p.status==='active')
   return redactWorkspace({
+    redactedRenditions:fullReaders.includes(actor.role)?mine(await all(db,'SELECT * FROM lk_redacted_renditions ORDER BY id'),ids):[],
     remediation:await remediationState(env,actor),
     outcomeReports:await outcomeReportState(env,actor),
     approvalChannels:await approvalChannelState(env,actor,ids),
@@ -179,17 +181,21 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
     proposals,
     imports: actor.role === 'owner' ? await all(db, 'SELECT id, kit, status, source_label, preview, fingerprint, created_by, created_at, applied_by, applied_at, undone_by, undone_at, undo_reason, version FROM lk_import_batches ORDER BY created_at DESC') : [],
     access: mine(await all(db, 'SELECT * FROM lk_access'), ids),
-    audit: (await all(db, 'SELECT * FROM lk_audit ORDER BY at DESC, id')).filter(a=>fullReaders.includes(actor.role)||a.agreement_id===null||ids.has(a.agreement_id)).filter(a => !a.action.startsWith('view.') || a.actor_id === actor.id).filter(a => !a.action.startsWith('report.') || a.actor_id === actor.id).filter(a => !a.action.startsWith('clickwrap.') || fullReaders.includes(actor.role) || a.actor_id === actor.id),
-  },await hiddenFields(db,actor))
+    audit: (await all(db, 'SELECT * FROM lk_audit ORDER BY at DESC, id')).filter(a=>fullReaders.includes(actor.role)||a.agreement_id===null||ids.has(a.agreement_id)).filter(a=>fullReaders.includes(actor.role)||!['repository.access','agreement.department','agreement.classification'].includes(a.action)).filter(a => !a.action.startsWith('view.') || a.actor_id === actor.id).filter(a => !a.action.startsWith('report.') || a.actor_id === actor.id).filter(a => !a.action.startsWith('clickwrap.') || fullReaders.includes(actor.role) || a.actor_id === actor.id),
+  },await hiddenFields(db,actor),await approvedRenditions(db,actor))
 }
 
 export async function compare(env: Bindings, actor: Actor, from: string, to: string) {
   requireRole(actor, may.read, 'compare versions')
-  await requireFullFields(env.DB,actor)
+  const hidden=await hiddenFields(env.DB,actor)
   const { ids } = await visibleIds(env, actor)
   const rows = await all(env.DB, 'SELECT id, agreement_id, number, text FROM lk_versions WHERE id IN (?,?)', from, to)
   const a = rows.find(r => r.id === from), b = rows.find(r => r.id === to)
   if (!a || !b || !ids.has(a.agreement_id) || a.agreement_id !== b.agreement_id) fail('NOT_FOUND', 'Choose two versions of one agreement you can access.', 404)
+  if(hidden.length){
+    const approved=await approvedRenditions(env.DB,actor)
+    for(const v of [a,b]){const rendition=approved.find(r=>r.version_id===v.id);if(!rendition)fail('FIELD_ACCESS','Counsel has not approved a current rendition for this role.',403);v.text=rendition.text}
+  }
   if (a.text === null || b.text === null) fail('NO_TEXT', 'Both versions need text to compare. Upload DOCX files or supply the text with each version.', 409)
   const agreement = await env.DB.prepare('SELECT restricted FROM lk_agreements WHERE id=?').bind(a.agreement_id).first<{ restricted: number }>()
   if (agreement?.restricted) await recordReads(env, actor, [{ action: 'agreement.view', agreementId: a.agreement_id, summary: `Compared restricted agreement versions ${a.number} and ${b.number}.` }])
@@ -198,7 +204,7 @@ export async function compare(env: Bindings, actor: Actor, from: string, to: str
 
 export async function download(env: Bindings, actor: Actor, id: string): Promise<Response> {
   requireRole(actor, may.read, 'download files')
-  await requireFullFields(env.DB,actor)
+  if((await hiddenFields(env.DB,actor)).length&&!(await approvedRenditions(env.DB,actor)).some(r=>r.artifact_id===id))fail('FIELD_ACCESS','Only current counsel-approved renditions may be downloaded by this role.',403)
   const artifact = await env.DB.prepare('SELECT * FROM lk_artifacts WHERE id=?').bind(id).first<any>()
   const { ids } = await visibleIds(env, actor)
   if (!artifact || (artifact.agreement_id && !ids.has(artifact.agreement_id))) fail('NOT_FOUND', 'No file you can access has that identity.', 404)
@@ -221,7 +227,7 @@ export async function download(env: Bindings, actor: Actor, id: string): Promise
 export async function exportArchive(env: Bindings, actor: Actor) {
   requireRole(actor, may.export, 'export the complete archive')
   const db = env.DB
-  const tables = ['lk_connection_expiries','lk_workforce_settings','lk_workforce_groups','lk_workforce_users','lk_workforce_members','lk_api_tokens','lk_connection_health','lk_privacy_scopes','lk_service_performance_terms','lk_service_performance_reports','lk_service_performance_claims','lk_service_performance_breaches','lk_service_performance_dispatches','lk_service_level_links','lk_service_level_terms','lk_service_level_reads','lk_service_level_claims','lk_service_level_breaches','lk_service_level_dispatches','lk_reconciliation_settings','lk_reconciliation_interpretations','lk_reconciliation_scans','lk_reconciliation_findings','lk_reconciliation_dispatches','lk_negotiation_outcomes','lk_playbook_issues','lk_playbook_recommendations','lk_playbook_applications','lk_family_analyses','lk_family_obligation_sources','lk_word_templates','lk_price_caps','lk_accounting_links','lk_renewal_brief_settings','lk_renewal_briefs','lk_repository_bulk','lk_repository_bulk_items','lk_agreement_groups','lk_exchanges','lk_exchange_commands','lk_version_audiences','lk_comment_audiences','lk_workflow_stages','lk_workflow_service_levels','lk_legal_holds','lk_erasure_previews','lk_erasure_blocks','lk_erasure_keys','lk_erasures','lk_retention_rules','lk_retention_previews','lk_approval_rule_drafts','lk_approval_rule_versions','lk_approval_rule_snapshots','lk_approval_inputs','lk_approval_absences','lk_approval_rule_decisions','lk_rule_pending','lk_rule_reminder_events','lk_repository_policy','lk_agreement_departments','lk_view_groups','lk_queue_rules','lk_request_work','lk_request_cancellations','lk_queue_escalations','lk_intake_audiences', 'lk_intake_members', 'lk_intake_forms', 'lk_intake_form_versions', 'lk_request_forms', 'lk_custom_fields', 'lk_custom_values', 'lk_workflow_history', 'lk_notice_sources', 'lk_notice_plans', 'lk_entities', 'lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations', 'lk_notice_letters', 'lk_notice_dispatches', 'lk_notice_events', 'lk_notice_tracking', 'lk_saved_views', 'lk_view_pins', 'lk_approval_reminder_settings', 'lk_person_preferences', 'lk_deadline_reminder_settings', 'lk_deadline_reminders', 'lk_deadline_reminder_events', 'lk_approval_reminders', 'lk_installation_settings', 'lk_reports', 'lk_report_deliveries', 'lk_notifications', 'lk_notification_deliveries']
+  const tables = ['lk_redacted_renditions','lk_connection_expiries','lk_workforce_settings','lk_workforce_groups','lk_workforce_users','lk_workforce_members','lk_api_tokens','lk_connection_health','lk_privacy_scopes','lk_service_performance_terms','lk_service_performance_reports','lk_service_performance_claims','lk_service_performance_breaches','lk_service_performance_dispatches','lk_service_level_links','lk_service_level_terms','lk_service_level_reads','lk_service_level_claims','lk_service_level_breaches','lk_service_level_dispatches','lk_reconciliation_settings','lk_reconciliation_interpretations','lk_reconciliation_scans','lk_reconciliation_findings','lk_reconciliation_dispatches','lk_negotiation_outcomes','lk_playbook_issues','lk_playbook_recommendations','lk_playbook_applications','lk_family_analyses','lk_family_obligation_sources','lk_word_templates','lk_price_caps','lk_accounting_links','lk_renewal_brief_settings','lk_renewal_briefs','lk_repository_bulk','lk_repository_bulk_items','lk_agreement_groups','lk_exchanges','lk_exchange_commands','lk_version_audiences','lk_comment_audiences','lk_workflow_stages','lk_workflow_service_levels','lk_legal_holds','lk_erasure_previews','lk_erasure_blocks','lk_erasure_keys','lk_erasures','lk_retention_rules','lk_retention_previews','lk_approval_rule_drafts','lk_approval_rule_versions','lk_approval_rule_snapshots','lk_approval_inputs','lk_approval_absences','lk_approval_rule_decisions','lk_rule_pending','lk_rule_reminder_events','lk_repository_policy','lk_agreement_departments','lk_view_groups','lk_queue_rules','lk_request_work','lk_request_cancellations','lk_queue_escalations','lk_intake_audiences', 'lk_intake_members', 'lk_intake_forms', 'lk_intake_form_versions', 'lk_request_forms', 'lk_custom_fields', 'lk_custom_values', 'lk_workflow_history', 'lk_notice_sources', 'lk_notice_plans', 'lk_entities', 'lk_parties', 'lk_agreements', 'lk_access', 'lk_requirements', 'lk_versions', 'lk_comments', 'lk_templates', 'lk_template_versions', 'lk_playbook_versions', 'lk_deviations', 'lk_approvals', 'lk_packages', 'lk_executions', 'lk_terms', 'lk_obligations', 'lk_renewals', 'lk_notices', 'lk_proposals', 'lk_import_batches', 'lk_roles', 'lk_audit', 'lk_clickwrap_terms', 'lk_clickwrap_versions', 'lk_clickwrap_acceptances', 'lk_approval_mail', 'lk_family_terms', 'lk_bulk_reminder_previews', 'lk_reminder_schedules', 'lk_bulk_reminder_operations', 'lk_notice_letters', 'lk_notice_dispatches', 'lk_notice_events', 'lk_notice_tracking', 'lk_saved_views', 'lk_view_pins', 'lk_approval_reminder_settings', 'lk_person_preferences', 'lk_deadline_reminder_settings', 'lk_deadline_reminders', 'lk_deadline_reminder_events', 'lk_approval_reminders', 'lk_installation_settings', 'lk_reports', 'lk_report_deliveries', 'lk_notifications', 'lk_notification_deliveries']
   const records: Record<string, unknown[]> = {}
   for (const t of [...tables,...chatTables, 'lk_reminder_routing',...remediationArchiveTables,...outcomeArchiveTables,...approvalChannelTables,...signatureArchiveTables,'lk_renewal_generations','lk_renewal_history','lk_renewal_settings','lk_renewal_terminations','lk_calendar_events']) records[t] = await all(db, `SELECT * FROM ${t}`)
   records.lk_calendar_connections=await all(db,'SELECT id,operator_id,provider,calendar_id,last_error,created_at,version FROM lk_calendar_connections')

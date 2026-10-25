@@ -57,6 +57,7 @@ export interface LocketState extends importReconciliationWorkspace,ServiceLevelW
   versionAudiences: Row[]
   commentAudiences: Row[]
   versions: Row[]
+  redactedRenditions: Row[]
   artifacts: Row[]
   comments: Row[]
   notifications: {

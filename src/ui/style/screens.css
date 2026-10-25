@@ -140,7 +140,7 @@
 .lk-app .lk-log-day h3 { margin: 6px 0 4px; font-size: 13px; color: var(--lk-ink-2); letter-spacing: .02em; text-transform: uppercase; }
 .lk-log-item { display: grid; grid-template-columns: 76px 28px minmax(0, 1fr); gap: 12px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--lk-rule-2); font-size: 14px; }
 .lk-log-item time { padding-top: 4px; color: var(--lk-ink-2); font-size: 13px; }
-.lk-log-item p { margin: 0 0 2px; }
+.lk-log-item p { margin: 0 0 2px; overflow-wrap: anywhere; }
 .lk-log-item .lk-badge { margin-left: 4px; font-size: 12px; padding: 2px 9px; }
 .lk-activity-log .lk-panel-head .lk-search { width: 280px; }
 

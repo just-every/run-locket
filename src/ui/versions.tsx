@@ -93,6 +93,28 @@ export function AddVersion({ state, a, locket, onDone }: { state: LocketState; a
   )
 }
 
+/** Uses the existing version disclosure and form controls; files are redacted by people. */
+export function RedactedRenditions({state,a,shown,locket}:{state:LocketState;a:Row;shown:Row;locket:Locket}){
+ if(!can(state,'owner','counsel'))return null
+ const originals=state.artifacts.filter(f=>f.version_id===shown.id&&f.role==='original')
+ const renditions=state.redactedRenditions.filter(r=>r.version_id===shown.id)
+ return <details className="lk-disclosure"><summary>Redacted renditions</summary>
+ <p>Upload a file you have redacted. Originals stay unchanged. Counsel approves each rendition for named roles with hidden fields. A new version or access policy change withholds renditions until approval.</p>
+ {originals.length>0&&<Form busy={locket.busy} submit="Upload redacted rendition" onSubmit={async(data,form)=>{
+  const file=data.get('file') as File|null
+  if(!file?.size)return locket.setError('Choose the redacted PDF or DOCX.')
+  if(await locket.run('rendition.upload',{agreementId:a.id,version:a.version,versionId:shown.id,originalId:value(data,'original'),file:await fileToPayload(file),text:value(data,'text')}))form.reset()
+ }}><Field label="Original file"><select name="original">{originals.map(f=><option key={f.id} value={f.id}>{f.filename}</option>)}</select></Field>
+ <Field label="Redacted file"><input name="file" type="file" accept=".pdf,.docx" required/></Field>
+ <Field label="Redacted text" hint="Paste only the rendition’s text for search and comparison. Counsel reviews both file and text."><textarea name="text" rows={3} required/></Field></Form>}
+ {renditions.map(r=><div key={r.id}><p>Original SHA-256: <code style={{overflowWrap:'anywhere'}}>{r.original_sha256}</code></p><p>Rendition SHA-256: <code style={{overflowWrap:'anywhere'}}>{r.rendition_sha256}</code></p>
+ <a href={'/api/locket/files/'+r.artifact_id} download>Review rendition file</a><p>{r.text}</p>
+ <p>{r.approved_by?'Approval recorded; current role, policy and version checks apply on every read.':'Awaiting counsel approval.'}</p>
+ {state.actor.role==='counsel'&&<Form busy={locket.busy} submit="Approve rendition" onSubmit={data=>void locket.run('rendition.approve',{agreementId:a.id,version:a.version,id:r.id,revision:r.revision,roles:data.getAll('roles')})}>
+ {['viewer','requester','approver','agent'].map(role=><label className="lk-check" key={role}><input type="checkbox" name="roles" value={role}/>{role}</label>)}</Form>}</div>)}
+ </details>
+}
+
 /** What must be attached before review, and the way into review once it is. */
 export function Attachments({ state, a, locket }: { state: LocketState; a: Row; locket: Locket }) {
   const { run, busy } = locket

@@ -48,6 +48,7 @@ const erase:Handler=async(c,p)=>{
  for(const patch of plan.patches){
   if(patch.agreementId&&deleted.has(patch.agreementId))continue
   const entries=Object.entries(patch.after),sets=entries.map(([k])=>`${k}=?`)
+  if(patch.table==='lk_redacted_renditions')sets.push('approved_by=NULL','approved_at=NULL','policy_version=NULL','revision=revision+1')
   if(patch.table==='lk_parties')sets.push('version=version+1')
   if(patch.table==='lk_comments'){
    sets.push('revision=revision+1')
