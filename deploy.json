@@ -223,5 +223,10 @@
   "platforms": [
     "workers",
     "container"
+  ],
+  "r2": [
+    {
+      "binding": "UPDATE_ARCHIVES"
+    }
   ]
 }

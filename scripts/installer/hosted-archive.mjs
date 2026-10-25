@@ -28,7 +28,7 @@ export async function hostedDatabase(root, environment, signal) {
  const row = await api.request(`/d1/database/${resource.id}`);
  checkResourceIdentity('d1',resource.name,row,state.owned.d1[resource.name]);
  if (row.name !== resource.name || !live.settings.bindings.some(item => item.name === 'DB' && item.id === resource.id)) throw Error('update-database-identity-mismatch');
- return {state,db:cloudflareDatabase(api,resource.id)};
+ return {state,api,db:cloudflareDatabase(api,resource.id)};
 }
 
 export async function exportHosted({root,environment = 'production',path,signal,store}) {

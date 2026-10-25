@@ -4,6 +4,7 @@ import { join, relative } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { deployment, exportHosted } from './hosted-archive.mjs';
 import { archiveInventory, compareArchives } from './archive-inventory.mjs';
+import { storeUpdateArchive } from './update-storage.mjs';
 export { archiveInventory, compareArchives } from './archive-inventory.mjs';
 
 const git = (root,...args) => execFileSync('git',args,{cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
@@ -19,7 +20,7 @@ export function updatingDeploy(native) {
   if (options.rotateSecret || options.site || options.demo || options.platform === 'container') return native(context);
   const held = await deployment(root,environment);
   const release = JSON.parse(await readFile(join(root,'RELEASE.json'),'utf8'));
-  let record, recordPath, directory;
+  let record, recordPath, directory, backupId;
   if (held?.state.receipt) {
    const prior = held.state.receipt, previous = previousRelease(root,prior.source.sha);
    const applied = new Set(prior.migrations.flatMap(binding => binding.history.map(item => item.name)));
@@ -30,7 +31,8 @@ export function updatingDeploy(native) {
    if (!options.dryRun) {
     const candidate = git(root,'rev-parse','HEAD');
     if (git(root,'status','--porcelain','--untracked-files=no')) throw Error('update-source-not-committed');
-    directory = join(root,'.rer/deploy/updates',environment,randomUUID());
+    backupId = randomUUID();
+    directory = join(root,'.rer/deploy/updates',environment,backupId);
     await mkdir(directory,{recursive:true,mode:0o700});
     const archive = join(directory,'before.rer');
     const backup = await exportHosted({root,environment,path:archive,signal:context.signal,store});
@@ -46,7 +48,10 @@ export function updatingDeploy(native) {
    const after = join(directory,'after.rer');
    await exportHosted({root,environment,path:after,signal:context.signal,store});
    const preserved = await compareArchives(join(root,record.archive.path),after);
-   await writeFile(join(directory,'applied.json'),JSON.stringify({version:1,status:'applied',source:record.candidate.sha,previousRelease:relative(root,recordPath),preserved,appliedAt:new Date().toISOString()},null,2)+'\n',{flag:'wx',mode:0o600});
+   const remoteArchive = await storeUpdateArchive({root,environment,path:join(root,record.archive.path),key:`${backupId}.rer`,signal:context.signal});
+   const appliedPath = join(directory,'applied.json');
+   await writeFile(appliedPath,JSON.stringify({version:1,status:'applied',source:record.candidate.sha,previousRelease:relative(root,recordPath),preserved,remoteArchive,appliedAt:new Date().toISOString()},null,2)+'\n',{flag:'wx',mode:0o600});
+   await storeUpdateArchive({root,environment,path:recordPath,key:`${backupId}.json`,signal:context.signal});
    store.report(`Update preservation checked: ${preserved.records} records and ${preserved.files} file digests retained.`);
   }
   return result;

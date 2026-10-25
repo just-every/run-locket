@@ -10,6 +10,7 @@ dist/
 *.tsbuildinfo
 
 .rer/local/
+.rer/deploy/
 exports/
 test-results/
 src/routeTree.gen.ts

@@ -1,0 +1,827 @@
+{
+  "audit-program": {
+    "answer": "No",
+    "domains": [
+      "assurance",
+      "governance"
+    ],
+    "software": "No independent application audit, annual assurance program, formal audit remediation reporting or complete compliance verification is established by this repository. Named acceptance tests are software evidence, not independent assurance.",
+    "buyer": "Commission applicable independent assessments; own the audit plan, findings, corrective actions and retained evidence.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "CONTRACT.md",
+      "security/questionnaire.json"
+    ]
+  },
+  "application-program": {
+    "answer": "No",
+    "domains": [
+      "access",
+      "change",
+      "governance"
+    ],
+    "software": "Application requirements, server guards and named tests exist. They do not demonstrate every management approval, evaluation, metric, periodic review or organization-wide secure lifecycle requirement in this question.",
+    "buyer": "Establish and evidence the applicable program, acceptance criteria and operational reviews for this installation.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "AGENTS.md",
+      "API.md",
+      "CONTRACT.md"
+    ]
+  },
+  "application-baseline": {
+    "answer": "Yes",
+    "domains": [
+      "access",
+      "change"
+    ],
+    "software": "The application baseline is documented in the contract, API and repository instructions: commands enforce roles, validate inputs and commit guarded writes; views narrow current record authority; originals retain byte custody. This answer covers the repository baseline.",
+    "buyer": "Evaluate this baseline against the buyer requirements, protect the deployment and review changes.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "AGENTS.md",
+      "CONTRACT.md",
+      "API.md"
+    ]
+  },
+  "automated-testing": {
+    "answer": "Yes",
+    "domains": [
+      "access",
+      "change"
+    ],
+    "software": "The repository provides automated public HTTP command and access journeys, browser journeys and portable archive verification. This affirms shipped test automation, not that a particular buyer deployment has passed those checks.",
+    "buyer": "Run the declared checks for the actual release and deployment and retain the results.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "package.json",
+      "tests/api/security.test.mjs",
+      "tests/portable.mjs"
+    ]
+  },
+  "automated-deployment": {
+    "answer": "Yes",
+    "domains": [
+      "change",
+      "responsibility"
+    ],
+    "software": "The declared runner supplies automated build and deployment commands with versioned forward migrations. Buyer approval and credentials are required. This answer covers available automation, not a successful live deployment or historical update cadence.",
+    "buyer": "Preview and approve deployment, preserve recovery evidence, manage account credentials and verify the resulting installation.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "package.json",
+      "RUN-LOCALLY.md",
+      "deploy.json"
+    ]
+  },
+  "api-guards": {
+    "answer": "Yes",
+    "domains": [
+      "access",
+      "audit"
+    ],
+    "software": "Native API reads narrow current access and writes check roles, validate input and recheck the current session, role and record versions in the guarded transaction. Scoped tokens cannot expand creator authority. Public exchange capability doors intentionally grant only their documented scope.",
+    "buyer": "Control owner and database authority, approve capabilities and protect all issued bearer credentials.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "API.md",
+      "src/locket/commands.ts",
+      "src/locket/views.ts",
+      "tests/api/security.test.mjs"
+    ]
+  },
+  "continuity-program": {
+    "answer": "No",
+    "domains": [
+      "backup",
+      "governance"
+    ],
+    "software": "No complete buyer business continuity program, annual exercise, emergency-authority coordination, redundant equipment commitment or recovery service-level guarantee is supplied. Export tooling does not prove these organizational controls.",
+    "buyer": "Define impact analysis, recovery objectives, emergency contacts, continuity plans and periodic exercises; verify provider resilience and restore evidence.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "RUN-LOCALLY.md",
+      "security/questionnaire.json"
+    ]
+  },
+  "backup-operations": {
+    "answer": "No",
+    "domains": [
+      "backup"
+    ],
+    "software": "Complete archive and restore tooling exists. The repository does not establish a buyer backup schedule, protected off-site custody, periodic restoration exercise or guaranteed archive availability.",
+    "buyer": "Schedule and protect backups, restrict archive access and test recovery for the installed runner version and hosting mode.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "RUN-LOCALLY.md",
+      "tests/portable.mjs"
+    ]
+  },
+  "restore-capability": {
+    "answer": "Yes",
+    "domains": [
+      "backup",
+      "portability"
+    ],
+    "software": "The archive command and empty-destination import provide integrity-checked recovery of complete installation records and exact file bytes. Automated portability journeys exercise the supported path. This is a tooling capability, not an achieved buyer recovery objective.",
+    "buyer": "Keep a complete protected archive, retain needed private settings and rehearse recovery using the supported procedure for the actual hosting mode.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "RUN-LOCALLY.md",
+      "tests/portable.mjs"
+    ]
+  },
+  "change-program": {
+    "answer": "No",
+    "domains": [
+      "change",
+      "governance"
+    ],
+    "software": "Code, migrations, test commands and release-history checks are versioned. They do not establish the buyer complete change management program, contractual authorization terms, emergency exception procedure or baseline monitoring.",
+    "buyer": "Approve changes, separate environments, retain deployment and restoration evidence and establish change controls for all managed assets.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "AGENTS.md",
+      "RUN-LOCALLY.md",
+      "scripts/release-history.mjs"
+    ]
+  },
+  "forward-migrations": {
+    "answer": "No",
+    "domains": [
+      "change",
+      "backup"
+    ],
+    "software": "Database changes are forward migrations. No general automatic rollback to an earlier release is promised; restoring an archive is an operator-controlled recovery action.",
+    "buyer": "Evaluate compatibility before deployment and rehearse restoration into an empty compatible destination with protected archives.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "AGENTS.md",
+      "RUN-LOCALLY.md",
+      "tests/portable.mjs"
+    ]
+  },
+  "cryptography-program": {
+    "answer": "No",
+    "domains": [
+      "encryption",
+      "responsibility"
+    ],
+    "software": "HTTPS provider transport and platform storage encryption support the application. Installation keys seal specific integration credentials. This does not establish a full cryptographic governance program, certified-library inventory, risk-based cryptoperiod, lifecycle monitoring or all-environment key handling.",
+    "buyer": "Verify current provider encryption and assurance; protect local disks, exports and private settings; establish and evidence required key lifecycle controls.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "security/questionnaire.json",
+      "src/modules/dependencies/sealing.mjs",
+      "RUN-LOCALLY.md"
+    ]
+  },
+  "customer-managed-storage-keys": {
+    "answer": "No",
+    "domains": [
+      "encryption"
+    ],
+    "software": "The application does not implement customer-managed keys for all contract storage. Buyer-controlled installation sealing keys protect designated integration credentials and are distinct from Cloudflare storage encryption keys.",
+    "buyer": "Evaluate provider key-management options separately and protect installation keys and recovery material.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "src/modules/dependencies/sealing.mjs",
+      "security/questionnaire.json"
+    ]
+  },
+  "facility-controls": {
+    "answer": "No",
+    "domains": [
+      "physical",
+      "responsibility"
+    ],
+    "software": "Locket has no facilities or hardware control evidence and does not itself implement datacenter physical, environmental, equipment, media destruction or facility access controls. A buyer-owned Cloudflare account is not evidence that a specific control is satisfied.",
+    "buyer": "Obtain and assess Cloudflare facility assurance and manage buyer offices, local machines, media, visitors and physical incident procedures.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "security/questionnaire.json"
+    ]
+  },
+  "privacy-program": {
+    "answer": "No",
+    "domains": [
+      "privacy",
+      "dataFlows"
+    ],
+    "software": "Native access, retention and legal-hold-aware erasure support privacy work. The software does not establish the buyer legal basis, data inventory, formal classifications, privacy impact assessment, residency register, regulator procedure or complete lawful processing program.",
+    "buyer": "Identify applicable obligations and scoped data; document lawful purposes, classifications, locations, retention, rights procedures and provider terms before use.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "CONTRACT.md",
+      "src/locket/erasure.ts",
+      "security/questionnaire.json"
+    ]
+  },
+  "data-flow-documentation": {
+    "answer": "Yes",
+    "domains": [
+      "dataFlows",
+      "responsibility"
+    ],
+    "software": "The questionnaire documents installation custody and every declared connector data flow, with configuration and buyer responsibility. The connector check compares bindings and provider choices with build sources. The inventory describes software capability; buyers must record their actually enabled operators and locations.",
+    "buyer": "Maintain the installation-specific inventory and approve provider terms, recipients, location and purpose before enabling any connection.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "security/questionnaire.json",
+      "scripts/security-questionnaire.mjs",
+      "security/build-connectors.mjs"
+    ]
+  },
+  "forensic-disposal": {
+    "answer": "No",
+    "domains": [
+      "privacy",
+      "physical"
+    ],
+    "software": "Native deletion and legal holds do not guarantee forensic erasure of Cloudflare media, provider backups, buyer exports or endpoints. No such assurance is claimed.",
+    "buyer": "Obtain provider media disposal commitments, apply lawful retention and secure disposal to all buyer-held copies.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "CONTRACT.md",
+      "security/questionnaire.json"
+    ]
+  },
+  "governance-program": {
+    "answer": "No",
+    "domains": [
+      "governance",
+      "responsibility"
+    ],
+    "software": "The repository is not evidence of the buyer management-sponsored risk, compliance, exception or all-domain information security program, annual review or liaison arrangements.",
+    "buyer": "Establish the relevant leadership-approved policies, risk ownership, legal register, exceptions, review cadence and audit evidence.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "security/questionnaire.json"
+    ]
+  },
+  "personnel-program": {
+    "answer": "No",
+    "domains": [
+      "people",
+      "access"
+    ],
+    "software": "No buyer screening, employment agreements, confidentiality program, security training, asset-return or remote-work procedure is operated or attested by the software. Native account revocation only supports the application access portion.",
+    "buyer": "Operate and evidence the personnel control requested; separately review provider workforce assurance.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "security/questionnaire.json",
+      "CONTRACT.md"
+    ]
+  },
+  "identity-program": {
+    "answer": "No",
+    "domains": [
+      "access",
+      "responsibility"
+    ],
+    "software": "Application roles, sessions, owner-scoped tokens and signed workforce admission exist. The repository does not establish all buyer identity inventory reviews, account policies, credential processes, time-limited administrator privileges or mandatory multi-factor authentication across all systems. Public exchange bearer possession is not identity proof.",
+    "buyer": "Set and enforce identity and MFA policy in the buyer identity provider and Cloudflare account; regularly review access and privileged accounts.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "API.md",
+      "src/locket/workforce.ts",
+      "src/locket/scoped-tokens.ts",
+      "security/questionnaire.json"
+    ]
+  },
+  "application-duties": {
+    "answer": "Yes",
+    "domains": [
+      "access"
+    ],
+    "software": "Native business commands separate owner administration, counsel decisions, approvals and delegated privacy work by current roles and guarded authority. This answer covers application duties; it does not attest separation of buyer database or Cloudflare administrators.",
+    "buyer": "Assign people and conflicts of interest, review role mappings and segregate platform and database authority.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "API.md",
+      "src/locket/access.ts",
+      "src/locket/commands.ts"
+    ]
+  },
+  "application-least-privilege": {
+    "answer": "Yes",
+    "domains": [
+      "access"
+    ],
+    "software": "Native views and commands enforce current agreement, group and field visibility; scoped tokens delegate explicit doors and inherit native access. Public exchange capabilities grant only the reviewed rendition and allowed actions.",
+    "buyer": "Grant appropriate roles and record memberships, limit provider tokens and protect installation and database authority.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "API.md",
+      "src/locket/access.ts",
+      "src/locket/repository-access.ts",
+      "src/locket/scoped-tokens.ts"
+    ]
+  },
+  "application-provisioning": {
+    "answer": "Yes",
+    "domains": [
+      "access",
+      "audit"
+    ],
+    "software": "The application records and controls invitations, role changes and owner-approved SCIM admission. Workforce mappings do not create owners; native operations retain attributable audit records. This is the application provisioning process.",
+    "buyer": "Approve the identity source, group mappings and assigned roles; communicate and review provisioning decisions across the buyer systems.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "CONTRACT.md",
+      "src/locket/workforce.ts",
+      "tests/api/security.test.mjs"
+    ]
+  },
+  "application-deprovisioning": {
+    "answer": "Yes",
+    "domains": [
+      "access",
+      "audit"
+    ],
+    "software": "Managed deactivation and workforce membership changes revoke affected sessions; owner withdrawal disables managed sign-in. Scoped API tokens cease with creator session termination and explicit revocation. This answers application authority removal.",
+    "buyer": "Trigger changes promptly at the identity source and separately revoke provider, database, Cloudflare and retained export access.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "CONTRACT.md",
+      "src/locket/workforce.ts",
+      "src/locket/scoped-tokens.ts",
+      "tests/api/security.test.mjs"
+    ]
+  },
+  "portability-program": {
+    "answer": "No",
+    "domains": [
+      "portability",
+      "encryption",
+      "responsibility"
+    ],
+    "software": "Native scoped reads and complete archives are provided. They do not establish all organization-wide interoperability policies, annual policy review, encrypted custody of every archive transport or contractual post-termination access terms.",
+    "buyer": "Validate data formats and the installed runner transport, protect archive custody and establish necessary contractual and operational data-return terms.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "API.md",
+      "RUN-LOCALLY.md",
+      "security/questionnaire.json"
+    ]
+  },
+  "programmatic-data-access": {
+    "answer": "Yes",
+    "domains": [
+      "portability",
+      "access"
+    ],
+    "software": "Authorized buyers can retrieve visible records through native API reads and create a complete portable installation archive through the runner. Scope and integrity checks apply; arbitrary remote import into an occupied installation is not offered.",
+    "buyer": "Protect tokens and archive custody and verify the full supported export and restore procedure for the actual deployment.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "API.md",
+      "RUN-LOCALLY.md",
+      "tests/portable.mjs"
+    ]
+  },
+  "infrastructure-controls": {
+    "answer": "No",
+    "domains": [
+      "access",
+      "encryption",
+      "responsibility"
+    ],
+    "software": "Cloudflare operates hosted execution and underlying infrastructure. The application does not establish all network, infrastructure segmentation, virtualization, hardened host, traffic inspection, capacity and infrastructure review controls.",
+    "buyer": "Configure the Cloudflare account and any network restrictions; obtain current provider evidence and manage local and external infrastructure.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "deploy.json",
+      "security/questionnaire.json"
+    ]
+  },
+  "logging-program": {
+    "answer": "No",
+    "domains": [
+      "audit",
+      "incident"
+    ],
+    "software": "Native business, restricted-read, download and export audit records exist. They do not constitute full infrastructure security monitoring, immutable storage, time-source assurance, cryptographic-event monitoring, automatic anomaly detection or prompt security alerting for all systems. Database operators retain direct authority over audit storage.",
+    "buyer": "Restrict direct database access, retain independent protected logs, configure platform logs and incident alerting, review events and verify retention and clock requirements.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "CONTRACT.md",
+      "src/locket/audit.ts",
+      "security/questionnaire.json"
+    ]
+  },
+  "application-audit-records": {
+    "answer": "Yes",
+    "domains": [
+      "audit"
+    ],
+    "software": "Native business commands and restricted reads produce relevant attributed records including actor, action and affected agreement context. File downloads and exports retain access events. Public exchange actors are designated contacts identified through bearer possession, not independently authenticated individuals.",
+    "buyer": "Protect database access and independent log custody and correlate application records with identity and Cloudflare logs.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "CONTRACT.md",
+      "src/locket/audit.ts",
+      "tests/api/flows.test.mjs"
+    ]
+  },
+  "incident-program": {
+    "answer": "No",
+    "domains": [
+      "incident",
+      "responsibility"
+    ],
+    "software": "The questionnaire gives operator containment guidance and a private vulnerability reporting channel. It does not establish a staffed incident program, tested annual response plan, legal notification execution, incident metrics, secure incident repository or maintained law-enforcement contacts.",
+    "buyer": "Own incident triage, revocation, evidence preservation, provider coordination, exercises, legal notification deadlines and communication contacts.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "security/questionnaire.json",
+      "security/questionnaire.json"
+    ]
+  },
+  "supply-chain-program": {
+    "answer": "No",
+    "domains": [
+      "dataFlows",
+      "responsibility",
+      "assurance"
+    ],
+    "software": "The repository lists available providers and their data flows. It does not establish all buyer supply relationships, supplier risk assessments, contractual terms, bill-of-material governance, annual reviews or implementation and audit of the full shared responsibility model.",
+    "buyer": "Assess every selected operator and downstream provider, obtain applicable contracts and assurance and maintain the actual supplier inventory and review evidence.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "security/questionnaire.json",
+      "deploy.json"
+    ]
+  },
+  "responsibility-guidance": {
+    "answer": "Yes",
+    "domains": [
+      "responsibility",
+      "dataFlows"
+    ],
+    "software": "This questionnaire provides shared responsibility guidance: software guards and migrations; buyer configuration, identity, deployment, retention, backups and incident response; Cloudflare platform controls and each chosen provider own processing controls. Each CAIQ identifier resolves to explicit software, buyer and platform responsibilities.",
+    "buyer": "Apply the guidance to the actual installation and carry it through every selected provider and downstream supplier; obtain their own responsibility models.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "security/questionnaire.json",
+      "security/caiq-responses.json"
+    ]
+  },
+  "vulnerability-program": {
+    "answer": "No",
+    "domains": [
+      "vulnerabilities",
+      "change",
+      "incident"
+    ],
+    "software": "The repository provides private reporting guidance, versioned fixes and release-history checks. Those checks do not establish a complete buyer vulnerability program, monthly scanning, continuous threat intelligence, risk scoring, automatic remediation, management metrics or historical release compliance.",
+    "buyer": "Monitor releases and advisories, assess dependencies and exposure, prioritize fixes and verify deployed remediation and notification records.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "scripts/release-history.mjs",
+      "security/security-fixes.json",
+      "security/questionnaire.json"
+    ]
+  },
+  "independent-penetration-testing": {
+    "answer": "No",
+    "domains": [
+      "assurance",
+      "vulnerabilities"
+    ],
+    "software": "No independent application penetration test report or periodic third-party testing program is claimed. Automated acceptance and access tests do not substitute for that assurance.",
+    "buyer": "Commission risk-appropriate independent testing of the deployed installation and retain findings and remediation evidence.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "security/questionnaire.json"
+    ]
+  },
+  "endpoint-program": {
+    "answer": "No",
+    "domains": [
+      "endpoints",
+      "responsibility"
+    ],
+    "software": "Locket does not inventory or manage buyer endpoints, native mobile apps, device encryption, lock screens, antivirus, firewalls, DLP, patching, location tracking or remote wipe.",
+    "buyer": "Enforce the requested endpoint control on all accessing devices and exported copies and retain its operational evidence.",
+    "platform": "The buyer obtains current evidence for the relevant Cloudflare and enabled-provider controls; application evidence is not provider assurance.",
+    "evidence": [
+      "security/questionnaire.json"
+    ]
+  },
+  "provider-data-access": {
+    "answer": "Yes",
+    "domains": [
+      "dataFlows",
+      "responsibility"
+    ],
+    "software": "Cloudflare processes installation data and enabled providers receive only the data described in the connector inventory. Software maintainers have no standing installation access through the application.",
+    "buyer": "Record actual selected operators, locations, access and terms; review downstream subprocessors.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "security/questionnaire.json"
+    ]
+  },
+  "authorized-readable-data": {
+    "answer": "Yes",
+    "domains": [
+      "access",
+      "encryption"
+    ],
+    "software": "Authorized buyer staff can read data in application responses and direct buyer database administrators can access stored records. Storage encryption does not prevent authorized plaintext processing; vendor maintainers have no standing application access.",
+    "buyer": "Restrict personnel, direct database and platform authority, monitor reads and protect exports.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "API.md",
+      "security/questionnaire.json"
+    ]
+  },
+  "buyer-key-custody": {
+    "answer": "Yes",
+    "domains": [
+      "encryption",
+      "responsibility"
+    ],
+    "software": "Buyer administrators control installation sealing keys and private configuration. This does not mean application users or vendor staff can retrieve Cloudflare storage encryption keys.",
+    "buyer": "Restrict, retain and rotate private installation material and review provider key custody separately.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "RUN-LOCALLY.md",
+      "src/modules/dependencies/sealing.mjs"
+    ]
+  },
+  "native-legal-holds": {
+    "answer": "Yes",
+    "domains": [
+      "privacy",
+      "access"
+    ],
+    "software": "Native legal holds fence erasure, and counsel authority controls hold decisions. The installation belongs to one buyer; legal hold does not affect another buyer installation.",
+    "buyer": "Validate legal scope, appoint authorized counsel and separately retain all required external or exported copies.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "CONTRACT.md",
+      "src/locket/erasure.ts"
+    ]
+  },
+  "self-hosted-software": {
+    "answer": "No",
+    "domains": [
+      "responsibility",
+      "dataFlows"
+    ],
+    "software": "Locket supplies software deployed by the buyer into Cloudflare. Locket does not sell or operate a managed SaaS, infrastructure service, private cloud, community cloud or hybrid cloud through this repository.",
+    "buyer": "Classify the buyer actual deployment and separately assess its hosting and service commitments.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "CONTRACT.md",
+      "deploy.json"
+    ]
+  },
+  "public-cloud-platform": {
+    "answer": "Yes",
+    "domains": [
+      "responsibility",
+      "dataFlows"
+    ],
+    "software": "The supported hosted deployment uses Workers and D1 in the buyer Cloudflare account on the Cloudflare platform; account ownership does not make the platform a private datacenter or guarantee exclusive hardware.",
+    "buyer": "Review Cloudflare shared responsibility, locations, tenancy and account configuration.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "CONTRACT.md",
+      "deploy.json"
+    ]
+  },
+  "native-web-application": {
+    "answer": "Yes",
+    "domains": [
+      "dataFlows",
+      "access"
+    ],
+    "software": "The application processes contract records through authenticated browser pages and public API commands; explicitly scoped public exchanges provide external interaction. It is a web application that handles sensitive data.",
+    "buyer": "Configure production origin, authority and external capabilities and protect browsers and downloaded copies.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "API.md",
+      "CONTRACT.md"
+    ]
+  },
+  "production-https": {
+    "answer": "Yes",
+    "domains": [
+      "encryption"
+    ],
+    "software": "The supported production deployment uses Cloudflare HTTPS. Local development and demo may use loopback HTTP; that exception is not a production transport assurance for arbitrary buyer configuration.",
+    "buyer": "Verify the actual production origin and redirect and certificate settings; do not expose local development endpoints.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "RUN-LOCALLY.md",
+      "deploy.json"
+    ]
+  },
+  "federated-identity-capability": {
+    "answer": "Yes",
+    "domains": [
+      "access"
+    ],
+    "software": "Owner-approved signed SAML sign-in and SCIM provisioning are implemented, and the native linked Auth provider uses OIDC. Availability does not imply federation is enabled or that MFA is enforced by the external provider.",
+    "buyer": "Approve issuer and role mappings, configure provider authentication policy and test admission and deactivation.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "CONTRACT.md",
+      "src/locket/workforce.ts",
+      "src/modules/dependencies/auth.mjs"
+    ]
+  },
+  "native-passwords": {
+    "answer": "No",
+    "domains": [
+      "access"
+    ],
+    "software": "The native application uses sign-in links and configured identity providers rather than a native user-password store. External identity-provider or platform passwords and their policies are buyer-controlled and are not assessed here.",
+    "buyer": "Enforce external credential and MFA policy and protect email access.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "API.md",
+      "src/auth.server.ts"
+    ]
+  },
+  "application-development": {
+    "answer": "Yes",
+    "domains": [
+      "change"
+    ],
+    "software": "The repository develops and tests the Locket application with documented native command boundaries, forward migrations and acceptance journeys. This affirms development activity, not a certified or annually audited development program.",
+    "buyer": "Review software changes, run the declared checks and establish operational change controls.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "AGENTS.md",
+      "package.json",
+      "CONTRACT.md"
+    ]
+  },
+  "no-native-mobile-app": {
+    "answer": "No",
+    "domains": [
+      "endpoints"
+    ],
+    "software": "The product provides responsive browser access. No native mobile application is developed or shipped in this repository.",
+    "buyer": "Manage mobile browsers, device custody and any downloaded records under buyer endpoint policy.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "CONTRACT.md",
+      "security/questionnaire.json"
+    ]
+  },
+  "critical-provider-dependencies": {
+    "answer": "Yes",
+    "domains": [
+      "dataFlows",
+      "backup"
+    ],
+    "software": "The supported hosted application depends on Cloudflare; enabled mail, identity and other selected providers add the dependencies documented in the inventory. No alternate provider is automatically chosen when an operation fails.",
+    "buyer": "Assess critical dependencies, outages, continuity options and recovery procedures.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "deploy.json",
+      "security/questionnaire.json"
+    ]
+  },
+  "no-payment-execution": {
+    "answer": "No",
+    "domains": [
+      "responsibility"
+    ],
+    "software": "Locket records agreements and supports approved read-only accounting evidence. It does not execute payments, open financial accounts, transfer funds or act as a payment ledger.",
+    "buyer": "Keep payment activity with the authorized financial service and determine whether any buyer use creates additional obligations.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "CONTRACT.md",
+      "src/locket/accounting.ts"
+    ]
+  },
+  "browser-endpoint-use": {
+    "answer": "Yes",
+    "domains": [
+      "endpoints",
+      "dataFlows"
+    ],
+    "software": "Authorized users access, process and may download scoped records through desktop and mobile browsers, subject to native roles and record authority. Endpoints and downloaded files remain under buyer control.",
+    "buyer": "Manage all accessing devices, downloads, local storage, remote wipe and personnel offboarding.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "CONTRACT.md",
+      "API.md"
+    ]
+  },
+  "external-network-connections": {
+    "answer": "Yes",
+    "domains": [
+      "dataFlows",
+      "encryption"
+    ],
+    "software": "The supported application is reached over the web and uses the external HTTPS provider connections documented in the inventory when configured and authorized.",
+    "buyer": "Approve connections and credentials, protect the production origin and review provider and network controls.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "security/questionnaire.json",
+      "deploy.json"
+    ]
+  },
+  "personal-information-processing": {
+    "answer": "Yes",
+    "domains": [
+      "privacy",
+      "dataFlows"
+    ],
+    "software": "The application stores names, work email addresses, counterparty contacts and contract contents. Agreements, evidence and approved accounting links can contain personal or sensitive financial information. Providers may process the documented subset when enabled.",
+    "buyer": "Determine lawful scope, disclosures, provider contracts, retention and access before entering or transmitting personal data.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "CONTRACT.md",
+      "security/questionnaire.json"
+    ]
+  },
+  "external-party-interaction": {
+    "answer": "Yes",
+    "domains": [
+      "dataFlows",
+      "access"
+    ],
+    "software": "Buyer-authorized external exchanges, signature packets and outbound messages interact with designated counterparties or signers. Bearer exchange links do not independently prove the recipient identity.",
+    "buyer": "Approve the exact recipients, content and capabilities and assess legal purpose and notification requirements.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "CONTRACT.md",
+      "API.md"
+    ]
+  },
+  "no-client-marketing": {
+    "answer": "No",
+    "domains": [
+      "privacy"
+    ],
+    "software": "The software does not conduct marketing or selling to the buyer customers. Buyer-authored contract messages remain buyer-authorized business operations.",
+    "buyer": "Determine and govern the purpose of any buyer-created outbound content.",
+    "platform": "Obtain current evidence for the chosen platform and enabled providers; no provider attestation is inherited by this application.",
+    "evidence": [
+      "CONTRACT.md",
+      "security/questionnaire.json"
+    ]
+  },
+  "buyer-physical-operations": {
+    "answer": "Not assessed",
+    "domains": [
+      "physical",
+      "endpoints"
+    ],
+    "software": "This application assessment does not inspect buyer physical-media transfers, office visitors, wireless devices or physical facilities. Their existence cannot be inferred from the source code.",
+    "buyer": "Inspect the actual offices, endpoint network and media practices and answer the informational question for that scope.",
+    "platform": "Obtain current evidence for the relevant platform and provider configuration.",
+    "evidence": [
+      "security/questionnaire.json",
+      "RUN-LOCALLY.md"
+    ]
+  },
+  "buyer-operating-configuration": {
+    "answer": "Not assessed",
+    "domains": [
+      "change",
+      "responsibility"
+    ],
+    "software": "This application assessment does not inspect the buyer maintenance windows, security-service configuration, environment use, non-scoped data or provider hypervisor architecture. The repository cannot supply the actual operational fact.",
+    "buyer": "Verify the actual deployment, environment use and provider documentation before choosing an installation-wide answer.",
+    "platform": "Obtain current evidence for the relevant platform and provider configuration.",
+    "evidence": [
+      "security/questionnaire.json",
+      "RUN-LOCALLY.md"
+    ]
+  },
+  "processing-location-assessment": {
+    "answer": "Not assessed",
+    "domains": [
+      "privacy",
+      "dataFlows"
+    ],
+    "software": "Buyer account ownership does not identify every physical processing location or establish whether personal data crosses a national border. No US-only processing or complete country list is claimed.",
+    "buyer": "Obtain actual Cloudflare and enabled-provider locations and transfer terms, include buyer devices and archives, and assess cross-border processing with counsel.",
+    "platform": "Obtain current evidence for the relevant platform and provider configuration.",
+    "evidence": [
+      "security/questionnaire.json",
+      "RUN-LOCALLY.md"
+    ]
+  },
+  "production-development-tools": {
+    "answer": "No",
+    "domains": [
+      "change"
+    ],
+    "software": "The application provides no programming compiler or production development console. Buyer deployment tools and machines are outside this software-only answer.",
+    "buyer": "Verify that the actual production runtime and administrator access do not include unauthorized development tools.",
+    "platform": "Obtain current evidence for the relevant platform and provider configuration.",
+    "evidence": [
+      "security/questionnaire.json",
+      "RUN-LOCALLY.md"
+    ]
+  }
+}

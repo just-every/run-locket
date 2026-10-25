@@ -103,10 +103,53 @@ The check obtains merge timestamps from GitHub and refuses missing provenance,
 mismatched advisory patched versions and publication after seven days.
 An empty advisory list does not constitute a security assurance claim.
 
-The pinned CLI has no update verb. No automatic export-before-update or tested
-previous-release transition is claimed by these checks. Export and verify a
-complete archive before applying a deployment change; hosted export remains
-unsupported by the pinned CLI. OPS-001 remains partial.
+### Preview and apply an owner-account update
+
+Run `rer deploy --environment production --dry-run` to preview the deployed
+release, candidate release notes and unapplied forward migrations. Dry run builds
+locally and reads Cloudflare metadata; it does not export or deploy. Then run
+`rer deploy --environment production` to apply the previewed source. Commit that
+source first and keep writes paused for the update. Use the same checkout and
+account that created the deployment; resource replacement is refused.
+
+For an existing installation, this command takes and verifies a complete
+PORT-001 archive before invoking the native migration and deployment controller.
+It saves the deployed source and release metadata, full applied migration
+history, archive integrity hashes, table counts and byte-verified file digests in
+`.rer/deploy/updates/ENVIRONMENT/IDENTITY/previous-release.json`, beside
+`before.rer`. A failed export prevents migration and deployment. A missing prior
+source object refuses the update; fetch that source history before retrying.
+The preview uses the actual deployment receipt, rather than assuming a tag was
+installed.
+
+After deployment, a second export verifies that every previous archived row and
+file byte remains. Additive columns and rows are allowed. A migration that
+intentionally rewrites prior values requires a separately reviewed recovery
+plan; this command reports preservation failure and retains the pre-update
+archive instead of reporting success or automatically reverting a live database.
+Successful updates retain the pre-update archive and previous-release record in
+the deployment's private `UPDATE_ARCHIVES` R2 bucket, and byte-check the uploaded
+objects. These recovery copies and earlier local exports are excluded from the
+next domain snapshot to avoid recursively archiving backups. The buyer controls
+backup access, retention and removal; an erasure must also cover retained backups
+or supply its later erasure journal when restoring them. No public bucket access
+is enabled. Never remove the pre-update archive after an unsuccessful update.
+
+`rer export --target remote --output exports/hosted.rer` separately exports the
+recorded production deployment through the same native archive implementation,
+using owner-account Cloudflare credentials. Hosted import is refused; restore
+into an empty local installation with `rer import --input FILE --yes`, compare
+the restored records, and configure fresh private authentication before use.
+Local and hosted exports share exactly one archive policy. Operational recovery
+copies, runtime state and private configuration are explicit exclusions.
+
+A fresh installation uses the same deploy command, without a previous-release
+backup. Configure `MAIL_PROVIDER`, `MAIL_FROM` and `MAIL_ACCOUNT_ID` through the
+matching environment inputs alongside `MAIL_API_KEY`; the sender must belong
+to the selected provider's verified domain. `rer deploy --remove --yes` removes
+only resources recorded as created by this environment, including its private
+backup bucket. It never adopts a same-named resource.
+
 
 
 ## Hosted delivery

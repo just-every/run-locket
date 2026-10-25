@@ -1,184 +1,357 @@
 {
-  "version": 1,
+  "version": 2,
   "questionSets": {
-    "SIG Lite": [
-      "dataFlows",
-      "encryption",
-      "access",
-      "audit",
-      "backup",
-      "incident",
-      "vulnerabilities",
-      "responsibility",
-      "assurance"
-    ],
-    "CAIQ": [
-      "dataFlows",
-      "encryption",
-      "access",
-      "audit",
-      "backup",
-      "incident",
-      "vulnerabilities",
-      "responsibility",
-      "assurance"
-    ]
+    "CAIQ": {
+      "version": "4.1.0",
+      "status": "complete-id-mapping",
+      "sourceIndex": "security/caiq-source-index.json",
+      "responses": "security/caiq-responses.json"
+    },
+    "SIG Lite": {
+      "version": "2026 requested; 2019 public copy mapped",
+      "status": "blocked-licensed-source",
+      "responses": "security/sig-lite-responses.json",
+      "sourceIndex": "security/sig-lite-source-index.json"
+    }
   },
   "answers": {
-    "dataFlows": "Contract records, originals, audit and attachments remain in the buyer Cloudflare account. Enabled connectors receive only the data required by an explicitly authorized operation. External exchange links expose the reviewed rendition and designated external comments to the bearer; reply addresses grant a separate inbound-only capability.",
+    "dataFlows": "Contract records, originals, audit and attachments are stored in the buyer installation; enabled providers receive the data required by the authorized operation. Account location does not guarantee data residency: buyers must verify Cloudflare processing locations and configure and review every provider. Public exchange links expose the reviewed rendition and designated external comments to the bearer; reply addresses grant a separate inbound-only capability. Calendar connections store personal access tokens in the installation database and send agreement references, titles, deadline kinds, times and authenticated installation links. Cloudflare storage access and export custody remain buyer responsibilities.",
     "encryption": "HTTPS protects provider transport. Cloudflare provides platform storage encryption. Operators must protect account access, local disks, private configuration and complete export archives. Application code does not claim customer-managed encryption keys or end-to-end encryption.",
     "access": "Native owner and invited roles enforce current session, record, group and field access on server reads and guarded writes. Owner-created API tokens delegate explicit doors, expire within thirty days, and cease when the creator session ends. Owner-approved workforce SAML sign-in and SCIM provisioning create only non-owner accounts whose roles follow immutable owner-approved group mappings; managed deactivation or membership changes revoke their sessions immediately. Public exchange capability possession does not verify identity.",
     "audit": "Native business commands, restricted reads, file downloads and exports retain attributed audit records. Public exchange activity identifies a designated contact by bearer possession; inbound sender addresses are not identity proof. Buyers must control database access and independent audit retention.",
-    "backup": "The owner runs rer export and protects the resulting complete local archive, verifies integrity and tests restore into an empty installation. Hosted export is not supported by the pinned CLI. No automatic hosted backup service or recovery-time guarantee is claimed.",
+    "backup": "The owner runs rer export, protects the complete archive and tests rer import into an empty installation. Local archive integrity and restoration have automated portability evidence. A configured private UPDATE_ARCHIVES bucket holds same-account preupdate recovery archives; those archives exclude prior backup objects and include the current domain database and exact file bytes. The buyer owns archive access, retention, deletion, scheduling and recovery exercises. No automatic recurring backup schedule, geographical redundancy, recovery-time or recovery-point guarantee is claimed. Verify the installed runner version and its supported hosted recovery procedure.",
     "incident": "Buyer operators revoke affected sessions, tokens and external exchanges, disable affected connectors, preserve audit and provider logs, assess exposure and arrange legally required notifications. Software vulnerabilities should be reported privately through repository security advisories.",
     "vulnerabilities": "Release notes identify migrations and data-handling changes. The release-history command checks published release tags for gaps exceeding thirty-one days and published advisories against merged fix pull requests and fixed release publication within seven days. It fails closed when provenance is missing.",
     "responsibility": "The software maintains application guards and migrations. The buyer owns Cloudflare account security, deployment, identity and connector configuration, consent, backups, monitoring, retention, incident response and procurement review. Connector contracts and processing terms are the buyer responsibility.",
-    "assurance": "Locket has no independent SOC 2 report or SIG or CAIQ certification. Cloudflare platform assurance does not certify this application. These public response domains support SIG Lite and CAIQ procurement review; official licensed question sets must be reconciled by the buyer and are not reproduced here."
+    "assurance": "Locket has no independent SOC 2 report, SIG certification or CAIQ certification. Cloudflare platform assurance does not certify this application. All 283 CAIQ 4.1.0 official question identifiers have software-scope responses and responsibility mappings; the copyrighted questionnaire text is not redistributed. The licensed 2026 SIG Lite workbook and its authoritative scoped question identifiers were not supplied. All 172 identifiers in a public 2019 workbook are mapped only for that historical copy; this is not a completed current SIG Lite questionnaire.",
+    "governance": "The repository documents application behavior and operating boundaries. It does not establish the buyer enterprise risk program, annual management review, legal register, audit program, exception process or risk acceptance. Buyer leadership must establish those controls and retain evidence.",
+    "people": "Locket does not operate the buyer workforce, perform background checks, administer employment agreements or deliver security training. The buyer manages personnel screening, confidentiality, acceptable use, remote work, asset return and training.",
+    "physical": "Cloudflare operates hosted facilities and underlying equipment; the buyer obtains and evaluates current provider evidence. Buyer-controlled offices, media, local machines and disaster planning remain buyer responsibilities. Locket supplies no facility access, environmental or hardware disposal assurance.",
+    "endpoints": "The buyer manages browsers, administrator machines and exported copies, including encryption, screen locks, inventory, patching, anti-malware, firewalls, device loss and remote wipe. The application has no endpoint management or native mobile app.",
+    "change": "The repository supplies versioned code, forward migrations, named acceptance journeys and automated checks. Buyer operators approve and deploy updates, separate environments and maintain recovery procedures. Forward migrations do not promise automatic rollback. Release-history tooling validates published evidence and does not itself establish historical compliance.",
+    "privacy": "Buyer counsel determines lawful purpose, disclosures, provider terms, retention, residency and subject-request handling. Native erasure, delegated privacy authority, legal holds and owner-confirmed draft disposition support that process; deletion is not a claim of forensic media sanitization, erasure from provider backups or jurisdiction-wide compliance.",
+    "portability": "The public API narrows reads by current authority; rer export and rer import provide complete portable installation archives with integrity validation and empty-destination requirements. Buyer custody, the supported runner transport and tested recovery procedures determine actual availability. No hosted service termination or data-return SLA is supplied."
   },
   "subprocessors": [
     {
       "name": "Cloudflare",
-      "data": "Worker, D1 and R2 in the buyer account",
+      "data": "Worker execution, D1 records and exact attachment chunks in the buyer account. Update recovery archives may additionally be stored in the buyer R2 bucket when configured. Account ownership does not imply a residency commitment.",
       "bindings": [
         "INSTALLATION_KEY",
-        "INSTALLATION_KEY_PREVIOUS"
+        "INSTALLATION_KEY_PREVIOUS",
+        "UPDATE_ARCHIVES"
       ],
-      "enabledByDefault": true
+      "connectors": [],
+      "enabledByDefault": true,
+      "configuration": "Required deployment platform; buyer controls its account and platform access. When UPDATE_ARCHIVES is configured, the buyer R2 bucket also holds private preupdate recovery archives; the buyer owns their retention, deletion and access.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
-      "name": "Installation mail provider: Resend or Postmark",
-      "data": "Invitations, approved messages and attachments",
+      "name": "Resend",
+      "data": "Sign-in links, invitations, generic authenticated notifications and explicitly approved outbound messages and attachments.",
       "bindings": [
         "MAIL_API_KEY",
-        "NOTICE_RESEND_WEBHOOK_SECRET",
+        "MAIL_PROVIDER",
+        "MAIL_FROM",
+        "NOTICE_RESEND_WEBHOOK_SECRET"
+      ],
+      "connectors": [
+        "mail:resend"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Selected by MAIL_PROVIDER. The deployment template selects Resend, but delivery requires valid buyer credentials and sender setup.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
+    },
+    {
+      "name": "Postmark",
+      "data": "Sign-in and notification mail when selected; external exchange links, reply addresses and inbound sender metadata and exact inbound markup attachments.",
+      "bindings": [
+        "MAIL_API_KEY",
+        "MAIL_PROVIDER",
+        "MAIL_FROM",
         "POSTMARK_SERVER_TOKEN",
         "POSTMARK_INBOUND_SECRET",
         "POSTMARK_REPLY_DOMAIN"
       ],
-      "enabledByDefault": false
+      "connectors": [
+        "mail:postmark"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
+    },
+    {
+      "name": "SendGrid",
+      "data": "Installation mail recipients, content, approved attachments and delivery metadata.",
+      "bindings": [
+        "MAIL_API_KEY",
+        "MAIL_PROVIDER",
+        "MAIL_FROM"
+      ],
+      "connectors": [
+        "mail:sendgrid"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
+    },
+    {
+      "name": "Cloudflare Email Sending",
+      "data": "Installation mail recipients, content, approved attachments and delivery metadata.",
+      "bindings": [
+        "MAIL_API_KEY",
+        "MAIL_PROVIDER",
+        "MAIL_FROM",
+        "MAIL_ACCOUNT_ID"
+      ],
+      "connectors": [
+        "mail:cloudflare"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
+    },
+    {
+      "name": "Run Edit Run mail relay",
+      "data": "Installation mail recipients, content, approved attachments and delivery metadata sent to the configured relay.",
+      "bindings": [
+        "MAIL_API_KEY",
+        "MAIL_PROVIDER",
+        "MAIL_FROM",
+        "MAIL_RELAY_URL"
+      ],
+      "connectors": [
+        "mail:rer"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
+    },
+    {
+      "name": "Messaging adapter",
+      "data": "Mail adapter code is shipped, but the current installation mail wrapper does not supply the required service identity and signing configuration. No functioning Messaging connector is claimed.",
+      "bindings": [],
+      "connectors": [
+        "mail:messaging"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Shipped adapter only; not selectable as a functioning installation connection with the present wrapper.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
       "name": "QuickBooks Online",
-      "data": "Owner-approved read-only invoice evidence",
+      "data": "Buyer-authorized read-only company identity and vendor-period bill evidence; queries include the selected vendor and period.",
       "bindings": [
         "QUICKBOOKS_ACCESS_TOKEN",
         "QUICKBOOKS_REALM_ID",
         "QUICKBOOKS_SANDBOX"
       ],
-      "enabledByDefault": false
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
-      "name": "Owner-selected model endpoint",
-      "data": "Only explicitly approved family snapshots; live evaluation and training prohibition required",
+      "name": "Owner-selected model endpoint and Models service",
+      "data": "Explicitly approved family snapshot text and cited source metadata for structured analysis; configured model and feature metadata. Direct transport defaults to OpenAI when selected without another base URL. The buyer must verify the operator, retention, locations and contractual training prohibition.",
       "bindings": [
         "AI_BASE_URL",
         "AI_MODEL",
         "AI_API_KEY",
+        "AI_ENABLED",
+        "AI_TRAINING_PROHIBITED",
         "MODELS_SERVICE",
-        "MODELS_KEY"
+        "MODELS_KEY",
+        "RER_MODELS_SERVICE",
+        "RER_MODELS_KEY"
       ],
-      "enabledByDefault": false
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
       "name": "Slack",
-      "data": "Signed command and shortcut intake, private request-form links, and explicitly enabled generic approval and status notifications",
+      "data": "Signed command and shortcut intake, private request-form links, generic approval and status notifications, conversation membership and identity checks.",
       "bindings": [
         "APPROVAL_SLACK_TOKEN",
         "CHAT_SLACK_SIGNING_SECRET"
       ],
-      "enabledByDefault": false
+      "connectors": [
+        "chat:slack"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
-      "name": "Microsoft Teams and Nook",
-      "data": "Explicitly enabled approval notifications",
+      "name": "Microsoft Teams",
+      "data": "Generic approval and status messages, selected conversation identities and membership checks using Microsoft Graph.",
       "bindings": [
-        "APPROVAL_TEAMS_WEBHOOK",
-        "APPROVAL_NOOK_ORIGIN",
-        "APPROVAL_NOOK_TOKEN",
         "APPROVAL_TEAMS_TOKEN"
       ],
-      "enabledByDefault": false
+      "connectors": [
+        "chat:teams"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
+    },
+    {
+      "name": "Nook",
+      "data": "Explicitly enabled generic approval and status notifications and scoped conversation membership requests to the configured installation.",
+      "bindings": [
+        "APPROVAL_NOOK_ORIGIN",
+        "APPROVAL_NOOK_TOKEN"
+      ],
+      "connectors": [
+        "chat:nook"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
       "name": "DocuSign",
-      "data": "Reviewed signature packets",
+      "data": "Reviewed signature packet documents, signer identity and routing, signature-field coordinates, package status and returned execution evidence.",
       "bindings": [
         "SIGNATURE_DOCUSIGN_TOKEN"
       ],
-      "enabledByDefault": false
+      "connectors": [
+        "signing:docusign"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
       "name": "Adobe Acrobat Sign",
-      "data": "Reviewed signature packets",
+      "data": "Reviewed signature packet documents, signer identity and routing, signature-field coordinates, package status and returned execution evidence.",
       "bindings": [
         "SIGNATURE_ACROBAT_TOKEN"
       ],
-      "enabledByDefault": false
+      "connectors": [
+        "signing:adobe-acrobat-sign"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
       "name": "Dropbox Sign",
-      "data": "Reviewed signature packets",
+      "data": "Reviewed signature packet documents, signer identity and routing, signature-field coordinates, package status and returned execution evidence.",
       "bindings": [
         "SIGNATURE_DROPBOX_KEY"
       ],
-      "enabledByDefault": false
+      "connectors": [
+        "signing:dropbox-sign"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
       "name": "Inkwell",
-      "data": "Explicit draft preparation; no machine send",
+      "data": "Explicit draft preparation with the approved packet and recipient details; no machine send.",
       "bindings": [
         "SIGNATURE_INKWELL_TOKEN",
         "SIGNATURE_INKWELL_ORIGIN"
       ],
-      "enabledByDefault": false
+      "connectors": [
+        "signing:inkwell"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
       "name": "Uptime",
-      "data": "Owner-approved monitoring evidence",
+      "data": "Buyer-approved monitoring scope and read-only availability measurements.",
       "bindings": [
         "UPTIME_ORIGIN",
         "UPTIME_METRICS_KEY"
       ],
-      "enabledByDefault": false
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
       "name": "Linen",
-      "data": "Explicitly selected read-only ticket evidence",
+      "data": "Explicitly selected read-only ticket scope and evidence for service performance; request and retained evidence may include ticket metadata.",
       "bindings": [
         "LINEN_ORIGIN",
         "LINEN_MCP_TOKEN"
       ],
-      "enabledByDefault": false
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
-      "name": "Google Calendar and Microsoft Graph",
-      "data": "Explicit personal calendar connections",
-      "bindings": [
-        "GOOGLE_CLIENT_ID",
-        "GOOGLE_CLIENT_SECRET",
-        "MICROSOFT_CLIENT_ID",
-        "MICROSOFT_CLIENT_SECRET"
+      "name": "Google Calendar",
+      "data": "Personal calendar token stored in the installation database; selected calendar identity, agreement reference and title, deadline kind and times, and authenticated installation link. No agreement attachment is sent.",
+      "bindings": [],
+      "connectors": [
+        "calendar:google"
       ],
-      "enabledByDefault": false
+      "enabledByDefault": false,
+      "configuration": "Owner explicitly submits an access token and approves the exact calendar through the native command; no OAuth client binding is used by this connector.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
-      "name": "Workforce identity provider: SAML sign-in and SCIM provisioning",
-      "data": "Owner-approved sign-in requests and signed assertions, and provisioned external subject, work email, display name, active state and mapped group membership",
+      "name": "Microsoft Outlook Calendar",
+      "data": "Personal calendar token stored in the installation database; selected calendar identity, agreement reference and title, deadline kind and times, and authenticated installation link through Microsoft Graph.",
+      "bindings": [],
+      "connectors": [
+        "calendar:outlook"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner explicitly submits an access token and approves the exact calendar through the native command; no OAuth client binding is used by this connector.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
+    },
+    {
+      "name": "Workforce SAML identity provider and SCIM client",
+      "data": "Sign-in requests, signed assertions, provisioned external subject, work email, display name, active state and immutable owner-approved group mappings.",
       "bindings": [
         "WORKFORCE_SCIM_TOKEN",
         "WORKFORCE_SAML_ISSUER",
         "WORKFORCE_SAML_SSO_URL",
         "WORKFORCE_SAML_CERT"
       ],
-      "enabledByDefault": false
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
+    },
+    {
+      "name": "Linked Auth identity provider",
+      "data": "Owner-approved identity-provider registration, installation metadata, signed client assertions, OIDC authorization and token exchange, identity claims and session lifecycle. Buyer must separately assess any upstream identity provider used by Auth.",
+      "bindings": [
+        "IDENTITY_PROVIDER",
+        "RER_OWNER_CLAIM_ISSUER",
+        "RER_OWNER_CLAIM_PUBLIC_KEYS",
+        "RER_OWNER_CLAIM_INSTALLATION_ID"
+      ],
+      "connectors": [
+        "identity:oidc-provider@1"
+      ],
+      "enabledByDefault": false,
+      "configuration": "Owner approves a provider link through the native dependency flow; credentials and provider metadata are stored in the installation.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
       "name": "HubSpot",
-      "data": "Owner-requested read-only account identity and health; no agreement data sent by the health probe",
+      "data": "Owner-requested read-only account identity and health metadata; no agreement data is sent by the probe.",
       "bindings": [
         "HUBSPOT_ACCESS_TOKEN"
       ],
-      "enabledByDefault": false
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Owner configures the connection and authorizes its use.",
+      "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     }
-  ]
+  ],
+  "assessedAt": "2026-10-26",
+  "scope": "Repository-supplied controls for a buyer-operated installation. Answers describe shipped software capabilities and explicitly unverified buyer and platform operations. No provider certification, regulatory conformity, continuous monitoring or service-level commitment is asserted."
 }
