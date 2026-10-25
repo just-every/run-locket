@@ -8,6 +8,7 @@ import { createPortability } from '@runeditrun/rer/modules/portability';
 import { exportArchive } from '@runeditrun/rer/modules/portability/files';
 import policy from './archive-policy.mjs';
 import { cloudflareDatabase } from './cloudflare-database.mjs';
+import { refuse } from '@runeditrun/rer/errors';
 
 export async function deployment(root, environment = 'production') {
  const path = await hookState(root, environment) ?? join('.rer/deploy', `${environment}.json`);
@@ -17,17 +18,17 @@ export async function deployment(root, environment = 'production') {
 
 export async function hostedDatabase(root, environment, signal) {
  const held = await deployment(root,environment);
- if (!held?.state.receipt) throw Error('update-needs-completed-deployment');
+ if (!held?.state.receipt) throw refuse('Hosted export needs this checkout\'s completed owner-account deployment record.');
  const target = {accountId:process.env.CLOUDFLARE_ACCOUNT_ID, project:'contracts/locket', environment, worker:ownerWorkerName('contracts/locket',environment)};
  const state = await readOwnerState(held.path,target);
  const api = cloudflare({accountId:target.accountId,token:process.env.CLOUDFLARE_API_TOKEN,maxRequests:10000,requestSignal:()=>signal});
  const live = await activeWorker(api,target.worker);
- if (!sameDeployment(live,state.receipt.provider)) throw Error('update-owned-worker-replaced');
+ if (!sameDeployment(live,state.receipt.provider)) throw refuse('Hosted export refused: the recorded Worker was replaced (update-owned-worker-replaced). Restore the owned deployment record before updating.');
  const resource = state.receipt.resources.d1.find(item => item.binding === 'DB');
- if (!resource) throw Error('update-database-missing');
+ if (!resource) throw refuse('Hosted export refused: the deployment record has no DB binding.');
  const row = await api.request(`/d1/database/${resource.id}`);
  checkResourceIdentity('d1',resource.name,row,state.owned.d1[resource.name]);
- if (row.name !== resource.name || !live.settings.bindings.some(item => item.name === 'DB' && item.id === resource.id)) throw Error('update-database-identity-mismatch');
+ if (row.name !== resource.name || !live.settings.bindings.some(item => item.name === 'DB' && item.id === resource.id)) throw refuse('Hosted export refused: the live database differs from the recorded owned DB binding.');
  return {state,api,db:cloudflareDatabase(api,resource.id)};
 }
 

@@ -837,7 +837,7 @@
       "executable": false
     },
     "scripts/installer/hosted-archive.mjs": {
-      "sha256": "6d23b2da75805fdc61be9a8ed1803a340eada001ac38a232265dc414c17ebd71",
+      "sha256": "af725d53d598c9ee43d974fd54f03541d35627be6cf369a18fd7b755a24d360c",
       "executable": false
     },
     "scripts/installer/local.mjs": {
