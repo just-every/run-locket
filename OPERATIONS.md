@@ -90,8 +90,13 @@ disabled. Buyers must additionally review owner-configured endpoint destinations
 and contracts; this declaration does not inspect an external provider contract.
 The response covers data flows, encryption, access, audit, backup, incident
 response, vulnerability handling and the buyer responsibility split. It provides
-procurement domain answers for SIG Lite and CAIQ review, with no certification
-claim and no claim to reproduce or complete the official licensed question sets.
+a response crosswalk for all 283 official CAIQ 4.1.0 identifiers and all 172
+identifiers in the public historical 2019 SIG Lite workbook. It does not
+redistribute question text. The current 2026 SIG Lite workbook and exact scope
+remain unavailable under a licence; `--require-complete` refuses that incomplete
+assessment. See `security/QUESTIONNAIRES.md` for source provenance, the precise
+licensed input needed and the software, buyer and platform responsibility split.
+No certification is claimed.
 
 Run `node scripts/release-history.mjs` with repository read access. It reads
 published releases, verifies their tags still exist, and reads published security
