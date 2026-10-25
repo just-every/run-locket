@@ -102,6 +102,7 @@ export async function repositoryAccessJourney(page,width,p){
  await shot('counterparty-hidden-totals')
  await owner.command('audience.save',{id:group.id,version:group.version,name:'Sales '+tag,kind:'group',memberIds:[]})
  await page.goto(p.origin+'/app#agreements');await page.reload()
+ await expect(views).toBeVisible()
  await expect(page.locator('.lk-board-card')).toHaveCount(0)
  await expect(views.getByLabel('Saved view',{exact:true}).locator('option').filter({hasText:'Sales agreements '+tag})).toHaveCount(0)
  await shot('revoked-membership')

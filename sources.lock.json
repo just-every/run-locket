@@ -4577,7 +4577,7 @@
       "executable": false
     },
     "tests/browser/repository-access-journey.mjs": {
-      "sha256": "70c62eeea4bb8b81cd76bec7f3add1692657c4bf9ab6ce9a136aaca6d9443c9e",
+      "sha256": "9ebfbd68b19d59428567324b2ac15d85e62c8a7d49d15ec737692cac26879168",
       "executable": false
     },
     "tests/browser/repository-bulk-journey.mjs": {
