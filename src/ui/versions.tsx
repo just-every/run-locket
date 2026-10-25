@@ -106,7 +106,7 @@ export function RedactedRenditions({state,a,shown,locket}:{state:LocketState;a:R
   if(await locket.run('rendition.upload',{agreementId:a.id,version:a.version,versionId:shown.id,originalId:value(data,'original'),file:await fileToPayload(file),text:value(data,'text')}))form.reset()
  }}><Field label="Original file"><select name="original">{originals.map(f=><option key={f.id} value={f.id}>{f.filename}</option>)}</select></Field>
  <Field label="Redacted file"><input name="file" type="file" accept=".pdf,.docx" required/></Field>
- <Field label="Redacted text" hint="Paste only the rendition’s text for search and comparison. Counsel reviews both file and text."><textarea name="text" rows={3} required/></Field></Form>}
+ <p>Paste only the rendition’s text for search and comparison. Counsel reviews both file and text.</p><Field label="Redacted text"><textarea name="text" rows={3} required/></Field></Form>}
  {renditions.map(r=><div key={r.id}><p>Original SHA-256: <code style={{overflowWrap:'anywhere'}}>{r.original_sha256}</code></p><p>Rendition SHA-256: <code style={{overflowWrap:'anywhere'}}>{r.rendition_sha256}</code></p>
  <a href={'/api/locket/files/'+r.artifact_id} download>Review rendition file</a><p>{r.text}</p>
  <p>{r.approved_by?'Approval recorded; current role, policy and version checks apply on every read.':'Awaiting counsel approval.'}</p>
