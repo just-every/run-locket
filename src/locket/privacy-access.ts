@@ -19,6 +19,8 @@ export async function authorizeErasureResult(c:Ctx,type:string,result:any){
  if(!['person.erase.preview','person.erase'].includes(type))return
  if(result.scope)await privacyChecks(c,result.scope)
  else requireRole(c.actor,['owner'],'read this historical erasure result')
+ // Apply on initial delivery and idempotent replay: minimization authority never grants note-reading authority.
+ if(!['owner','counsel'].includes(c.actor.role)&&Array.isArray(result.patches))result.patches=result.patches.map((patch:any)=>['lk_privileged_notes','lk_access_exceptions'].includes(patch.table)?{...patch,after:Object.fromEntries(Object.keys(patch.after).map(key=>[key,'[privileged data withheld]']))}:patch)
 }
 const grant:Handler=async(c,p)=>{
  requireRole(c.actor,['owner'],'assign scoped privacy authority')
