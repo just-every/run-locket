@@ -4333,7 +4333,7 @@
       "executable": false
     },
     "tests/api/counterparties.test.mjs": {
-      "sha256": "5c6e9597fde3a38714f3b891a9264f927ec054f14ad54d3970c936060eac3041",
+      "sha256": "614a5f58ebc60238f0f419c5502983aa694dbadb693991b94c37fdc08b907260",
       "executable": false
     },
     "tests/api/custom-metadata-fixture.mjs": {
