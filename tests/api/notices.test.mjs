@@ -474,6 +474,7 @@ test('RENEW-005 prepares one cited accounting brief at lead time and opens the c
  const b=s.renewalBriefs[0],content=JSON.parse(b.content)
  assert.equal(content.spend.totalCents,8400000)
  assert.equal(content.spend.bills.length,8)
+ assert.deepEqual(content.accountingComparison,{contractValueCents:10000000,percent:'84.00',allocation:'unconfirmed'})
  assert.equal(content.amendments.length,1)
  assert.equal(content.serviceLevels.length,1)
  assert.equal(content.serviceLevels[0].outcome,'executed')
@@ -490,6 +491,10 @@ test('RENEW-005 prepares one cited accounting brief at lead time and opens the c
  assert.equal((await f.maker.state()).notifications.items.filter(n=>n.agreement_id===f.source.id&&n.kind==='deadline').length,1)
  const pdfBytes=Buffer.from(await(await h.owner.request(`/api/locket/files/${b.artifact_id}`)).arrayBuffer())
  assert.match(pdfBytes.toString('latin1'),/Spend to date: \$84000.00 USD/)
+ assert.match(pdfBytes.toString('latin1'),/Vendor bills equal 84.00%/)
+ const {extractText}=await import('unpdf')
+ const extracted=await extractText(new Uint8Array(pdfBytes),{mergePages:true})
+ assert.match(extracted.text.replace(/\s+/g,' '),/Contract allocation unconfirmed/)
  assert.match(pdfBytes.toString('latin1'),/Annual price increases/)
  assert.match(pdfBytes.toString('latin1'),/Service level 1: executed/)
  await h.scheduled(f.due+3600000)
@@ -548,6 +553,18 @@ test('RENEW-005 refuses stale, inaccessible and unauthorized workflows; failed a
  assert.equal((await f.maker.state()).renewalBriefs.length,0)
  assert.equal((await f.maker.request(`/api/locket/files/${b.artifact_id}`)).status,404)
  s=await h.owner.state();assert.equal(s.agreements.filter(a=>a.relation==='renews').length,0)
+ for(const [value,percent] of [['0',null],['99999.99','84.00']]) {
+  const isolated=await installation({bindings:{...accountingBindings,TEST_NOW:String(Date.parse('2026-10-17T14:00:00Z'))},outboundResponse:accountingFake([])})
+  try {
+   const caseFixture=await renewalBriefFixture(isolated,{value})
+   await isolated.setTime(caseFixture.due)
+   const result=await isolated.owner.command('renewal.brief.prepare',{agreementId:caseFixture.source.id})
+   const comparison=JSON.parse((await isolated.owner.state()).renewalBriefs.find(b=>b.id===result.id).content).accountingComparison
+   if(percent===null) assert.equal(comparison,null)
+   else {assert.equal(comparison.percent,percent);assert.equal(comparison.contractValueCents,9999999)}
+  }finally{await isolated.close()}
+ }
+
 })
 
 

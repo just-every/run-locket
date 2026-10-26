@@ -9,12 +9,12 @@ export function accountingFake(calls,mode=()=> 'ok') {
   return Response.json({QueryResponse:{Bill:bills}})
  }
 }
-export async function renewalBriefFixture(h,{restricted=false,native=false}={}) {
+export async function renewalBriefFixture(h,{restricted=false,native=false,value='100000'}={}) {
  const ownerId=(await h.owner.state()).actor.id
  const maker=await h.invite('synthetic-locket-maker@example.test','approver'),counsel=await h.invite('synthetic-locket-counsel@example.test','counsel')
  const quote='Annual price increases shall not exceed 3 percent.'
  const body=`Supplier services. ${quote} Give 60 days notice. The term is January 1 to December 31, 2026.`
- const bytes=pdf(body),details={title:'synthetic-locket supplier',type:'supplier',party:{name:'synthetic-locket supplier',kind:'supplier'},value:'100000',file:file('supplier.pdf',bytes),text:body,restricted}
+ const bytes=pdf(body),details={title:'synthetic-locket supplier',type:'supplier',party:{name:'synthetic-locket supplier',kind:'supplier'},value,file:file('supplier.pdf',bytes),text:body,restricted}
  const source=native?await h.owner.command('request.create',details):await h.owner.command('legacy.import',{...details,sourceSystem:'Authorized archive',sourceId:crypto.randomUUID(),signed:true})
  if(native){
   const current=async()=>(await h.owner.state()).agreements.find(a=>a.id===source.id)

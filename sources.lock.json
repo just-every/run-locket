@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "851cac1fef30fbe12adc38e4b16006de974a60d877c3ec72bccb49da2f62ed74",
+      "sha256": "10024003db717cecbb6ee31f2eb7eb5af883d131cb7f642d408031d20532a900",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d02bca92990645869349724445bbc93066d27700e56628db412d11278e1dae84",
+      "sha256": "034309f1fcb75fb1135ebeee0d32daef87450b85a1ce50509eab16cfe891a178",
       "executable": false
     },
     "DEMO.md": {
@@ -1093,7 +1093,7 @@
       "executable": false
     },
     "src/locket/accounting.ts": {
-      "sha256": "d2bfd4ccb1e6f7766363c758c21b1bd499034c662e0ade30c60688616b54abfc",
+      "sha256": "9681c2a8a897fa8c122bb5d834fa3c5628d54f719a690833086ef942984a341e",
       "executable": false
     },
     "src/locket/agreements.ts": {
@@ -1585,7 +1585,7 @@
       "executable": false
     },
     "src/locket/renewal-briefs.ts": {
-      "sha256": "29e930df6c58408382dad13190807e017f9d3418d28e620921a3fe20f0884b8d",
+      "sha256": "df4412ce51f386b3cdff2a636a0f94babde0f731ab5157b0fdfaa6eb7f2a2867",
       "executable": false
     },
     "src/locket/renewal-calendar.ts": {
@@ -4057,7 +4057,7 @@
       "executable": false
     },
     "src/ui/renewal-brief.tsx": {
-      "sha256": "6200227963da27ab16237464361ec2cf642968381be5bd00de36af2e427fb9ba",
+      "sha256": "7743f918ace961c757afeac095c3b0eb0c145433e9b015c655d3286f62da65b5",
       "executable": false
     },
     "src/ui/renewal-history.tsx": {
@@ -4353,7 +4353,7 @@
       "executable": false
     },
     "tests/api/notices.test.mjs": {
-      "sha256": "2cbb6bddff624095864e56e77403155dc20f135e85f111aeb5fea4ac601e802e",
+      "sha256": "0723caedffc713a0c44ebda62392ae5053898140c093135e7f82e7811e7d2c0c",
       "executable": false
     },
     "tests/api/notifications.test.mjs": {
@@ -4397,7 +4397,7 @@
       "executable": false
     },
     "tests/api/renewal-brief-fixture.mjs": {
-      "sha256": "3befc34773240cf30404f45a1fb977c1729dfa71b292c8b22cbb9eef09c31243",
+      "sha256": "2c31b08c8eb6fbed402e45e4ecec52d52febd2784d48073eecbfadc612f6192e",
       "executable": false
     },
     "tests/api/report-fixture.mjs": {
@@ -4609,7 +4609,7 @@
       "executable": false
     },
     "tests/browser/notices.spec.ts": {
-      "sha256": "a53be5ee17d195690120dc8b2a1f839b8fc30de5a3991a9dd8a9ad9ca13c1d01",
+      "sha256": "f4d1d6f56c9f1bee54e6f646d57afb1b17baa2fa90e6ac98c9802a9ec55e6352",
       "executable": false
     },
     "tests/browser/notifications-live.mjs": {
