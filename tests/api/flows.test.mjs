@@ -1005,7 +1005,7 @@ async function automaticRetrievalJourney(t) {
   assert.equal(s.agreements.find(r => r.id === a.id).status, 'out_for_signature')
 }
 
-test('Accepted Platter pricing becomes a native request and executed confirmed terms reach Nectar only as a pending proposal', async t => {
+test('Accepted Platter and PandaDoc proposals become native requests and executed confirmed terms reach Nectar or Stripe only as pending proposals', async t => {
   for (const variant of ['simple', 'rich-usd', 'rich-fx', 'pandadoc', 'stripe', 'stripe-uncertain', 'unreadable', 'mismatch-accepted']) {
   console.log('Proposal handoff case:',variant)
   const rich = variant.startsWith('rich-'), foreign = variant === 'rich-fx', panda=variant==='pandadoc', stripe=variant.startsWith('stripe')
