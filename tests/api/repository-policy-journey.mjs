@@ -2,10 +2,10 @@ import assert from 'node:assert/strict'
 import {build} from 'esbuild'
 import {file,pdf} from './files.mjs'
 
-async function businessCommands(){
+export async function businessCommands(){
  const bundled=await build({stdin:{contents:"import {handlers} from './src/locket/api'; export default Object.keys(handlers)",resolveDir:process.cwd()},bundle:true,write:false,format:'esm',platform:'node',target:'es2022',external:['node:*'],banner:{js:"import {createRequire} from 'node:module'; const require=createRequire(process.cwd()+'/package.json');"},logLevel:'silent'})
  const {default:names}=await import('data:text/javascript;base64,'+Buffer.from(bundled.outputFiles[0].text).toString('base64'))
- return names.filter(name=>! /^(view\.|notification\.|preferences\.)/.test(name))
+ return names.filter(name=>name!=='agreement.hidden-value'&&! /^(view\.|notification\.|preferences\.)/.test(name))
 }
 
 // Continue the repository journey through the policy's consequential public doors.

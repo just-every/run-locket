@@ -132,6 +132,7 @@ function AgentReply({ state, a, shown, original }: { state: LocketState; a: Row;
 
 function Details({ state, a, locket }: { state: LocketState; a: Row; locket: Locket }) {
   const { run, busy } = locket
+  const [readerReport,setReaderReport]=useState<any>(null)
   const grants = state.access.filter(x => x.agreement_id === a.id)
   const people = state.operators.filter(o => o.status === 'active')
   const audit = state.audit.filter(x => x.agreement_id === a.id)
@@ -141,7 +142,8 @@ function Details({ state, a, locket }: { state: LocketState; a: Row; locket: Loc
     <div className="lk-tab-page"><LegalHold state={state} a={a} locket={locket}/><AgreementDepartment state={state} a={a} locket={locket}/>
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Request details</h2></div>
-        {editable ? (
+        {state.actor.role==='requester'&&a.requester_id===state.actor.id&&state.fieldAccess.hidden.includes('value')&&['draft','in_review','approved'].includes(a.status)&&<Form busy={busy} submit="Submit hidden value" onSubmit={async(data,form)=>{if(await run('agreement.hidden-value',{agreementId:a.id,version:a.version,value:value(data,'hiddenValue')}))form.reset()}}><p>Submit a value without reading it back. This withdraws prior approvals.</p><Field label="Hidden value (USD)"><input name="hiddenValue" inputMode="decimal" required autoComplete="off"/></Field></Form>}
+        {editable && !state.fieldAccess.documentsWithheld ? (
           <Form busy={busy} submit="Save details" onSubmit={data => void run('request.update', { agreementId: a.id, version: a.version, title: value(data, 'title'), value: value(data, 'value'), currency: value(data, 'currency').toUpperCase() || 'USD', ...(value(data, 'usdRate') ? { usdRate: value(data, 'usdRate') } : {}), ownerId: value(data, 'ownerId'), neededBy: value(data, 'neededBy'), ...(classifies ? { restricted: data.get('restricted') === 'on' } : {}) })}>
             <Field label="Title"><input name="title" defaultValue={a.title} required /></Field>
             <Field label="Currency"><input name="currency" defaultValue={a.currency} maxLength={3} pattern="[A-Za-z]{3}" required /></Field>
@@ -151,7 +153,7 @@ function Details({ state, a, locket }: { state: LocketState; a: Row; locket: Loc
             <Field label="Needed by"><input name="neededBy" type="date" defaultValue={a.needed_by ?? ''} /></Field>
             <label className="lk-check"><input type="checkbox" name="restricted" defaultChecked={!!a.restricted} disabled={!classifies} /> Restricted: only owner, counsel, requester, responsible person and people granted access can see it</label>
           </Form>
-        ) : <p className="lk-muted">Request details are fixed once an agreement is out for signature or executed.</p>}
+        ) : <p className="lk-muted">{state.fieldAccess.documentsWithheld?'Unredacted request details are withheld by the current field policy.':'Request details are fixed once an agreement is out for signature or executed.'}</p>}
       </section>
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Access</h2></div>
@@ -164,7 +166,23 @@ function Details({ state, a, locket }: { state: LocketState; a: Row; locket: Loc
               </Form>
             )}
           </>
-        ) : <p className="lk-muted">Everyone with a Locket role can see this agreement. Mark it restricted to limit access.</p>}
+        ) : <p className="lk-muted">This agreement is unrestricted. Current group and department rules still apply.</p>}
+        {can(state, 'owner', 'counsel') && <>
+          <h3>Reader access report</h3>
+          <button type="button" onClick={()=>void fetch('/api/locket/access-report?agreementId='+encodeURIComponent(a.id)).then(r=>r.ok?r.json():null).then(setReaderReport)}>Review current readers</button>
+          {readerReport&&<ul aria-label="Current agreement readers">{readerReport.readers.map((r:any)=><li key={r.id}>{r.name}: {r.reasons.join('; ')}{r.hiddenFields.length?' · Hidden fields: '+r.hiddenFields.join(', '):''}</li>)}</ul>}
+          <h3>Privileged legal notes</h3>
+          <ul>{state.privilegedNotes.filter(n=>n.agreement_id===a.id).map(n=><li key={n.id}>{n.body} · {personName(state,n.created_by)} · {when(n.created_at)}</li>)}</ul>
+          <Form busy={busy} submit="Record legal note" onSubmit={data=>void run('agreement.legal-note',{agreementId:a.id,version:a.version,body:value(data,'legalNote')})}><Field label="Privileged note"><textarea name="legalNote" required maxLength={10000}/></Field></Form>
+          <h3>Temporary group exception</h3>
+          <p>Overrides group and department grants only. Restricted access and hidden fields still apply.</p>
+          <ul className="lk-list">{state.accessExceptions.filter(x=>x.agreement_id===a.id).map(x=><li key={x.operator_id}>{personName(state,x.operator_id)} · {x.reason} · {x.expires_at>state.now?'Expires':'Expired'} {when(x.expires_at)} <button type="button" disabled={busy} onClick={()=>void run('access.exception',{agreementId:a.id,version:a.version,operatorId:x.operator_id,revoke:true})}>Remove exception</button></li>)}</ul>
+          <Form busy={busy} submit="Share temporarily" onSubmit={data=>void run('access.exception',{agreementId:a.id,version:a.version,operatorId:value(data,'exceptionPerson'),reason:value(data,'exceptionReason'),expiresAt:Date.parse(value(data,'exceptionExpiry'))})}>
+            <Field label="Exception person"><select name="exceptionPerson">{people.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+            <Field label="Exception reason"><input name="exceptionReason" required maxLength={2000}/></Field>
+            <Field label="Exception expiry"><input name="exceptionExpiry" type="datetime-local" required/></Field>
+          </Form>
+        </>}
         <div className="lk-panel-head"><h2>History</h2></div>
         <ul className="lk-log">{audit.map(x => <li key={x.id}><time>{when(x.at)}</time><span><strong>{x.actor_name}</strong> ({roleLabel[x.actor_role] ?? x.actor_role}) {x.summary}</span></li>)}</ul>
       </section>

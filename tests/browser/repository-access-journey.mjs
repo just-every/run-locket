@@ -1,3 +1,4 @@
+import {repositoryExceptionsBrowserJourney} from './repository-exceptions-journey.mjs'
 import {expect} from '@playwright/test'
 import {randomUUID} from 'node:crypto'
 import {mkdir,mkdtemp,writeFile,rm} from 'node:fs/promises'
@@ -167,5 +168,6 @@ export async function repositoryAccessJourney(page,width,p){
  const auditText=Buffer.concat(auditChunks).toString()
  expect(auditText).toContain('""before""');expect(auditText).toContain('""after""')
  await shot('policy-audit-diff')
+ await repositoryExceptionsBrowserJourney(page,width,p)
 
 }

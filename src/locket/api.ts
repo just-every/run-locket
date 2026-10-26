@@ -1,3 +1,4 @@
+import { accessReport } from './repository-access'
 import { redactedRenditionHandlers } from './redacted-renditions'
 import { workforceHandlers, workforceResponse } from './workforce'
 import { chatIntakeResponse } from './chat-intake'
@@ -156,6 +157,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     const exchange = await publicExchangeResponse(request,env)
     if(exchange)return exchange
     const actor = await integrationActor(env,request,path) ?? await currentActor(request, env)
+    if(request.method==='GET'&&path==='/access-report')return reply(await accessReport(env,actor,url.searchParams.get('agreementId')??''))
     if(request.method==='GET'&&path.startsWith('/approval-channels/requests/'))return reply(await approvalChannelRequestView(env,actor,decodeURIComponent(path.slice('/approval-channels/requests/'.length))))
     if(request.method==='GET'&&path==='/approval-channels/word-manifest')return approvalChannelWordManifest(env)
     if(request.method==='GET'&&path==='/outcome-report')return reply(await outcomeReport(env,actor,url.searchParams.get('month')??''))

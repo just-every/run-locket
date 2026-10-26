@@ -100,6 +100,8 @@ export interface LocketState extends importReconciliationWorkspace,ServiceLevelW
   notices: Row[]
   proposals: Row[]
   imports: Row[]
+  privilegedNotes: Row[]
+  accessExceptions: Row[]
   access: Row[]
   audit: Row[]
 }

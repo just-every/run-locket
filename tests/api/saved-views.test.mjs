@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { installation } from './harness.mjs'
+import {repositoryExceptionsJourney} from './repository-exceptions-journey.mjs'
 import {repositoryPolicyJourney} from './repository-policy-journey.mjs'
 import { portfolioFixture } from './portfolio-fixture.mjs'
 import { file, pdf } from './setup.mjs'
@@ -384,6 +385,7 @@ test('REPO-009 current group and department grants intersect restricted access a
  const classificationRows=csvRecords(await(await counsel.request('/api/locket/audit?format=csv&action=agreement.classification')).text())
  assert.deepEqual(JSON.parse(classificationRows[1][7]),{before:{restricted:true},after:{restricted:false}})
  await repositoryPolicyJourney(h)
+ await repositoryExceptionsJourney(h)
 })
 
 test('REPO-011 reviewed bulk changes preserve custody, reassign open work, round-trip exact CSV differences and revert with history', async t => {

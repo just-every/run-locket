@@ -19,7 +19,7 @@ import { exchangeResult, exchangeTokens } from './exchange'
 import { dispatchExchange } from './exchange-mail'
 import { authorizeRepositoryBulkResult } from './repository-bulk'
 import { syncRulePending } from './approval-rules'
-import { hiddenFields, policyVersionCheck, repositoryPolicy, requireFullFields } from './repository-access'
+import { fullFieldsCheck, hiddenFields, policyVersionCheck, repositoryPolicy, requireFullFields } from './repository-access'
 import { commandNotifications } from './notification-events'
 import { workflowWrites } from './workflow-history'
 import { runNotifications } from './notification-dispatch'
@@ -136,18 +136,18 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     return result
   }
   const digest = await sha256(canonical({ type, payload }))
-  if(!/^(view\.|notification\.|preferences\.)/.test(type))await requireFullFields(c.db,actor)
+  if(type!=='agreement.hidden-value'&&!/^(view\.|notification\.|preferences\.)/.test(type))await requireFullFields(c.db,actor)
   const prior = await env.DB.prepare('SELECT digest, actor_id, result FROM lk_commands WHERE id=?').bind(commandId).first<{ digest: string; actor_id: string; result: string }>()
   if (prior) {
     if (prior.digest !== digest || prior.actor_id !== actor.id) fail('IDEMPOTENCY', 'This command identity was already used for different content.', 409)
     return completed(JSON.parse(prior.result))
   }
-  if(typeof payload.agreementId==='string')await requireFullFields(c.db,actor)
+  if(type!=='agreement.hidden-value'&&typeof payload.agreementId==='string')await requireFullFields(c.db,actor)
   const policy=await repositoryPolicy(c.db)
   c.erasureChecks=await refuseErasedAddress(c,type,payload)
   const familyChecks = await familyCommandChecks(c, type, payload)
   const out = await handlers[type](c, payload)
-  out.checks=[...integrationChecks,...familyChecks,...(out.checks??[]),...(c.erasureChecks??[]),policyVersionCheck(policy.version)]
+  out.checks=[...(type!=='agreement.hidden-value'&&!/^(view\.|notification\.|preferences\.)/.test(type)?[fullFieldsCheck(actor)]:[]),...integrationChecks,...familyChecks,...(out.checks??[]),...(c.erasureChecks??[]),policyVersionCheck(policy.version)]
   const notifications = await commandNotifications(c, type, payload, out)
   const workflow = await workflowWrites(c, out.audit)
   try {
