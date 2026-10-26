@@ -125,3 +125,59 @@ test(`RENEW-005 reviews cited cap and accounting spend then opens an intake-rout
 
   }
 })
+
+test('LINK-001 reviews exact contract allocation and pending Pantry payment at 1440px and 390px',async({page})=>{
+ test.setTimeout(240_000)
+ const {pantryBindings,pantryFake,scheduleFixture}=await import('../api/accounting-schedule-fixture.mjs')
+ const {accountingBindings,accountingFake}=await import('../api/renewal-brief-fixture.mjs')
+ for(const width of [1440,390]){
+  const calls:any[]=[];let mode='draft'
+  const pantry=pantryFake(calls,()=>mode),quickbooks=accountingFake([])
+  const product=await productPage(page,{width,bindings:{...pantryBindings,...accountingBindings},outboundResponse:request=>new URL(request.url).origin===pantryBindings.PANTRY_ORIGIN?pantry(request):quickbooks(request)})
+  const shot=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-link-001-${name}.png`),fullPage:true})}}
+  const click=async(scope:any,name:string)=>{const pending=page.waitForResponse(r=>r.url()===product.origin+'/api/locket/commands'&&r.request().method()==='POST');await scope.getByRole('button',{name,exact:true}).click();const body=await(await pending).json();expect(body.ok,JSON.stringify(body.error)).toBe(true);await expect(page.locator('main')).toHaveAttribute('aria-busy','false')}
+  try{
+   const f=await scheduleFixture(product.h);await f.confirm()
+   await product.command('accounting.link',{agreementId:f.source.id,version:(await f.current()).version,vendorId:'42',consent:true})
+   await product.command('accounting.read',{agreementId:f.source.id,version:(await f.current()).version,since:'2026-01-01',through:'2026-10-26'})
+   await page.goto(product.origin+`/app#agreement/${f.source.id}/terms`)
+   const accounting=page.getByRole('region',{name:'Contract accounting',exact:true})
+   await expect(accounting).toContainText('84,000.00 USD · 8 bills')
+   for(let i=1;i<=8;i++)await accounting.locator(`input[name="bill-${i}"]`).check()
+   await accounting.getByText('I confirm the selected exact amounts are attributable to this contract.',{exact:true}).click()
+   await click(accounting,'Confirm contract allocation')
+   await expect(accounting).toContainText('84.00% consumed')
+   await shot('allocated')
+   const payment=page.getByRole('region',{name:'Payment schedule',exact:true})
+   await payment.getByText('Prepare a proposed payment',{exact:true}).click()
+   await payment.getByLabel('Allocated amount (USD)').fill('1250.50')
+   await payment.getByLabel('Bill date',{exact:true}).fill('2026-10-26')
+   await payment.getByLabel('Pantry vendor id').fill('synthetic-locket-7')
+   await payment.getByLabel('Pantry expense account id').fill('synthetic-locket-8')
+   await payment.getByLabel('Exact signed payment passage').fill(f.quote)
+   await payment.getByText('I confirm this exact USD amount belongs to this contractual obligation.',{exact:true}).click()
+   await click(payment,'Prepare proposed bill')
+   await payment.getByText('Exact proposed bill',{exact:true}).click()
+   await expect(payment).toContainText('"post": false')
+   await shot('draft')
+   await payment.getByText('I reviewed and authorize this exact draft bill and destination.',{exact:true}).click()
+   await click(payment,'Send proposed bill')
+   await expect(payment).toContainText('Pending acceptance in Pantry')
+   expect(calls.length).toBe(1)
+   await shot('pending')
+   mode='posted';await click(payment,'Check Pantry acceptance')
+   await expect(payment).toContainText('Accepted in Pantry — payment unconfirmed')
+   await shot('accepted')
+   const partyId=(await product.state()).agreements.find((a:any)=>a.id===f.source.id)!.party_id
+   await page.goto(product.origin+`/app#counterparty/${partyId}`)
+   const records=page.getByRole('region',{name:'Accounting records',exact:true})
+   await expect(records).toContainText('QuickBooks vendor 42')
+   await expect(records).toContainText('Pantry vendor synthetic-locket-7')
+   await expect(records).toContainText('bill synthetic-locket-6')
+   await shot('counterparty')
+   const navigation=page.getByRole('navigation',{name:'Locket'}).getByRole('link',{name:'Renewals',exact:true})
+   await navigation.focus();await expect(page.getByRole('tooltip')).toHaveText('Open Renewals')
+   await navigation.blur();await navigation.hover();await expect(page.getByRole('tooltip')).toHaveText('Open Renewals')
+  }finally{await product.close()}
+ }
+})

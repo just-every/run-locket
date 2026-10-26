@@ -1,3 +1,4 @@
+export { accountingValueComparison } from './accounting-value'
 // Read-only QuickBooks Online adapter. An owner explicitly links the vendor;
 // server credentials never enter commands, state, audit or the complete archive.
 import { observeOperation } from './connection-observations'
@@ -49,12 +50,4 @@ export async function accountingSpend(env:Bindings,vendorId:string,since:string,
   if(env.QUICKBOOKS_REALM_ID)await observeOperation(env,'quickbooks',env.QUICKBOOKS_REALM_ID,false,(error as {code?:string}).code==='ACCOUNTING_DATA'?'invalid_provider_receipt':'accounting_read_failed')
   throw error
  }
-}
-
-/** Compare the retained vendor snapshot without asserting contract allocation. */
-export function accountingValueComparison(totalCents: number, contractValueCents: number | null) {
- if (contractValueCents === null || contractValueCents <= 0) return null
- // Integer division rounds half up to two percentage places without losing cents.
- const basisPoints = (BigInt(totalCents) * 10000n + BigInt(contractValueCents) / 2n) / BigInt(contractValueCents)
- return { contractValueCents, percent: `${basisPoints / 100n}.${String(basisPoints % 100n).padStart(2, '0')}`, allocation: 'unconfirmed' as const }
 }

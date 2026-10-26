@@ -18,6 +18,9 @@ export interface LocketState extends importReconciliationWorkspace,ServiceLevelW
  wordTemplates:Row[]
  renewalBriefs:Row[]
  renewalBriefSettings:Row[]
+ accountingReads:Row[]
+ accountingAllocations:Row[]
+ accountingSchedules:Row[]
  accountingLinks:Row[]
   legalHolds: Row[]
   retentionRule: Row|null

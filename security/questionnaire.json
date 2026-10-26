@@ -350,6 +350,18 @@
       "enabledByDefault": false,
       "configuration": "Owner configures the connection and authorizes its use.",
       "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
+    },
+    {
+      "name": "Owner-selected Pantry installation",
+      "data": "Explicitly approved payment obligation description, vendor and expense account identifiers, exact USD amount, dates and contract reference in one unposted draft bill; scoped readback of that bill.",
+      "bindings": [
+        "PANTRY_ORIGIN",
+        "PANTRY_TOKEN"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Owner configures a scoped bills:write credential without post authority, reviews the exact proposed payload and explicitly authorizes one draft. The person accepts the bill in Pantry.",
+      "responsibility": "The buyer selects and contracts with the installation operator, determines processing terms and locations, grants minimum credentials and revokes access."
     }
   ],
   "assessedAt": "2026-10-26",

@@ -1,3 +1,4 @@
+import { accountingAllocationHandlers } from './accounting-allocation'
 import { accessReport } from './repository-access'
 import { redactedRenditionHandlers } from './redacted-renditions'
 import { workforceHandlers, workforceResponse } from './workforce'
@@ -20,6 +21,7 @@ import { reconciliationHandlers } from './reconciliation'
 import { serviceLevelHandlers } from './service-levels'
 import { familyAnalysisHandlers } from './family-analysis'
 import { wordTemplateHandlers } from './word-templates'
+import { accountingScheduleHandlers } from './accounting-schedules'
 import { accountingHandlers } from './accounting'
 import { renewalBriefHandlers } from './renewal-briefs'
 import { inboundExchangeResponse } from './exchange-inbound'
@@ -98,7 +100,7 @@ export const handlers: Record<string, Handler> = {
   ...renewalLifecycleHandlers,...renewalCalendarHandlers,
   ...serviceLevelHandlers,
   ...servicePerformanceHandlers,
-  ...playbookRecommendationHandlers, ...reconciliationHandlers, ...familyAnalysisHandlers, ...wordTemplateHandlers, ...accountingHandlers, ...renewalBriefHandlers, ...exchangeHandlers, ...repositoryBulkHandlers, ...connectionHandlers, ...privacyHandlers, ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
+  ...playbookRecommendationHandlers, ...reconciliationHandlers, ...familyAnalysisHandlers, ...wordTemplateHandlers, ...accountingHandlers, ...accountingScheduleHandlers, ...accountingAllocationHandlers, ...renewalBriefHandlers, ...exchangeHandlers, ...repositoryBulkHandlers, ...connectionHandlers, ...privacyHandlers, ...erasureHandlers, ...retentionHandlers, ...approvalRuleHandlers, ...repositoryAccessHandlers, ...queueHandlers, ...intakeFormHandlers, ...intakeAudienceHandlers,
   ...customFieldHandlers, ...customValueHandlers,
   'version.edit': editVersion, 'comment.resolve': resolveComment,
   ...notificationHandlers, ...noticeAgentHandlers,

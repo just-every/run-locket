@@ -25,6 +25,8 @@ export interface Bindings {
  AI_API_KEY?:string
  MODELS_SERVICE?:string
  MODELS_KEY?:string
+ PANTRY_ORIGIN?: string
+ PANTRY_TOKEN?: string
  QUICKBOOKS_ACCESS_TOKEN?: string
  QUICKBOOKS_REALM_ID?: string
  QUICKBOOKS_SANDBOX?: string

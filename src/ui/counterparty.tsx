@@ -40,6 +40,10 @@ export function Counterparty({ state, id, locket }: { state: LocketState; id: st
     <div className="lk-tab-page">
       <a className="lk-back" href="#agreements"><Icon name="back" />Back to agreements</a>
       <div className="lk-titlebar"><div><h1>{party.name}</h1><p className="lk-muted">{words(party.kind)}{party.tax_id ? ` · ${party.tax_id_kind === 'ein' ? 'EIN' : 'Tax ID'} ${party.tax_id}` : ''}{party.email ? ` · ${party.email}` : ''}</p>{found !== party && <p className="lk-note">{found!.name} was merged into {party.name}.</p>}</div></div>
+      {(state.accountingLinks.some(l=>agreements.some(a=>a.id===l.agreement_id))||state.accountingSchedules.some(r=>agreements.some(a=>a.id===r.agreement_id)))&&<section className="lk-panel" aria-label="Accounting records"><h2>Accounting records</h2>
+        {state.accountingLinks.filter(l=>agreements.some(a=>a.id===l.agreement_id)).map(l=><p key={l.agreement_id}>QuickBooks vendor {l.vendor_id} · <a href={`#agreement/${l.agreement_id}/terms`}>{agreements.find(a=>a.id===l.agreement_id)?.reference}</a></p>)}
+        {state.accountingSchedules.filter(r=>agreements.some(a=>a.id===r.agreement_id)).map(r=><p key={r.id} style={{overflowWrap:'anywhere'}}>Pantry vendor {parse<any>(r.payload).vendorId} · {r.origin} · {r.remote_id?`bill ${r.remote_id}`:'proposed bill'} · <a href={`#agreement/${r.agreement_id}/terms`}>{agreements.find(a=>a.id===r.agreement_id)?.reference}</a></p>)}
+      </section>}
       <section className="lk-panel" aria-labelledby="lk-party-details">
         <div className="lk-panel-head"><h2 id="lk-party-details">Details</h2></div>
         <dl className="lk-obligation-facts">

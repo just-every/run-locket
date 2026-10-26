@@ -1,3 +1,5 @@
+import { AccountingAllocation } from './accounting-allocation'
+import { AccountingSchedules } from './accounting-schedules'
 import { RenewalHistory } from './renewal-history'
 import { ObligationRemediation } from './obligation-remediation'
 import { InvoiceReconciliation } from './reconciliation'
@@ -32,6 +34,8 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
   return (
     <div className="lk-tab-page">
       <FamilyBlock state={state} a={a} />
+      {a.type==='supplier'&&<AccountingAllocation state={state} a={a} locket={locket}/>}
+      {a.type==='supplier'&&<AccountingSchedules state={state} a={a} locket={locket}/>}
       <RenewalHistory state={state} a={a} locket={locket} />
       {a.type==='supplier'&&<InvoiceReconciliation state={state} a={a} locket={locket} />}
       {a.type==='supplier'&&<ServiceLevels state={state} a={a} locket={locket} />}
