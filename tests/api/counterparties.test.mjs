@@ -241,9 +241,10 @@ test('Erasure re-entry checks match whole addresses and recheck reviewed imports
   ['import.apply',{batchId:batch.batchId,version:1,fingerprint:batch.fingerprint}],
   ['proposal.decide',{proposalId:proposed.id,decision:'approve'}],
  ]
- for(const[type,payload]of cases)await t.test(type,async()=>{
+ // Each door is one step of the same erase-and-refuse-reentry journey.
+ for(const[type,payload]of cases){
   await h.owner.command(type,payload,{error:'ERASED_CONTACT'})
- })
+ }
  for(const different of ['joann@example.test','ann@example.test.invalid','ann@example.test-extra.test']){
   await h.owner.command('party.save',{name:'synthetic-locket-34 '+different,kind:'supplier',contacts:[{name:'Joann',email:different}]})
   await h.owner.command('request.create',{title:'synthetic-locket-35 '+different,type:'nda',party:{name:'synthetic-locket-35 '+different,kind:'supplier',contacts:[{name:'Joann',email:different}]}})
@@ -274,15 +275,17 @@ test('Erased-address custody survives session-secret rotation and legacy replace
  const upgraded=await h.owner.command('erasure.reseal',{})
  assert.equal(upgraded.resealed,1)
  assert.equal(upgraded.rewritten,2)
- await t.test('session rotation',async()=>{
+ // Session rotation must retain both current and upgraded erased-address blocks.
+ {
   await h.rotateSessionSecret('synthetic-locket-38-session-secret-after-rotation')
   const owner=await h.signIn('owner@example.test')
   await owner.command('party.save',{name:'synthetic-locket-38',kind:'supplier',contacts:[{name:'synthetic-locket-36',email}]},{error:'ERASED_CONTACT'})
   await owner.command('party.save',{name:'synthetic-locket-46',kind:'supplier',contacts:[{name:'Legacy',email:legacyEmail}]},{error:'ERASED_CONTACT'})
   await owner.command('party.save',{name:'synthetic-locket-39',kind:'supplier',contacts:[{name:'Other',email:'other@example.test'}]})
- })
+ }
  const owner=await h.signIn('owner@example.test')
- await t.test('legacy replacements',async()=>{
+ // The next read and export must retain random replacements without leaking keys.
+ {
   await owner.command('erasure.reseal',{})
   const state=await owner.state()
   assert.ok(!JSON.stringify(state.parties).includes(prefix))
@@ -290,7 +293,7 @@ test('Erased-address custody survives session-secret rotation and legacy replace
   const archive=await(await owner.request('/api/locket/export')).json()
   assert.ok(archive.records.lk_erasure_keys.length===1)
   assert.ok(!JSON.stringify(state).includes(archive.records.lk_erasure_keys[0].key_hex))
- })
+ }
 })
 
 test('Expiry reminders filter held, previewed and already-reminded drafts before the 100 limit',async t=>{
@@ -350,11 +353,9 @@ test('Imported contracted originals remain retained after counterparty markup an
  assert.equal(response.status,200,await response.text())
  a=(await h.owner.state()).agreements.find(a=>a.id===imported.id)
  const preview=await h.owner.command('person.erase.preview',erasureRequest(email))
- await t.test('custody receipt',async()=>{
-  assert.ok(!preview.drafts.some(d=>d.id===a.id))
-  assert.ok(preview.retained.some(r=>r.id===artifact.id&&r.reason==='retained_by_law'))
- })
- await t.test('draft deletion',async()=>{await h.owner.command('draft.delete',{agreementId:a.id,version:a.version,reason:'synthetic-locket-45'},{error:'RETAINED'})})
+ assert.ok(!preview.drafts.some(d=>d.id===a.id), 'custody receipt excludes the contracted original from drafts')
+ assert.ok(preview.retained.some(r=>r.id===artifact.id&&r.reason==='retained_by_law'), 'custody receipt retains the contracted original by law')
+ await h.owner.command('draft.delete',{agreementId:a.id,version:a.version,reason:'synthetic-locket-45'},{error:'RETAINED'})
  await h.owner.command('retention.configure',{days:1,version:0})
  await h.setTime(Date.now()+3*86400000)
  const expired=await h.owner.command('retention.preview',{})
