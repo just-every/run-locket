@@ -1089,7 +1089,7 @@
       "executable": false
     },
     "src/locket/access.ts": {
-      "sha256": "fc5d3ae689712c806d4a918c5f7ce4e4274ed0bfc4c37b343bc2cdefe6cdd6a9",
+      "sha256": "b01deca3b2ad1a15ea7ff5c36ac9a5a56c32a2b7dba03e81cc043d43171b96f1",
       "executable": false
     },
     "src/locket/accounting.ts": {
