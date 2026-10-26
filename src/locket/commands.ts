@@ -78,7 +78,11 @@ const bind = (db: D1Database, s: Sql) => db.prepare(s.sql).bind(...s.params)
 /** Commit statements behind the guard; distinguish lost authority from stale records. */
 export async function commit(c: Ctx, allowed: readonly Role[], checks: Sql[], statements: Sql[]): Promise<void> {
   const guardId = crypto.randomUUID()
-  const batch = [guardSql(guardId, [authority(c.actor, allowed), ...checks]), ...statements, sql('DELETE FROM lk_guard WHERE id=?', guardId)]
+  // Bound each statement's expression depth and binds. All guards run before
+  // any writes in the same D1 transaction, so one failed predicate rolls it back.
+  const guards = [authority(c.actor, allowed), ...checks].map((check, index) => ({ id: `${guardId}:${index}`, check }))
+  const batch = [...guards.map(({ id, check }) => guardSql(id, [check])), ...statements,
+    sql('DELETE FROM lk_guard WHERE id IN (SELECT value FROM json_each(?))', json(guards.map(guard => guard.id)))]
   try {
     await c.db.batch(batch.map(s => bind(c.db, s)))
   } catch (error) {

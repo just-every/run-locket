@@ -19,16 +19,6 @@ export interface BulkItem {
 }
 export interface BulkOperation {id:string;actor_id:string;status:string;version:number;created_at:number;updated_at:number;definitions:string;reverting:number;proposed_by:string|null;evidence:string;assumptions:string;decided_by:string|null}
 export const same = (a:unknown,b:unknown) => JSON.stringify(a) === JSON.stringify(b)
-/** A guarded batch has one JSON bind even when it validates many field and
- * record revisions. Values remain data; no value is interpolated as SQL. */
-export function packedChecks(checks:Sql[]):Sql{
- const values:unknown[]=[]
- const clauses=checks.map(check=>{let i=0;return check.sql.replace(/\?/g,()=>{values.push(check.params[i++]);return `json_extract(bulk_checks.value,'$[${values.length-1}]')`})})
- // SQLite limits expression depth, so the complete conjunction is balanced
- // rather than a left-deep chain. Every predicate still participates.
- const conjunction=(parts:string[]):string=>parts.length===0?'1':parts.length===1?'('+parts[0]+')':`(${conjunction(parts.slice(0,Math.floor(parts.length/2)))} AND ${conjunction(parts.slice(Math.floor(parts.length/2)))})`
- return sql(`EXISTS(SELECT 1 FROM json_each(?) bulk_checks WHERE ${conjunction(clauses)})`,json([values]))
-}
 export const obligationsSql = "SELECT COALESCE(json_group_array(json_array(id,owner_id,status)),'[]') AS value FROM (SELECT id,owner_id,status FROM lk_obligations WHERE agreement_id=? AND status IN ('proposed','confirmed') ORDER BY id)"
 export const scheduleSql = "SELECT COALESCE(json_group_array(json_array(id,owner_id,agreement_version,deadline_at,offsets,reminders)),'[]') AS value FROM (SELECT id,owner_id,agreement_version,deadline_at,offsets,reminders FROM lk_reminder_schedules WHERE agreement_id=? ORDER BY id)"
 export async function dependencies(c:Ctx,id:string){

@@ -1201,7 +1201,7 @@
       "executable": false
     },
     "src/locket/commands.ts": {
-      "sha256": "525430ed9d7fb91386384de4900a8b0a6282a404842cbca7263eed99bb236faf",
+      "sha256": "e61880fae7c32e80b5f01046351f9f28e6094c77359282540945c884b661239b",
       "executable": false
     },
     "src/locket/comment-threads.ts": {
@@ -1641,7 +1641,7 @@
       "executable": false
     },
     "src/locket/repository-bulk-model.ts": {
-      "sha256": "5f3f0419a84610fbedc9a26e39fef09ce7984cbaa6bcd80e3f2013b82e87043a",
+      "sha256": "4d305df9179fe876eeb322fd24c15eeb5bf7da0a9481a61d357c281ee3472a63",
       "executable": false
     },
     "src/locket/repository-bulk-zip.ts": {
@@ -1649,7 +1649,7 @@
       "executable": false
     },
     "src/locket/repository-bulk.ts": {
-      "sha256": "68e5a8db6d4408c6029f96978dda326abb09f9c0dcde760378f1432c6816de04",
+      "sha256": "7424775964cd922412612212639028b42718ad1bac434fb1110c22961d935ae1",
       "executable": false
     },
     "src/locket/repository-fields.ts": {

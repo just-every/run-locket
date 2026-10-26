@@ -6,7 +6,7 @@ import { agreementGuards, bump, invalidateApprovals, statusAfterChange, visibleA
 import { requireFullFields } from './repository-access'
 import { repositoryResult } from './repository'
 import { bulkCsvChanges } from './repository-bulk-csv'
-import { bulkRoles, bulkEdit, dependencies, dependencyChecks, diff, packedChecks, readable, same, selectionCheck, snapshotRows, type BulkChanges, type BulkItem, type BulkOperation, type BulkSnapshot } from './repository-bulk-model'
+import { bulkRoles, bulkEdit, dependencies, dependencyChecks, diff, readable, same, selectionCheck, snapshotRows, type BulkChanges, type BulkItem, type BulkOperation, type BulkSnapshot } from './repository-bulk-model'
 
 export async function bulkOperation(c:Ctx,id:unknown):Promise<BulkOperation>{
  requireRole(c.actor,may.prepare,'read repository bulk work');await requireFullFields(c.db,c.actor)
@@ -165,7 +165,7 @@ const next:Handler=async(c,p)=>{
  }
  const remaining=items.filter(i=>i.outcome===(undo?'reverting':'pending')).length-pending.length,status=remaining?undo?'reverting':'applying':undo?'reverted':'done'
  writes.push(sql('UPDATE lk_repository_bulk SET status=?,version=version+1,updated_at=? WHERE id=?',status,c.now,op.id))
- return {allowed:bulkRoles,result:{operationId:op.id,status,remaining,processed:pending.length,version:op.version+1},checks:[packedChecks(checks)],writes,audit}
+ return {allowed:bulkRoles,result:{operationId:op.id,status,remaining,processed:pending.length,version:op.version+1},checks,writes,audit}
 }
 const revert:Handler=async(c,p)=>{
  requireRole(c.actor,bulkRoles,'revert bulk changes')
