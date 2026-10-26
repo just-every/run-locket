@@ -13,6 +13,7 @@ export async function connectionRegistry(env:Bindings){
  if((env as any).HUBSPOT_ACCESS_TOKEN)rows.push({id:'hubspot',kind:'crm',account:'Server-bound HubSpot account',probe:true})
  if(env.MAIL_PROVIDER)rows.push({id:'mail',kind:'mail',account:env.MAIL_FROM??'Sender not configured',probe:['resend','postmark'].includes(env.MAIL_PROVIDER)})
  if(env.PANTRY_ORIGIN&&env.PANTRY_TOKEN)rows.push({id:'pantry',kind:'accounting',account:env.PANTRY_ORIGIN,probe:false})
+ if(env.NETSUITE_ACCOUNT_ID&&env.NETSUITE_ACCESS_TOKEN)rows.push({id:'netsuite',kind:'accounting',account:env.NETSUITE_ACCOUNT_ID,probe:false})
  if(env.QUICKBOOKS_REALM_ID)rows.push({id:'quickbooks',kind:'accounting',account:env.QUICKBOOKS_REALM_ID,probe:true})
  for(const id of ['slack','teams','nook'])if((chat as any)['APPROVAL_'+id.toUpperCase()+'_TOKEN'])rows.push({id,kind:'chat',account:id==='nook'?chat.APPROVAL_NOOK_ORIGIN??'Installation not configured':'Server-bound '+id+' account',probe:id!=='nook'})
  for(const c of(await db.prepare('SELECT * FROM lk_signature_connections').all<any>()).results)rows.push({id:c.provider,kind:'signing',account:c.account_id??c.base_url,configuredAt:c.configured_at,connectionVersion:c.version,probe:c.provider!=='inkwell'})
@@ -30,7 +31,7 @@ export async function connectionRegistry(env:Bindings){
   let ids:string[]=[]
   if(row.kind==='signing')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_packages WHERE provider=?').bind(row.id).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(row.id==='pantry')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_accounting_schedules WHERE origin=?').bind(row.account).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
-  if(row.id==='quickbooks')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_accounting_links').all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
+  if(['quickbooks','netsuite','pantry'].includes(row.id))ids=[...new Set([...ids,...(await db.prepare('SELECT DISTINCT agreement_id FROM lk_accounting_links WHERE provider=?').bind(row.id).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)])]
   if(row.kind==='chat')ids=(await db.prepare('SELECT r.agreement_id FROM lk_approval_channel_requests r JOIN lk_approval_channel_deliveries d ON d.request_id=r.id WHERE d.channel=? UNION SELECT n.agreement_id FROM lk_chat_deliveries d JOIN lk_notifications n ON n.id=d.notification_id WHERE d.channel=?').bind(row.id,row.id).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(row.kind==='calendar')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_calendar_events WHERE connection_id=?').bind(row.sourceId).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(row.id==='uptime')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_service_level_links').all<{agreement_id:string}>()).results.map(a=>a.agreement_id)

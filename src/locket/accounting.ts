@@ -34,10 +34,10 @@ async function readAccountingSpend(env: Bindings, vendorId: string, since: strin
  fail('ACCOUNTING_DATA','The bill selection exceeds 10,000 records. Narrow the agreement period; no partial total was saved.',502)
 }
 const link:Handler=async(c,p)=>{
- requireRole(c.actor,may.manageRoles,'connect a QuickBooks vendor')
- const a=await visibleAgreement(c,p.agreementId),vendorId=text(p,'vendorId',40)
- if(a.type!=='supplier'||!/^\d+$/.test(vendorId)||p.consent!==true)fail('INVALID','Select a supplier vendor id and explicitly authorize reading its USD bills into this agreement brief.')
- return {allowed:may.manageRoles,result:{agreementId:a.id},checks:agreementGuards(c,a,p),writes:[sql('INSERT INTO lk_accounting_links VALUES(?,?,?,?,1) ON CONFLICT(agreement_id) DO UPDATE SET vendor_id=excluded.vendor_id,linked_by=excluded.linked_by,linked_at=excluded.linked_at,version=lk_accounting_links.version+1',a.id,vendorId,c.actor.id,c.now),bump(c,a)],audit:[{action:'accounting.link',agreementId:a.id,summary:'Owner authorized a read-only QuickBooks vendor link and USD bills in this agreement’s renewal brief.'}]}
+ requireRole(c.actor,may.manageRoles,'connect an accounting counterparty')
+ const a=await visibleAgreement(c,p.agreementId),provider=p.provider??'quickbooks',recordKind=a.type==='customer'?'customer':'vendor',vendorId=text(p,recordKind==='customer'?'customerId':'vendorId',100)
+ if(!['supplier','customer'].includes(a.type)||!['quickbooks','pantry','netsuite'].includes(String(provider))||((provider==='quickbooks'||provider==='netsuite')&&!/^\d+$/.test(vendorId))||p.consent!==true)fail('INVALID','Select a linked vendor or customer and explicitly authorize reading its USD accounting records.')
+ return {allowed:may.manageRoles,result:{agreementId:a.id},checks:agreementGuards(c,a,p),writes:[sql('INSERT INTO lk_accounting_links(agreement_id,vendor_id,linked_by,linked_at,version,provider,record_kind) VALUES(?,?,?,?,1,?,?) ON CONFLICT(agreement_id) DO UPDATE SET vendor_id=excluded.vendor_id,linked_by=excluded.linked_by,linked_at=excluded.linked_at,provider=excluded.provider,record_kind=excluded.record_kind,version=lk_accounting_links.version+1',a.id,vendorId,c.actor.id,c.now,provider,recordKind),bump(c,a)],audit:[{action:'accounting.link',agreementId:a.id,summary:'Owner authorized a read-only accounting counterparty link. Outbound proposals require separate exact consent.'}]}
 }
 export const accountingHandlers={'accounting.link':link}
 

@@ -55,3 +55,8 @@ jobs:
       - run: pnpm exec rer check --profile first-party
       - name: Run full verification partition
         run: node .github/scripts/verify.mjs "${{ matrix.partition }}"
+      - name: Prove commercial handoffs at both widths
+        if: matrix.partition == 'core'
+        run: |
+          LOCKET_SCREENSHOTS="${RUNNER_TEMP}/locket-commercial" node tests/browser/proposal-pricing-journey.mjs
+          LOCKET_SCREENSHOTS="${RUNNER_TEMP}/locket-commercial" pnpm exec playwright test --config tests/browser/playwright.config.ts notices.spec.ts --grep 'LINK-001' --workers=1

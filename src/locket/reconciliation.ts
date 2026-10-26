@@ -40,6 +40,7 @@ const scan:Handler=async(c,p)=>{
  const checks=await sourceChecks(c,a.id,i.sources),ids=JSON.parse(i.sources).map((s:any)=>s.id)
  for(const [id,roles]of [[s.counsel_id,['owner','counsel']],[s.finance_id,['owner','approver']],[s.owner_id,findingOwnerRoles]] as const)checks.push((await participant(c,id,roles,ids)).check)
  const link=await c.db.prepare('SELECT * FROM lk_accounting_links WHERE agreement_id=?').bind(a.id).first<any>()
+ if(link&&(link.provider!=='quickbooks'||link.record_kind!=='vendor'))fail('ACCOUNTING_UNAVAILABLE','This workflow currently supports only an explicitly linked QuickBooks vendor. Use Contract accounting for other providers.',409)
  if(!link)fail('ACCOUNTING_UNAVAILABLE','The owner must authorize the read-only QuickBooks vendor link first.',409)
  const since=date(p,'since'),through=date(p,'through')
  if(since>through||through>new Date(c.now).toISOString().slice(0,10))fail('INVALID','Choose a complete bill period ending no later than today.')

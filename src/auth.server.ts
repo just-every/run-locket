@@ -25,6 +25,10 @@ export interface Bindings {
  AI_API_KEY?:string
  MODELS_SERVICE?:string
  MODELS_KEY?:string
+ PANDADOC_API_KEY?: string
+ STRIPE_SECRET_KEY?: string
+ NETSUITE_ACCOUNT_ID?: string
+ NETSUITE_ACCESS_TOKEN?: string
  PANTRY_ORIGIN?: string
  PANTRY_TOKEN?: string
  QUICKBOOKS_ACCESS_TOKEN?: string

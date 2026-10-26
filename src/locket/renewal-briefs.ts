@@ -49,6 +49,7 @@ export async function prepareBrief(c:Ctx,agreementId:unknown):Promise<Outcome> {
  const ids=family.map(a=>a.id),sources=family.map(a=>({id:a.id,version:a.version})),marks=ids.map(()=>'?').join(',')
  const confirmed=terms.filter(t=>ids.includes(t.agreement_id)&&t.status==='confirmed')
  const link=await c.db.prepare('SELECT * FROM lk_accounting_links WHERE agreement_id=?').bind(a.id).first<any>()
+ if(link&&(link.provider!=='quickbooks'||link.record_kind!=='vendor'))fail('ACCOUNTING_UNAVAILABLE','This workflow currently supports only an explicitly linked QuickBooks vendor. Use Contract accounting for other providers.',409)
  const sourceDigest=await sha256(canonical({sources,setting:setting.version,deadline:current.deadline.at,link:link?.version??0}))
  const prior=await c.db.prepare('SELECT id FROM lk_renewal_briefs WHERE renewal_id=? AND deadline_at=? AND source_digest=?').bind(r.id,current.deadline.at,sourceDigest).first<any>()
  if(prior)return {allowed:may.renewalDecision,result:{id:prior.id},writes:[],audit:[]}

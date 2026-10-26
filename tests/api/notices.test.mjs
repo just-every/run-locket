@@ -724,3 +724,98 @@ test('LINK-001 eight QuickBooks bills become 84 percent contract consumption onl
  assert.equal(archive.records.lk_accounting_allocations.length,8)
  assert.equal(JSON.parse(archive.records.lk_accounting_reads[0].content).bills.length,8)
 })
+
+test('LINK-001 provider reads retain exact bills, customer revenue and separate payments with allocation and contract schedule comparisons',async t=>{
+ const {accountingReadFake,netsuiteBindings}=await import('./accounting-read-fixture.mjs')
+ const {pantryBindings,scheduleFixture}=await import('./accounting-schedule-fixture.mjs')
+ const {accountingBindings}=await import('./renewal-brief-fixture.mjs')
+ for(const provider of ['quickbooks','pantry','netsuite'])for(const customer of [false,true]){
+  const calls=[],h=await installation({bindings:{...accountingBindings,...pantryBindings,...netsuiteBindings},outboundResponse:accountingReadFake(provider,customer,calls)})
+  try{
+   const f=await scheduleFixture(h,{type:customer?'customer':'supplier',recurrence:'monthly',restricted:true})
+   await f.confirm()
+   await h.owner.command('accounting.link',{agreementId:f.source.id,version:(await f.current()).version,provider,...(customer?{customerId:'42'}:{vendorId:'42'}),consent:true})
+   const schedule=await f.prepare({occurrences:2})
+   assert.equal(schedule.ids.length,2)
+   const read=await h.owner.command('accounting.read',{agreementId:f.source.id,version:(await f.current()).version,since:'2026-11-01',through:'2026-12-31'})
+   const snapshot=JSON.parse((await h.owner.state()).accountingReads.find(r=>r.id===read.id).content),documents=snapshot[customer?'invoices':'bills']
+   assert.equal(snapshot.totalCents,325050);assert.equal(snapshot.paymentTotalCents,50000)
+   assert.equal(snapshot.direction,customer?'revenue':'spend')
+   assert.deepEqual(documents.map(d=>[d.id,d.totalCents,d.dueDate]),[[customer?'invoice:synthetic-locket-10':'synthetic-locket-10',125050,'2026-11-01'],[customer?'invoice:synthetic-locket-11':'synthetic-locket-11',200000,'2026-12-01']])
+   assert.equal(snapshot[customer?'bills':'invoices'].length,0)
+   assert.equal(snapshot.payments[0].totalCents,50000)
+   if(provider==='pantry'){assert.equal(snapshot.payments.length,2);assert.equal(snapshot.payments[1].reversed,true);assert.equal(calls.length,3);assert.ok(!JSON.stringify(snapshot).includes('synthetic-locket-16'))}
+   if(provider==='netsuite'){assert.equal(calls[0].method,'POST');assert.equal(calls[0].prefer,'transient');assert.ok(calls[0].body.q.includes('t.entity=42'));assert.ok(calls[0].url.startsWith('https://1234567-sb1.suitetalk.api.netsuite.com/'))}
+   await h.owner.command('accounting.allocate',{agreementId:f.source.id,version:(await f.current()).version,readId:read.id,allocations:[{billId:documents[0].id,amount:'1250.50'},{billId:documents[1].id,amount:'1000.00'}],confirmAllocation:true})
+   const comparison=await h.owner.command('accounting.compare',{agreementId:f.source.id,version:(await f.current()).version,readId:read.id})
+   assert.equal(comparison.allocatedCents,225050);assert.equal(comparison.percent,'2.25');assert.equal(comparison.allocation,'confirmed')
+   assert.equal(comparison.paymentTotalCents,50000);assert.equal(comparison.paymentsAllocation,'unconfirmed');assert.equal(comparison.counterpartyTotalCents,325050)
+   assert.deepEqual(comparison.schedule.map(s=>[s.dueDate,s.plannedCents,s.billedCents,s.differenceCents]),[['2026-11-01',125050,125050,0],['2026-12-01',125050,100000,-25050]])
+   assert.equal(comparison.unmatchedAllocatedCents,0)
+   const outsider=await h.invite('synthetic-locket-18@example.test','requester'),count=calls.length
+   await outsider.command('accounting.read',{agreementId:f.source.id},{error:'FORBIDDEN'})
+   await outsider.command('accounting.compare',{agreementId:f.source.id,readId:read.id},{error:'FORBIDDEN'})
+   await outsider.command('accounting.allocate',{agreementId:f.source.id,readId:read.id},{error:'FORBIDDEN'})
+   assert.equal(calls.length,count);assert.equal((await outsider.state()).accountingReads.length,0)
+   const other=await scheduleFixture(h,{type:customer?'customer':'supplier'})
+   await h.owner.command('accounting.link',{agreementId:other.source.id,version:(await other.current()).version,provider,...(customer?{customerId:'42'}:{vendorId:'42'}),consent:true})
+   const another=await h.owner.command('accounting.read',{agreementId:other.source.id,version:(await other.current()).version,since:'2026-11-01',through:'2026-12-31'})
+   await h.owner.command('accounting.allocate',{agreementId:other.source.id,version:(await other.current()).version,readId:another.id,allocations:[{billId:documents[0].id,amount:'0.01'}],confirmAllocation:true},{error:'STALE'})
+   assert.equal((await h.owner.state()).accountingAllocations.filter(a=>a.active).length,2)
+   const archive=await(await h.owner.request('/api/locket/export')).json()
+   assert.equal(archive.records.lk_accounting_reads.length,2);assert.equal(archive.records.lk_accounting_schedules.length,2)
+   assert.ok(!JSON.stringify(archive).includes('synthetic-locket-9'))
+  }finally{await h.close()}
+ }
+})
+
+test('LINK-001 incomplete provider evidence preserves snapshots and finite recurring drafts need separate exact consent for every occurrence',async t=>{
+ const {accountingReadFake,netsuiteBindings}=await import('./accounting-read-fixture.mjs')
+ const {pantryBindings,pantryFake,scheduleFixture}=await import('./accounting-schedule-fixture.mjs')
+ for(const provider of ['pantry','netsuite']){
+  const calls=[];let mode='ok'
+  const h=await installation({bindings:{...pantryBindings,...netsuiteBindings},outboundResponse:accountingReadFake(provider,false,calls,()=>mode)})
+  try{
+   const f=await scheduleFixture(h)
+   await h.owner.command('accounting.link',{agreementId:f.source.id,version:(await f.current()).version,provider,vendorId:'42',consent:true})
+   const payload={agreementId:f.source.id,version:(await f.current()).version,since:'2026-11-01',through:'2026-12-31'}
+   await h.owner.command('accounting.read',payload)
+   for(const broken of ['failure','counterparty','incomplete',...(provider==='netsuite'?['currency']:[])]){
+    mode=broken
+    await h.owner.command('accounting.read',payload,{error:broken==='failure'?'ACCOUNTING_UNAVAILABLE':'ACCOUNTING_DATA'})
+    assert.equal((await h.owner.state()).accountingReads.length,1)
+   }
+  }finally{await h.close()}
+ }
+ for(const customer of [false,true]){
+  const calls=[];let mode='draft'
+  const h=await installation({bindings:pantryBindings,outboundResponse:pantryFake(calls,()=>mode)})
+  try{
+   const f=await scheduleFixture(h,{type:customer?'customer':'supplier',recurrence:'monthly',dueDate:'2027-01-31'})
+   await f.confirm()
+   if(customer)await h.owner.command('accounting.schedule.prepare',{agreementId:f.source.id,version:(await f.current()).version},{error:'BILLING_MAPPING'})
+   if(customer)await h.owner.command('accounting.schedule.prepare',{agreementId:f.source.id,version:(await f.current()).version,obligationId:f.obligation.id},{error:'BILLING_MAPPING'})
+   const proposed=await f.prepare({occurrences:3,billDate:'2027-01-01'})
+   let rows=(await h.owner.state()).accountingSchedules.filter(s=>proposed.ids.includes(s.id)).sort((a,b)=>a.due_date.localeCompare(b.due_date))
+   assert.deepEqual(rows.map(s=>s.due_date),['2027-01-31','2027-02-28','2027-03-31'])
+   assert.equal(calls.length,0);assert.ok(rows.every(s=>s.status==='draft'))
+   await h.owner.command('accounting.schedule.prepare',{agreementId:f.source.id,version:(await f.current()).version,obligationId:f.obligation.id,amount:'1250.50',billDate:'2027-01-01',...(customer?{customerId:'synthetic-locket-7',taxCode:'exempt'}:{vendorId:'synthetic-locket-7'}),accountId:'synthetic-locket-8',citation:{quote:f.quote},confirmAllocation:true,occurrences:3},{error:'DUPLICATE_SCHEDULE'})
+   const ownerless=await h.invite('synthetic-locket-19@example.test','requester')
+   await ownerless.command('accounting.schedule.send',{scheduleId:rows[0].id,payload:rows[0].payload,consent:true},{error:'FORBIDDEN'})
+   const send={scheduleId:rows[0].id,payload:rows[0].payload,consent:true},commandId=crypto.randomUUID()
+   await h.owner.command('accounting.schedule.send',{...send,consent:false},{error:'CONSENT'})
+   await h.owner.command('accounting.schedule.send',send,{commandId});await h.owner.command('accounting.schedule.send',send,{commandId})
+   assert.equal(calls.length,1);assert.equal(calls[0].body.post,false)
+   assert.equal(calls[0].url,pantryBindings.PANTRY_ORIGIN+'/api/pantry/integration/v1/'+(customer?'invoices':'bills'))
+   assert.equal((await f.row(rows[0].id)).status,'pending');assert.equal((await f.row(rows[1].id)).status,'draft')
+   mode='posted';await h.owner.command('accounting.schedule.check',{scheduleId:rows[0].id})
+   assert.equal((await f.row(rows[0].id)).status,'accepted')
+   mode='changed';await h.owner.command('accounting.schedule.check',{scheduleId:rows[0].id},{error:'PANTRY_DATA'})
+   assert.equal((await f.row(rows[0].id)).status,'accepted')
+   mode='unknown';await h.owner.command('accounting.schedule.send',{scheduleId:rows[1].id,payload:rows[1].payload,consent:true})
+   assert.equal((await f.row(rows[1].id)).status,'uncertain')
+   await h.owner.command('accounting.schedule.send',{scheduleId:rows[1].id,payload:rows[1].payload,consent:true},{error:'STATUS'})
+   assert.equal(calls.filter(c=>c.method==='POST').length,2)
+  }finally{await h.close()}
+ }
+})

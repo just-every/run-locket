@@ -354,14 +354,14 @@
     },
     {
       "name": "Owner-selected Pantry installation",
-      "data": "Explicitly approved payment obligation description, vendor and expense account identifiers, exact USD amount, dates and contract reference in one unposted draft bill; scoped readback of that bill.",
+      "data": "Owner-authorized linked-counterparty USD bills, invoices and payments; separately approved exact finite payment occurrences as unposted bills or draft customer invoices, plus matching record readback.",
       "bindings": [
         "PANTRY_ORIGIN",
         "PANTRY_TOKEN"
       ],
       "connectors": [],
       "enabledByDefault": false,
-      "configuration": "Owner configures a scoped bills:write credential without post authority, reviews the exact proposed payload and explicitly authorizes one draft. The person accepts the bill in Pantry.",
+      "configuration": "Owner configures scoped read credentials and draft write authority without post authority. Each exact occurrence requires separate outbound consent; customer invoice tax treatment must be explicitly confirmed. A person accepts in Pantry.",
       "responsibility": "The buyer selects and contracts with the installation operator, determines processing terms and locations, grants minimum credentials and revokes access."
     },
     {
@@ -391,8 +391,42 @@
       "enabledByDefault": false,
       "configuration": "The owner supplies an installation origin and minimum credential and separately approves each handoff. Nectar receives the published amendment setup proposal and its pending state is read back; no activation is requested.",
       "responsibility": "The buyer selects the installation operator, authorizes access and determines processing terms. No subscription is automatically activated."
+    },
+    {
+      "name": "NetSuite",
+      "data": "Read-only USD vendor bills, customer invoices and payments for the explicitly linked counterparty and selected period.",
+      "bindings": [
+        "NETSUITE_ACCOUNT_ID",
+        "NETSUITE_ACCESS_TOKEN"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Owner configures its account and OAuth access token with read-only SuiteQL permission and explicitly links the counterparty.",
+      "responsibility": "The buyer selects the operator, authorizes processing, grants minimum credentials and determines retention and processing terms."
+    },
+    {
+      "name": "PandaDoc",
+      "data": "Completed proposal details, selected completed customer recipients, accepted pricing and the original completed PDF with its terms.",
+      "bindings": [
+        "PANDADOC_API_KEY"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Owner configures a minimum read credential, explicitly maps the completed customer and authorizes each native import. No signature or approval is imported.",
+      "responsibility": "The buyer selects the operator, authorizes processing, grants minimum credentials and determines retention and processing terms."
+    },
+    {
+      "name": "Stripe Billing",
+      "data": "Exact owner-confirmed customer, existing price identifiers, confirmed USD pricing, start date and term and renewal instructions in a draft quote.",
+      "bindings": [
+        "STRIPE_SECRET_KEY"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Owner configures minimum price read and quote draft authority, explicitly maps every price and separately consents to sending. Draft quote readback is required; no finalization, acceptance, activation or uncertain resend is requested.",
+      "responsibility": "The buyer selects the operator, authorizes processing, grants minimum credentials and determines retention and processing terms."
     }
   ],
-  "assessedAt": "2026-10-26",
+  "assessedAt": "2026-10-27",
   "scope": "Repository-supplied controls for a buyer-operated installation. Answers describe shipped software capabilities and explicitly unverified buyer and platform operations. No provider certification, regulatory conformity, continuous monitoring or service-level commitment is asserted."
 }

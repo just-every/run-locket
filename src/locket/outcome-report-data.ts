@@ -83,6 +83,7 @@ export async function buildOutcomeReport(env:Bindings,actor:Actor,month:string,s
   const current=lifecycle(a,terms.filter(t=>t.agreement_id===a.id),renewals.filter(r=>r.agreement_id===a.id),notices.filter(n=>n.agreement_id===a.id),now,settings.rollNoticeDeadlines)
   const mark=(reason:string)=>{for(const m of report.months)m.figures.pastEndSpend.unavailable.push(`${a.id}: ${reason}`)}
   if(!link||link.version!==selection.version||link.vendor_id!==selection.vendorId){mark('Accounting consent changed; owner must select the current link again.');continue}
+  if(link.provider!=='quickbooks'||link.record_kind!=='vendor'){mark('This report requires an explicitly linked QuickBooks vendor.');continue}
   if(links.filter(l=>l.vendor_id===link.vendor_id).length!==1){mark('Vendor is linked to multiple agreements; no contract allocation inferred.');continue}
   if(!current.end){mark('No confirmed effective end date.');continue}
   const since=[addDays(current.end,1),allBounds.start].sort().at(-1)!,through=lastBounds.end

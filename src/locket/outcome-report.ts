@@ -47,6 +47,7 @@ const configure:Handler=async(c,p)=>{
  for(const id of recipients){const person=await outcomePerson(c.db,id);if(!person||!may.read.includes(person.role)||(await hiddenFields(c.db,person)).length)fail('RECIPIENT','Choose active recipients with full field access. Their current agreement access controls each report.',409);checks.push(outcomePersonCheck(person))}
  const accounting:AccountingSelection[]=[]
  for(const input of list(p,'accountingLinks',100)){const value=object(input),a=await visibleAgreement(c,text(value,'agreementId',100)),link=await c.db.prepare('SELECT * FROM lk_accounting_links WHERE agreement_id=?').bind(a.id).first<any>()
+  if(link&&(link.provider!=='quickbooks'||link.record_kind!=='vendor'))fail('ACCOUNTING_UNAVAILABLE','Monthly outcome reports currently require an explicitly linked QuickBooks vendor.',409)
   if(!link||link.version!==integer(value,'version',1)||link.vendor_id!==text(value,'vendorId',40))fail('STALE','Select the current owner-authorized accounting link.',409)
   if(accounting.some(l=>l.agreementId===a.id||l.vendorId===link.vendor_id))fail('INVALID','Select distinct agreement and vendor links; vendor bills cannot be allocated across agreements.')
   accounting.push({agreementId:a.id,version:link.version,vendorId:link.vendor_id});checks.push(...agreementGuards(c,a),sql('(SELECT version FROM lk_accounting_links WHERE agreement_id=?)=?',a.id,link.version))
