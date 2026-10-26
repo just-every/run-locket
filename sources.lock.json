@@ -1609,7 +1609,7 @@
       "executable": false
     },
     "src/locket/proposal-handoffs.ts": {
-      "sha256": "d25a7fb7b5faf8757c3f107893a2764cadbf2768dfa51c9bb9c611f9dbc2022d",
+      "sha256": "a6f4fc75cb2840fe3e31ee22a91e23bb81bbe4587c489f3b3844d7766087122c",
       "executable": false
     },
     "src/locket/proposal-pricing.ts": {
