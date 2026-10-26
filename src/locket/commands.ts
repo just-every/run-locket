@@ -1,3 +1,4 @@
+import { authorizeAccountingComparison } from './accounting-comparison'
 import { dispatchBillingProposal } from './proposal-handoffs'
 import { runExecutionRetrievals } from './execution-retrieval'
 import { dispatchAccountingSchedule } from './accounting-schedules'
@@ -109,6 +110,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const integrationChecks=await integrationCommandChecks(c,type)
   const completed = async (result: unknown) => {
+    if(type==='accounting.compare')await authorizeAccountingComparison(c,payload)
     if(type==='proposal.import'||type.startsWith('billing.proposal.'))requireRole(c.actor,['owner'],'read proposal handoff outcomes')
     if(type==='billing.proposal.send')await dispatchBillingProposal(c,(result as {id:string}).id)
     if(type==='execution.retrieval.authorize')await runExecutionRetrievals(env,c.now,(result as {id:string}).id)

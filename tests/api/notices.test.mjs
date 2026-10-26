@@ -747,7 +747,8 @@ test('LINK-001 provider reads retain exact bills, customer revenue and separate 
    if(provider==='pantry'){assert.equal(snapshot.payments.length,2);assert.equal(snapshot.payments[1].reversed,true);assert.equal(calls.length,3);assert.ok(!JSON.stringify(snapshot).includes('synthetic-locket-16'))}
    if(provider==='netsuite'){assert.equal(calls[0].method,'POST');assert.equal(calls[0].prefer,'transient');assert.ok(calls[0].body.q.includes('t.entity=42'));assert.ok(calls[0].url.startsWith('https://1234567-sb1.suitetalk.api.netsuite.com/'))}
    await h.owner.command('accounting.allocate',{agreementId:f.source.id,version:(await f.current()).version,readId:read.id,allocations:[{billId:documents[0].id,amount:'1250.50'},{billId:documents[1].id,amount:'1000.00'}],confirmAllocation:true})
-   const comparison=await h.owner.command('accounting.compare',{agreementId:f.source.id,version:(await f.current()).version,readId:read.id})
+   const comparisonCommandId=crypto.randomUUID(),comparisonPayload={agreementId:f.source.id,version:(await f.current()).version,readId:read.id}
+   const comparison=await h.owner.command('accounting.compare',comparisonPayload,{commandId:comparisonCommandId})
    assert.equal(comparison.allocatedCents,225050);assert.equal(comparison.percent,'2.25');assert.equal(comparison.allocation,'confirmed')
    assert.equal(comparison.paymentTotalCents,50000);assert.equal(comparison.paymentsAllocation,'unconfirmed');assert.equal(comparison.counterpartyTotalCents,325050)
    assert.deepEqual(comparison.schedule.map(s=>[s.dueDate,s.plannedCents,s.billedCents,s.differenceCents]),[['2026-11-01',125050,125050,0],['2026-12-01',125050,100000,-25050]])
@@ -765,6 +766,8 @@ test('LINK-001 provider reads retain exact bills, customer revenue and separate 
    const archive=await(await h.owner.request('/api/locket/export')).json()
    assert.equal(archive.records.lk_accounting_reads.length,2);assert.equal(archive.records.lk_accounting_schedules.length,2)
    assert.ok(!JSON.stringify(archive).includes('synthetic-locket-9'))
+   await h.owner.command('accounting.link',{agreementId:f.source.id,version:(await f.current()).version,provider,...(customer?{customerId:'42'}:{vendorId:'42'}),consent:true})
+   await h.owner.command('accounting.compare',comparisonPayload,{commandId:comparisonCommandId,error:'STALE'})
   }finally{await h.close()}
  }
 })

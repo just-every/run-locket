@@ -1121,7 +1121,7 @@
       "executable": false
     },
     "src/locket/accounting-comparison.ts": {
-      "sha256": "996e7fcf45cdfb8253596c4927c2187e540967ff9f4a6ac062fafe2c3900f720",
+      "sha256": "1d7bd5f5cf9a4953fc0bb8266a3a4415c670dcdcb60b29aa6f3d1fe8f7ac6093",
       "executable": false
     },
     "src/locket/accounting-netsuite.ts": {
@@ -1265,7 +1265,7 @@
       "executable": false
     },
     "src/locket/commands.ts": {
-      "sha256": "164475bb7e508e9158fe0ff935526c4ce6f26014edc85a4286a8b86f42d264b4",
+      "sha256": "f1065c41f807f431ddc9b5f5aba568251d8d420f6708894eced05ccedc88eb69",
       "executable": false
     },
     "src/locket/comment-threads.ts": {
@@ -4453,7 +4453,7 @@
       "executable": false
     },
     "tests/api/notices.test.mjs": {
-      "sha256": "ad2c99db06b21e27e6b1bb48a1064283cd2535b9fbfd00b0f7d80f2e6ceaf8a6",
+      "sha256": "8551abec67cbc600f72eb1d976dc70c54e02cb4a1e3f0a3c8fb56bec8954e2ee",
       "executable": false
     },
     "tests/api/notifications.test.mjs": {

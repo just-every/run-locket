@@ -1,5 +1,5 @@
 import { may, requireRole } from './access'
-import type { Handler } from './commands'
+import type { Ctx, Handler } from './commands'
 import { accountingRealm, total, type AccountingLink } from './accounting-records'
 import { accountingValueComparison } from './accounting-value'
 import { fail, sql, text } from './model'
@@ -28,3 +28,9 @@ const compare:Handler=async(c,p)=>{
  return {allowed:may.manageRoles,result,checks:[...agreementGuards(c,a,p),sql('(SELECT version FROM lk_accounting_links WHERE agreement_id=?)=?',a.id,link.version),sql('(SELECT COUNT(*) FROM lk_accounting_allocations WHERE agreement_id=? AND active=1)=?',a.id,allocations.length)],writes:[],audit:[{action:'accounting.compare',agreementId:a.id,summary:'Compared explicitly allocated USD documents against retained contractual schedule dates, preserving unmatched and ambiguous amounts and separate unallocated payments.'}]}
 }
 export const accountingComparisonHandlers={'accounting.compare':compare}
+
+export async function authorizeAccountingComparison(c:Ctx,p:Record<string,unknown>){
+ requireRole(c.actor,may.manageRoles,'read a retained accounting comparison')
+ const a=await visibleAgreement(c,p.agreementId),read=await c.db.prepare('SELECT * FROM lk_accounting_reads WHERE id=? AND agreement_id=?').bind(text(p,'readId',100),a.id).first<any>(),link=await c.db.prepare('SELECT * FROM lk_accounting_links WHERE agreement_id=?').bind(a.id).first<AccountingLink>()
+ if(a.version!==p.version||!read||!link||link.version!==read.link_version||accountingRealm(c.env,link.provider)!==read.realm_id)fail('STALE','The comparison source changed. Read and confirm fresh accounting evidence.',409)
+}
