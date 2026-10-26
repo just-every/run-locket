@@ -111,7 +111,7 @@ export function redactWorkspace<T extends Record<string,any>>(workspace:T,hidden
  // obligation wording, citations and evidence notes are withheld with them.
  w.redactedRenditions=[]
  w.versions=workspace.versions.map((v:any)=>({...v,text:null,fields:null,label:'Document version'}))
- for(const key of ['renewalGenerations','renewalHistory','renewalTerminations','calendarEvents','familyAnalyses','renewalBriefs','accountingLinks','accountingSchedules','accountingReads','accountingAllocations','versionAudiences','commentAudiences','legalHolds','artifacts','comments','deviations','approvals','packages','executions','requestForms','proposals','noticeSources','noticePlans','noticeLetters','noticeDispatches','noticeEvents','noticeTracking','notices','audit','familyTerms','obligations'])w[key]=[]
+ for(const key of ['proposalSources','billingProposals','executionRetrievals','renewalGenerations','renewalHistory','renewalTerminations','calendarEvents','familyAnalyses','renewalBriefs','accountingLinks','accountingSchedules','accountingReads','accountingAllocations','versionAudiences','commentAudiences','legalHolds','artifacts','comments','deviations','approvals','packages','executions','requestForms','proposals','noticeSources','noticePlans','noticeLetters','noticeDispatches','noticeEvents','noticeTracking','notices','audit','familyTerms','obligations'])w[key]=[]
  if(workspace.signature)w.signature={...workspace.signature,packets:[],renditions:[],dispatches:[],canCoordinate:[]}
  if(workspace.chatNotifications)w.chatNotifications={...workspace.chatNotifications,deliveries:[]}
  if(workspace.approvalChannels)w.approvalChannels={...workspace.approvalChannels,requests:[],deliveries:[]}

@@ -42,6 +42,7 @@ export function Execution({ state, a, locket }: { state: LocketState; a: Row; lo
   const { run, busy } = locket
   const sent = state.packages.find(p => p.agreement_id === a.id && p.status === 'sent')
   const signers = sent ? parse(sent.manifest).recipients.filter((r: any) => r.action === 'sign') : []
+  const retrievals = (state.executionRetrievals ?? []).filter(r => r.agreement_id === a.id)
   const executions = state.executions.filter(e => e.agreement_id === a.id)
   const file = (id: string | null) => state.artifacts.find(f => f.id === id)
   return (
@@ -63,6 +64,18 @@ export function Execution({ state, a, locket }: { state: LocketState; a: Row; lo
             <label className="lk-check"><input type="checkbox" name="documentConfirmed" /> I checked that this signed file is the packaged document.</label>
           </Form>
         ) : <p className="lk-muted">Your role cannot record execution.</p>}
+      </section>
+      <section className="lk-panel">
+        <div className="lk-panel-head"><h2>Automatic retrieval</h2></div>
+        <p className="lk-muted">Docusign returns are checked against the sent package. Changed documents stay unsigned for review. Retrieval stops when the authorizing owner session or provider connection changes.</p>
+        {retrievals.map(r => <article className="lk-card" key={r.id}>
+          <Badge value={r.status} /><p>{r.attempts} retrieval attempts{r.last_error ? ` · ${r.last_error.startsWith('provider_http_') ? 'Provider returned HTTP '+r.last_error.slice(14) : 'Retrieval could not finish. Review the connection and retry schedule.'}` : ''}</p>
+          {['waiting','retrying','retrieving'].includes(r.status) && <p>Next check {when(r.next_attempt_at)}. Signed evidence appears below after reconciliation.</p>}
+          {can(state,'owner') && ['waiting','retrying','retrieving'].includes(r.status) && <button type="button" disabled={busy} onClick={() => void run('execution.retrieval.cancel',{agreementId:a.id,version:a.version})}>Cancel retrieval</button>}
+        </article>)}
+        {can(state,'owner') && sent?.provider === 'docusign' && !retrievals.some(r=>r.package_id===sent.id) && <Form busy={busy} submit="Authorize retrieval" onSubmit={async data => { await run('execution.retrieval.authorize',{agreementId:a.id,version:a.version,packageId:sent.id,consent:data.get('consent')==='on'}) }}>
+          <label className="lk-check"><input type="checkbox" name="consent" required /> Retrieve and reconcile this exact sent package from the connected Docusign account.</label>
+        </Form>}
       </section>
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Execution evidence</h2></div>

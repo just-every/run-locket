@@ -215,10 +215,36 @@
       "binding": "MAIL_ACCOUNT_ID",
       "environment": "MAIL_ACCOUNT_ID",
       "optional": true
+    },
+    {
+      "binding": "SIGNATURE_DOCUSIGN_CONNECT_SECRET",
+      "environment": "SIGNATURE_DOCUSIGN_CONNECT_SECRET",
+      "optional": true
+    },
+    {
+      "binding": "PLATTER_ORIGIN",
+      "environment": "PLATTER_ORIGIN",
+      "optional": true
+    },
+    {
+      "binding": "PLATTER_TOKEN",
+      "environment": "PLATTER_TOKEN",
+      "optional": true
+    },
+    {
+      "binding": "NECTAR_ORIGIN",
+      "environment": "NECTAR_ORIGIN",
+      "optional": true
+    },
+    {
+      "binding": "NECTAR_TOKEN",
+      "environment": "NECTAR_TOKEN",
+      "optional": true
     }
   ],
   "crons": [
-    "0 * * * *"
+    "0 * * * *",
+    "* * * * *"
   ],
   "platforms": [
     "workers",

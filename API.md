@@ -475,3 +475,43 @@ Configure optional server-only `PANTRY_ORIGIN` as the exact public HTTPS install
 `accounting.schedule.send {scheduleId, payload, consent:true}` requires the unchanged retained payload string and current source and destination. After an atomic one-use claim, it sends one `POST /api/pantry/integration/v1/bills` with the proposal id as `Idempotency-Key`. A matching draft receipt records `pending`; a timeout, redirect, failed response or malformed receipt stays `uncertain` and is never automatically resent. Repeating the original command returns its retained result without another send. Inspect uncertain outcomes in Pantry before any further action; the product offers no resend or replacement for that obligation.
 
 `accounting.schedule.check {scheduleId}` reads only the known bill through the scoped Pantry record door. Matching vendor, reference, dates, exact USD total and line details are required. A draft stays pending; posted is labelled accepted in Pantry with payment unconfirmed. The status is the last verified provider state, not proof of payment or of who accepted. Failed or changed readback preserves the last known status and returns an error. Current agreement and field access applies to all reads, actions and replay outcomes. The workspace exposes `accountingReads`, `accountingAllocations` and `accountingSchedules`; the owner archive retains those tables, and existing contact erasure covers retained snapshot and payload text.
+
+### Automatic retrieval and proposal handoffs
+
+The owner can authorize an exact sent Docusign package with
+`execution.retrieval.authorize` (`agreementId`, current `version`, `packageId`,
+`consent: true`) or stop it with `execution.retrieval.cancel`. Configure
+`SIGNATURE_DOCUSIGN_TOKEN` and `SIGNATURE_DOCUSIGN_CONNECT_SECRET` as private
+installation bindings, and the existing Docusign account connection first.
+The Connect callback is `POST /api/locket/events/docusign`; it checks the
+Docusign HMAC header against the exact request bytes. The configured account
+is read again for authoritative completion, recipients, signed PDF and
+certificate. Minute checks retry read failures with backoff. Changed returns
+remain unsigned for reasoned review. Authorization ends if the owner session,
+package or connection revision changes. State exposes retrieval outcomes,
+attempts and the next check, without the stored authorizing session.
+Extraction kickoff, storage filing and CRM writeback do not ship in this slice.
+
+`proposal.import` takes `proposalId` and `consent: true`; only the owner can
+call it. Private `PLATTER_ORIGIN` and `PLATTER_TOKEN` bindings select the
+installation and its read credential. Locket reads the published agent context
+and requires an accepted current revision. It imports exact USD integer-quantity
+line items with matching totals, preserves the source and creates a native
+customer request. It imports no approval or signature. Optional template
+selection uses `templateVersionId`, `fields` and `clauseChoices`, and feeds the
+same validated line items into the native Word pricing door. Discounted,
+optional, fractional and non-USD prices are refused pending a reviewed mapping.
+
+After execution, `billing.proposal.prepare` takes `agreementId`, current
+`version` and `consent: true`, confirming that quoted pricing matches the
+executed agreement. Effective date, initial term and renewal type must already
+be confirmed through the native cited-term door. Automatic renewal also needs
+a confirmed renewal term. Preparation returns a frozen pending-only proposal.
+`billing.proposal.send` takes the agreement, version, proposal `id` and separate
+`consent: true`. Private `NECTAR_ORIGIN` and `NECTAR_TOKEN` bindings select its
+target. The single-use send requires a pending receipt; uncertain sends never
+retry automatically. This is a Locket-side candidate subscription payload
+against a network-edge fake. Nectar's published proposal door currently lacks
+this proposal kind; production compatibility and activation are not claimed.
+Both handoffs remain partial with the conservative owner-consent defaults
+recorded in CONTRACT.md pending ct approval.

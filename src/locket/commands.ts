@@ -1,3 +1,5 @@
+import { dispatchBillingProposal } from './proposal-handoffs'
+import { runExecutionRetrievals } from './execution-retrieval'
 import { dispatchAccountingSchedule } from './accounting-schedules'
 import { alertConnectionFailure } from './connection-health'
 import { authorizeErasureResult } from './privacy-access'
@@ -107,6 +109,9 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const integrationChecks=await integrationCommandChecks(c,type)
   const completed = async (result: unknown) => {
+    if(type==='proposal.import'||type.startsWith('billing.proposal.'))requireRole(c.actor,['owner'],'read proposal handoff outcomes')
+    if(type==='billing.proposal.send')await dispatchBillingProposal(c,(result as {id:string}).id)
+    if(type==='execution.retrieval.authorize')await runExecutionRetrievals(env,c.now,(result as {id:string}).id)
     if(type==='accounting.schedule.send')await dispatchAccountingSchedule(c,(result as {id:string}).id)
     if(type==='notification.chat.identity')requireRole(c.actor,['owner'],'read chat identity outcomes')
     if(type==='token.create')result=await scopedTokenResult(c,result)

@@ -215,7 +215,8 @@
       "name": "DocuSign",
       "data": "Reviewed signature packet documents, signer identity and routing, signature-field coordinates, package status and returned execution evidence.",
       "bindings": [
-        "SIGNATURE_DOCUSIGN_TOKEN"
+        "SIGNATURE_DOCUSIGN_TOKEN",
+        "SIGNATURE_DOCUSIGN_CONNECT_SECRET"
       ],
       "connectors": [
         "signing:docusign"
@@ -362,6 +363,34 @@
       "enabledByDefault": false,
       "configuration": "Owner configures a scoped bills:write credential without post authority, reviews the exact proposed payload and explicitly authorizes one draft. The person accepts the bill in Pantry.",
       "responsibility": "The buyer selects and contracts with the installation operator, determines processing terms and locations, grants minimum credentials and revokes access."
+    },
+    {
+      "name": "Platter",
+      "data": "Accepted proposal, customer identity, pricing line items and quoted terms.",
+      "bindings": [
+        "PLATTER_ORIGIN",
+        "PLATTER_TOKEN"
+      ],
+      "connectors": [
+        "proposal:platter"
+      ],
+      "enabledByDefault": false,
+      "configuration": "The owner supplies an installation origin and minimum credential and separately approves each handoff. The Nectar subscription proposal kind is a candidate protocol, not a claim of current production compatibility.",
+      "responsibility": "The buyer selects the installation operator, authorizes access and determines processing terms. No subscription is automatically activated."
+    },
+    {
+      "name": "Nectar",
+      "data": "Owner-confirmed executed customer pricing, start date, term and renewal terms as a pending-only proposal.",
+      "bindings": [
+        "NECTAR_ORIGIN",
+        "NECTAR_TOKEN"
+      ],
+      "connectors": [
+        "billing:nectar"
+      ],
+      "enabledByDefault": false,
+      "configuration": "The owner supplies an installation origin and minimum credential and separately approves each handoff. The Nectar subscription proposal kind is a candidate protocol, not a claim of current production compatibility.",
+      "responsibility": "The buyer selects the installation operator, authorizes access and determines processing terms. No subscription is automatically activated."
     }
   ],
   "assessedAt": "2026-10-26",

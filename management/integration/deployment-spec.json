@@ -432,6 +432,42 @@
       "name": "0075_provider_credential_expiry.sql",
       "sha256": "1b04ea6e88988abbba644023445962c670c9b6ae60a9ad0ad59c35ed92eb2848",
       "sql": "ALTER TABLE lk_connection_expiries ADD COLUMN source TEXT NOT NULL DEFAULT 'owner' CHECK(source IN ('owner','provider'));\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0076_redacted_renditions.sql",
+      "sha256": "57c589ef83289b264f395957125cfcb9af3588afe413d150cf5c41c44dcc23c5",
+      "sql": "-- Separate immutable files; approval never rewrites an original.\nCREATE TABLE lk_redacted_renditions (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL REFERENCES lk_agreements(id) ON DELETE CASCADE,\n version_id TEXT NOT NULL REFERENCES lk_versions(id) ON DELETE CASCADE,\n original_id TEXT NOT NULL REFERENCES lk_artifacts(id) ON DELETE CASCADE,\n artifact_id TEXT NOT NULL UNIQUE REFERENCES lk_artifacts(id) ON DELETE CASCADE,\n original_sha256 TEXT NOT NULL,\n rendition_sha256 TEXT NOT NULL,\n text TEXT NOT NULL,\n roles TEXT NOT NULL DEFAULT '[]',\n policy_version INTEGER,\n approved_by TEXT,\n approved_at INTEGER,\n revision INTEGER NOT NULL DEFAULT 1\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0077_access_exceptions.sql",
+      "sha256": "040c53f8bdf93c79a9cc87791ce0e5ad1384c58fad65cdb97841fb2de1c47091",
+      "sql": "-- Person exceptions only override repository group grants, never restricted custody.\nCREATE TABLE lk_access_exceptions (\n id TEXT NOT NULL UNIQUE,\n agreement_id TEXT NOT NULL REFERENCES lk_agreements(id) ON DELETE CASCADE,\n operator_id TEXT NOT NULL REFERENCES oa_operators(id),\n reason TEXT NOT NULL,\n expires_at INTEGER NOT NULL,\n granted_by TEXT NOT NULL REFERENCES oa_operators(id),\n granted_at INTEGER NOT NULL,\n PRIMARY KEY(agreement_id,operator_id)\n);\n\nCREATE TABLE lk_privileged_notes (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL REFERENCES lk_agreements(id) ON DELETE CASCADE,\n body TEXT NOT NULL,\n created_by TEXT NOT NULL REFERENCES oa_operators(id),\n created_at INTEGER NOT NULL\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0078_accounting_schedule.sql",
+      "sha256": "86065c7362dd80c7e7d6792d241c25cb1cc6743769e5b1dcd8d9cda973743a48",
+      "sql": "CREATE TABLE lk_accounting_schedules (\n id TEXT PRIMARY KEY, agreement_id TEXT NOT NULL REFERENCES lk_agreements(id),\n obligation_id TEXT NOT NULL UNIQUE REFERENCES lk_obligations(id),\n agreement_version INTEGER NOT NULL, origin TEXT NOT NULL, payload TEXT NOT NULL,\n citation TEXT NOT NULL, amount_cents INTEGER NOT NULL, due_date TEXT NOT NULL,\n prepared_by TEXT NOT NULL, prepared_at INTEGER NOT NULL,\n status TEXT NOT NULL CHECK(status IN ('draft','sending','pending','accepted','uncertain','refused','cancelled')),\n remote_id TEXT, sent_at INTEGER, checked_at INTEGER\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0079_accounting_allocation.sql",
+      "sha256": "3380d0c1381c96c3a642b91e532393fe8dc1fba94574d3476d674bede9a308f2",
+      "sql": "CREATE TABLE lk_accounting_reads (\n id TEXT PRIMARY KEY, agreement_id TEXT NOT NULL REFERENCES lk_agreements(id),\n agreement_version INTEGER NOT NULL, link_version INTEGER NOT NULL, realm_id TEXT NOT NULL,\n content TEXT NOT NULL, read_by TEXT NOT NULL, read_at INTEGER NOT NULL\n);\nCREATE TABLE lk_accounting_allocations (\n id TEXT PRIMARY KEY, agreement_id TEXT NOT NULL REFERENCES lk_agreements(id),\n read_id TEXT NOT NULL REFERENCES lk_accounting_reads(id), bill_id TEXT NOT NULL,\n realm_id TEXT NOT NULL, vendor_id TEXT NOT NULL, amount_cents INTEGER NOT NULL,\n active INTEGER NOT NULL, agreement_version INTEGER NOT NULL,\n confirmed_by TEXT NOT NULL, confirmed_at INTEGER NOT NULL\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0080_execution_retrieval.sql",
+      "sha256": "4b0aec045c53d1b797433856afcab4b2e613760423aff48026490cca445238c1",
+      "sql": "-- Owner-authorized, exact-package retrieval; no signature evidence is fabricated.\nCREATE TABLE lk_execution_retrievals (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL REFERENCES lk_agreements(id) ON DELETE CASCADE,\n package_id TEXT NOT NULL UNIQUE REFERENCES lk_packages(id) ON DELETE CASCADE,\n actor TEXT NOT NULL,\n connection_version INTEGER NOT NULL,\n status TEXT NOT NULL,\n attempts INTEGER NOT NULL DEFAULT 0,\n next_attempt_at INTEGER NOT NULL,\n lease_until INTEGER,\n last_error TEXT,\n execution_id TEXT REFERENCES lk_executions(id),\n created_at INTEGER NOT NULL,\n updated_at INTEGER NOT NULL\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0081_proposal_handoffs.sql",
+      "sha256": "c48c0a349796f2656485471c4e9c1e8ca204e6d32603e35b473330c90462ccd9",
+      "sql": "CREATE TABLE lk_proposal_sources (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL UNIQUE REFERENCES lk_agreements(id) ON DELETE CASCADE,\n origin TEXT NOT NULL,\n proposal_id TEXT NOT NULL,\n revision INTEGER NOT NULL,\n snapshot TEXT NOT NULL,\n imported_by TEXT NOT NULL,\n imported_at INTEGER NOT NULL,\n UNIQUE(origin,proposal_id,revision)\n);\nCREATE TABLE lk_billing_proposals (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL REFERENCES lk_agreements(id) ON DELETE CASCADE,\n version_id TEXT NOT NULL REFERENCES lk_versions(id),\n payload TEXT NOT NULL,\n terms_digest TEXT NOT NULL,\n status TEXT NOT NULL,\n receipt_id TEXT,\n last_error TEXT,\n created_by TEXT NOT NULL,\n created_at INTEGER NOT NULL\n);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",

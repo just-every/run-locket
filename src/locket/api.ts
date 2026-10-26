@@ -1,3 +1,5 @@
+import { proposalHandoffHandlers } from './proposal-handoffs'
+import { executionCompletionResponse, retrievalHandlers } from './execution-retrieval'
 import { accountingAllocationHandlers } from './accounting-allocation'
 import { accessReport } from './repository-access'
 import { redactedRenditionHandlers } from './redacted-renditions'
@@ -123,7 +125,7 @@ export const handlers: Record<string, Handler> = {
   ...libraryHandlers,
   'clause.insert': insertClause,
   ...reviewHandlers,
-  ...executionHandlers,
+  ...executionHandlers, ...retrievalHandlers, ...proposalHandoffHandlers,
   ...obligationHandlers,
   ...proposalHandlers,
   ...peopleHandlers,
@@ -138,6 +140,8 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
   if (!url.pathname.startsWith('/api/locket/')) return null
   const path = url.pathname.slice('/api/locket'.length)
   try {
+    const completion=await executionCompletionResponse(request,env)
+    if(completion)return completion
     const workforce=await workforceResponse(request,env)
     if(workforce)return workforce
     const chatIntake=await chatIntakeResponse(request,env)

@@ -2,7 +2,7 @@
 // HTTP API of the real Worker with D1.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import { installation } from './harness.mjs'
 import { agreement, approved, docx, executed, file, find, library, outForSignature, pdf, submitted, team } from './setup.mjs'
 
@@ -250,6 +250,7 @@ test('09 execution ingests the signed file and certificate and reconciles envelo
   s = await tm.owner.state()
   assert.equal(s.agreements.find(x => x.id === third.id).status, 'out_for_signature')
   assert.equal(s.executions.filter(x => x.agreement_id === third.id).length, 0)
+  await automaticRetrievalJourney(t)
 })
 
 test('10 terms and obligations are confirmed against the executed text, and corrections keep history', async t => {
@@ -944,4 +945,111 @@ test('legacy DOCX text is read only within the part sizes its package declares',
   }
   await h.owner.command('legacy.import', { title: 'synthetic-locket-4 archive', type: 'nda', party: { name: 'synthetic-locket-4 party', kind: 'other' }, sourceSystem: 'Shared drive', sourceId: 'synthetic-locket-4.docx', file: file('synthetic-locket-4.docx', word) }, { error: 'DOCX' })
   assert.deepEqual((await h.owner.state()).agreements, [])
+})
+
+async function automaticRetrievalJourney(t) {
+  let returned, certificate = pdf('synthetic-locket-1 certificate'), failDownload = true, changed = false, reads = 0
+  const h = await installation({ bindings: { SIGNATURE_DOCUSIGN_TOKEN: 'synthetic-locket-1', SIGNATURE_DOCUSIGN_CONNECT_SECRET: 'synthetic-locket-2' }, outboundResponse: async request => {
+    const path = new URL(request.url).pathname
+    reads++
+    if (path.endsWith('/recipients')) return Response.json({ signers: [{ name: 'Hana Park', email: 'hana@harbour.example', status: 'completed', signedDateTime: '2026-10-26T12:00:00Z' }, { name: 'Olive Owner', email: 'owner@example.test', status: 'completed', signedDateTime: '2026-10-26T12:00:00Z' }] })
+    if (path.endsWith('/documents/combined')) return failDownload ? new Response('Unavailable', { status: 503 }) : new Response(changed ? pdf('Changed liability cap USD 999999') : returned, { headers: { 'content-type': 'application/pdf' } })
+    if (path.endsWith('/documents/certificate')) return new Response(certificate)
+    return Response.json({ envelopeId: decodeURIComponent(path.split('/').at(-1)), status: 'completed', completedDateTime: '2026-10-26T12:00:00Z' })
+  } }); t.after(() => h.close())
+  const tm = await team(h), lib = await library(h, tm)
+  const { id, pkg } = await outForSignature(h, tm, lib)
+  returned = await download(tm.owner, pkg.pdfArtifactId)
+  await tm.owner.command('signature.connection.configure', { provider: 'docusign', baseUrl: 'https://demo.docusign.net/restapi/v2.1', accountId: 'synthetic-locket-1', version: 0 })
+  let a = await find(tm.owner, id)
+  const payload = { agreementId: id, version: a.version, packageId: pkg.packageId, consent: true }
+  await tm.requester.command('execution.retrieval.authorize', payload, { error: 'FORBIDDEN' })
+  await tm.owner.command('execution.retrieval.authorize', { ...payload, consent: false }, { error: 'CONSENT' })
+  await tm.owner.command('execution.retrieval.authorize', payload)
+  let s = await tm.owner.state(), job = s.executionRetrievals.find(r => r.agreement_id === id)
+  assert.equal(job.status, 'retrying'); assert.equal(job.last_error, 'provider_http_503')
+  assert.equal(s.agreements.find(a => a.id === id).status, 'out_for_signature')
+  assert.equal(s.executions.filter(e => e.agreement_id === id).length, 0)
+  const event={event:'envelope-completed',data:{accountId:'synthetic-locket-1',envelopeId:`ENV-${id.slice(0,8)}`}}
+  const signature=createHmac('sha256','synthetic-locket-2').update(JSON.stringify(event)).digest('base64')
+  const invalid=await h.request('/api/locket/events/docusign',{method:'POST',body:event,headers:{'x-docusign-signature-1':'invalid'}})
+  assert.equal(invalid.status,403)
+  const beforeEventReads=reads
+  const valid=await h.request('/api/locket/events/docusign',{method:'POST',body:event,headers:{'x-docusign-signature-1':signature}})
+  assert.equal(valid.status,204)
+  assert.equal(reads,beforeEventReads,'a signed callback must not override failure backoff')
+  const failedReads = reads
+  await h.scheduled(job.next_attempt_at - 1)
+  assert.equal(reads, failedReads, 'backoff must withhold early retries')
+  failDownload = false
+  await h.scheduled(job.next_attempt_at + 1)
+  s = await tm.owner.state(); job = s.executionRetrievals.find(r => r.agreement_id === id)
+  assert.equal(job.status, 'reconciled')
+  assert.equal(s.agreements.find(a => a.id === id).status, 'executed')
+  const execution = s.executions.find(e => e.id === job.execution_id)
+  assert.equal(s.artifacts.find(f => f.id === execution.signed_artifact_id).sha256, sha(returned))
+  assert.equal(s.artifacts.find(f => f.id === execution.certificate_artifact_id).sha256, sha(certificate))
+  assert.deepEqual(await download(tm.owner, execution.signed_artifact_id), returned)
+  assert.deepEqual(await download(tm.owner, execution.certificate_artifact_id), certificate)
+  assert.ok((await tm.requester.state()).notifications.items.some(n => n.agreement_id === id && n.kind === 'signature'))
+  const completedReads = reads
+  await h.scheduled(job.next_attempt_at + 60_000)
+  assert.equal(reads, completedReads, 'a completed job must not retrieve again')
+  // A provider completion is not permission to execute a changed document.
+  changed = true
+  const other = await outForSignature(h, tm, lib, { title: 'Changed provider return', party: 'Other supplier' })
+  a = await find(tm.owner, other.id)
+  await tm.owner.command('execution.retrieval.authorize', { agreementId: a.id, version: a.version, packageId: other.pkg.packageId, consent: true })
+  s = await tm.owner.state()
+  assert.equal(s.executionRetrievals.find(r => r.agreement_id === a.id).status, 'needs_review')
+  assert.equal(s.agreements.find(r => r.id === a.id).status, 'out_for_signature')
+}
+
+test('Accepted Platter pricing becomes a native request and executed confirmed terms reach Nectar only as a pending proposal', async t => {
+  let status = 'draft', billingBody, billCalls = 0
+  const proposal = { id:'synthetic-locket-1',revision:1,title:'Customer subscription',clientName:'Synthetic customer',currency:'USD',scope:'Provide hosted services.',terms:'Start 2026-11-01. Initial term 12 months. Auto renewal 12 months.',options:[{id:'selected',cents:120000,tables:[{lines:[{name:'Service',description:'Hosted seats',quantity:'2',unitPrice:'500.00',lineTotalCents:100000},{name:'Support',description:'Annual support',quantity:'1',unitPrice:'200.00',lineTotalCents:20000}]}]}],acceptance:{revision:1,optionId:'selected',totalCents:120000,currency:'USD',acceptedAt:1793016000000} }
+  const h = await installation({bindings:{PLATTER_ORIGIN:'https://platter.example.test',PLATTER_TOKEN:'synthetic-locket-1',NECTAR_ORIGIN:'https://nectar.example.test',NECTAR_TOKEN:'synthetic-locket-2'},outboundResponse:async request=>{
+    if(new URL(request.url).hostname==='platter.example.test'){assert.equal(new URL(request.url).pathname,'/api/platter/agent/context');return Response.json({proposals:[{...proposal,status}]})}
+    assert.equal(new URL(request.url).pathname,'/api/nectar/proposal.create');billCalls++;billingBody=await request.json();assert.equal(billingBody.kind,'subscription');assert.equal(billingBody.activation,'pending');return Response.json({id:'synthetic-locket-pending-1',status:'pending'})
+  }});t.after(()=>h.close())
+  const requester=await h.invite('synthetic-locket-requester@example.test','requester')
+  const input={proposalId:proposal.id,consent:true}
+  await requester.command('proposal.import',input,{error:'FORBIDDEN'})
+  await h.owner.command('proposal.import',input,{error:'NOT_ACCEPTED'})
+  status='accepted'
+  const imported=await h.owner.command('proposal.import',input),id=imported.id
+  let s=await h.owner.state(),a=s.agreements.find(a=>a.id===id)
+  assert.equal(a.type,'customer');assert.equal(a.status,'draft');assert.equal(a.value_cents,120000)
+  assert.match(s.versions.find(v=>v.id===a.current_version_id).text,/Hosted seats: 2 x USD 500.00/)
+  const source=JSON.parse(s.proposalSources.find(r=>r.agreement_id===id).snapshot)
+  assert.equal(source.lineItems.length,2);assert.equal(source.totalCents,120000)
+  await h.owner.command('proposal.import',input,{error:'DUPLICATE_PROPOSAL'})
+  await h.owner.command('billing.proposal.prepare',{agreementId:id,version:a.version,consent:true},{error:'NOT_EXECUTED'})
+  for(const requirement of s.requirements.filter(r=>r.agreement_id===id)) await h.owner.command('requirement.attach',{agreementId:id,requirementId:requirement.id,file:file('statement.pdf',pdf('synthetic-locket-1 scope'))})
+  a=await find(h.owner,id)
+  await h.owner.command('agreement.submit',{agreementId:id,version:a.version});a=await find(h.owner,id)
+  await h.owner.command('approval.decide',{agreementId:id,version:a.version,versionId:a.current_version_id,kind:'commercial',decision:'approved'});a=await find(h.owner,id)
+  const pkg=await h.owner.command('package.prepare',{agreementId:id,version:a.version,provider:'docusign',recipients:[{name:'Synthetic signer',email:'synthetic-locket-signer@example.test',action:'sign'}]});a=await find(h.owner,id)
+  await h.owner.command('package.sent',{agreementId:id,version:a.version,packageId:pkg.packageId,envelopeId:'synthetic-locket-envelope-1'});a=await find(h.owner,id)
+  const signed=await download(h.owner,pkg.pdfArtifactId)
+  const execution=await h.owner.command('execution.record',{agreementId:id,version:a.version,envelopeId:'synthetic-locket-envelope-1',executedOn:'2026-10-26',documentConfirmed:true,signers:[{name:'Synthetic signer',email:'synthetic-locket-signer@example.test'}],signed:file('signed.pdf',signed),certificate:file('certificate.pdf',pdf('synthetic-locket-1 certificate'))})
+  assert.equal(execution.status,'reconciled')
+  a=await find(h.owner,id)
+  await h.owner.command('billing.proposal.prepare',{agreementId:id,version:a.version,consent:true},{error:'BILLING_TERMS'})
+  for(const [key,value] of [['effective_date','2026-11-01'],['initial_term_months','12'],['renewal_type','auto_renew'],['renewal_term_months','12']]){
+    const term=await h.owner.command('term.propose',{agreementId:id,key,value,citation:{quote:proposal.terms}})
+    await h.owner.command('term.decide',{agreementId:id,termId:term.id,decision:'confirm'})
+  }
+  a=await find(h.owner,id)
+  const prepared=await h.owner.command('billing.proposal.prepare',{agreementId:id,version:a.version,consent:true})
+  assert.equal(billCalls,0,'preparation must not send or activate billing')
+  await requester.command('billing.proposal.send',{agreementId:id,version:a.version,id:prepared.id,consent:true},{error:'FORBIDDEN'})
+  const commandId=crypto.randomUUID()
+  await h.owner.command('billing.proposal.send',{agreementId:id,version:a.version,id:prepared.id,consent:true},{commandId})
+  await h.owner.command('billing.proposal.send',{agreementId:id,version:a.version,id:prepared.id,consent:true},{commandId})
+  assert.equal(billCalls,1,'command retry must not send twice')
+  assert.equal(billingBody.payload.start_date,'2026-11-01');assert.equal(billingBody.payload.term_months,12)
+  assert.deepEqual(billingBody.payload.renewal,{type:'auto_renew',term_months:12})
+  assert.equal(billingBody.payload.total_cents,120000);assert.equal(billingBody.payload.line_items.length,2)
+  assert.equal((await h.owner.state()).billingProposals.find(r=>r.id===prepared.id).status,'pending')
 })

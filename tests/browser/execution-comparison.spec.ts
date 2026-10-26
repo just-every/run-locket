@@ -97,6 +97,7 @@ test(`AGENT-006 changed signed liability is visible and held until reasoned acce
       await product.close()
     }
   }
+  await automaticRetrievalBrowserJourney(page)
 })
 
 
@@ -166,3 +167,43 @@ test(`AGENT-006 empty initials hold matching text and field evidence persists af
     } finally { await product.close() }
   }
 })
+
+async function automaticRetrievalBrowserJourney(page: any) {
+  const { team, library, outForSignature } = await import('../api/setup.mjs')
+  for (const width of [1440,390]) {
+    let signed:Buffer, failDownload=true
+    const certificate=pdf('synthetic-locket-1 certificate')
+    const product=await productPage(page,{width,bindings:{SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-1'},outboundResponse:async(request:Request)=>{
+      const path=new URL(request.url).pathname
+      if(path.endsWith('/recipients'))return Response.json({signers:[{name:'Hana Park',email:'hana@harbour.example',status:'completed'},{name:'Olive Owner',email:'owner@example.test',status:'completed'}]})
+      if(path.endsWith('/documents/combined'))return failDownload?new Response('Unavailable',{status:503}):new Response(signed)
+      if(path.endsWith('/documents/certificate'))return new Response(certificate)
+      return Response.json({envelopeId:decodeURIComponent(path.split('/').at(-1)!),status:'completed',completedDateTime:'2026-10-26T12:00:00Z'})
+    }})
+    try{
+      const tm=await team(product.h),lib=await library(product.h,tm),{id,pkg}=await outForSignature(product.h,tm,lib)
+      signed=Buffer.from(await(await product.owner.request('/api/locket/files/'+pkg.pdfArtifactId)).arrayBuffer())
+      await product.command('signature.connection.configure',{provider:'docusign',baseUrl:'https://demo.docusign.net/restapi/v2.1',accountId:'synthetic-locket-1',version:0})
+      await page.goto(product.origin+`/app#agreement/${id}/execution`)
+      const consent=page.getByRole('checkbox',{name:'Retrieve and reconcile this exact sent package from the connected Docusign account.'})
+      await expect(consent).not.toBeChecked();await consent.check()
+      await page.getByRole('button',{name:'Authorize retrieval',exact:true}).click()
+      await expect(page.getByText('Provider returned HTTP 503',{exact:false})).toBeVisible()
+      await expect(page.getByText('Unsigned. No executed file is recorded.',{exact:true})).toBeVisible()
+      expect((await product.state()).agreements.find((a:any)=>a.id===id).status).toBe('out_for_signature')
+      const shot=async(name:string)=>{
+        expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
+        if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-EXEC-002-${name}.png`),fullPage:true})}
+      }
+      await shot('retrying')
+      const job=(await product.state()).executionRetrievals.find((r:any)=>r.agreement_id===id)
+      failDownload=false;await product.h.scheduled(job.next_attempt_at+1)
+      await page.reload()
+      await expect(page.getByText('Reconciled',{exact:true})).toHaveCount(2)
+      await expect(page.getByRole('link',{name:'Signed PDF',exact:true})).toBeVisible()
+      await expect(page.getByRole('link',{name:'Provider certificate',exact:true})).toBeVisible()
+      expect((await product.state()).agreements.find((a:any)=>a.id===id).status).toBe('executed')
+      await shot('reconciled')
+    }finally{await product.close()}
+  }
+}
