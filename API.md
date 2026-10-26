@@ -501,6 +501,8 @@ customer request. It imports no approval or signature. Optional template
 selection uses `templateVersionId`, `fields` and `clauseChoices`, and feeds the
 same validated line items into the native Word pricing door. Discounted,
 optional, fractional and non-USD prices are refused pending a reviewed mapping.
+Text outside the plain PDF character set requires an approved Word template;
+Locket refuses a lossy plain-PDF fallback.
 
 After execution, `billing.proposal.prepare` takes `agreementId`, current
 `version` and `consent: true`, confirming that quoted pricing matches the
@@ -510,8 +512,17 @@ a confirmed renewal term. Preparation returns a frozen pending-only proposal.
 `billing.proposal.send` takes the agreement, version, proposal `id` and separate
 `consent: true`. Private `NECTAR_ORIGIN` and `NECTAR_TOKEN` bindings select its
 target. The single-use send requires a pending receipt; uncertain sends never
-retry automatically. This is a Locket-side candidate subscription payload
-against a network-edge fake. Nectar's published proposal door currently lacks
-this proposal kind; production compatibility and activation are not claimed.
+retry automatically. Locket uses Nectar's published `amendment` kind with `payload.setup: true`,
+then reads the created proposal back and requires its status to be pending.
+The request uses the readable signed-PDF text with whitespace collapsed, never a changed approved draft.
+Preparation additionally requires `nectarMapping`: `customerId`, an exact
+`customerQuote`, `subscriptionQuote`, and one `lines` entry per price with
+`quote`, `intervalUnit` (month or year), `intervalCount`, `billingTiming`
+(advance or arrears) and an explicit `taxable` boolean. Automatic renewal needs
+confirmed notice days, equal initial and renewal term lengths, plus explicit
+`renewalUpliftPercent` and `renewalQuote`. No price interval, tax treatment or
+uplift is inferred. The mapping creates only proposed catalogue entries and a
+proposed subscription; billing people still decide in Nectar. The network-edge
+fake mirrors this protocol; no live receipt or activation is claimed.
 Both handoffs remain partial with the conservative owner-consent defaults
 recorded in CONTRACT.md pending ct approval.

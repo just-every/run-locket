@@ -375,7 +375,7 @@
         "proposal:platter"
       ],
       "enabledByDefault": false,
-      "configuration": "The owner supplies an installation origin and minimum credential and separately approves each handoff. The Nectar subscription proposal kind is a candidate protocol, not a claim of current production compatibility.",
+      "configuration": "The owner supplies an installation origin and minimum credential and separately approves each handoff. Nectar receives the published amendment setup proposal and its pending state is read back; no activation is requested.",
       "responsibility": "The buyer selects the installation operator, authorizes access and determines processing terms. No subscription is automatically activated."
     },
     {
@@ -389,7 +389,7 @@
         "billing:nectar"
       ],
       "enabledByDefault": false,
-      "configuration": "The owner supplies an installation origin and minimum credential and separately approves each handoff. The Nectar subscription proposal kind is a candidate protocol, not a claim of current production compatibility.",
+      "configuration": "The owner supplies an installation origin and minimum credential and separately approves each handoff. Nectar receives the published amendment setup proposal and its pending state is read back; no activation is requested.",
       "responsibility": "The buyer selects the installation operator, authorizes access and determines processing terms. No subscription is automatically activated."
     }
   ],
