@@ -1006,24 +1006,50 @@ async function automaticRetrievalJourney(t) {
 }
 
 test('Accepted Platter pricing becomes a native request and executed confirmed terms reach Nectar only as a pending proposal', async t => {
+  for (const variant of ['simple', 'rich-usd', 'rich-fx']) {
+  const rich = variant !== 'simple', foreign = variant === 'rich-fx'
   let status = 'draft', billingBody, billCalls = 0
   const proposal = { id:'synthetic-locket-1',revision:1,title:'Customer subscription',clientName:'Synthetic customer',currency:'USD',scope:'Provide hosted services.',terms:'Start 2026-11-01. Initial term 12 months. Auto renewal 12 months. Notice 30 days. Renewal uplift 0%. Billing monthly in arrears. Not taxable.',options:[{id:'selected',cents:120000,tables:[{lines:[{name:'Service',description:'Hosted seats',quantity:'2',unitPrice:'500.00',lineTotalCents:100000},{name:'Support',description:'Annual support',quantity:'1',unitPrice:'200.00',lineTotalCents:20000}]}]}],acceptance:{revision:1,optionId:'selected',totalCents:120000,currency:'USD',acceptedAt:1793016000000} }
-  const h = await installation({bindings:{PLATTER_ORIGIN:'https://platter.example.test',PLATTER_TOKEN:'synthetic-locket-1',NECTAR_ORIGIN:'https://nectar.example.test',NECTAR_TOKEN:'synthetic-locket-2'},outboundResponse:async request=>{
+  if (rich) {
+    proposal.currency = proposal.acceptance.currency = foreign ? 'GBP' : 'USD'
+    const option = proposal.options[0]
+    option.tables[0].lines[0] = {name:'Service',description:'Hosted seats',quantity:'1.5',unitPrice:'500.00',grossCents:75000,lineTotalCents:67500}
+    option.cents = 78750
+    option.discount = {bps:1000,grossCents:87500,cents:8750}
+    option.optionalItems = [{id:'backup',label:'Premium backup',unitCents:10000,min:1,max:5,quantity:1,editable:true},{id:'unselected',label:'Not selected',unitCents:50000,min:1,max:1,quantity:1,editable:false}]
+    proposal.acceptance.totalCents = 105750
+    proposal.acceptance.selection = {optionId:'selected',totalCents:105750,discountCents:11750,items:[{id:'backup',label:'Premium backup',quantity:3,unitCents:10000,totalCents:30000}]}
+  }
+  const expectedTotal = foreign ? 132188 : rich ? 105750 : 120000
+  const h = await installation({bindings:{TEST_NOW:'1793016000000',PLATTER_ORIGIN:'https://platter.example.test',PLATTER_TOKEN:'synthetic-locket-1',NECTAR_ORIGIN:'https://nectar.example.test',NECTAR_TOKEN:'synthetic-locket-2'},outboundResponse:async request=>{
     if(new URL(request.url).hostname==='platter.example.test'){assert.equal(new URL(request.url).pathname,'/api/platter/agent/context');return Response.json({proposals:[{...proposal,status}]})}
     if(request.method==='GET'){assert.equal(new URL(request.url).pathname,'/api/nectar/proposals/synthetic-locket-pending-1');return Response.json({id:'synthetic-locket-pending-1',status:'pending'})}
     assert.equal(new URL(request.url).pathname,'/api/nectar/proposal.create');billCalls++;billingBody=await request.json();assert.equal(billingBody.kind,'amendment');assert.equal(billingBody.payload.setup,true);return Response.json({id:'synthetic-locket-pending-1',kind:'amendment',impact:{}})
   }});t.after(()=>h.close())
   const requester=await h.invite('synthetic-locket-requester@example.test','requester')
-  const input={proposalId:proposal.id,consent:true}
+  const input={proposalId:proposal.id,consent:true,...(foreign?{usdRate:'1.25'}:{})}
   await requester.command('proposal.import',input,{error:'FORBIDDEN'})
   await h.owner.command('proposal.import',input,{error:'NOT_ACCEPTED'})
   status='accepted'
+  if(rich){
+    if(foreign) await h.owner.command('proposal.import',{...input,usdRate:undefined},{error:'INVALID'})
+    proposal.acceptance.totalCents++
+    await h.owner.command('proposal.import',input,{error:'PROPOSAL_PRICING'})
+    proposal.acceptance.totalCents--
+    proposal.acceptance.selection.items.push({...proposal.acceptance.selection.items[0]})
+    await h.owner.command('proposal.import',input,{error:'PROPOSAL_PRICING'})
+    proposal.acceptance.selection.items.pop()
+  }
   const imported=await h.owner.command('proposal.import',input),id=imported.id
   let s=await h.owner.state(),a=s.agreements.find(a=>a.id===id)
-  assert.equal(a.type,'customer');assert.equal(a.status,'draft');assert.equal(a.value_cents,120000)
-  assert.match(s.versions.find(v=>v.id===a.current_version_id).text,/Hosted seats: 2 x USD 500.00/)
+  assert.equal(a.type,'customer');assert.equal(a.status,'draft');assert.equal(a.value_cents,expectedTotal)
+  const importedText=s.versions.find(v=>v.id===a.current_version_id).text
+  assert.match(importedText,rich?new RegExp(`1.5 x ${proposal.currency} 500.00; net ${proposal.currency} 607.50`):/Hosted seats: 2 x USD 500.00/)
+  assert.doesNotMatch(importedText,/Not selected/)
+  if(rich) assert.match(importedText,/Premium backup/)
+  if(foreign){assert.equal(a.currency,'GBP');assert.equal(a.original_cents,105750);assert.equal(a.usd_rate,'1.25')}
   const source=JSON.parse(s.proposalSources.find(r=>r.agreement_id===id).snapshot)
-  assert.equal(source.lineItems.length,2);assert.equal(source.totalCents,120000)
+  assert.equal(source.lineItems.length,rich?3:2);assert.equal(source.totalCents,expectedTotal);assert.equal(source.lineItems.reduce((n,line)=>n+line.quantity*line.unitCents,0),expectedTotal)
   await h.owner.command('proposal.import',input,{error:'DUPLICATE_PROPOSAL'})
   await h.owner.command('billing.proposal.prepare',{agreementId:id,version:a.version,consent:true},{error:'NOT_EXECUTED'})
   for(const requirement of s.requirements.filter(r=>r.agreement_id===id)) await h.owner.command('requirement.attach',{agreementId:id,requirementId:requirement.id,file:file('statement.pdf',pdf('synthetic-locket-1 scope'))})
@@ -1046,6 +1072,15 @@ test('Accepted Platter pricing becomes a native request and executed confirmed t
   const nectarMapping={customerId:'synthetic-locket-customer-1',customerQuote:'Customer: Synthetic customer',subscriptionQuote:proposal.terms,renewalQuote:proposal.terms,renewalUpliftPercent:'0',lines:source.lineItems.map(line=>({quote:sourceText.split('\n').find(text=>text.includes(line.description)),intervalUnit:'month',intervalCount:1,billingTiming:'arrears',taxable:false}))}
   await h.owner.command('billing.proposal.prepare',{agreementId:id,version:a.version,consent:true,nectarMapping:{...nectarMapping,customerQuote:'Not in the executed document'}},{error:'BILLING_QUOTE'})
   await h.owner.command('billing.proposal.prepare',{agreementId:id,version:a.version,consent:true,nectarMapping:{...nectarMapping,lines:nectarMapping.lines.map(line=>({...line,taxable:undefined}))}},{error:'BILLING_MAPPING'})
+  if(rich){
+    const differing=await h.owner.command('term.propose',{agreementId:id,key:'renewal_term_months',value:'6',citation:{quote:proposal.terms}})
+    await h.owner.command('term.decide',{agreementId:id,termId:differing.id,decision:'confirm'})
+    a=await find(h.owner,id)
+    await h.owner.command('billing.proposal.prepare',{agreementId:id,version:a.version,consent:true,nectarMapping},{error:'BILLING_MAPPING'})
+    const matching=await h.owner.command('term.propose',{agreementId:id,key:'renewal_term_months',value:'12',citation:{quote:proposal.terms}})
+    await h.owner.command('term.decide',{agreementId:id,termId:matching.id,decision:'confirm'})
+    a=await find(h.owner,id)
+  }
   const prepared=await h.owner.command('billing.proposal.prepare',{agreementId:id,version:a.version,consent:true,nectarMapping})
   assert.equal(billCalls,0,'preparation must not send or activate billing')
   await requester.command('billing.proposal.send',{agreementId:id,version:a.version,id:prepared.id,consent:true},{error:'FORBIDDEN'})
@@ -1055,6 +1090,7 @@ test('Accepted Platter pricing becomes a native request and executed confirmed t
   assert.equal(billCalls,1,'command retry must not send twice')
   assert.equal(billingBody.payload.subscription.start_date,'2026-11-01');assert.equal(billingBody.payload.subscription.term_months,12)
   assert.equal(billingBody.payload.subscription.renewal.auto_renew,true);assert.equal(billingBody.payload.subscription.renewal.months,12)
-  assert.equal(billingBody.payload.items.length,2);assert.equal(billingBody.payload.catalog.reduce((n,line,i)=>n+Number(line.unit_amount)*100*billingBody.payload.items[i].quantity,0),120000)
+  assert.equal(billingBody.payload.items.length,rich?3:2);assert.equal(billingBody.payload.catalog.reduce((n,line,i)=>n+Number(line.unit_amount)*100*billingBody.payload.items[i].quantity,0),expectedTotal)
   assert.equal((await h.owner.state()).billingProposals.find(r=>r.id===prepared.id).status,'pending')
+  }
 })

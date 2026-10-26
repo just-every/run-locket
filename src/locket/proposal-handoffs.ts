@@ -1,10 +1,11 @@
+import { platterPricing } from './proposal-pricing'
 import { readablePages } from './execution-comparison'
 import { requireRole } from './access'
 import type { Bindings } from '../auth.server'
 import { agreementHandlers } from './agreements'
 import { encodeBase64, readArtifactBytes, PDF } from './artifacts'
 import { commit, type Ctx, type Handler } from './commands'
-import { canonical, fail, integer, json, money, object, oneOf, list, sha256, sql, text } from './model'
+import { canonical, fail, integer, json, object, oneOf, list, sha256, sql, text } from './model'
 import { agreementGuards, currentVersion, visibleAgreement } from './records'
 import { textPdf } from './pdf'
 
@@ -26,26 +27,15 @@ const importProposal: Handler = async (c, p) => {
   const proposal = context.proposals?.find((r:any) => r.id === id)
   if (!proposal || proposal.status !== 'accepted' || !proposal.acceptance || proposal.acceptance.revision !== proposal.revision) fail('NOT_ACCEPTED', 'Platter must show this exact proposal revision accepted.', 409)
   const revision = integer(proposal, 'revision', 1), acceptance = proposal.acceptance
-  if (acceptance.currency !== 'USD' || proposal.currency !== 'USD') fail('PROPOSAL_PRICING', 'This handoff currently supports exact USD proposals only.', 409)
-  const option = proposal.options?.find((r:any) => r.id === acceptance.optionId)
-  if (!option || option.discount || acceptance.selection?.discountCents || option.optionalItems?.length) fail('PROPOSAL_PRICING', 'Optional items and discounted proposals need a reviewed pricing mapping before import.', 409)
-  const lines = (option.tables ?? []).flatMap((table:any) => table.lines ?? [])
-  if (!lines.length || lines.length > 100) fail('PROPOSAL_PRICING', 'Import requires one to one hundred quoted line items.', 409)
-  const lineItems = lines.map((line:any) => {
-    const quantity = integer({ quantity: Number(line.quantity) }, 'quantity', 1, 1000000), unitCents = money({ price: line.unitPrice }, 'price')
-    if (unitCents === null || !Number.isSafeInteger(quantity * unitCents) || quantity * unitCents !== line.lineTotalCents || line.grossCents !== undefined && line.grossCents !== line.lineTotalCents) fail('PROPOSAL_PRICING', 'Fractional or discounted quantities need a reviewed pricing mapping.', 409)
-    return { description: text({ description: [line.name, line.description].filter(Boolean).join(' - ') }, 'description', 500), quantity, unitCents, totalCents: quantity * unitCents }
-  })
-  const totalCents = lineItems.reduce((sum:number, line:any) => sum + line.totalCents, 0)
-  if (!Number.isSafeInteger(totalCents) || totalCents !== acceptance.totalCents || totalCents !== option.cents) fail('PROPOSAL_PRICING', 'The selected line totals must exactly match the accepted price.', 409)
+  const pricing = platterPricing(proposal, p.usdRate), { lineItems, totalCents } = pricing
   if (await c.db.prepare('SELECT 1 FROM lk_proposal_sources WHERE origin=? AND proposal_id=? AND revision=?').bind(origin,id,revision).first()) fail('DUPLICATE_PROPOSAL', 'This accepted revision already has a native request.', 409)
   const title = text(proposal,'title',200), terms = typeof proposal.terms === 'string' ? proposal.terms : '', scope = typeof proposal.scope === 'string' ? proposal.scope : ''
   const content = [title,`Customer: ${proposal.clientName}`,scope,...lineItems.map((line:any) => `${line.description}: ${line.quantity} x USD ${(line.unitCents/100).toFixed(2)} = USD ${(line.totalCents/100).toFixed(2)}`),`Total USD ${(totalCents/100).toFixed(2)}`,terms].join('\n')
   if(!p.templateVersionId&&[...content].some(character=>character.charCodeAt(0)>255))fail('PROPOSAL_TEMPLATE','Choose an approved Word template for proposal text outside the plain PDF character set.',409)
-  const out = await agreementHandlers['request.create'](c, { title, type:'customer', party:{name:text(proposal,'clientName',200),kind:'customer'}, value:(totalCents/100).toFixed(2),
+  const out = await agreementHandlers['request.create'](c, { title, type:'customer', party:{name:text(proposal,'clientName',200),kind:'customer'}, value:(pricing.originalTotalCents/100).toFixed(2),currency:pricing.currency,...(pricing.usdRate?{usdRate:pricing.usdRate}:{}),
     ...(p.templateVersionId ? {templateVersionId:p.templateVersionId,fields:object(p.fields??{}),clauseChoices:object(p.clauseChoices??{}),lineItems:lineItems.map((line:any)=>({description:line.description,quantity:line.quantity,unitPrice:(line.unitCents/100).toFixed(2)}))} : {file:{filename:'accepted-proposal.pdf',mediaType:PDF,base64:encodeBase64(textPdf(title,content,'Accepted proposal; native request requires Locket approval and execution.'))},text:content}) })
   const result = out.result as {id:string;versionId:string}
-  const snapshot = { proposalId:id,revision,title,scope,terms,acceptance,lineItems,totalCents,currency:'USD' }
+  const snapshot = { proposalId:id,revision,title,scope,terms,acceptance,...pricing }
   out.writes.push(sql('INSERT INTO lk_proposal_sources VALUES(?,?,?,?,?,?,?,?)',crypto.randomUUID(),result.id,origin,id,revision,json(snapshot),c.actor.id,c.now))
   out.audit.push({action:'proposal.import',agreementId:result.id,summary:`Imported accepted Platter revision ${revision}; no approval or signature was imported.`})
   return out
@@ -89,7 +79,7 @@ const prepareBilling:Handler = async(c,p) => {
   let renewal:Record<string,unknown>|undefined
   if(values.renewal_type==='auto_renew'){
     if(!values.notice_days)fail('BILLING_TERMS','Confirm the renewal notice period before proposing billing.',409)
-    if(values.initial_term_months!==values.renewal_term_months)fail('BILLING_MAPPING','Different initial and renewal term lengths need a supported Nectar mapping.',409)
+    if(values.initial_term_months!==values.renewal_term_months)fail('BILLING_MAPPING','Nectar requires matching initial and renewal term lengths; its setup protocol must support differing terms before this handoff can be sent.',409)
     const uplift=text(mapping,'renewalUpliftPercent',24)
     if(!/^(?:0|[1-9]\d?)(?:\.\d{1,6})?$|^100(?:\.0{1,6})?$/.test(uplift))fail('BILLING_MAPPING','Explicitly confirm a renewal uplift from zero through one hundred percent.')
     renewal={months:Number(values.renewal_term_months),auto_renew:true,notice_days:Number(values.notice_days),uplift_percent:uplift,quote:quote(mapping.renewalQuote,'Renewal mapping')}

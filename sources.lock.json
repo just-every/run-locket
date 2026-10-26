@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ee388f517a03bcb834ded0662f76ccbb37ef21b8a85c467c85f82cba20a656d0",
+      "sha256": "407a3f15c1286182ba6183f23fe1d48ee1784441b64d3ce06994bad529cf6aa9",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -121,7 +121,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "ab6b865604b6be35cf1e8c880681a95900e6118282e575f86b46cb87eb03edbf",
+      "sha256": "881d0d451852b36b0642d59b4134af269b3b1e06ea2218839423cdc7ce5b48ab",
       "executable": false
     },
     "base-copies.json": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d3b012a386ce20383cd58cc5cc591577eb0a74fbd84a2d5dc8e19ed3549d0d4f",
+      "sha256": "8a85054cc6bf042ecdb4d1a64b044b19bb4c45cb3370146d695e698ce67f7c83",
       "executable": false
     },
     "DEMO.md": {
@@ -1569,7 +1569,11 @@
       "executable": false
     },
     "src/locket/proposal-handoffs.ts": {
-      "sha256": "fbe7161211d656fbabc631932e4f8a6fea95330c15cf478fbee0ff762a0b7d65",
+      "sha256": "2570d9a9696653b5cca1862d4a405fe9d817b777108a18f7cfbfd466a2b32c71",
+      "executable": false
+    },
+    "src/locket/proposal-pricing.ts": {
+      "sha256": "1930c66d9938705546f2a374c393b153b8eac3fb58652dd96ee0d3031afbc194",
       "executable": false
     },
     "src/locket/proposals.ts": {
@@ -4381,7 +4385,7 @@
       "executable": false
     },
     "tests/api/flows.test.mjs": {
-      "sha256": "577c344dda9b2a47edc2fbb90cfe1d51faca33de3c3cc832d768afad11a982d9",
+      "sha256": "5f38cd41acdc1b69e3a3a7c15193e28d47fcad44e2c874d07cb699799d1a1a2d",
       "executable": false
     },
     "tests/api/harness.mjs": {
@@ -4694,6 +4698,10 @@
     },
     "tests/browser/product-harness.mjs": {
       "sha256": "e75390bab00c4e2b6671270126690568c74624c8a5dd66ea1c869a19550888b9",
+      "executable": false
+    },
+    "tests/browser/proposal-pricing-journey.mjs": {
+      "sha256": "6af65d1f30dd2c04a1b45de93885fd8519285bdc81a7237e937bd3aa50509f22",
       "executable": false
     },
     "tests/browser/queue-journey.mjs": {

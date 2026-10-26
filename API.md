@@ -495,12 +495,22 @@ Extraction kickoff, storage filing and CRM writeback do not ship in this slice.
 `proposal.import` takes `proposalId` and `consent: true`; only the owner can
 call it. Private `PLATTER_ORIGIN` and `PLATTER_TOKEN` bindings select the
 installation and its read credential. Locket reads the published agent context
-and requires an accepted current revision. It imports exact USD integer-quantity
+and requires an accepted current revision. It imports the accepted selected
 line items with matching totals, preserves the source and creates a native
 customer request. It imports no approval or signature. Optional template
 selection uses `templateVersionId`, `fields` and `clauseChoices`, and feeds the
-same validated line items into the native Word pricing door. Discounted,
-optional, fractional and non-USD prices are refused pending a reviewed mapping.
+same validated line items into the native Word pricing door. Only accepted
+optional items are included. Fractional quantities and line or
+package discounts become explicitly labelled net-price bundles with quantity
+one, preserving the source quantity, unit price and allocated net amount.
+Package discounts are allocated proportionally across selected net line amounts
+using exact integer arithmetic; remaining cents go to the largest remainders,
+with source order breaking ties. For non-USD sources, `usdRate` records USD per
+unit of source currency under US-001; Locket fetches no rate. The original
+currency, amount, rate and attribution are retained. The USD total is rounded
+half up, then allocated by the same cent-preserving rule. Native Word pricing
+and billing use these labelled USD bundles. Source acceptance and original
+line details remain in the owner-visible proposal snapshot.
 Text outside the plain PDF character set requires an approved Word template;
 Locket refuses a lossy plain-PDF fallback.
 
@@ -524,5 +534,9 @@ confirmed notice days, equal initial and renewal term lengths, plus explicit
 uplift is inferred. The mapping creates only proposed catalogue entries and a
 proposed subscription; billing people still decide in Nectar. The network-edge
 fake mirrors this protocol; no live receipt or activation is claimed.
-Both handoffs remain partial with the conservative owner-consent defaults
-recorded in CONTRACT.md pending ct approval.
+The owner-only import and separate exact pending-handoff consent were approved
+by ct on 26 October 11:22Z. The clause remains partial: PandaDoc, Stripe Billing,
+unreadable or mismatch-accepted signed sources and differing initial and renewal
+terms remain. Nectar currently requires its initial term to match the renewal
+term; Locket refuses differing terms before dispatch rather than inventing a
+provider mapping.
