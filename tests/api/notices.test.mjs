@@ -725,7 +725,7 @@ test('LINK-001 eight QuickBooks bills become 84 percent contract consumption onl
  assert.equal(JSON.parse(archive.records.lk_accounting_reads[0].content).bills.length,8)
 })
 
-test('LINK-001 provider reads retain exact bills, customer revenue and separate payments with allocation and contract schedule comparisons',async t=>{
+test('LINK-001 provider reads retain exact bills, customer revenue and separate payments with fresh allocation and contract schedule comparisons',async t=>{
  const {accountingReadFake,netsuiteBindings}=await import('./accounting-read-fixture.mjs')
  const {pantryBindings,scheduleFixture}=await import('./accounting-schedule-fixture.mjs')
  const {accountingBindings}=await import('./renewal-brief-fixture.mjs')
