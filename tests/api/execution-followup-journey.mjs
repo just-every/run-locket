@@ -235,7 +235,7 @@ export async function prepareAcrobatFixture(h,edge,{provider='adobe-acrobat-sign
  const pkg=await preparePacket(tm.owner,id,provider)
  let a=(await tm.owner.state()).agreements.find(a=>a.id===id)
  await tm.owner.command('package.sent',{agreementId:id,version:a.version,packageId:pkg.packageId,envelopeId:'synthetic-locket-acrobat-'+id})
- if(['adobe-acrobat-sign','dropbox-sign'].includes(provider))await tm.owner.command('signature.connection.configure',{provider,baseUrl:provider==='dropbox-sign'?'https://api.hellosign.com/v3':'https://api.na1.adobesign.com/api/rest/v6',accountId:'synthetic-locket-acrobat-account',version:0})
+ if(['adobe-acrobat-sign','dropbox-sign'].includes(provider))await tm.owner.command('signature.connection.configure',{provider,baseUrl:provider==='dropbox-sign'?'https://api.hellosign.com/v3':'https://api.na1.adobesign.com/api/rest/v6',accountId:'synthetic-locket-acrobat-account',version:(await tm.owner.state()).signature.connections.find(c=>c.provider===provider)?.version??0})
  edge.signed=Buffer.from(await(await tm.owner.request('/api/locket/files/'+pkg.pdfArtifactId)).arrayBuffer())
  a=(await tm.owner.state()).agreements.find(a=>a.id===id)
  return {tm,id,pkg,base:{agreementId:id,version:a.version,packageId:pkg.packageId,consent:true}}
@@ -335,7 +335,10 @@ export function dropboxProvider() {
 }
 export async function dropboxRetrievalJourney(t,scenarios) {
  for(const scenario of scenarios??['complete','signable-packet','missing','duplicate','crc','unsafe','extra-crc','revoked']){
-  const edge=dropboxProvider(),h=await installation(edge);t.after(()=>h.close())
+  const edge=dropboxProvider(),h=await installation(edge)
+  let closed=false
+  const close=async()=>{if(!closed){closed=true;await h.close()}}
+  t.after(close)
   const f=await prepareAcrobatFixture(h,edge,{provider:'dropbox-sign',packetPurpose:scenario==='signable-packet'?'sign':undefined})
   if(['signable-packet','extra-crc'].includes(scenario))edge.extraSigned=pdf('synthetic-locket-22 returned signed schedule')
   await f.tm.owner.command('execution.retrieval.authorize',f.base,{error:'INVALID'})
@@ -389,7 +392,7 @@ export async function dropboxRetrievalJourney(t,scenarios) {
    assert.equal(state.agreements.find(a=>a.id===f.id).status,'out_for_signature')
   }
   if(scenario==='complete'||scenario==='revoked'){const reads=edge.reads.length;await h.scheduled(row.next_attempt_at+3600001);assert.equal(edge.reads.length,reads)}
-  await h.close()
+  await close()
  }
 }
 
