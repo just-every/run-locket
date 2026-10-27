@@ -3,9 +3,9 @@ import { pantryOrigin } from './accounting-records'
 import { paymentOccurrences } from './accounting-occurrences'
 // Explicit owner handoff of a confirmed obligation as explicit unposted Pantry drafts.
 import type { Ctx, Handler } from './commands'
-import { commit } from './commands'
+import { auditSql, commit } from './commands'
 import { may, requireRole } from './access'
-import { date, fail, json, money, sql, text } from './model'
+import { date, fail, json, money, sql, text, sha256 } from './model'
 import { agreementGuards, visibleAgreement } from './records'
 import { citation } from './obligations'
 import { fullFieldsCheck, policyVersionCheck, repositoryPolicy, requireFullFields } from './repository-access'
@@ -83,22 +83,23 @@ export async function dispatchAccountingSchedule(c:Ctx,id:string){
  const a=await visibleAgreement(c,row.agreement_id)
  if(row.status!=='sending')return
  if(a.version!==row.agreement_version||pantry(c)!==row.origin)return
- const checks=[...agreementGuards(c,a),fullFieldsCheck(c.actor),policyVersionCheck((await repositoryPolicy(c.db)).version),obligationGuard(row)]
+ const checks=[...agreementGuards(c,a),fullFieldsCheck(c.actor),policyVersionCheck((await repositoryPolicy(c.db)).version),obligationGuard(row),sql('EXISTS(SELECT 1 FROM lk_accounting_schedules WHERE id=? AND origin=? AND payload=? AND citation=? AND agreement_version=? AND amount_cents=? AND due_date=? AND prepared_by=?)',row.id,row.origin,row.payload,row.citation,row.agreement_version,row.amount_cents,row.due_date,row.prepared_by)]
  // An atomic claim precedes the network edge. A crash leaves uncertain, never resendable.
  await commit(c,may.manageRoles,[...checks,sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='sending'",id)],[sql("UPDATE lk_accounting_schedules SET status='uncertain' WHERE id=?",id)])
- const recordOutcome=(writes:ReturnType<typeof sql>[])=>commit(c,may.manageRoles,[...checks,sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='uncertain'",id)],writes)
+ const payloadDigest=await sha256(row.payload)
+ const recordOutcome=(writes:ReturnType<typeof sql>[],outcome:string)=>commit(c,may.manageRoles,[...checks,sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='uncertain'",id)],[...writes,auditSql(c,{action:'accounting.schedule.outcome',agreementId:a.id,summary:json({scheduleId:id,payloadDigest,outcome})})])
  try{
   const response=await remote(c,row,'POST')
   // A non-success response may follow a remote write; retain uncertainty conservatively.
-  if(!response.ok){const observation=operationObservation('pantry',row.origin,c.now,false,'draft_outcome_unknown');await recordOutcome([observation]);return}
+  if(!response.ok){const observation=operationObservation('pantry',row.origin,c.now,false,'draft_outcome_unknown');await recordOutcome([observation],'uncertain');return}
   const record:any=await receipt(response)
-  if(!matchesBill(record,row)||record.status!=='draft'){const observation=operationObservation('pantry',row.origin,c.now,false,'invalid_provider_receipt');await recordOutcome([observation]);return}
+  if(!matchesBill(record,row)||record.status!=='draft'){const observation=operationObservation('pantry',row.origin,c.now,false,'invalid_provider_receipt');await recordOutcome([observation],'uncertain');return}
   const observation=operationObservation('pantry',row.origin,c.now,true,'draft_handoff_succeeded')
-  await recordOutcome([sql("UPDATE lk_accounting_schedules SET status='pending',remote_id=?,checked_at=? WHERE id=? AND status='uncertain'",record.id,c.now,id),observation])
+  await recordOutcome([sql("UPDATE lk_accounting_schedules SET status='pending',remote_id=?,checked_at=? WHERE id=? AND status='uncertain'",record.id,c.now,id),observation],'pending')
  }catch{
   // Lost authority or changed bindings cannot record even a failure observation.
   // The pre-dispatch uncertain claim already records the unresolved attempt.
-  try{await recordOutcome([operationObservation('pantry',row.origin,c.now,false,'draft_outcome_unknown')])}catch{}
+  try{await recordOutcome([operationObservation('pantry',row.origin,c.now,false,'draft_outcome_unknown')],'uncertain')}catch{}
  }
 }
 const refresh:Handler=async(c,p)=>{

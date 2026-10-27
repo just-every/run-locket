@@ -647,6 +647,7 @@ test('LINK-001 confirmed payment obligation becomes one exact pending Pantry dra
  const {pantryBindings,pantryFake,scheduleFixture}=await import('./accounting-schedule-fixture.mjs')
  const calls=[];let mode='draft'
  const h=await installation({bindings:pantryBindings,outboundResponse:pantryFake(calls,()=>mode)});t.after(()=>h.close())
+ await h.setTime(Date.parse('2026-10-27T12:00:00Z'))
  const f=await scheduleFixture(h,{restricted:true});await f.confirm()
  const proposal=await f.prepare(),row=await f.row(proposal.id)
  assert.equal(row.status,'draft');assert.equal(calls.length,0)
@@ -671,6 +672,17 @@ test('LINK-001 confirmed payment obligation becomes one exact pending Pantry dra
  assert.equal((await outsider.state()).accountingSchedules.length,0)
  await outsider.command('accounting.schedule.check',{scheduleId:row.id},{error:'FORBIDDEN'})
  const archive=await(await h.owner.request('/api/locket/export')).json();assert.equal(archive.records.lk_accounting_schedules[0].id,row.id)
+ const retained=archive.records.lk_accounting_schedules[0],actor=(await h.owner.state()).actor
+ assert.equal(retained.payload,row.payload);assert.equal(retained.citation,row.citation)
+ assert.equal(retained.prepared_by,actor.id);assert.equal(retained.prepared_at,Date.parse('2026-10-27T12:00:00Z'));assert.equal(retained.sent_at,retained.prepared_at)
+ const {createHash}=await import('node:crypto')
+ const outcomes=archive.records.lk_audit.filter(a=>a.action==='accounting.schedule.outcome'&&a.agreement_id===f.source.id)
+ assert.equal(outcomes.length,1)
+ assert.deepEqual(JSON.parse(outcomes[0].summary),{scheduleId:row.id,payloadDigest:createHash('sha256').update(row.payload).digest('hex'),outcome:'pending'})
+ assert.equal(outcomes[0].actor_id,actor.id);assert.equal(outcomes[0].actor_role,'owner');assert.equal(outcomes[0].at,retained.sent_at)
+ const decisions=archive.records.lk_audit.filter(a=>a.agreement_id===f.source.id&&['accounting.schedule.prepare','accounting.schedule.send','accounting.schedule.check'].includes(a.action))
+ assert.deepEqual(decisions.map(a=>a.action).sort(),['accounting.schedule.check','accounting.schedule.check','accounting.schedule.prepare','accounting.schedule.send'])
+ assert.ok(decisions.every(a=>a.actor_id===actor.id&&a.actor_role==='owner'&&Number.isSafeInteger(a.at)))
  assert.ok(!JSON.stringify(archive).includes(pantryBindings.PANTRY_TOKEN))
 })
 
@@ -699,33 +711,66 @@ test('LINK-001 refuses unconfirmed, stale and unconsented schedules and never re
 
 async function accountingCompletionRevocation(){
  const {pantryBindings,pantryFake,scheduleFixture}=await import('./accounting-schedule-fixture.mjs')
- const calls=[],entered=Promise.withResolvers(),release=Promise.withResolvers(),fake=pantryFake(calls)
- const h=await installation({bindings:pantryBindings,outboundResponse:async request=>{
-  const response=await fake(request);entered.resolve();await release.promise;return response
- }})
- let pending
- try{
-  const f=await scheduleFixture(h);await f.confirm()
-  const proposed=await f.prepare(),row=await f.row(proposed.id),firstOwner=h.owner
-  const commandId=crypto.randomUUID(),payload={scheduleId:row.id,payload:row.payload,consent:true}
-  pending=firstOwner.command('accounting.schedule.send',payload,{commandId})
-  let timer
-  try{await Promise.race([entered.promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Pantry dispatch did not arrive')),10000)})])}finally{clearTimeout(timer)}
-  const before=await(await firstOwner.request('/api/locket/export')).json()
-  assert.ok(Array.isArray(before.records.lk_connection_health))
-  assert.equal(before.records.lk_accounting_schedules[0].status,'uncertain')
-  assert.equal(before.records.lk_accounting_schedules[0].remote_id,null)
-  assert.deepEqual(before.records.lk_connection_health.filter(r=>r.id==='pantry'),[])
-  assert.equal((await firstOwner.request('/auth/signout',{method:'POST',body:{}})).status,204)
-  h.owner=await h.signIn('owner@example.test')
-  release.resolve();await pending
-  const after=await(await h.owner.request('/api/locket/export')).json()
-  assert.deepEqual(after.records.lk_accounting_schedules,before.records.lk_accounting_schedules,'Revoked session cannot commit pending outcome or provider identity')
-  assert.deepEqual(after.records.lk_connection_health.filter(r=>r.id==='pantry'),[],'Revoked session cannot record Pantry provider health')
-  assert.deepEqual(after.records.lk_audit.filter(a=>a.command_id===commandId),before.records.lk_audit.filter(a=>a.command_id===commandId))
-  await h.owner.command('accounting.schedule.send',payload,{error:'STATUS'})
-  assert.equal(calls.length,1,'A later login cannot revive the uncertain send')
- }finally{release.resolve();if(pending)await pending.catch(()=>{});await h.close()}
+ for(const changed of ['session','role','source','field-policy','erasure']){
+  const calls=[],entered=Promise.withResolvers(),release=Promise.withResolvers(),fake=pantryFake(calls)
+  const h=await installation({bindings:pantryBindings,outboundResponse:async request=>{
+   const response=await fake(request);entered.resolve();await release.promise;return response
+  }})
+  let pending
+  try{
+   await h.setTime(Date.parse('2026-10-27T12:00:00Z'))
+   const email='synthetic-locket-flight@example.test'
+   if(changed==='erasure')await h.owner.command('party.save',{name:'Synthetic flight organization',kind:'supplier',contacts:[{name:'Synthetic flight contact',email}]})
+   const f=await scheduleFixture(h,changed==='erasure'?{quoteSuffix:email,description:'Implementation payment for '+email}:{});await f.confirm()
+   const proposed=await f.prepare(),row=await f.row(proposed.id),firstOwner=h.owner
+   let observer=firstOwner
+   if(changed==='role'){
+    const stepUp=async client=>{
+     assert.equal((await client.request('/auth/step-up',{method:'POST',body:{action:'owner:transfer'}})).status,202)
+     const link=new URL(h.mails.at(-1).text.match(/https?:\/\/[^\s]+/)[0])
+     assert.equal((await client.request('/auth/confirm',{method:'POST',body:{token:link.searchParams.get('token')}})).status,303)
+    }
+    observer=await h.invite('synthetic-locket-accounting-owner@example.test','viewer')
+    await stepUp(firstOwner)
+    const promoted=await firstOwner.request('/auth/operator/role',{method:'POST',body:{operatorId:observer.id,role:'owner'}})
+    assert.equal(promoted.status,200,await promoted.text())
+    observer=await h.signIn('synthetic-locket-accounting-owner@example.test');await stepUp(observer)
+   }
+   const commandId=crypto.randomUUID(),payload={scheduleId:row.id,payload:row.payload,consent:true}
+   pending=firstOwner.command('accounting.schedule.send',payload,{commandId})
+   let timer
+   try{await Promise.race([entered.promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Pantry dispatch did not arrive')),10000)})])}finally{clearTimeout(timer)}
+   let before=await(await observer.request('/api/locket/export')).json()
+   assert.ok(Array.isArray(before.records.lk_connection_health))
+   assert.equal(before.records.lk_accounting_schedules[0].status,'uncertain')
+   assert.equal(before.records.lk_accounting_schedules[0].remote_id,null)
+   assert.deepEqual(before.records.lk_connection_health.filter(r=>r.id==='pantry'),[])
+   if(changed==='session'){
+    assert.equal((await firstOwner.request('/auth/signout',{method:'POST',body:{}})).status,204)
+    observer=await h.signIn('owner@example.test')
+   }else if(changed==='role'){
+    const result=await observer.request('/auth/operator/role',{method:'POST',body:{operatorId:(await firstOwner.state()).actor.id,role:'member'}})
+    assert.equal(result.status,200,await result.text())
+   }else if(changed==='source'){
+    await observer.command('term.propose',{agreementId:f.source.id,key:'payment_terms',value:'Changed payment terms',citation:{quote:f.quote}})
+   }else if(changed==='erasure'){
+    const {erasureRequest,erasureConfirmation}=await import('./erasure-fixture.mjs')
+    const preview=await observer.command('person.erase.preview',erasureRequest(email))
+    await observer.command('person.erase',erasureConfirmation(preview,email,[]))
+    const minimized=await(await observer.request('/api/locket/export')).json()
+    assert.notEqual(minimized.records.lk_accounting_schedules[0].payload,before.records.lk_accounting_schedules[0].payload)
+    assert.equal(minimized.records.lk_accounting_schedules[0].status,'uncertain')
+    before=minimized
+   }else await observer.command('repository.access',{version:0,enabled:false,grants:[],hiddenFields:[{role:'viewer',fields:['value']}]})
+   release.resolve();await pending
+   const after=await(await observer.request('/api/locket/export')).json()
+   assert.deepEqual(after.records.lk_accounting_schedules,before.records.lk_accounting_schedules,changed+': stale authority cannot commit pending outcome or provider identity')
+   assert.deepEqual(after.records.lk_connection_health.filter(r=>r.id==='pantry'),[],changed+': stale authority cannot record Pantry provider health')
+   assert.deepEqual(after.records.lk_audit.filter(a=>a.command_id===commandId),before.records.lk_audit.filter(a=>a.command_id===commandId),changed+': no completion audit')
+   await observer.command('accounting.schedule.send',payload,{error:'STATUS'})
+   assert.equal(calls.length,1,changed+': uncertainty cannot revive a send')
+  }finally{release.resolve();if(pending)await pending.catch(()=>{});await h.close()}
+ }
 }
 
 test('LINK-001 eight QuickBooks bills become 84 percent contract consumption only after exact owner allocation, with shared-vendor cents fenced',async t=>{
@@ -760,6 +805,7 @@ test('LINK-001 eight QuickBooks bills become 84 percent contract consumption onl
 test('LINK-001 provider reads retain exact bills, customer revenue and separate payments with fresh allocation and contract schedule comparisons',async t=>{
  const {accountingReadFake,netsuiteBindings}=await import('./accounting-read-fixture.mjs')
  const {pantryBindings,scheduleFixture}=await import('./accounting-schedule-fixture.mjs')
+ await accountingAmbiguousComparison()
  const {accountingBindings}=await import('./renewal-brief-fixture.mjs')
  for(const provider of ['quickbooks','pantry','netsuite'])for(const customer of [false,true]){
   const calls=[],h=await installation({bindings:{...accountingBindings,...pantryBindings,...netsuiteBindings},outboundResponse:accountingReadFake(provider,customer,calls)})
@@ -804,7 +850,30 @@ test('LINK-001 provider reads retain exact bills, customer revenue and separate 
  }
 })
 
+async function accountingAmbiguousComparison(){
+ const {accountingReadFake}=await import('./accounting-read-fixture.mjs')
+ const {pantryBindings,scheduleFixture}=await import('./accounting-schedule-fixture.mjs')
+ const h=await installation({bindings:pantryBindings,outboundResponse:accountingReadFake('pantry',false,[])})
+ try{
+  const f=await scheduleFixture(h);await f.confirm();await f.prepare()
+  const second=await h.owner.command('obligation.add',{agreementId:f.source.id,description:'Separate same-day implementation payment',ownerId:(await h.owner.state()).actor.id,dueDate:'2026-11-01',recurrence:'none',evidence:'note',citation:{quote:f.quote}})
+  await h.owner.command('obligation.update',{agreementId:f.source.id,obligationId:second.id,action:'confirm'})
+  await f.prepare({obligationId:second.id,amount:'500.00'})
+  await h.owner.command('accounting.link',{agreementId:f.source.id,version:(await f.current()).version,provider:'pantry',vendorId:'42',consent:true})
+  const read=await h.owner.command('accounting.read',{agreementId:f.source.id,version:(await f.current()).version,since:'2026-11-01',through:'2026-12-31'})
+  await h.owner.command('accounting.allocate',{agreementId:f.source.id,version:(await f.current()).version,readId:read.id,allocations:[{billId:'synthetic-locket-10',amount:'1250.50'},{billId:'synthetic-locket-11',amount:'1000.00'}],confirmAllocation:true})
+  const result=await h.owner.command('accounting.compare',{agreementId:f.source.id,version:(await f.current()).version,readId:read.id})
+  assert.equal(result.unmatchedAllocatedCents,100000,'Allocated December bill has no proposed due date')
+  assert.equal(result.allocatedCents,225050)
+  assert.deepEqual(result.schedule.map(r=>[r.dueDate,r.plannedCents,r.billedCents,r.differenceCents,r.comparison]).sort((a,b)=>a[1]-b[1]),[
+   ['2026-11-01',50000,null,null,'ambiguous_due_date'],['2026-11-01',125050,null,null,'ambiguous_due_date'],
+  ],'Two obligations on one date never infer which obligation a bill settles')
+  assert.equal(result.paymentsAllocation,'unconfirmed')
+ }finally{await h.close()}
+}
+
 test('LINK-001 incomplete provider evidence preserves snapshots and finite recurring drafts need separate exact consent for every occurrence',async t=>{
+ await accountingErasureAndHold()
  const {accountingReadFake,netsuiteBindings}=await import('./accounting-read-fixture.mjs')
  const {pantryBindings,pantryFake,scheduleFixture}=await import('./accounting-schedule-fixture.mjs')
  for(const provider of ['pantry','netsuite']){
@@ -817,11 +886,27 @@ test('LINK-001 incomplete provider evidence preserves snapshots and finite recur
    await h.owner.command('accounting.read',payload)
    const retained=structuredClone((await h.owner.state()).accountingReads)
    assert.equal(retained.length,1)
+   const healthy=(await h.owner.state()).connections.find(c=>c.id===provider),mailCount=h.mails.length
+   assert.equal(healthy.status,'healthy',provider+' successful read is visible')
+   assert.ok(Number.isSafeInteger(healthy.last_sync_at));assert.equal(healthy.provider_account,null)
+   assert.deepEqual(healthy.agreementIds,[f.source.id])
    for(const broken of ['failure','counterparty','incomplete',...(provider==='netsuite'?['currency']:[])]){
     mode=broken
     await h.owner.command('accounting.read',payload,{error:broken==='failure'?'ACCOUNTING_UNAVAILABLE':'ACCOUNTING_DATA'})
     assert.deepEqual((await h.owner.state()).accountingReads,retained,'Failed read preserves every retained snapshot byte')
+    const failed=(await h.owner.state()).connections.find(c=>c.id===provider)
+    assert.equal(failed.status,'failing',provider+' failure is visible')
+    assert.equal(failed.reason,broken==='failure'?'accounting_read_failed':'invalid_provider_receipt')
+    assert.equal(failed.last_sync_at,healthy.last_sync_at);assert.equal(failed.alert_status,'accepted')
+    assert.deepEqual(failed.agreementIds,[f.source.id])
+    assert.equal(h.mails.length,mailCount+1,'Repeated failed reads claim one owner alert')
    }
+   const alert=h.mails.at(-1);assert.deepEqual(alert.to,['owner@example.test'])
+   assert.ok(!alert.text.includes(f.quote));assert.ok(!alert.text.includes(f.source.id))
+   mode='ok';await h.owner.command('accounting.read',payload)
+   const recovered=(await h.owner.state()).connections.find(c=>c.id===provider)
+   assert.equal(recovered.status,'healthy');assert.equal(recovered.incident_id,null);assert.equal(recovered.alert_status,null)
+   assert.deepEqual((await h.owner.state()).accountingReads.filter(r=>r.id===retained[0].id),retained)
   }finally{await h.close()}
  }
  for(const [recurrence,dueDate,expected] of [
@@ -869,3 +954,48 @@ test('LINK-001 incomplete provider evidence preserves snapshots and finite recur
   }finally{await h.close()}
  }
 })
+
+async function accountingErasureAndHold(){
+ const {accountingReadFake}=await import('./accounting-read-fixture.mjs')
+ const {pantryBindings,scheduleFixture}=await import('./accounting-schedule-fixture.mjs')
+ const {erasureRequest,erasureConfirmation}=await import('./erasure-fixture.mjs')
+ const email='synthetic-locket-person@example.test'
+ const h=await installation({bindings:pantryBindings,outboundResponse:accountingReadFake('pantry',false,[],()=> 'ok',email)})
+ try{
+  await h.setTime(Date.parse('2026-10-27T12:00:00Z'))
+  await h.owner.command('party.save',{name:'Synthetic contact organization',kind:'supplier',contacts:[{name:'Synthetic contact',email}]})
+  const fixtures=[]
+  for(const held of [false,true]){
+   const f=await scheduleFixture(h,{quoteSuffix:email,description:'Implementation payment for '+email});await f.confirm()
+   const schedule=await f.prepare()
+   await h.owner.command('accounting.link',{agreementId:f.source.id,version:(await f.current()).version,provider:'pantry',vendorId:'42',consent:true})
+   const read=await h.owner.command('accounting.read',{agreementId:f.source.id,version:(await f.current()).version,since:'2026-11-01',through:'2026-12-31'})
+   if(held)await h.owner.command('hold.set',{agreementId:f.source.id,version:(await f.current()).version,holdVersion:0,active:true,reason:'Preserve accounting evidence',reviewOn:'2027-12-31'})
+   fixtures.push({f,held,schedule,read})
+  }
+  const before=await(await h.owner.request('/api/locket/export')).json()
+  const preview=await h.owner.command('person.erase.preview',erasureRequest(email))
+  for(const {held,schedule,read} of fixtures)for(const [table,id,fields] of [['lk_accounting_reads',read.id,['content']],['lk_accounting_schedules',schedule.id,['payload','citation']]]){
+   const row=before.records[table].find(r=>r.id===id)
+   for(const field of fields)assert.ok(row[field].includes(email),table+' populated '+field)
+   if(held){
+    assert.ok(preview.retained.some(r=>r.table===table&&r.id===id&&r.reason==='legal_hold'))
+    assert.ok(!preview.patches.some(r=>r.table===table&&r.id===id))
+   }else{
+    const patch=preview.patches.find(r=>r.table===table&&r.id===id);assert.ok(patch)
+    for(const field of fields){assert.ok(Object.hasOwn(patch.before,field));assert.ok(!patch.before[field].includes(email),'Preview withholds personal data');assert.ok(!patch.after[field].includes(email))}
+   }
+  }
+  await h.owner.command('person.erase',erasureConfirmation(preview,email,preview.drafts.map(d=>({agreementId:d.id,action:'retain',reason:'business_retention'}))))
+  const after=await(await h.owner.request('/api/locket/export')).json()
+  for(const {held,schedule,read} of fixtures)for(const [table,id,fields] of [['lk_accounting_reads',read.id,['content']],['lk_accounting_schedules',schedule.id,['payload','citation']]]){
+   const original=before.records[table].find(r=>r.id===id),retained=after.records[table].find(r=>r.id===id)
+   if(held)assert.deepEqual(retained,original,'Legal hold preserves complete accounting evidence')
+   else{
+    const expected={...original}
+    for(const field of fields)expected[field]=original[field].split(email).join('erased-'+preview.subjectToken+'@invalid.example')
+    assert.deepEqual(retained,expected,'Erasure changes only the exact personal address and preserves every other accounting byte')
+   }
+  }
+ }finally{await h.close()}
+}

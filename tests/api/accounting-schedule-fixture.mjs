@@ -14,10 +14,10 @@ export function pantryFake(calls,mode=()=> 'draft'){
   return Response.json({...record,status:mode()==='posted'?(record?.customer_id?'issued':'posted'):'draft',...(mode()==='changed'?{total_cents:1}:{})})
  }
 }
-export async function scheduleFixture(h,{restricted=false,type='supplier',recurrence='none',dueDate='2026-11-01'}={}){
- const quote='Pay USD 1,250.50 on November 1, 2026 for implementation. '+crypto.randomUUID()
+export async function scheduleFixture(h,{restricted=false,type='supplier',recurrence='none',dueDate='2026-11-01',quoteSuffix='',description='Implementation payment'}={}){
+ const quote='Pay USD 1,250.50 on November 1, 2026 for implementation. '+crypto.randomUUID()+' '+quoteSuffix
  const source=await h.owner.command('legacy.import',{title:type==='customer'?'Synthetic customer services agreement':'Synthetic supplier implementation agreement',type,party:{name:'synthetic-locket counterparty',kind:type},value:'100000',file:file(type==='customer'?'customer-agreement.pdf':'supplier-agreement.pdf',pdf(quote)),text:quote,sourceSystem:'Authorized archive',sourceId:crypto.randomUUID(),signed:true,restricted})
- const obligation=await h.owner.command('obligation.add',{agreementId:source.id,description:'Implementation payment',ownerId:(await h.owner.state()).actor.id,dueDate,recurrence,evidence:'note',citation:{quote}})
+ const obligation=await h.owner.command('obligation.add',{agreementId:source.id,description,ownerId:(await h.owner.state()).actor.id,dueDate,recurrence,evidence:'note',citation:{quote}})
  const current=async()=>(await h.owner.state()).agreements.find(a=>a.id===source.id)
  const prepare=async(extra={})=>h.owner.command('accounting.schedule.prepare',{agreementId:source.id,version:(await current()).version,obligationId:obligation.id,amount:'1250.50',billDate:'2026-10-26',...(type==='customer'?{customerId:'synthetic-locket-7',taxCode:'exempt'}:{vendorId:'synthetic-locket-7'}),accountId:'synthetic-locket-8',citation:{quote},confirmAllocation:true,...extra})
  const confirm=()=>h.owner.command('obligation.update',{agreementId:source.id,obligationId:obligation.id,action:'confirm'})

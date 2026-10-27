@@ -1,6 +1,6 @@
 export const netsuiteBindings={NETSUITE_ACCOUNT_ID:'1234567_SB1',NETSUITE_ACCESS_TOKEN:'synthetic-locket-9'}
-export function accountingReadFake(provider,customer,calls,mode=()=> 'ok'){
- const recordId='42',document={id:'synthetic-locket-10',date:'2026-11-01',due:'2026-11-01',amount:125050},second={id:'synthetic-locket-11',date:'2026-12-01',due:'2026-12-01',amount:200000}
+export function accountingReadFake(provider,customer,calls,mode=()=> 'ok',documentId='synthetic-locket-10'){
+ const recordId='42',document={id:documentId,date:'2026-11-01',due:'2026-11-01',amount:125050},second={id:'synthetic-locket-11',date:'2026-12-01',due:'2026-12-01',amount:200000}
  return async request=>{
   const url=new URL(request.url),body=request.method==='POST'?await request.json():null
   calls.push({url:request.url,method:request.method,body,authorization:request.headers.get('Authorization'),prefer:request.headers.get('Prefer')})

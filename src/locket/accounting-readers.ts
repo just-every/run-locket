@@ -6,7 +6,7 @@ import { pantryRecords } from './accounting-pantry'
 import { netsuiteRecords } from './accounting-netsuite'
 
 export async function accountingRecords(env:Bindings,link:AccountingLink,since:string,through:string){
- const realmId=accountingRealm(env,link.provider),account=link.provider==='pantry'?realmId.slice(7):link.provider==='netsuite'?realmId.slice(9):realmId
+ const realmId=accountingRealm(env,link.provider),account=link.provider==='pantry'?realmId.slice(7):link.provider==='netsuite'?env.NETSUITE_ACCOUNT_ID!:realmId
  try{
   const records=await (link.provider==='pantry'?pantryRecords:link.provider==='netsuite'?netsuiteRecords:quickbooksRecords)(env,link,since,through)
   const totalCents=total([...records.bills,...records.invoices].map(d=>d.totalCents)),paymentTotalCents=total(records.payments.filter(p=>!p.reversed).map(p=>p.totalCents))

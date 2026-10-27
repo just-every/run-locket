@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "42ed1af9878743d6d0c897693b524bf7108ab846c47e39d2f3af48f46e8f23b8",
+      "sha256": "e99f64ff3843b120747ad53f13df57fed3671329576467576aa7201c509edbeb",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "5cbeb841e16b670ad39f009534d3e67acd1b6e6dd8ca834ea2d6f4fe1f8bd215",
+      "sha256": "cca3ed5ac6c92157cdd8af40c65964df28eaa91214fbf19ee2c76b17345a09a0",
       "executable": false
     },
     "DEMO.md": {
@@ -1149,7 +1149,7 @@
       "executable": false
     },
     "src/locket/accounting-readers.ts": {
-      "sha256": "e55e0eff8cebddfaa97a3e14422f615dad01ce9f88f58467039b7f0c3d8a3fe7",
+      "sha256": "a7044e56dc79038c661b066f068e45691d3d6e71652c6caab703bad55ed9de4e",
       "executable": false
     },
     "src/locket/accounting-records.ts": {
@@ -1157,7 +1157,7 @@
       "executable": false
     },
     "src/locket/accounting-schedules.ts": {
-      "sha256": "435fc743434fc7f860493f6fa473a9281550567dd47e3274cc6632c0a4ce8430",
+      "sha256": "265f5e2da25970ce2807e8d2b48afaa7b4cfefb21dabd2b3da5c098f8457e118",
       "executable": false
     },
     "src/locket/accounting-value.ts": {
@@ -4349,11 +4349,11 @@
       "executable": false
     },
     "tests/api/accounting-read-fixture.mjs": {
-      "sha256": "a77bd11be4e97770075ced023dda624a1f2cf39658b470ff6677ca39ec678306",
+      "sha256": "b69660dd9cf2ce6d4e0fff99bd4f6026cadc70bd3d15e78f6fd4583e434a7735",
       "executable": false
     },
     "tests/api/accounting-schedule-fixture.mjs": {
-      "sha256": "bb2db968dc08cc74d14ac208e5a42295e5c6c5c5cfc66783cbe719aac96b0e2b",
+      "sha256": "d95133d78b2d0fd49da4ae9d189add5dd6318616da4b811d8df9f2b821a095e4",
       "executable": false
     },
     "tests/api/analytics-fixture.mjs": {
@@ -4477,7 +4477,7 @@
       "executable": false
     },
     "tests/api/notices.test.mjs": {
-      "sha256": "6561e1aa4ed982f74cf7db1a6e14d2a2693b24ce97ee99fa23218b01199987ab",
+      "sha256": "9eb48151e9684396f7f88d6fc2ef4f58f82b3b6f454463ccac1c61ee6b4e08ae",
       "executable": false
     },
     "tests/api/notifications.test.mjs": {
