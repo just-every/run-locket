@@ -1012,7 +1012,9 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 
 ## Status
 
-Judged from the exact publication candidate identified by the full immutable SHA in the branch handoff (27 October 2026). Its code and test proof snapshot is commit `3a1f6fce1a10fdf984064c95a83e74c7bd06d178`; the final documentation projection changes no product or test bytes from that snapshot. Fresh CT judgment remains pending.
+Judged from the code and tests at commit `3a1f6fce1a10fdf984064c95a83e74c7bd06d178` (27 October 2026).
+
+The exact publication candidate is identified by its full immutable SHA in the branch handoff. The final documentation projection changes no product or test bytes from the judged code and test snapshot. Fresh CT judgment remains pending.
 
 CT reviewed dbf3a2df1675663283c0d1d7a5eb69fdf1cfae5e and ruled STAYS PARTIAL. This round first demoted the claim, then added capped retry and expired-session or lost-owner-role retrieval assertions through the existing Worker doors. The branch handoff supplies the new mutation outcomes, restored passing run and exact-candidate clock receipt. No fresh CT judgment, hosted product acceptance or guarded landing receipt is claimed.
 
