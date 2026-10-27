@@ -5,8 +5,8 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 44 | 21 | 17 | 82 |
-| All | 63 | 21 | 17 | 101 |
+| Target and push further | 45 | 20 | 17 | 82 |
+| All | 64 | 20 | 17 | 101 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -67,7 +67,7 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | `APPROVE-004` | Approval reminders and escalation | target | done | [Source evidence](CONTRACT.md#status) |  |
 | `SIGN-002` | Live Docusign, Adobe Acrobat Sign and Dropbox Sign | target | partial | [Source evidence](CONTRACT.md#status) | OAuth, developer-account live sandbox receipts, verified callbacks, correction, provider reminders and provider voiding remain unproved; SIGN-005 packet transports alone do not complete this clause |
 | `SIGN-003` | Inkwell signing | target | missing | [Source evidence](CONTRACT.md#status) | BLOCKED: Inkwell public machine-send&#47;manage and signed outgoing completion events are absent at 6c4638762028477f6ddba6b6bd8fc18ad2fcbb04; requires the Inkwell seed before automatic signed PDF&#47;certificate retrieval can complete |
-| `EXEC-002` | Automatic retrieval and filing of executed agreements | target | partial | [Source evidence](CONTRACT.md#status) | Touched execution screens fail the mandatory 13px minimum at both 1440 and 390. Complete and prove this existing packet obligation before counting the broad DONE claim: a two-document packet plus separate audit PDF must reach the execution packet_documents hold through the Dropbox retrieval door. |
+| `EXEC-002` | Automatic retrieval and filing of executed agreements | target | done | [Source evidence](CONTRACT.md#status) |  |
 | `SIGN-004` | Clickwrap acceptance of published terms | target | done | [Source evidence](CONTRACT.md#status) |  |
 | `SIGN-005` | Signer rules, signature fields and multi-document packets | target | done | [Source evidence](CONTRACT.md#status) | None for the network-edge packet acceptance. Live provider sending&#47;callbacks and sandbox receipts remain SIGN-002&#47;SIGN-003. |
 | `OBL-001` | Obligation extraction, owners and status | target | partial | [Source evidence](CONTRACT.md#status) | Built-in extraction, status values beyond done and owner lists do not exist |
