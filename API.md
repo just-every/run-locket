@@ -495,8 +495,13 @@ no certificate is manufactured. Acrobat callback registration and live sandbox
 interoperability remain unproved under SIGN-002. Dropbox Sign uses private `SIGNATURE_DROPBOX_KEY` with Basic authentication.
 The owner explicitly supplies distinct `signedName` and `certificateName` PDF
 entry names when authorizing the exact package. The documented ZIP download
-must contain exactly those two files; missing, duplicate, encrypted, oversized,
-corrupt or ambiguous entries are refused. No merged PDF is split. Provider
+must contain both named files and may contain additional unmerged PDF documents.
+Every entry is validated; missing, duplicate, unsafe, encrypted, oversized or
+corrupt entries are refused. Aggregate expanded bytes share the file-size bound.
+The complete original ZIP is retained byte-for-byte beside the selected signed
+PDF and audit trail, with a download link on the execution screen. Multiple
+returned documents remain held for reasoned owner or counsel review; no merged
+PDF is split and no other returned document is silently treated as reconciled. Provider
 preparation failures retry with visible backoff. See the provider's
 [separate audit trail guidance](https://help.dropbox.com/account-settings/dropbox-sign-separate-audit-trail)
 and [download endpoint](https://developers.hellosign.com/api/signature-request/files).
