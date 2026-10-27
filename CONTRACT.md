@@ -1000,6 +1000,8 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 
 ## Status
 
+Judged from the code and tests at commit `feffe722e8798e0767d8e94d1b478fa4b17650c3` (27 October 2026). This identifies the reviewed model implementation and test pin; the candidate retains those bytes, with the estimate-label correction and provenance metadata proved separately on its exact HEAD.
+
 REVIEW-005 is a local builder claim against the committed candidate tree on `cloud/sx-locket-c-i933` (27 October 2026); its immutable SHA and command receipts accompany the fleet handoff. Fresh CT judgment and exact-candidate landing receipts are pending. Other rows retain their recorded baseline; this is not a new judgment of them.
 
 REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence below. INTAKE-006 and APPROVE-002 now have named public-door proof; REPO-009 and INT-003 now have named public-door policy and screen proof; REPO-012 proves the carved rendition obligations; REPO-013 proves its access exceptions, group hiding, hidden-value submission, access reports, privileged notes and audit diffs. LINK-001 and LINK-003 now name the commercial public-door API and both-width browser evidence in this candidate. Other rows retain their recorded baseline.
