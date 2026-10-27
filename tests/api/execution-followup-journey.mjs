@@ -318,11 +318,13 @@ export function dropboxProvider() {
    assert.equal(u.searchParams.get('file_type'),'zip')
    if(edge.beforeFiles){const action=edge.beforeFiles;edge.beforeFiles=null;await action()}
    if(!edge.filesReady)return new Response('Files preparing',{status:409})
-   const entries=[['signed.pdf',edge.signed],['audit.pdf',edge.certificate]]
+   const entries=[['signed.pdf',edge.signed],...(edge.extraSigned?[['schedule.pdf',edge.extraSigned]]:[]),['audit.pdf',edge.certificate]]
    if(edge.archiveFault==='missing')entries.pop()
-   if(edge.archiveFault==='duplicate')entries[1][0]='signed.pdf'
+   if(edge.archiveFault==='duplicate')entries[entries.length-1][0]='signed.pdf'
+   if(edge.archiveFault==='unsafe')entries.splice(1,0,['../schedule.pdf',pdf('synthetic-locket-23')])
    const archive=zip(entries)
-   if(edge.archiveFault==='crc'){const central=archive.indexOf(Buffer.from([0x50,0x4b,0x01,0x02]));archive[central+16]^=1}
+   if(['crc','extra-crc'].includes(edge.archiveFault)){let central=archive.indexOf(Buffer.from([0x50,0x4b,0x01,0x02]));if(edge.archiveFault==='extra-crc')central=archive.indexOf(Buffer.from([0x50,0x4b,0x01,0x02]),central+4);archive[central+16]^=1}
+   edge.archive=archive
    return new Response(archive,{headers:{'content-type':'application/zip'}})
   }
   return Response.json({signature_request:{signature_request_id:decodeURIComponent(u.pathname.split('/').at(-1)),is_complete:edge.completed,is_declined:false,has_error:false,signatures:[
@@ -331,10 +333,11 @@ export function dropboxProvider() {
  }
  return edge
 }
-export async function dropboxRetrievalJourney(t) {
- for(const scenario of ['complete','missing','duplicate','crc','revoked']){
+export async function dropboxRetrievalJourney(t,scenarios) {
+ for(const scenario of scenarios??['complete','signable-packet','missing','duplicate','crc','unsafe','extra-crc','revoked']){
   const edge=dropboxProvider(),h=await installation(edge);t.after(()=>h.close())
-  const f=await prepareAcrobatFixture(h,edge,{provider:'dropbox-sign'})
+  const f=await prepareAcrobatFixture(h,edge,{provider:'dropbox-sign',packetPurpose:scenario==='signable-packet'?'sign':undefined})
+  if(['signable-packet','extra-crc'].includes(scenario))edge.extraSigned=pdf('synthetic-locket-22 returned signed schedule')
   await f.tm.owner.command('execution.retrieval.authorize',f.base,{error:'INVALID'})
   const base={...f.base,signedName:'signed.pdf',certificateName:'audit.pdf'}
   await f.tm.owner.command('execution.retrieval.authorize',{...base,certificateName:'signed.pdf'},{error:'RETRIEVAL_FILES'})
@@ -349,7 +352,7 @@ export async function dropboxRetrievalJourney(t) {
    state=await f.tm.owner.state();row=state.executionRetrievals.find(r=>r.id===decision.id)
    assert.equal(row.status,'retrying');assert.equal(row.last_error,'provider_http_409');assert.equal(state.executions.length,0)
   }
-  edge.filesReady=true;edge.archiveFault=scenario==='complete'||scenario==='revoked'?null:scenario
+  edge.filesReady=true;edge.archiveFault=['complete','signable-packet','revoked'].includes(scenario)?null:scenario
   if(scenario==='revoked')edge.beforeFiles=async()=>assert.equal((await f.tm.owner.request('/auth/signout',{method:'POST',body:{}})).status,204)
   await h.scheduled(row.next_attempt_at+1)
   if(scenario==='revoked'){f.tm.owner=await h.signIn('owner@example.test');h.owner=f.tm.owner}
@@ -363,6 +366,22 @@ export async function dropboxRetrievalJourney(t) {
     assert.equal(response.headers.get('x-locket-sha256'),createHash('sha256').update(bytes).digest('hex'));assert.deepEqual(Buffer.from(await response.arrayBuffer()),bytes)
    }
    assert.equal((await f.tm.requester.state()).notifications.items.filter(n=>n.event_key===decision.id).length,1)
+  }else if(scenario==='signable-packet'){
+   assert.equal(row.status,'needs_review','the real three-entry Dropbox packet must reach reconciliation')
+   assert.equal(state.agreements.find(a=>a.id===f.id).status,'out_for_signature')
+   const e=state.executions.find(e=>e.agreement_id===f.id)
+   assert.equal(JSON.parse(e.checks).find(c=>c.check==='packet_documents').ok,false)
+   assert.equal((await f.tm.requester.state()).notifications.items.filter(n=>n.event_key===decision.id).length,0)
+   const originals=state.artifacts.filter(a=>JSON.parse(a.provenance).providerArchive)
+   assert.equal(originals.length,1,'retain every unmerged document in the original provider ZIP')
+   assert.equal(JSON.parse(originals[0].provenance).executionId,e.id)
+   assert.equal(originals[0].sha256,createHash('sha256').update(edge.archive).digest('hex'))
+   assert.deepEqual(Buffer.from(await(await f.tm.owner.request('/api/locket/files/'+originals[0].id)).arrayBuffer()),edge.archive)
+   for(const [id,bytes] of [[e.signed_artifact_id,edge.signed],[e.certificate_artifact_id,edge.certificate]])assert.deepEqual(Buffer.from(await(await f.tm.owner.request('/api/locket/files/'+id)).arrayBuffer()),bytes)
+   await f.tm.requester.command('execution.resolve',{agreementId:f.id,version:state.agreements.find(a=>a.id===f.id).version,executionId:e.id,reason:'Requester cannot clear packet evidence'},{error:'FORBIDDEN'})
+   await f.tm.counsel.command('execution.resolve',{agreementId:f.id,version:state.agreements.find(a=>a.id===f.id).version,executionId:e.id,reason:'Counsel reviewed both returned PDFs and the separate audit trail against the approved packet.'})
+   assert.equal((await f.tm.owner.state()).agreements.find(a=>a.id===f.id).status,'executed')
+   const reads=edge.reads.length;await h.scheduled(row.next_attempt_at+3600001);assert.equal(edge.reads.length,reads)
   }else{
    assert.equal(row.status,scenario==='revoked'?'cancelled':'retrying')
    assert.equal(row.last_error,scenario==='revoked'?'AUTHORITY':'provider_archive_invalid')
@@ -370,6 +389,7 @@ export async function dropboxRetrievalJourney(t) {
    assert.equal(state.agreements.find(a=>a.id===f.id).status,'out_for_signature')
   }
   if(scenario==='complete'||scenario==='revoked'){const reads=edge.reads.length;await h.scheduled(row.next_attempt_at+3600001);assert.equal(edge.reads.length,reads)}
+  await h.close()
  }
 }
 

@@ -40,7 +40,7 @@
   .lk-compare { margin-left: 0; }
   .lk-app .lk-tool, .lk-version-bar .lk-gradient { min-height: 42px; }
   .lk-rail { position: fixed; top: auto; bottom: 0; left: 0; right: 0; z-index: 35; flex-direction: row; justify-content: space-around; gap: 0; height: 64px; padding: 4px 2px calc(4px + env(safe-area-inset-bottom)); border-right: 0; border-top: 1px solid var(--lk-rule); background: rgb(255 255 255 / .97); }
-  .lk-rail a { flex: 1; width: auto; min-width: 0; min-height: 54px; gap: 3px; padding: 0; font-size: 11px; letter-spacing: -.015em; border-radius: 8px; }
+  .lk-rail a { flex: 1; width: auto; min-width: 0; min-height: 54px; gap: 3px; padding: 0; font-size: 13px; letter-spacing: -.015em; border-radius: 8px; }
   .lk-rail a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lk-rail a .lk-icon { width: 20px; height: 20px; }
   .lk-rail-me { display: none; }
@@ -94,7 +94,7 @@
   .lk-table, .lk-table tbody, .lk-table tr { display: block; width: 100%; }
   .lk-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; border: 1px solid var(--lk-rule); border-radius: 12px; margin: 10px 0; padding: 12px 14px; }
   .lk-table td { display: block; border: 0; padding: 0; min-width: 0; overflow-wrap: anywhere; }
-  .lk-table td[data-label]::before { content: attr(data-label); display: block; color: var(--lk-ink-2); font-size: 12px; line-height: 1.4; }
+  .lk-table td[data-label]::before { content: attr(data-label); display: block; color: var(--lk-ink-2); font-size: 13px; line-height: 1.4; }
   .lk-table td:first-child { grid-column: 1 / -1; }
   .lk-table td:not([data-label]):empty { display: none; }
   .lk-table td:not([data-label]) { grid-column: 1 / -1; }

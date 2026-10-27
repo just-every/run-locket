@@ -12,22 +12,26 @@ export function executionArchive(bytes: Uint8Array, signedName: string, certific
   for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
     if (u32(i) === 0x06054b50 && i + 22 + u16(i + 20) === bytes.length) { end = i; break }
   }
-  if (end < 0 || u16(end + 4) || u16(end + 6) || u16(end + 8) !== 2 || u16(end + 10) !== 2) invalid()
+  if (end < 0 || u16(end + 4) || u16(end + 6)) invalid()
+  const count = u16(end + 10)
+  if (count < 2 || count === 0xffff || u16(end + 8) !== count) invalid()
   const directory = u32(end + 16)
   if (directory + u32(end + 12) !== end) invalid()
   const files = new Map<string, Uint8Array>(), ranges: [number,number][] = []
-  let offset = directory
-  for (let i = 0; i < 2; i++) {
+  let offset = directory, expanded = 0
+  for (let i = 0; i < count; i++) {
     if (offset + 46 > end || u32(offset) !== 0x02014b50) invalid()
     const flags=u16(offset+8), method=u16(offset+10), packed=u32(offset+20), length=u32(offset+24)
     const nameLength=u16(offset+28), extra=u16(offset+30), comment=u16(offset+32), local=u32(offset+42)
     const next=offset+46+nameLength+extra+comment
     if (next > end || flags & 1 || ![0,8].includes(method) || !length || length > MAX_FILE_BYTES || local+30 > directory) invalid()
     const name=decoder.decode(bytes.subarray(offset+46,offset+46+nameLength))
-    if (![signedName,certificateName].includes(name) || files.has(name) || u32(local)!==0x04034b50 || u16(local+6)!==flags || u16(local+8)!==method) invalid()
+    if (!name.toLowerCase().endsWith('.pdf') || name.startsWith('/') || /[\\\u0000-\u001f]/.test(name) || name.split('/').some(part=>!part || part==='..' || part==='.') || files.has(name) || u32(local)!==0x04034b50 || u16(local+6)!==flags || u16(local+8)!==method) invalid()
     const start=local+30+u16(local+26)+u16(local+28), stop=start+packed
     if (stop > directory || ranges.some(([from,to])=>local<to&&stop>from) || decoder.decode(bytes.subarray(local+30,local+30+u16(local+26)))!==name) invalid()
     ranges.push([local,stop])
+    expanded += length
+    if (expanded > MAX_FILE_BYTES) invalid()
     const compressed=bytes.subarray(start,stop)
     const data=method===0?compressed:inflateRawSync(compressed,{maxOutputLength:length})
     let crc=0xffffffff
@@ -36,5 +40,5 @@ export function executionArchive(bytes: Uint8Array, signedName: string, certific
     files.set(name,data);offset=next
   }
   if (offset!==end || !files.has(signedName) || !files.has(certificateName)) invalid()
-  return {signed:files.get(signedName)!,certificate:files.get(certificateName)!}
+  return {signed:files.get(signedName)!,certificate:files.get(certificateName)!, archive:bytes, documentCount:count-1}
 }

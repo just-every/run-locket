@@ -315,6 +315,21 @@ async function acrobatRetrievalBrowserJourney(page:any) {
   await expect(page.getByRole('link',{name:'Provider certificate',exact:true})).toBeVisible()
   expect((await product.state()).agreements.find((a:any)=>a.id===f.id).status).toBe('executed')
   await shot('reconciled')
+  if(provider==='dropbox-sign'){
+   const packet=await prepareAcrobatFixture(product.h,edge,{provider,packetPurpose:'sign'})
+   edge.extraSigned=pdf('synthetic-locket-22 returned signed schedule')
+   await page.goto(product.origin+`/app#agreement/${packet.id}/execution`);await page.reload()
+   await page.getByLabel('Signed PDF name in ZIP').fill('signed.pdf')
+   await page.getByLabel('Provider audit trail name in ZIP').fill('audit.pdf')
+   await page.getByRole('checkbox',{name:'Retrieve and reconcile this exact sent package from the connected Dropbox Sign account.'}).check()
+   await page.getByRole('button',{name:'Authorize retrieval',exact:true}).click()
+   await expect(page.getByText('This packet contains multiple signable documents.',{exact:false})).toBeVisible()
+   await expect(page.getByRole('link',{name:'Provider packet ZIP',exact:true})).toBeVisible()
+   const link=page.getByRole('link',{name:'Provider packet ZIP',exact:true})
+   expect(await(await page.request.get(product.origin+await link.getAttribute('href'))).body()).toEqual(edge.archive)
+   expect((await product.state()).agreements.find((a:any)=>a.id===packet.id).status).toBe('out_for_signature')
+   await shot('packet-held')
+  }
  }finally{await product.close()}
  }
 }

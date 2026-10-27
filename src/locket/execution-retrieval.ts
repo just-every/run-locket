@@ -2,7 +2,7 @@ import { runExecutionFollowups } from './execution-followups'
 import { completedPackage, retrievalProviders } from './execution-provider'
 import type { Bindings } from '../auth.server'
 import { authority, requireRole } from './access'
-import { encodeBase64, MAX_FILE_BYTES, PDF } from './artifacts'
+import { encodeBase64, MAX_FILE_BYTES, PDF, storeArtifact } from './artifacts'
 import { auditSql, commit, type Ctx, type Handler } from './commands'
 import { executionHandlers } from './execution'
 import { fail, json, Problem, sha256, sql, text, type Actor, type Sql } from './model'
@@ -128,11 +128,12 @@ export async function runExecutionRetrievals(env: Bindings, now: number, onlyId?
       }
       // One signable PDF is the current automatic reconciliation boundary.
       // Multi-document packets remain held by EXEC-001's packet_documents check.
-      const p = { agreementId: a.id, version: a.version, envelopeId: pkg.envelope_id, executedOn: evidence.completed.toISOString().slice(0, 10), documentConfirmed: true,
+      const p = { agreementId: a.id, version: a.version, envelopeId: pkg.envelope_id, executedOn: evidence.completed.toISOString().slice(0, 10), documentConfirmed: !('documentCount' in evidence) || evidence.documentCount === 1,
         signers: evidence.signers,
         signed: { filename: `${a.reference}-signed.pdf`, mediaType: PDF, base64: encodeBase64(evidence.signed) }, certificate: { filename: `${a.reference}-certificate.pdf`, mediaType: PDF, base64: encodeBase64(evidence.certificate) } }
       const out = await executionHandlers['execution.record'](c, p), result = out.result as {executionId:string;status:string}
-      await commit(c, ['owner'], [...(out.checks ?? []), ...checks], [...out.writes,
+      const archive = 'archive' in evidence ? await storeArtifact({filename:`${a.reference}-provider-packet.zip`,mediaType:'application/zip',bytes:evidence.archive}, {agreementId:a.id,role:'signed',sourceSystem:pkg.provider,sourceId:pkg.envelope_id,provenance:{package:pkg.id,executionId:result.executionId,providerArchive:true},actorId:actor.id,at:now}) : null
+      await commit(c, ['owner'], [...(out.checks ?? []), ...checks], [...out.writes, ...(archive?.writes ?? []),
         ...await commandNotifications(c, 'execution.record', p, out), ...await workflowWrites(c, out.audit), ...out.audit.map(entry => auditSql(c, entry)),
         sql("UPDATE lk_execution_retrievals SET status=?,execution_id=?,attempts=attempts+1,outcomes=json_insert(outcomes,'$[#]',json(?)),lease_until=NULL,last_error=NULL,updated_at=? WHERE id=?", result.status, result.executionId, json({status:result.status,executionId:result.executionId,at:now}), now, row.id)])
       if(result.status==='reconciled')notify=true

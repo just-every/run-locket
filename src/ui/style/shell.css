@@ -7,11 +7,11 @@ body:has(.lk-app) { margin: 0; padding: 0; background: var(--lk-paper); }
 .lk-app h1 { margin: 0; font: 800 30px/1.1 var(--lk-font-heading); letter-spacing: -.035em; }
 .lk-app h2 { margin: 0; font: 750 18px/1.25 var(--lk-font-heading); letter-spacing: -.015em; }
 .lk-app h3 { margin: 18px 0 8px; font: 700 15px/1.3 var(--lk-font-heading); }
-.lk-app h4 { margin: 0 0 4px; font-size: 12.5px; font-weight: 500; color: var(--lk-ink-2); }
+.lk-app h4 { margin: 0 0 4px; font-size: 13px; font-weight: 500; color: var(--lk-ink-2); }
 .lk-app p { margin: 0 0 8px; }
-.lk-app small { display: block; color: var(--lk-ink-2); font-size: 12.5px; line-height: 18px; }
+.lk-app small { display: block; color: var(--lk-ink-2); font-size: 13px; line-height: 18px; }
 .lk-muted { color: var(--lk-ink-2); }
-.lk-mono { font-family: var(--rer-font-mono); font-size: 12.5px; overflow-wrap: break-word; }
+.lk-mono { font-family: var(--rer-font-mono); font-size: 13px; overflow-wrap: break-word; }
 .lk-nowrap { white-space: nowrap; }
 .lk-serif { font-family: var(--lk-font-serif); }
 /* Hidden but read aloud; it beats the app's own field widths, so a hidden file input never widens the page. */
@@ -29,7 +29,7 @@ body:has(.lk-app) { margin: 0; padding: 0; background: var(--lk-paper); }
 
 /* Rail: six sections as icon tiles, the signed-in person at its foot. */
 .lk-rail { position: sticky; top: var(--lk-top); z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 8px; height: calc(100vh - var(--lk-top)); padding: 16px 0 22px; border-right: 1px solid var(--lk-rule); background: rgb(255 255 255 / .82); }
-.lk-rail a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 82px; min-height: 64px; border-radius: 10px; color: var(--lk-ink-2); font-size: 12.5px; font-weight: 500; text-decoration: none; }
+.lk-rail a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 82px; min-height: 64px; border-radius: 10px; color: var(--lk-ink-2); font-size: 13px; font-weight: 500; text-decoration: none; }
 .lk-rail a .lk-icon { width: 22px; height: 22px; stroke-width: 1.35; }
 .lk-rail a:hover { color: var(--lk-ink); background: var(--lk-tint); }
 .lk-rail a.lk-active { color: var(--lk-claret); background: var(--lk-claret-tint); font-weight: 600; }
@@ -44,25 +44,25 @@ body:has(.lk-app) { margin: 0; padding: 0; background: var(--lk-paper); }
 .lk-ask { display: flex; align-items: center; gap: 10px; flex: 0 0 262px; min-width: 0; height: 50px; padding: 0 10px 0 14px; border: 1px solid var(--lk-rule); border-radius: 12px; background: var(--lk-surface); box-shadow: 0 2px 8px rgb(17 17 17 / .03); }
 .lk-ask img, .lk-agent-chip img { width: 19px; height: 22px; flex: none; }
 .lk-ask:focus-within { border-color: var(--lk-claret); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lk-claret) 16%, transparent); }
-.lk-ask kbd { flex: none; padding: 3px 7px; border-radius: 6px; background: var(--lk-tint); color: var(--lk-ink-2); font: 500 12px/1.2 var(--lk-font); }
+.lk-ask kbd { flex: none; padding: 3px 7px; border-radius: 6px; background: var(--lk-tint); color: var(--lk-ink-2); font: 500 13px/1.2 var(--lk-font); }
 .lk-agent-slot { display: contents; }
 .lk-agent-slot:not(:empty) + .lk-agent-default { display: none; }
 .lk-agent-chip { display: flex; align-items: center; gap: 10px; flex: 0 1 auto; min-width: 0; height: 50px; padding: 0 14px; border: 1px solid var(--lk-rule); border-radius: 12px; background: var(--lk-surface); box-shadow: 0 2px 8px rgb(17 17 17 / .03); font-size: 13.5px; text-decoration: none; }
 .lk-agent-chip span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lk-agent-chip:hover { border-color: var(--lk-ink-2); }
 /* The seal gives way first: a long version label ends in an ellipsis, the hash and its check stay. */
-.lk-seal { order: 10; flex: 0 1 auto; min-width: 0; margin: 0 0 0 auto; padding: 8px 4px 8px 18px; border-left: 1px solid var(--lk-rule); color: var(--lk-ink-2); font-size: 12px; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+.lk-seal { order: 10; flex: 0 1 auto; min-width: 0; margin: 0 0 0 auto; padding: 8px 4px 8px 18px; border-left: 1px solid var(--lk-rule); color: var(--lk-ink-2); font-size: 13px; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
 .lk-seal > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .lk-seal > span, .lk-seal > .lk-icon { flex: none; }
 .lk-seal > span:first-child { flex: 0 1 auto; }
 .lk-seal .lk-icon { width: 13px; height: 13px; color: var(--lk-good-ink); }
 .lk-account { position: relative; flex: 0 1 auto; min-width: 0; }
-.lk-account > summary { display: flex; align-items: center; gap: 12px; list-style: none; cursor: pointer; padding: 6px 8px 6px 10px; border-radius: 10px; font-size: 12.5px; line-height: 17px; }
+.lk-account > summary { display: flex; align-items: center; gap: 12px; list-style: none; cursor: pointer; padding: 6px 8px 6px 10px; border-radius: 10px; font-size: 13px; line-height: 17px; }
 .lk-account > summary::-webkit-details-marker { display: none; }
 .lk-account > summary:hover { background: var(--lk-tint); }
 .lk-account > summary > span:last-child { min-width: 0; }
 .lk-account-name, .lk-account > summary small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lk-account > summary small { font-size: 12px; line-height: 17px; }
+.lk-account > summary small { font-size: 13px; line-height: 17px; }
 .lk-account-menu { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 40; display: grid; gap: 10px; min-width: 220px; padding: 14px; border: 1px solid var(--lk-rule); border-radius: 12px; background: var(--lk-surface); box-shadow: var(--lk-shadow); }
 .lk-account-menu p { margin: 0; font-size: 14px; }
 
@@ -88,4 +88,4 @@ body:has(.lk-app) { margin: 0; padding: 0; background: var(--lk-paper); }
 .lk-command:has(.lk-seal) .lk-agent-chip { flex: 0 1 auto; max-width: 440px; }
 .lk-command:has(.lk-seal) .lk-account { flex: none; }
 /* The seal keeps its hash whole (its label gives way first); between 1100 and 1240 px the reply chip absorbs the rest. */
-.lk-command:has(.lk-seal) .lk-seal { min-width: 256px; overflow: hidden; font-size: 11px; padding-left: 16px; }
+.lk-command:has(.lk-seal) .lk-seal { min-width: 256px; overflow: hidden; font-size: 13px; padding-left: 16px; }
