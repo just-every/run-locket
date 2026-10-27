@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "744c88d5a8a6f7814d5ed8795f2d4bb6890060a03991742f4b8e1a9d78d521e5",
+      "sha256": "f4b2e501c996528169f3b2507a847473e31fcab7967b6b0ffc056411e887c499",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -121,7 +121,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "9c81681e6521bec275c561ac0adf9cd44ff2c619f6124c546f9725338b70dc44",
+      "sha256": "8ff51ef708b31847d3f1a814da0e9251431922b66f83f75e153055caa39c5b08",
       "executable": false
     },
     "base-copies.json": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "77ff159bb66c3b67c552647f6329dc8490c84e40c3b8a73f6ccb39afb725b6b9",
+      "sha256": "5d5ca51212b284690b8e93930444c3a28b4b99f46fef0ac9d3601e334451a053",
       "executable": false
     },
     "DEMO.md": {
@@ -1505,7 +1505,7 @@
       "executable": false
     },
     "src/locket/model-settings.ts": {
-      "sha256": "35340df3bc5bc53c6b00ee69a7e977469ffee7ba5e980a75a0c0969995b4badc",
+      "sha256": "05d986bbbe6651a21c7969721f3daa0750a6968fda2a0c5a4d5a695a83ada2b0",
       "executable": false
     },
     "src/locket/model.ts": {
@@ -4429,7 +4429,7 @@
       "executable": false
     },
     "tests/api/families.test.mjs": {
-      "sha256": "5d2f3b192bec5357b95f903bf4d3c5ec4e1fea73322275b7ea88591813499eb5",
+      "sha256": "49fbf654684df28d44d400a34d86af649890bc2fc3e7b99dedf13c96b3a9e5c9",
       "executable": false
     },
     "tests/api/family-analysis-fixture.mjs": {
@@ -4453,7 +4453,7 @@
       "executable": false
     },
     "tests/api/harness.mjs": {
-      "sha256": "087658eed1ed1edcbe1852b5391ef2ec55030b889c931c5585a8fa1d59fa059f",
+      "sha256": "6e41f89e566c947ff8e184d67286894224f543793e4a0f110eb62ff9cd307af1",
       "executable": false
     },
     "tests/api/intake-form-fixture.mjs": {
@@ -4461,7 +4461,7 @@
       "executable": false
     },
     "tests/api/model-settings-fixture.mjs": {
-      "sha256": "6c9452dafc522178f199e6dca0d93e36a3c222129396220062a4c45be4d243f4",
+      "sha256": "194ef8fcf6cce8ada38a6a60538909c07f764dd8fc512e5343b327228abfa2d9",
       "executable": false
     },
     "tests/api/move-in.test.mjs": {
