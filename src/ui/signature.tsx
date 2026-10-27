@@ -1,3 +1,4 @@
+import { ExecutionFollowups } from './execution-followups'
 import { useState } from 'react'
 import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
@@ -77,6 +78,7 @@ export function Execution({ state, a, locket }: { state: LocketState; a: Row; lo
           <label className="lk-check"><input type="checkbox" name="consent" required /> Retrieve and reconcile this exact sent package from the connected Docusign account.</label>
         </Form>}
       </section>
+      <ExecutionFollowups state={state} a={a} locket={locket}/>
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Execution evidence</h2></div>
         {executions.length === 0 ? <Empty>Unsigned. No executed file is recorded.</Empty> : executions.map(e => (

@@ -1,3 +1,4 @@
+import { runExecutionFollowups } from './execution-followups'
 import type { Bindings } from '../auth.server'
 import { authority, requireRole } from './access'
 import { encodeBase64, MAX_FILE_BYTES, PDF } from './artifacts'
@@ -152,6 +153,7 @@ export async function runExecutionRetrievals(env: Bindings, now: number, onlyId?
       await db.prepare("UPDATE lk_execution_retrievals SET status='cancelled',attempts=attempts+1,outcomes=json_insert(outcomes,'$[#]',json(?)),lease_until=NULL,last_error=?,updated_at=? WHERE id=? AND status='retrieving' AND lease_until=?").bind(json({status:'cancelled',code,at:now}), code, now, row.id, lease).run()
     }
   }
+  await runExecutionFollowups(env, now)
   if(notify)await runNotifications(env, now, false)
 }
 

@@ -21,6 +21,7 @@ export async function connectionRegistry(env:Bindings){
  if(env.POSTMARK_SERVER_TOKEN)rows.push({id:'exchange-mail',kind:'mail',account:env.MAIL_FROM??'Sender not configured',probe:true})
  if(env.UPTIME_ORIGIN&&env.UPTIME_METRICS_KEY)rows.push({id:'uptime',kind:'monitoring',account:env.UPTIME_ORIGIN,probe:false})
  if(env.LINEN_ORIGIN&&env.LINEN_MCP_TOKEN)rows.push({id:'linen',kind:'tickets',account:env.LINEN_ORIGIN,probe:false})
+ for(const d of(await db.prepare('SELECT * FROM lk_execution_destinations').all<any>()).results)rows.push({id:'execution:'+d.kind,kind:'execution',label:d.kind+' execution destination',account:d.account_id,connectionVersion:d.revision,configuredAt:d.configured_at,probe:false})
  const health=(await db.prepare('SELECT * FROM lk_connection_health').all<any>()).results
  const expiries=(await db.prepare('SELECT * FROM lk_connection_expiries').all<any>()).results
  for(const row of rows){
@@ -29,6 +30,13 @@ export async function connectionRegistry(env:Bindings){
   const expiry=expiries.find(e=>e.id===row.id)
   row.credentialExpiry=expiry?(expiry.account===row.account&&expiry.connection_version===(row.connectionVersion??0)?expiry:{version:expiry.version}):null
   let ids:string[]=[]
+  if(row.kind==='execution'){
+   const actions=(await db.prepare("SELECT agreement_id,status,outcome FROM lk_execution_followups WHERE kind=? AND json_extract(destination,'$.connectionRevision')=? AND json_extract(destination,'$.accountId')=? ORDER BY updated_at DESC").bind(row.id.slice(10),row.connectionVersion,row.account).all<any>()).results
+   ids=[...new Set<string>(actions.map(a=>a.agreement_id))]
+   const failed=actions.find(a=>a.status==='uncertain')
+   if(failed){row.status='failing';row.reason='Execution action outcome is uncertain. Inspect the destination; it will not be resent automatically.'}
+   else if(actions.some(a=>a.status==='completed')){row.status='healthy';row.reason='Separately authorized execution copies or CRM value matched destination readback.'}
+  }
   if(row.kind==='signing')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_packages WHERE provider=?').bind(row.id).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(row.id==='pantry')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_accounting_schedules WHERE origin=?').bind(row.account).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(['quickbooks','netsuite','pantry'].includes(row.id))ids=[...new Set([...ids,...(await db.prepare('SELECT DISTINCT agreement_id FROM lk_accounting_links WHERE provider=?').bind(row.id).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)])]

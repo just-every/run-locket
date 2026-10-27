@@ -83,6 +83,8 @@ export interface LocketState extends importReconciliationWorkspace,ServiceLevelW
   risk: import('../locket/obligation-risk').RiskView
   counterparties: Record<string, import('../locket/counterparty-summary').CounterpartySummary>
   packages: Row[]
+  executionDestinations: Row[]
+  executionFollowups: Row[]
   executionRetrievals: Row[]
   executions: Row[]
   clickwrapTerms: Row[]

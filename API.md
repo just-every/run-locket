@@ -497,7 +497,56 @@ history. A new explicit authorization creates another decision; a later login
 or reconnection never revives the old one. Earlier decisions without retained
 exact-package bindings stop and need new consent. State exposes retrieval outcomes,
 attempts and the next check, without the stored authorizing session.
-Extraction kickoff, storage filing and CRM writeback do not ship in this slice.
+Execution follow-up actions are separately authorized by the owner through
+`execution.followup.authorize`. They never follow from retrieval consent. Pass
+`agreementId`, current `version`, `packageId`, `kind` and `consent: true`.
+The action is retained against the exact sent package, current owner session and
+source version. It waits for clean reconciliation; mismatch acceptance does not
+silently authorize it. `execution.followup.cancel` takes `agreementId`, current
+`version` and the waiting action `id`. Restored authorizations are cancelled.
+
+For storage, choose `google-drive`, `onedrive`, `sharepoint` or `chest`; pass the
+configured `accountId` and `connectionRevision`, exact `folderId` and
+`namingRule` containing both `{reference}` and `{role}`. The two roles are
+`signed` and `certificate`; filenames end in `.pdf`. Each copy preserves the
+original bytes and must match a destination download before completion is
+recorded. An unknown or mismatched result remains visibly uncertain; no write
+is automatically resent. Chest uses its scoped integration API, with a separate
+idempotency key for each file. Configure private `CHEST_ORIGIN` and `CHEST_TOKEN`
+for a grant with upload, read and download actions on the chosen folder.
+Google Drive uses private `EXECUTION_GOOGLE_DRIVE_TOKEN` and verifies the
+connected user's email; OneDrive and SharePoint use private
+`EXECUTION_MICROSOFT_TOKEN` and the exact drive and folder identities.
+Microsoft original downloads may follow one HTTPS redirect to a SharePoint or
+OneDrive original host. Graph bearer credentials are never forwarded. Other
+redirects are refused and remain uncertain.
+
+Use `execution.destination.configure` with `kind`, `accountId` and current
+`revision` to save a destination in Settings connections. Each save increments
+its revision. The Google account is its email, Microsoft account is its drive
+ID, Chest account is its exact private HTTPS origin, and HubSpot account is its
+portal ID. A new revision stales waiting decisions. It never revives consent.
+Tokens stay in private installation bindings and never enter commands or state.
+
+For HubSpot, choose `kind: "hubspot"` and pass `accountId`, `connectionRevision`,
+`dealId`, the explicitly confirmed status `property` and its executed `value`.
+Private `HUBSPOT_ACCESS_TOKEN` supplies transport authority. Locket verifies the
+portal before one PATCH and requires the exact deal and property on readback.
+This grants no billing authority. The requester's existing access-controlled
+execution notification remains independent of this CRM write decision.
+
+For extraction, choose `kind: "extraction"`. The action pins the current model
+settings revision and invokes the existing `model.run` extraction door, including
+its explicit-consent and REVIEW-006 evaluation gate. Test installations may
+explicitly select `simulated: true` only when simulation is enabled. Output stays
+proposed; no terms are confirmed. An uncertain model request is never resent.
+
+Every outbound request and outcome write rechecks current owner authority,
+agreement and field access, exact package, source version and destination or
+model settings revision. Retained decision and outcome history is included in
+the archive with authorizing session credentials removed. Record screens expose
+waiting, completed, cancelled and uncertain states; connection screens show
+unknown outcomes and their affected agreements.
 
 `proposal.import` takes `proposalId` and `consent: true`; only the owner can
 call it. Private `PLATTER_ORIGIN` and `PLATTER_TOKEN` bindings select the

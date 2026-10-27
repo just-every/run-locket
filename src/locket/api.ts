@@ -1,3 +1,4 @@
+import { followupHandlers } from './execution-followups'
 import { modelHandlers } from './model-settings'
 import { proposalHandoffHandlers } from './proposal-handoffs'
 import { executionCompletionResponse, retrievalHandlers } from './execution-retrieval'
@@ -126,7 +127,7 @@ export const handlers: Record<string, Handler> = {
   ...libraryHandlers,
   'clause.insert': insertClause,
   ...reviewHandlers,
-  ...executionHandlers, ...retrievalHandlers, ...proposalHandoffHandlers,
+  ...executionHandlers, ...retrievalHandlers, ...followupHandlers, ...proposalHandoffHandlers,
   ...obligationHandlers,
   ...proposalHandlers,
   ...peopleHandlers,

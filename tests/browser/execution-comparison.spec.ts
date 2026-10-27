@@ -98,6 +98,7 @@ test(`AGENT-006 changed signed liability is visible and held until reasoned acce
     }
   }
   await automaticRetrievalBrowserJourney(page)
+  await executionFollowupBrowserJourney(page)
 })
 
 
@@ -224,4 +225,37 @@ async function automaticRetrievalBrowserJourney(page: any) {
       await shot('reconciled')
     }finally{await product.close()}
   }
+}
+
+async function executionFollowupBrowserJourney(page:any) {
+ const {followupProvider,prepareFollowupFixture}=await import('../api/execution-followup-journey.mjs')
+ for(const width of [1440,390]){
+  const edge=followupProvider(),product=await productPage(page,{width,...edge})
+  try{
+   const f=await prepareFollowupFixture(product.h,edge)
+   await page.goto(product.origin+`/app#agreement/${f.id}/execution`)
+   const section=page.getByRole('region',{name:'Execution follow-up actions'})
+   await section.getByLabel('Execution action').selectOption('google-drive')
+   await section.getByLabel('Destination folder ID').fill('synthetic-locket-folder')
+   // The destination is configured through the public command used by Settings.
+   await f.tm.owner.command('execution.destination.configure',{kind:'google-drive',accountId:'synthetic-locket-owner@example.test',revision:0})
+   await page.reload()
+   await section.getByLabel('Execution action').selectOption('google-drive')
+   await section.getByLabel('Destination folder ID').fill('synthetic-locket-folder')
+   await expect(section.getByText('Destination account:',{exact:false})).toContainText('synthetic-locket-owner@example.test')
+   const consent=section.getByRole('checkbox',{name:'I authorize only this displayed action, exact package and destination.'})
+   await expect(consent).not.toBeChecked();await consent.check()
+   const shot=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-EXEC-002-${name}.png`),fullPage:true})}}
+   await shot('filing-consent')
+   await section.getByRole('button',{name:'Authorize separate action',exact:true}).click()
+   await expect(section.getByText('Waiting',{exact:true})).toBeVisible()
+   expect(edge.writes).toHaveLength(0)
+   await f.tm.owner.command('execution.retrieval.authorize',f.base)
+   await f.complete();await page.reload()
+   await expect(section.getByText('Completed',{exact:true})).toBeVisible()
+   await expect(section.getByText('"sha256":',{exact:false})).toBeVisible()
+   expect(edge.writes.filter((w:any)=>w.kind==='google-drive')).toHaveLength(2)
+   await shot('filed-outcome')
+  }finally{await product.close()}
+ }
 }

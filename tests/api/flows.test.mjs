@@ -1,3 +1,4 @@
+import { executionFollowupJourney, executionFollowupRefusals } from './execution-followup-journey.mjs'
 // One flow per first-release clause (CONTRACT.md), through the authenticated
 // HTTP API of the real Worker with D1.
 import test from 'node:test'
@@ -252,6 +253,8 @@ test('09 execution ingests the signed file and certificate and reconciles envelo
   assert.equal(s.executions.filter(x => x.agreement_id === third.id).length, 0)
   await automaticRetrievalJourney(t)
   await retrievalAuthorityJourney(t)
+  await executionFollowupJourney(t)
+  await executionFollowupRefusals(t)
 })
 
 test('10 terms and obligations are confirmed against the executed text, and corrections keep history', async t => {

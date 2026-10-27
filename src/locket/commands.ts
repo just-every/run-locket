@@ -1,3 +1,4 @@
+import { runExecutionFollowups } from './execution-followups'
 import { completeModelCommand } from './model-settings'
 import { authorizeAccountingComparison } from './accounting-comparison'
 import { dispatchBillingProposal } from './proposal-handoffs'
@@ -116,6 +117,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     if(type==='proposal.import'||type.startsWith('billing.proposal.'))requireRole(c.actor,['owner'],'read proposal handoff outcomes')
     if(type==='billing.proposal.send')await dispatchBillingProposal(c,(result as {id:string}).id)
     if(type==='execution.retrieval.authorize')await runExecutionRetrievals(env,c.now,(result as {id:string}).id)
+    if(type==='execution.followup.authorize')await runExecutionFollowups(env,c.now,(result as {id:string}).id)
     if(type==='accounting.schedule.send')await dispatchAccountingSchedule(c,(result as {id:string}).id)
     if(type==='notification.chat.identity')requireRole(c.actor,['owner'],'read chat identity outcomes')
     if(type==='token.create')result=await scopedTokenResult(c,result)
