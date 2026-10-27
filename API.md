@@ -489,8 +489,13 @@ The Connect callback is `POST /api/locket/events/docusign`; it checks the
 Docusign HMAC header against the exact request bytes. The configured account
 is read again for authoritative completion, recipients, signed PDF and
 certificate. Minute checks retry read failures with backoff. Changed returns
-remain unsigned for reasoned review. Authorization ends if the owner session,
-package or connection revision changes. State exposes retrieval outcomes,
+remain unsigned for reasoned review. Authorization retains the exact sent package and evidence digests. Every attempt
+and result write checks current owner authority, agreement access and the same
+package and connection. Authorization ends if the owner session, package or
+connection revision changes. Cancelling or ending a decision retains its outcome
+history. A new explicit authorization creates another decision; a later login
+or reconnection never revives the old one. Earlier decisions without retained
+exact-package bindings stop and need new consent. State exposes retrieval outcomes,
 attempts and the next check, without the stored authorizing session.
 Extraction kickoff, storage filing and CRM writeback do not ship in this slice.
 

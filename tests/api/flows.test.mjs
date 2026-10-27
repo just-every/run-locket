@@ -251,6 +251,7 @@ test('09 execution ingests the signed file and certificate and reconciles envelo
   assert.equal(s.agreements.find(x => x.id === third.id).status, 'out_for_signature')
   assert.equal(s.executions.filter(x => x.agreement_id === third.id).length, 0)
   await automaticRetrievalJourney(t)
+  await retrievalAuthorityJourney(t)
 })
 
 test('10 terms and obligations are confirmed against the executed text, and corrections keep history', async t => {
@@ -1003,6 +1004,84 @@ async function automaticRetrievalJourney(t) {
   s = await tm.owner.state()
   assert.equal(s.executionRetrievals.find(r => r.agreement_id === a.id).status, 'needs_review')
   assert.equal(s.agreements.find(r => r.id === a.id).status, 'out_for_signature')
+}
+
+async function retrievalAuthorityJourney(t) {
+  let returned, failDownload = true, beforeCertificate = null, failCertificate = false, reads = 0
+  const certificate = pdf('synthetic-locket-3 certificate')
+  const h = await installation({ bindings: { SIGNATURE_DOCUSIGN_TOKEN: 'synthetic-locket-3' }, outboundResponse: async request => {
+    reads++
+    const path = new URL(request.url).pathname
+    if (path.endsWith('/recipients')) return Response.json({ signers: [{ name: 'Hana Park', email: 'hana@harbour.example', status: 'completed' }, { name: 'Olive Owner', email: 'owner@example.test', status: 'completed' }] })
+    if (path.endsWith('/documents/combined')) return failDownload ? new Response('Unavailable', { status: 503 }) : new Response(returned)
+    if (path.endsWith('/documents/certificate')) { if (beforeCertificate) { const action = beforeCertificate; beforeCertificate = null; await action() }; return failCertificate ? new Response('Unavailable', {status:503}) : new Response(certificate) }
+    return Response.json({ envelopeId: decodeURIComponent(path.split('/').at(-1)), status: 'completed', completedDateTime: '2026-10-26T12:00:00Z' })
+  } }); t.after(() => h.close())
+  const tm = await team(h), lib = await library(h, tm)
+  let connectionVersion = 0
+  const connect = async () => { await tm.owner.command('signature.connection.configure', { provider: 'docusign', baseUrl: 'https://demo.docusign.net/restapi/v2.1', accountId: 'synthetic-locket-3', version: connectionVersion++ }) }
+  await connect()
+  for (const scenario of ['cancel', 'connection', 'connection-before', 'package', 'session', 'session-failure', 'session-before']) {
+    failDownload = true; failCertificate = false
+    const { id, pkg } = await outForSignature(h, tm, lib, { title: `synthetic-locket-3 ${scenario}`, party: `synthetic-locket-3 ${scenario}` })
+    returned = await download(tm.owner, pkg.pdfArtifactId)
+    const a = await find(tm.owner, id), payload = { agreementId: id, version: a.version, packageId: pkg.packageId, consent: true }
+    const first = await tm.owner.command('execution.retrieval.authorize', payload)
+    await tm.owner.command('execution.retrieval.authorize', payload, { error: 'RETRIEVAL_ACTIVE' })
+    let job = (await tm.owner.state()).executionRetrievals.find(r => r.id === first.id)
+    assert.equal(job.status, 'retrying')
+    failDownload = false
+    beforeCertificate = scenario === 'cancel' ? () => tm.owner.command('execution.retrieval.cancel', payload)
+      : scenario.startsWith('connection') ? connect
+      : scenario === 'package' ? () => tm.owner.command('package.void', { ...payload, reason: 'Owner withdrew this exact package.' })
+      : async () => { const response = await tm.owner.request('/auth/signout', { method: 'POST', body: {} }); assert.equal(response.status, 204) }
+    if (scenario.endsWith('-before')) { const action = beforeCertificate; beforeCertificate = null; await action() }
+    failCertificate = scenario === 'session-failure'
+    const beforeReads = reads
+    await h.scheduled(job.next_attempt_at + 1)
+    if (scenario.endsWith('-before')) assert.equal(reads, beforeReads, 'ended consent must refuse before any provider request')
+    if (scenario.startsWith('session')) { tm.owner = await h.signIn('owner@example.test'); h.owner = tm.owner; tm.owner.id = (await tm.owner.state()).actor.id }
+    let state = await tm.owner.state()
+    job = state.executionRetrievals.find(r => r.id === first.id)
+    assert.equal(job.status, 'cancelled', `${scenario} must end the old authorization`)
+    assert.equal(state.executions.filter(e => e.agreement_id === id).length, 0)
+    assert.equal(state.artifacts.filter(f => f.agreement_id === id && ['signed','certificate'].includes(f.role)).length, 0)
+    assert.notEqual(state.agreements.find(a => a.id === id).status, 'executed')
+    assert.equal((await tm.requester.state()).notifications.items.filter(n => n.event_key === first.id).length, 0)
+    const retained = JSON.parse(job.outcomes)
+    assert.deepEqual(retained.map(o => o.status), ['retrying', 'cancelled'])
+    assert.equal(retained[0].code, 'provider_http_503')
+    assert.equal(retained[1].code, scenario === 'cancel' ? 'owner_cancelled' : scenario.startsWith('session') ? 'AUTHORITY' : scenario === 'package' ? 'STATUS' : 'STALE', scenario)
+    const stoppedReads = reads
+    await h.scheduled(job.next_attempt_at + 3_600_001)
+    assert.equal(reads, stoppedReads, 'a later login or connection must not revive old consent')
+    if (scenario !== 'package') {
+      failCertificate = false
+      const renewed = await tm.owner.command('execution.retrieval.authorize', payload)
+      assert.notEqual(renewed.id, first.id)
+      state = await tm.owner.state()
+      assert.equal(state.executionRetrievals.find(r => r.id === first.id).status, 'cancelled')
+      const current = state.executionRetrievals.find(r => r.id === renewed.id)
+      assert.equal(current.status, 'reconciled')
+      assert.equal(state.agreements.find(a => a.id === id).status, 'executed')
+      assert.equal(state.executionRetrievals.filter(r => r.agreement_id === id).length, 2)
+      const archive = await (await tm.owner.request('/api/locket/export')).json()
+      const decisions = archive.records.lk_execution_retrievals.filter(r => r.agreement_id === id)
+      assert.equal(decisions.length, 2)
+      const decision = decisions.find(r => r.id === renewed.id), binding = JSON.parse(decision.binding)
+      assert.equal(binding.envelopeId, `ENV-${id.slice(0,8)}`)
+      assert.equal(binding.packageId, pkg.packageId)
+      assert.equal(binding.manifestDigest, sha(state.packages.find(p => p.id === pkg.packageId).manifest))
+      assert.equal(binding.connection.version, connectionVersion)
+      assert.equal(binding.connection.accountId, 'synthetic-locket-3')
+      assert.deepEqual(binding.artifacts.map(f => f.sha256).sort(), [sha(returned), sha((await download(tm.owner, pkg.manifestArtifactId)))].sort())
+      assert.equal(JSON.parse(decision.actor).sessionId, '', 'archives must redact the authorizing session credential')
+      assert.ok(JSON.parse(decision.actor).id)
+      assert.ok(decision.created_at)
+      assert.deepEqual(JSON.parse(current.outcomes).map(o => o.status), ['reconciled'])
+      assert.equal((await tm.requester.state()).notifications.items.filter(n => n.agreement_id === id && n.event_key === renewed.id && n.kind === 'signature').length, 1)
+    }
+  }
 }
 
 test('Accepted Platter and PandaDoc sources retain exact custody and become native requests with confirmed pending Nectar or Stripe handoffs', async t => {

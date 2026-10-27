@@ -63,3 +63,12 @@ jobs:
       - name: Prove model settings and records at both widths
         if: matrix.partition == 'core'
         run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-models" node tests/browser/model-settings-journey.mjs
+      - name: Prove execution retrieval at both widths
+        if: matrix.partition == 'core'
+        run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-execution" pnpm exec playwright test --config tests/browser/playwright.config.ts execution-comparison.spec.ts --grep 'AGENT-006 changed signed liability' --workers=1
+      - name: Keep execution retrieval screens
+        if: matrix.partition == 'core'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: execution-retrieval-screens
+          path: ${{ runner.temp }}/locket-execution

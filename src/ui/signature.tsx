@@ -73,7 +73,7 @@ export function Execution({ state, a, locket }: { state: LocketState; a: Row; lo
           {['waiting','retrying','retrieving'].includes(r.status) && <p>Next check {when(r.next_attempt_at)}. Signed evidence appears below after reconciliation.</p>}
           {can(state,'owner') && ['waiting','retrying','retrieving'].includes(r.status) && <button type="button" disabled={busy} onClick={() => void run('execution.retrieval.cancel',{agreementId:a.id,version:a.version})}>Cancel retrieval</button>}
         </article>)}
-        {can(state,'owner') && sent?.provider === 'docusign' && !retrievals.some(r=>r.package_id===sent.id) && <Form busy={busy} submit="Authorize retrieval" onSubmit={async data => { await run('execution.retrieval.authorize',{agreementId:a.id,version:a.version,packageId:sent.id,consent:data.get('consent')==='on'}) }}>
+        {can(state,'owner') && sent?.provider === 'docusign' && !retrievals.some(r=>r.package_id===sent.id && ['waiting','retrying','retrieving','reconciled','needs_review'].includes(r.status)) && <Form busy={busy} submit="Authorize retrieval" onSubmit={async data => { await run('execution.retrieval.authorize',{agreementId:a.id,version:a.version,packageId:sent.id,consent:data.get('consent')==='on'}) }}>
           <label className="lk-check"><input type="checkbox" name="consent" required /> Retrieve and reconcile this exact sent package from the connected Docusign account.</label>
         </Form>}
       </section>

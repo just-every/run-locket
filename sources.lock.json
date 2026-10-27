@@ -97,7 +97,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "80e06571379d60db8c4178ab91481a1393f3381ce07f215062956eabae4df0d9",
+      "sha256": "8031b93c494177cf653ebb8916a6c3f389d428d62a18d8a57beb4d0c4aa21db6",
       "executable": false
     },
     ".gitignore": {
@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "e3c1d6684b04d220057d8ecc947316fa41456aeb798c8c90727ca9436c4be47d",
+      "sha256": "b583a6c57d31f24d2122db7496edd7a8f19b3ab1a266bd954de666c934489869",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -121,7 +121,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "9c81681e6521bec275c561ac0adf9cd44ff2c619f6124c546f9725338b70dc44",
+      "sha256": "37a4c27a894e017bdfbb5c2d5d3691088cea99239dffe2217e8bff235a9b3af2",
       "executable": false
     },
     "base-copies.json": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "23e82ed3fdd720049c6f33e8380b2f56d199260923ddb9e95fbe00701c134700",
+      "sha256": "e6f079aa08b7c68878b05482fa8ca23e45eb09786a127008b256697d829b3109",
       "executable": false
     },
     "DEMO.md": {
@@ -534,6 +534,10 @@
     },
     "migrations/core/0084_model_settings.sql": {
       "sha256": "63198f35deb89b897f4c3f03faf534a21004925c376155f9f0b95514acb97064",
+      "executable": false
+    },
+    "migrations/core/0085_retrieval_consent.sql": {
+      "sha256": "28f29a0106a0aa9fc573fe90f180541cfd66f112b4ed9986fee1ef77b60031a7",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1389,7 +1393,7 @@
       "executable": false
     },
     "src/locket/execution-retrieval.ts": {
-      "sha256": "8adaaf1c858c1443707c2bb6735f94a8a239ff2f665b613fc49aac9d3825cfb6",
+      "sha256": "999829d93364aa8344739df76b957fdab49b80e635a0feeabac40cd73a3c4ea9",
       "executable": false
     },
     "src/locket/execution.ts": {
@@ -1897,7 +1901,7 @@
       "executable": false
     },
     "src/locket/views.ts": {
-      "sha256": "e379cb9ca403dd5aecb0e7ca17f6b15da666605f0eeec6e840ffd9ee3981437e",
+      "sha256": "ac4bffebae6f3222841bd783baa74f726b2224ca6755d5c04d85e9a173024abe",
       "executable": false
     },
     "src/locket/word-pricing.ts": {
@@ -4257,7 +4261,7 @@
       "executable": false
     },
     "src/ui/signature.tsx": {
-      "sha256": "17ccf3e837e3a29405e61037af88e2e1c30ca4f113d3ac0656317fef01caaaa4",
+      "sha256": "70c44dd5f249a471179a119f7f5413e77bbaf553033770ec83d7f03ed99af87a",
       "executable": false
     },
     "src/ui/style/bulk-reminders.css": {
@@ -4449,7 +4453,7 @@
       "executable": false
     },
     "tests/api/flows.test.mjs": {
-      "sha256": "6885446217d0cedb8b9ba31356d321c324ccd5719453be4f26a50794874d5c75",
+      "sha256": "0a1e5d995f77e3ddc39061fe5f5d3a9357aa8f5fbe09a3508769970ef1da29cf",
       "executable": false
     },
     "tests/api/harness.mjs": {
@@ -4677,7 +4681,7 @@
       "executable": false
     },
     "tests/browser/execution-comparison.spec.ts": {
-      "sha256": "c009d5116dd1910e1a652273ac1829baa0640eab98894d22350df5a8d60e4342",
+      "sha256": "d06ed0cec1960e68ce5571916524f5cda5107e1e49e102993d005d57456dc984",
       "executable": false
     },
     "tests/browser/families.spec.ts": {

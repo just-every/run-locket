@@ -101,7 +101,7 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
     signature:await signatureState(db,actor,ids),
     proposalSources:mine(await all(db,'SELECT * FROM lk_proposal_sources'),ids),
     billingProposals:mine(await all(db,'SELECT * FROM lk_billing_proposals'),ids),
-    executionRetrievals:mine(await all(db,'SELECT id,agreement_id,package_id,status,attempts,next_attempt_at,last_error,execution_id,updated_at FROM lk_execution_retrievals'),ids),
+    executionRetrievals:mine(await all(db,'SELECT id,agreement_id,package_id,status,attempts,next_attempt_at,last_error,execution_id,created_at,updated_at,outcomes FROM lk_execution_retrievals'),ids),
     ...await renewalLifecycleState(db,ids),...await renewalCalendarState(db,actor,ids),
     playbookRecommendations: await playbookRecommendationState({db,actor}),
     agreementPlaybooks: Object.fromEntries(agreements.map(a=>[a.id,selectScopedPlaybook(a,activePlaybook,playbooks,applications)?.id??null])),

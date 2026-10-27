@@ -3,12 +3,36 @@ import { authority, requireRole } from './access'
 import { encodeBase64, MAX_FILE_BYTES, PDF } from './artifacts'
 import { auditSql, commit, type Ctx, type Handler } from './commands'
 import { executionHandlers } from './execution'
-import { fail, json, Problem, sql, text, type Actor } from './model'
+import { fail, json, Problem, sha256, sql, text, type Actor, type Sql } from './model'
 import { agreementGuards, visibleAgreement } from './records'
 import { commandNotifications } from './notification-events'
 import { runNotifications } from './notification-dispatch'
 import { signatureBase, signatureSecret, type SignatureConnection } from './signature-provider'
 import { workflowWrites } from './workflow-history'
+import { fullFieldsCheck, requireFullFields } from './repository-access'
+
+/** Retain the exact decision inputs, rather than following a mutable package ID. */
+async function packageBinding(c: Ctx, pkg: any, connection: SignatureConnection) {
+  const artifacts = (await c.db.prepare("SELECT id,sha256 FROM lk_artifacts WHERE id IN (?,?) ORDER BY id").bind(pkg.pdf_artifact_id, pkg.manifest_artifact_id).all<{id:string;sha256:string}>()).results
+  if (artifacts.length !== 2) fail('STALE', 'The sent package evidence is incomplete.', 409)
+  return json({ packageId: pkg.id, agreementId: pkg.agreement_id, versionId: pkg.version_id,
+    versionDigest: pkg.version_digest, provider: pkg.provider, envelopeId: pkg.envelope_id,
+    pdfArtifactId: pkg.pdf_artifact_id, manifestArtifactId: pkg.manifest_artifact_id,
+    manifestDigest: await sha256(pkg.manifest), artifacts,
+    connection: { provider: connection.provider, baseUrl: connection.base_url, accountId: connection.account_id, version: connection.version } })
+}
+
+function bindingCheck(binding: string, manifest: string) {
+  const b = JSON.parse(binding)
+  return sql(`EXISTS(SELECT 1 FROM lk_packages p JOIN lk_signature_connections c ON c.provider=p.provider
+    WHERE p.id=? AND p.agreement_id=? AND p.version_id=? AND p.version_digest=? AND p.provider=? AND p.envelope_id=?
+    AND p.pdf_artifact_id=? AND p.manifest_artifact_id=? AND p.manifest=? AND p.status='sent'
+    AND c.base_url=? AND c.account_id=? AND c.version=?
+    AND NOT EXISTS(SELECT 1 FROM json_each(?) expected LEFT JOIN lk_artifacts a ON a.id=json_extract(expected.value,'$.id')
+      WHERE a.id IS NULL OR a.sha256<>json_extract(expected.value,'$.sha256')))`,
+    b.packageId, b.agreementId, b.versionId, b.versionDigest, b.provider, b.envelopeId,
+    b.pdfArtifactId, b.manifestArtifactId, manifest, b.connection.baseUrl, b.connection.accountId, b.connection.version, json(b.artifacts))
+}
 
 const enable: Handler = async (c, p) => {
   requireRole(c.actor, ['owner'], 'authorize automatic retrieval')
@@ -20,17 +44,18 @@ const enable: Handler = async (c, p) => {
   if (!connection) fail('SIGNATURE_CONFIG', 'Configure the Docusign connection first.', 503)
   signatureBase('docusign', connection.base_url, c.env)
   signatureSecret(c.env, 'docusign')
-  const id = crypto.randomUUID()
+  if (await c.db.prepare("SELECT 1 FROM lk_execution_retrievals WHERE package_id=? AND status IN ('waiting','retrying','retrieving')").bind(pkg.id).first()) fail('RETRIEVAL_ACTIVE', 'Cancel the current authorization before authorizing this package again.', 409)
+  const binding = await packageBinding(c, pkg, connection), id = crypto.randomUUID()
   return { allowed: ['owner'], result: { id, status: 'waiting' },
-    checks: [...agreementGuards(c, a, p), sql("EXISTS(SELECT 1 FROM lk_packages WHERE id=? AND status='sent' AND version_id=?)", pkg.id, a.current_version_id), sql("(SELECT version FROM lk_signature_connections WHERE provider='docusign')=?", connection.version)],
-    writes: [sql("INSERT INTO lk_execution_retrievals VALUES(?,?,?,?,?,'waiting',0,?,NULL,NULL,NULL,?,?)", id, a.id, pkg.id, json(c.actor), connection.version, c.now, c.now, c.now)],
+    checks: [...agreementGuards(c, a, p), bindingCheck(binding, pkg.manifest), sql("NOT EXISTS(SELECT 1 FROM lk_execution_retrievals WHERE package_id=? AND status IN ('waiting','retrying','retrieving'))", pkg.id)],
+    writes: [sql("INSERT INTO lk_execution_retrievals (id,agreement_id,package_id,actor,connection_version,status,attempts,next_attempt_at,created_at,updated_at,binding,outcomes) VALUES(?,?,?,?,?,'waiting',0,?,?,?,?,'[]')", id, a.id, pkg.id, json(c.actor), connection.version, c.now, c.now, c.now, binding)],
     audit: [{ action: 'execution.retrieval.authorize', agreementId: a.id, summary: 'Owner authorized retrieval and reconciliation of this exact sent Docusign package. Authorization ends with the owner session or connection revision.' }] }
 }
 
 const cancel: Handler = async (c, p) => {
   requireRole(c.actor, ['owner'], 'cancel automatic retrieval')
   const a = await visibleAgreement(c, p.agreementId)
-  return { allowed: ['owner'], result: { status: 'cancelled' }, checks: agreementGuards(c, a, p), writes: [sql("UPDATE lk_execution_retrievals SET status='cancelled',updated_at=? WHERE agreement_id=? AND status IN ('waiting','retrying','retrieving')", c.now, a.id)], audit: [{ action: 'execution.retrieval.cancel', agreementId: a.id, summary: 'Owner cancelled automatic retrieval.' }] }
+  return { allowed: ['owner'], result: { status: 'cancelled' }, checks: agreementGuards(c, a, p), writes: [sql("UPDATE lk_execution_retrievals SET status='cancelled',lease_until=NULL,outcomes=json_insert(outcomes,'$[#]',json(?)),updated_at=? WHERE agreement_id=? AND status IN ('waiting','retrying','retrieving')", json({status:'cancelled',code:'owner_cancelled',at:c.now,actorId:c.actor.id}), c.now, a.id)], audit: [{ action: 'execution.retrieval.cancel', agreementId: a.id, summary: 'Owner cancelled automatic retrieval.' }] }
 }
 export const retrievalHandlers = { 'execution.retrieval.authorize': enable, 'execution.retrieval.cancel': cancel }
 
@@ -71,19 +96,26 @@ export async function runExecutionRetrievals(env: Bindings, now: number, onlyId?
     const claimed = await db.prepare("UPDATE lk_execution_retrievals SET status='retrieving',lease_until=?,updated_at=? WHERE id=? AND status IN ('waiting','retrying','retrieving') AND (lease_until IS NULL OR lease_until<=?) AND next_attempt_at<=?").bind(lease, now, row.id, now, now).run()
     if (!claimed.meta.changes) continue
     const jobCheck = sql("EXISTS(SELECT 1 FROM lk_execution_retrievals WHERE id=? AND status='retrieving' AND lease_until=?)", row.id, lease)
+    let attemptChecks: Sql[] = [jobCheck, fullFieldsCheck(actor)]
     try {
       const auth = authority(actor, ['owner'])
       if (!(await db.prepare(`SELECT ${auth.sql} AS ok`).bind(...auth.params).first<{ok:number}>())?.ok) throw new Problem('AUTHORITY', 'The authorizing owner session ended.', 403)
+      await requireFullFields(db, actor)
       const a = await visibleAgreement(c, row.agreement_id)
       const pkg = await db.prepare("SELECT * FROM lk_packages WHERE id=? AND agreement_id=? AND status='sent' AND version_id=?").bind(row.package_id, a.id, a.current_version_id).first<any>()
       const connection = await db.prepare("SELECT * FROM lk_signature_connections WHERE provider='docusign'").first<SignatureConnection>()
       if (!pkg || a.status !== 'out_for_signature' || !connection || connection.version !== row.connection_version) throw new Problem('STALE', 'The package or connection changed.', 409)
+      if (!row.binding || await packageBinding(c, pkg, connection) !== row.binding) throw new Problem('STALE', 'The exact authorized package changed. A new owner decision is required.', 409)
+      const checks = [jobCheck, bindingCheck(row.binding, pkg.manifest), fullFieldsCheck(actor), ...agreementGuards(c, a)]
+      attemptChecks = checks
+      // Guard the actual attempt before any network read, and repeat at the result write.
+      await commit(c, ['owner'], checks, [])
       signatureBase('docusign', connection.base_url, env)
       const token = signatureSecret(env, 'docusign'), path = `/accounts/${encodeURIComponent(connection.account_id!)}/envelopes/${encodeURIComponent(pkg.envelope_id)}`
       const envelope = await get(connection, token, path)
       if (envelope.envelopeId !== pkg.envelope_id) throw new Error('provider_envelope_mismatch')
       if (envelope.status !== 'completed') {
-        await commit(c, ['owner'], [jobCheck, ...agreementGuards(c, a)], [sql("UPDATE lk_execution_retrievals SET status='waiting',lease_until=NULL,next_attempt_at=?,updated_at=? WHERE id=?", now + 60_000, now, row.id)])
+        await commit(c, ['owner'], checks, [sql("UPDATE lk_execution_retrievals SET status='waiting',attempts=attempts+1,outcomes=json_insert(outcomes,'$[#]',json(?)),lease_until=NULL,next_attempt_at=?,updated_at=? WHERE id=?", json({status:'waiting',at:now}), now + 60_000, now, row.id)])
         continue
       }
       // One signable PDF is the current automatic reconciliation boundary.
@@ -97,15 +129,27 @@ export async function runExecutionRetrievals(env: Bindings, now: number, onlyId?
         signers: recipients.signers.map((r:any) => ({ name: r.name, email: r.email, signedAt: r.signedDateTime })),
         signed: { filename: `${a.reference}-signed.pdf`, mediaType: PDF, base64: encodeBase64(signed) }, certificate: { filename: `${a.reference}-certificate.pdf`, mediaType: PDF, base64: encodeBase64(certificate) } }
       const out = await executionHandlers['execution.record'](c, p), result = out.result as {executionId:string;status:string}
-      await commit(c, ['owner'], [...(out.checks ?? []), jobCheck, sql("(SELECT version FROM lk_signature_connections WHERE provider='docusign')=?", connection.version)], [...out.writes,
+      await commit(c, ['owner'], [...(out.checks ?? []), ...checks], [...out.writes,
         ...await commandNotifications(c, 'execution.record', p, out), ...await workflowWrites(c, out.audit), ...out.audit.map(entry => auditSql(c, entry)),
-        sql("UPDATE lk_execution_retrievals SET status=?,execution_id=?,attempts=attempts+1,lease_until=NULL,last_error=NULL,updated_at=? WHERE id=?", result.status, result.executionId, now, row.id)])
+        sql("UPDATE lk_execution_retrievals SET status=?,execution_id=?,attempts=attempts+1,outcomes=json_insert(outcomes,'$[#]',json(?)),lease_until=NULL,last_error=NULL,updated_at=? WHERE id=?", result.status, result.executionId, json({status:result.status,executionId:result.executionId,at:now}), now, row.id)])
       if(result.status==='reconciled')notify=true
     } catch (error) {
-      const cancelled = error instanceof Problem && ['AUTHORITY','STALE','NOT_FOUND','STATUS','FORBIDDEN'].includes(error.code)
-      // Store bounded diagnostic codes, never provider response bodies or tokens.
-      const code = error instanceof Problem ? error.code : /^provider_[a-z0-9_]+$/.test(String((error as Error).message)) ? (error as Error).message : 'provider_read_failed'
-      await db.prepare("UPDATE lk_execution_retrievals SET status=?,attempts=attempts+1,lease_until=NULL,last_error=?,next_attempt_at=?,updated_at=? WHERE id=? AND status='retrieving' AND lease_until=?").bind(cancelled ? 'cancelled' : 'retrying', code, now + Math.min(3_600_000, 30_000 * 2 ** Math.min(row.attempts, 7)), now, row.id, lease).run()
+      const terminal = (error: unknown) => error instanceof Problem && ['AUTHORITY','STALE','NOT_FOUND','STATUS','FORBIDDEN','FIELD_ACCESS'].includes(error.code)
+      // A failed read is also a result: it cannot schedule another attempt under
+      // consent that ended while the request was outstanding.
+      let outcome = error
+      const codeOf = (error: unknown) => error instanceof Problem ? error.code : /^provider_[a-z0-9_]+$/.test(String((error as Error).message)) ? (error as Error).message : 'provider_read_failed'
+      if (!terminal(outcome)) {
+        const code = codeOf(outcome)
+        try {
+          await commit(c, ['owner'], attemptChecks, [sql("UPDATE lk_execution_retrievals SET status='retrying',attempts=attempts+1,outcomes=json_insert(outcomes,'$[#]',json(?)),lease_until=NULL,last_error=?,next_attempt_at=?,updated_at=? WHERE id=?", json({status:'retrying',code,at:now}), code, now + Math.min(3_600_000, 30_000 * 2 ** Math.min(row.attempts, 7)), now, row.id)])
+          continue
+        } catch (guardError) { if (!terminal(guardError)) throw guardError; outcome = guardError }
+      }
+      // End only this owned lease. A concurrent explicit cancellation keeps its
+      // own decision and timestamp; no evidence or notification is committed.
+      const code = codeOf(outcome)
+      await db.prepare("UPDATE lk_execution_retrievals SET status='cancelled',attempts=attempts+1,outcomes=json_insert(outcomes,'$[#]',json(?)),lease_until=NULL,last_error=?,updated_at=? WHERE id=? AND status='retrieving' AND lease_until=?").bind(json({status:'cancelled',code,at:now}), code, now, row.id, lease).run()
     }
   }
   if(notify)await runNotifications(env, now, false)
