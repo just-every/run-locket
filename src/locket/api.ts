@@ -1,4 +1,5 @@
 import { followupHandlers } from './execution-followups'
+import { readAgreementSummary } from './agreement-summaries'
 import { modelHandlers } from './model-settings'
 import { proposalHandoffHandlers } from './proposal-handoffs'
 import { executionCompletionResponse, retrievalHandlers } from './execution-retrieval'
@@ -165,6 +166,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     const exchange = await publicExchangeResponse(request,env)
     if(exchange)return exchange
     const actor = await integrationActor(env,request,path) ?? await currentActor(request, env)
+    if(request.method==='GET'&&path.startsWith('/summaries/'))return reply(await readAgreementSummary(env,actor,decodeURIComponent(path.slice('/summaries/'.length))))
     if(request.method==='GET'&&path==='/access-report')return reply(await accessReport(env,actor,url.searchParams.get('agreementId')??''))
     if(request.method==='GET'&&path.startsWith('/approval-channels/requests/'))return reply(await approvalChannelRequestView(env,actor,decodeURIComponent(path.slice('/approval-channels/requests/'.length))))
     if(request.method==='GET'&&path==='/approval-channels/word-manifest')return approvalChannelWordManifest(env)

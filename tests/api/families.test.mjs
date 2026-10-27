@@ -222,6 +222,13 @@ test('Model settings retain provider-simulated review and extraction provenance,
  assert.equal(archive.records.lk_model_outputs.every(r => r.accepted_by === state.actor.id && r.simulated === 1), true)
  await h.setTime(Date.parse('2026-11-01T00:00:00Z'))
  assert.deepEqual((await h.owner.state()).models.usage, { month: '2026-11', currency: 'USD', estimatedUsd: 0, simulatedEstimatedUsd: 0, inputTokens: 0, outputTokens: 0, unpriced: 0 })
+ // The summaries task follows the same retained-output journey with an MSA input.
+ const { summaryFake, summaryJourney } = await import('./agreement-summary-fixture.mjs')
+ const summaryCalls = []; let mode = 'ok'
+ const summaryInstallation = await installation({bindings:modelBindings,outboundResponse:summaryFake(summaryCalls,()=>mode)})
+ t.after(()=>summaryInstallation.close())
+ await summaryInstallation.setTime(Date.parse('2026-10-27T12:00:00Z'))
+ await summaryJourney(summaryInstallation,summaryCalls,value=>{mode=value})
 })
 
 test('AI switches and unevaluated models refuse requests, denied people cannot configure or accept, and unsafe provider replies stay withheld', async t => {
