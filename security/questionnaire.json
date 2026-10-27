@@ -153,7 +153,7 @@
     },
     {
       "name": "Owner-selected model endpoint and Models service",
-      "data": "Explicitly approved family snapshot text and cited source metadata for structured analysis; configured model and feature metadata. Direct transport defaults to OpenAI when selected without another base URL. The buyer must verify the operator, retention, locations and contractual training prohibition.",
+      "data": "Explicitly approved agreement version text, applicable playbook rules, family snapshots and cited source metadata for review, extraction and structured analysis; configured model and feature metadata. Settings select Anthropic, OpenAI or Workers AI. The buyer must verify the operator, retention, locations and contractual no-training and zero-retention agreement. Outputs remain proposals requiring explicit human acceptance.",
       "bindings": [
         "AI_BASE_URL",
         "AI_MODEL",
@@ -163,11 +163,13 @@
         "MODELS_SERVICE",
         "MODELS_KEY",
         "RER_MODELS_SERVICE",
-        "RER_MODELS_KEY"
+        "RER_MODELS_KEY",
+        "AI_WORKERS_ACCOUNT_ID",
+        "LOCKET_MODEL_SIMULATION"
       ],
       "connectors": [],
       "enabledByDefault": false,
-      "configuration": "Owner configures the connection and authorizes its use.",
+      "configuration": "The owner chooses the provider and exact model in Settings, stores keys separately, explicitly authorizes each request and can disable AI globally or by agreement type. Real tasks require exact-model passing live REVIEW-006 evidence. The simulation switch is test-only, sends solely to a reserved invalid-domain provider edge and never enables a real task or creates a live evaluation record.",
       "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
