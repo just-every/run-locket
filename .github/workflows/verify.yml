@@ -87,10 +87,10 @@ jobs:
         with:
           persist-credentials: false
       - name: Reclaim unused hosted runner toolchain space
-        if: runner.environment == 'github-hosted' && runner.os == 'Linux' && (matrix.partition == 'core' || matrix.partition == 'portable')
+        if: runner.environment == 'github-hosted' && runner.os == 'Linux' && matrix.partition == 'portable'
         shell: bash
         run: |
-          # Core browser journeys and portable installations start rer dev.
+          # Portable installations start rer dev; the other partitions do not.
           # Reclaim only while either filesystem has less than 20 GiB free;
           # Node, browsers and caches stay.
           available_kib() {
