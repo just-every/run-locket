@@ -1,4 +1,5 @@
 import { runExecutionFollowups } from './execution-followups'
+import { completedPackage, retrievalProviders } from './execution-provider'
 import type { Bindings } from '../auth.server'
 import { authority, requireRole } from './access'
 import { encodeBase64, MAX_FILE_BYTES, PDF } from './artifacts'
@@ -13,14 +14,14 @@ import { workflowWrites } from './workflow-history'
 import { fullFieldsCheck, requireFullFields } from './repository-access'
 
 /** Retain the exact decision inputs, rather than following a mutable package ID. */
-async function packageBinding(c: Ctx, pkg: any, connection: SignatureConnection) {
+async function packageBinding(c: Ctx, pkg: any, connection: SignatureConnection, providerFiles?: {signedName:string;certificateName:string}) {
   const artifacts = (await c.db.prepare("SELECT id,sha256 FROM lk_artifacts WHERE id IN (?,?) ORDER BY id").bind(pkg.pdf_artifact_id, pkg.manifest_artifact_id).all<{id:string;sha256:string}>()).results
   if (artifacts.length !== 2) fail('STALE', 'The sent package evidence is incomplete.', 409)
   return json({ packageId: pkg.id, agreementId: pkg.agreement_id, versionId: pkg.version_id,
     versionDigest: pkg.version_digest, provider: pkg.provider, envelopeId: pkg.envelope_id,
     pdfArtifactId: pkg.pdf_artifact_id, manifestArtifactId: pkg.manifest_artifact_id,
     manifestDigest: await sha256(pkg.manifest), artifacts,
-    connection: { provider: connection.provider, baseUrl: connection.base_url, accountId: connection.account_id, version: connection.version } })
+    connection: { provider: connection.provider, baseUrl: connection.base_url, accountId: connection.account_id, version: connection.version }, ...(providerFiles?{providerFiles}:{}) })
 }
 
 function bindingCheck(binding: string, manifest: string) {
@@ -37,20 +38,23 @@ function bindingCheck(binding: string, manifest: string) {
 
 const enable: Handler = async (c, p) => {
   requireRole(c.actor, ['owner'], 'authorize automatic retrieval')
-  if (p.consent !== true) fail('CONSENT', 'Approve automatic retrieval of this exact sent package using the connected Docusign account.')
+  if (p.consent !== true) fail('CONSENT', 'Approve automatic retrieval of this exact sent package using its connected signing account.')
   const a = await visibleAgreement(c, p.agreementId)
-  const pkg = await c.db.prepare("SELECT * FROM lk_packages WHERE id=? AND agreement_id=? AND status='sent' AND provider='docusign'").bind(text(p, 'packageId', 100), a.id).first<any>()
-  if (!pkg || a.status !== 'out_for_signature') fail('STATUS', 'Choose a current sent Docusign package.', 409)
-  const connection = await c.db.prepare("SELECT * FROM lk_signature_connections WHERE provider='docusign'").first<SignatureConnection>()
-  if (!connection) fail('SIGNATURE_CONFIG', 'Configure the Docusign connection first.', 503)
-  signatureBase('docusign', connection.base_url, c.env)
-  signatureSecret(c.env, 'docusign')
+  const pkg = await c.db.prepare("SELECT * FROM lk_packages WHERE id=? AND agreement_id=? AND status='sent'").bind(text(p, 'packageId', 100), a.id).first<any>()
+  if (!pkg || a.status !== 'out_for_signature') fail('STATUS', 'Choose a current sent package.', 409)
+  if (!retrievalProviders.includes(pkg.provider)) fail('RETRIEVAL_UNSUPPORTED', 'Automatic retrieval is supported for Docusign, Acrobat Sign and Dropbox Sign only. Record other provider evidence manually.', 409)
+  const providerFiles=pkg.provider==='dropbox-sign'?{signedName:text(p,'signedName',200),certificateName:text(p,'certificateName',200)}:undefined
+  if (providerFiles && (providerFiles.signedName===providerFiles.certificateName || Object.values(providerFiles).some(name=>!name.toLowerCase().endsWith('.pdf') || name.startsWith('/') || name.includes('\\') || name.split('/').includes('..')))) fail('RETRIEVAL_FILES','Name the distinct signed PDF and provider audit-trail PDF in the ZIP. Never assign one file to both roles.',409)
+  const connection = await c.db.prepare("SELECT * FROM lk_signature_connections WHERE provider=?").bind(pkg.provider).first<SignatureConnection>()
+  if (!connection) fail('SIGNATURE_CONFIG', 'Configure this signing connection first.', 503)
+  signatureBase(pkg.provider, connection.base_url, c.env)
+  signatureSecret(c.env, pkg.provider)
   if (await c.db.prepare("SELECT 1 FROM lk_execution_retrievals WHERE package_id=? AND status IN ('waiting','retrying','retrieving')").bind(pkg.id).first()) fail('RETRIEVAL_ACTIVE', 'Cancel the current authorization before authorizing this package again.', 409)
-  const binding = await packageBinding(c, pkg, connection), id = crypto.randomUUID()
+  const binding = await packageBinding(c, pkg, connection, providerFiles), id = crypto.randomUUID()
   return { allowed: ['owner'], result: { id, status: 'waiting' },
     checks: [...agreementGuards(c, a, p), bindingCheck(binding, pkg.manifest), sql("NOT EXISTS(SELECT 1 FROM lk_execution_retrievals WHERE package_id=? AND status IN ('waiting','retrying','retrieving'))", pkg.id)],
     writes: [sql("INSERT INTO lk_execution_retrievals (id,agreement_id,package_id,actor,connection_version,status,attempts,next_attempt_at,created_at,updated_at,binding,outcomes) VALUES(?,?,?,?,?,'waiting',0,?,?,?,?,'[]')", id, a.id, pkg.id, json(c.actor), connection.version, c.now, c.now, c.now, binding)],
-    audit: [{ action: 'execution.retrieval.authorize', agreementId: a.id, summary: 'Owner authorized retrieval and reconciliation of this exact sent Docusign package. Authorization ends with the owner session or connection revision.' }] }
+    audit: [{ action: 'execution.retrieval.authorize', agreementId: a.id, summary: `Owner authorized retrieval and reconciliation of this exact sent ${pkg.provider} package. Authorization ends with the owner session or connection revision.` }] }
 }
 
 const cancel: Handler = async (c, p) => {
@@ -61,7 +65,7 @@ const cancel: Handler = async (c, p) => {
 export const retrievalHandlers = { 'execution.retrieval.authorize': enable, 'execution.retrieval.cancel': cancel }
 
 async function get(connection: SignatureConnection, token: string, path: string, binary = false) {
-  const response = await fetch(connection.base_url + path, { redirect: 'manual', signal: AbortSignal.timeout(10_000), headers: { authorization: `Bearer ${token}`, accept: binary ? PDF : 'application/json' } })
+  const response = await fetch(connection.base_url + path, { redirect: 'manual', signal: AbortSignal.timeout(10_000), headers: { authorization: connection.provider==='dropbox-sign'?`Basic ${btoa(token+':')}`:`Bearer ${token}`, accept: binary ? 'application/octet-stream' : 'application/json' } })
   if (!response.ok) throw new Error(`provider_http_${response.status}`)
   if (!binary) return response.json() as Promise<any>
   if (Number(response.headers.get('content-length')) > MAX_FILE_BYTES) throw new Error('provider_file_too_large')
@@ -104,31 +108,29 @@ export async function runExecutionRetrievals(env: Bindings, now: number, onlyId?
       await requireFullFields(db, actor)
       const a = await visibleAgreement(c, row.agreement_id)
       const pkg = await db.prepare("SELECT * FROM lk_packages WHERE id=? AND agreement_id=? AND status='sent' AND version_id=?").bind(row.package_id, a.id, a.current_version_id).first<any>()
-      const connection = await db.prepare("SELECT * FROM lk_signature_connections WHERE provider='docusign'").first<SignatureConnection>()
+      const connection = pkg ? await db.prepare("SELECT * FROM lk_signature_connections WHERE provider=?").bind(pkg.provider).first<SignatureConnection>() : null
       if (!pkg || a.status !== 'out_for_signature' || !connection || connection.version !== row.connection_version) throw new Problem('STALE', 'The package or connection changed.', 409)
-      if (!row.binding || await packageBinding(c, pkg, connection) !== row.binding) throw new Problem('STALE', 'The exact authorized package changed. A new owner decision is required.', 409)
+      const providerFiles=row.binding?JSON.parse(row.binding).providerFiles:undefined
+      if (!row.binding || await packageBinding(c, pkg, connection, providerFiles) !== row.binding) throw new Problem('STALE', 'The exact authorized package changed. A new owner decision is required.', 409)
       const checks = [jobCheck, bindingCheck(row.binding, pkg.manifest), fullFieldsCheck(actor), ...agreementGuards(c, a)]
       attemptChecks = checks
       // Guard the actual attempt before any network read, and repeat at the result write.
       await commit(c, ['owner'], checks, [])
-      signatureBase('docusign', connection.base_url, env)
-      const token = signatureSecret(env, 'docusign'), path = `/accounts/${encodeURIComponent(connection.account_id!)}/envelopes/${encodeURIComponent(pkg.envelope_id)}`
-      const envelope = await get(connection, token, path)
-      if (envelope.envelopeId !== pkg.envelope_id) throw new Error('provider_envelope_mismatch')
-      if (envelope.status !== 'completed') {
+      signatureBase(pkg.provider, connection.base_url, env)
+      const token = signatureSecret(env, pkg.provider)
+      const evidence = await completedPackage(connection, pkg.envelope_id, async (path, binary) => {
+        await commit(c, ['owner'], checks, [])
+        return get(connection, token, path, binary)
+      }, providerFiles)
+      if (!evidence) {
         await commit(c, ['owner'], checks, [sql("UPDATE lk_execution_retrievals SET status='waiting',attempts=attempts+1,outcomes=json_insert(outcomes,'$[#]',json(?)),lease_until=NULL,next_attempt_at=?,updated_at=? WHERE id=?", json({status:'waiting',at:now}), now + 60_000, now, row.id)])
         continue
       }
       // One signable PDF is the current automatic reconciliation boundary.
       // Multi-document packets remain held by EXEC-001's packet_documents check.
-      const recipients = await get(connection, token, path + '/recipients')
-      const signed = await get(connection, token, path + '/documents/combined', true)
-      const certificate = await get(connection, token, path + '/documents/certificate', true)
-      const completed = new Date(envelope.completedDateTime)
-      if (!Number.isFinite(completed.getTime()) || !Array.isArray(recipients.signers) || !recipients.signers.length || recipients.signers.some((r:any) => r.status !== 'completed')) throw new Error('provider_completion_incomplete')
-      const p = { agreementId: a.id, version: a.version, envelopeId: envelope.envelopeId, executedOn: completed.toISOString().slice(0, 10), documentConfirmed: true,
-        signers: recipients.signers.map((r:any) => ({ name: r.name, email: r.email, signedAt: r.signedDateTime })),
-        signed: { filename: `${a.reference}-signed.pdf`, mediaType: PDF, base64: encodeBase64(signed) }, certificate: { filename: `${a.reference}-certificate.pdf`, mediaType: PDF, base64: encodeBase64(certificate) } }
+      const p = { agreementId: a.id, version: a.version, envelopeId: pkg.envelope_id, executedOn: evidence.completed.toISOString().slice(0, 10), documentConfirmed: true,
+        signers: evidence.signers,
+        signed: { filename: `${a.reference}-signed.pdf`, mediaType: PDF, base64: encodeBase64(evidence.signed) }, certificate: { filename: `${a.reference}-certificate.pdf`, mediaType: PDF, base64: encodeBase64(evidence.certificate) } }
       const out = await executionHandlers['execution.record'](c, p), result = out.result as {executionId:string;status:string}
       await commit(c, ['owner'], [...(out.checks ?? []), ...checks], [...out.writes,
         ...await commandNotifications(c, 'execution.record', p, out), ...await workflowWrites(c, out.audit), ...out.audit.map(entry => auditSql(c, entry)),

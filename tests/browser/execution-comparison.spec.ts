@@ -99,6 +99,7 @@ test(`AGENT-006 changed signed liability is visible and held until reasoned acce
   }
   await automaticRetrievalBrowserJourney(page)
   await executionFollowupBrowserJourney(page)
+  await acrobatRetrievalBrowserJourney(page)
 })
 
 
@@ -193,7 +194,7 @@ async function automaticRetrievalBrowserJourney(page: any) {
       await railControl.hover()
       await expect(page.getByRole('tooltip',{name:'Open Portfolio',exact:true})).toBeVisible()
       await page.mouse.move(0,0)
-      const consent=page.getByRole('checkbox',{name:'Retrieve and reconcile this exact sent package from the connected Docusign account.'})
+      const consent=page.getByRole('checkbox',{name:'Retrieve and reconcile this exact sent package from the connected DocuSign account.'})
       await expect(consent).not.toBeChecked();await consent.check()
       await page.getByRole('button',{name:'Authorize retrieval',exact:true}).click()
       await expect(page.getByText('Provider returned HTTP 503',{exact:false})).toBeVisible()
@@ -276,5 +277,44 @@ async function executionFollowupBrowserJourney(page:any) {
    expect((await product.state()).models.outputs.find((o:any)=>o.agreement_id===f.id).status).toBe('proposed')
    await shot('filed-outcome')
   }finally{await product.close()}
+ }
+}
+
+
+async function acrobatRetrievalBrowserJourney(page:any) {
+ const {acrobatProvider,dropboxProvider,prepareAcrobatFixture}=await import('../api/execution-followup-journey.mjs')
+ for(const provider of ['adobe-acrobat-sign','dropbox-sign']){
+ const edge=provider==='dropbox-sign'?dropboxProvider():acrobatProvider(),product=await productPage(page,{width:1440,...edge})
+ try{
+  const f=await prepareAcrobatFixture(product.h,edge,{provider})
+  await page.goto(product.origin+`/app#agreement/${f.id}/execution`)
+  if(provider==='dropbox-sign'){await page.getByLabel('Signed PDF name in ZIP').fill('signed.pdf');await page.getByLabel('Provider audit trail name in ZIP').fill('audit.pdf')}
+  const consent=page.getByRole('checkbox',{name:`Retrieve and reconcile this exact sent package from the connected ${provider==='dropbox-sign'?'Dropbox Sign':'Adobe Acrobat Sign'} account.`})
+  await expect(consent).not.toBeChecked();await consent.check()
+  const shot=async(name:string)=>{
+   if(process.env.LOCKET_SCREENSHOTS){
+    await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true})
+    for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-EXEC-002-${provider}-${name}.png`),fullPage:true})}
+    await page.setViewportSize({width:1440,height:1000})
+   }
+  }
+  await shot('consent')
+  await page.getByRole('button',{name:'Authorize retrieval',exact:true}).click()
+  await expect(page.getByText('Waiting',{exact:true})).toBeVisible()
+  await shot('waiting')
+  edge.status='SIGNED';edge.completed=true;edge.failCertificate=true
+  let row=(await product.state()).executionRetrievals.find((r:any)=>r.agreement_id===f.id)
+  await product.h.scheduled(row.next_attempt_at+1);await page.reload()
+  await expect(page.getByText(provider==='dropbox-sign'?'Provider returned HTTP 409':'Provider returned HTTP 503',{exact:false})).toBeVisible()
+  await expect(page.getByText('Unsigned. No executed file is recorded.',{exact:true})).toBeVisible()
+  await shot('retrying')
+  row=(await product.state()).executionRetrievals.find((r:any)=>r.agreement_id===f.id)
+  edge.failCertificate=false;edge.filesReady=true;await product.h.scheduled(row.next_attempt_at+1);await page.reload()
+  await expect(page.getByText('Reconciled',{exact:true})).toHaveCount(2)
+  await expect(page.getByRole('link',{name:'Signed PDF',exact:true})).toBeVisible()
+  await expect(page.getByRole('link',{name:'Provider certificate',exact:true})).toBeVisible()
+  expect((await product.state()).agreements.find((a:any)=>a.id===f.id).status).toBe('executed')
+  await shot('reconciled')
+ }finally{await product.close()}
  }
 }

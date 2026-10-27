@@ -480,16 +480,33 @@ Owner-only `accounting.link {agreementId, version, provider, vendorId, consent:t
 
 ### Automatic retrieval and proposal handoffs
 
-The owner can authorize an exact sent Docusign package with
+The owner can authorize an exact sent Docusign, Acrobat Sign or Dropbox Sign package with
 `execution.retrieval.authorize` (`agreementId`, current `version`, `packageId`,
 `consent: true`) or stop it with `execution.retrieval.cancel`. Configure
 `SIGNATURE_DOCUSIGN_TOKEN` and `SIGNATURE_DOCUSIGN_CONNECT_SECRET` as private
 installation bindings, and the existing Docusign account connection first.
+For Acrobat Sign, configure `SIGNATURE_ACROBAT_TOKEN` and the current regional
+Acrobat Sign connection. Minute checks read the agreement status, completed
+signer sets and attributed signing events, then retrieve the combined signed
+PDF without an attached audit report and the separate provider audit trail.
+Ambiguous recipient groups, missing signing events and malformed dates are
+refused before downloading. The exact returned bytes remain provider evidence;
+no certificate is manufactured. Acrobat callback registration and live sandbox
+interoperability remain unproved under SIGN-002. Dropbox Sign uses private `SIGNATURE_DROPBOX_KEY` with Basic authentication.
+The owner explicitly supplies distinct `signedName` and `certificateName` PDF
+entry names when authorizing the exact package. The documented ZIP download
+must contain exactly those two files; missing, duplicate, encrypted, oversized,
+corrupt or ambiguous entries are refused. No merged PDF is split. Provider
+preparation failures retry with visible backoff. See the provider's
+[separate audit trail guidance](https://help.dropbox.com/account-settings/dropbox-sign-separate-audit-trail)
+and [download endpoint](https://developers.hellosign.com/api/signature-request/files).
+Inkwell automatic retrieval remains unsupported pending its completion and
+original-evidence API; the original obligation stays open.
 The Connect callback is `POST /api/locket/events/docusign`; it checks the
 Docusign HMAC header against the exact request bytes. The configured account
 is read again for authoritative completion, recipients, signed PDF and
 certificate. Minute checks retry read failures with backoff. Changed returns
-remain unsigned for reasoned review. Authorization retains the exact sent package and evidence digests. Every attempt
+remain unsigned for reasoned review. Authorization retains the exact sent package and evidence digests. Every network read
 and result write checks current owner authority, agreement access and the same
 package and connection. Authorization ends if the owner session, package or
 connection revision changes. Cancelling or ending a decision retains its outcome

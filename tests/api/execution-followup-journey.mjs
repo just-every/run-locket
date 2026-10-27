@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { createHash, createHmac } from 'node:crypto'
 import { installation } from './harness.mjs'
-import { team, library, outForSignature, pdf } from './setup.mjs'
+import { team, library, outForSignature, approved, pdf } from './setup.mjs'
+import { zip } from './files.mjs'
 import { configureModel } from './model-settings-fixture.mjs'
 
 export function followupProvider() {
@@ -193,12 +194,167 @@ export async function executionFollowupRefusals(t) {
  }
 }
 
+
+export function acrobatProvider() {
+ const edge={status:'OUT_FOR_SIGNATURE',signed:null,certificate:pdf('synthetic-locket-20 Acrobat audit trail'),reads:[],failCertificate:false,badIdentity:false,badMembers:false,badDate:false,beforeSigned:null,incompleteMembers:false,ambiguousMembers:false}
+ edge.bindings={SIGNATURE_ACROBAT_TOKEN:'synthetic-locket-20'}
+ edge.outboundResponse=async request=>{
+  const u=new URL(request.url);assert.equal(u.hostname,'api.na1.adobesign.com')
+  assert.equal(request.headers.get('authorization'),'Bearer synthetic-locket-20')
+  assert.equal(request.method,'GET');edge.reads.push(u.pathname)
+  if(u.pathname.endsWith('/members'))return Response.json({participantSets:[
+   {role:'SIGNER',status:edge.incompleteMembers?'WAITING_FOR_MY_SIGNATURE':'COMPLETED',memberInfos:[{name:'Hana Park',email:edge.badMembers?'synthetic-locket-wrong@example.test':'hana@harbour.example'},...(edge.ambiguousMembers?[{name:'Synthetic alternate',email:'synthetic-locket-alternate@example.test'}]:[])]},
+   {role:'SIGNER',status:'COMPLETED',memberInfos:[{name:'Olive Owner',email:'owner@example.test'}]},
+   {role:'CC',status:'WAITING_FOR_MY_ACKNOWLEDGEMENT',memberInfos:[{name:'Synthetic copy',email:'synthetic-locket-copy@example.test'}]}]})
+  if(u.pathname.endsWith('/events'))return Response.json({events:[
+   {type:'CREATED',date:'2026-10-26T10:00:00Z'},
+   {type:'ESIGNED',participantEmail:edge.badMembers?'synthetic-locket-wrong@example.test':'hana@harbour.example',date:'2026-10-26T11:00:00Z'},
+   {type:'ESIGNED',participantEmail:'owner@example.test',date:edge.badDate?'unreadable':'2026-10-26T12:00:00Z'}]})
+  if(u.pathname.endsWith('/combinedDocument')){assert.equal(u.searchParams.get('attachAuditReport'),'false');if(edge.beforeSigned){const action=edge.beforeSigned;edge.beforeSigned=null;await action()};return new Response(edge.signed)}
+  if(u.pathname.endsWith('/auditTrail'))return edge.failCertificate?new Response('Unavailable',{status:503}):new Response(edge.certificate)
+  return Response.json({id:edge.badIdentity?'synthetic-locket-other':decodeURIComponent(u.pathname.split('/').at(-1)),status:edge.status})
+ }
+ return edge
+}
+export async function prepareAcrobatFixture(h,edge,{provider='adobe-acrobat-sign'}={}) {
+ const {configurePacket,preparePacket,approvePacket}=await import('./signature-packet-fixture.mjs')
+ const tm=await team(h),lib=await library(h,tm),id=await approved(h,tm,lib)
+ await configurePacket(tm.owner,id,{recipients:[{name:'Hana Park',email:'hana@harbour.example',action:'sign',partyRole:'counterparty'},{name:'Olive Owner',email:'owner@example.test',action:'sign',partyRole:'internal'}]})
+ await approvePacket(tm.owner,id)
+ const pkg=await preparePacket(tm.owner,id,provider)
+ let a=(await tm.owner.state()).agreements.find(a=>a.id===id)
+ await tm.owner.command('package.sent',{agreementId:id,version:a.version,packageId:pkg.packageId,envelopeId:'synthetic-locket-acrobat-'+id})
+ if(['adobe-acrobat-sign','dropbox-sign'].includes(provider))await tm.owner.command('signature.connection.configure',{provider,baseUrl:provider==='dropbox-sign'?'https://api.hellosign.com/v3':'https://api.na1.adobesign.com/api/rest/v6',accountId:'synthetic-locket-acrobat-account',version:0})
+ edge.signed=Buffer.from(await(await tm.owner.request('/api/locket/files/'+pkg.pdfArtifactId)).arrayBuffer())
+ a=(await tm.owner.state()).agreements.find(a=>a.id===id)
+ return {tm,id,pkg,base:{agreementId:id,version:a.version,packageId:pkg.packageId,consent:true}}
+}
+export async function acrobatRetrievalJourney(t) {
+ for(const scenario of ['complete','wrong-envelope','wrong-signers','incomplete-signers','ambiguous-signers','bad-date','revoked-between-reads','unsupported-inkwell']){
+  const edge=acrobatProvider(),h=await installation(edge);t.after(()=>h.close())
+  const f=await prepareAcrobatFixture(h,edge,{provider:scenario==='unsupported-inkwell'?'inkwell':'adobe-acrobat-sign'})
+  if(scenario.startsWith('unsupported-')){await f.tm.owner.command('execution.retrieval.authorize',f.base,{error:'RETRIEVAL_UNSUPPORTED'});assert.equal(edge.reads.length,0);assert.equal((await f.tm.owner.state()).executionRetrievals.length,0);continue}
+  await f.tm.requester.command('execution.retrieval.authorize',f.base,{error:'FORBIDDEN'})
+  await f.tm.owner.command('execution.retrieval.authorize',{...f.base,consent:false},{error:'CONSENT'})
+  const decision=await f.tm.owner.command('execution.retrieval.authorize',f.base)
+  let state=await f.tm.owner.state(),row=state.executionRetrievals.find(r=>r.id===decision.id)
+  assert.equal(row.status,'waiting');assert.equal(state.executions.length,0)
+  assert.equal(edge.reads.length,1,'incomplete agreement must not download documents')
+  edge.status='SIGNED'
+  edge.badIdentity=scenario==='wrong-envelope';edge.badMembers=scenario==='wrong-signers';edge.badDate=scenario==='bad-date';edge.incompleteMembers=scenario==='incomplete-signers';edge.ambiguousMembers=scenario==='ambiguous-signers'
+  if(scenario==='revoked-between-reads')edge.beforeSigned=async()=>{assert.equal((await f.tm.owner.request('/auth/signout',{method:'POST',body:{}})).status,204)}
+  edge.failCertificate=scenario==='complete'
+  await h.scheduled(row.next_attempt_at+1)
+  if(scenario==='revoked-between-reads'){f.tm.owner=await h.signIn('owner@example.test');h.owner=f.tm.owner}
+  state=await f.tm.owner.state();row=state.executionRetrievals.find(r=>r.id===decision.id)
+  if(scenario==='complete'){
+   assert.equal(row.status,'retrying');assert.equal(row.last_error,'provider_http_503')
+   assert.equal(state.executions.length,0);assert.equal(state.agreements.find(a=>a.id===f.id).status,'out_for_signature')
+   assert.equal(row.next_attempt_at-row.updated_at,60000)
+   edge.failCertificate=false;await h.scheduled(row.next_attempt_at+1)
+   state=await f.tm.owner.state();row=state.executionRetrievals.find(r=>r.id===decision.id)
+   assert.equal(row.status,'reconciled');assert.equal(state.agreements.find(a=>a.id===f.id).status,'executed')
+   const e=state.executions.find(e=>e.agreement_id===f.id)
+   assert.equal(e.provider,'adobe-acrobat-sign');assert.equal(e.executed_on,'2026-10-26')
+   assert.deepEqual(JSON.parse(e.signers).map(s=>s.email),['hana@harbour.example','owner@example.test'])
+   for(const [artifact,bytes] of [[e.signed_artifact_id,edge.signed],[e.certificate_artifact_id,edge.certificate]]){
+    const response=await f.tm.owner.request('/api/locket/files/'+artifact)
+    assert.equal(response.headers.get('x-locket-sha256'),createHash('sha256').update(bytes).digest('hex'))
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()),bytes)
+   }
+   assert.deepEqual(JSON.parse(row.outcomes).map(o=>o.status),['waiting','retrying','reconciled'])
+   assert.equal((await f.tm.requester.state()).notifications.items.filter(n=>n.event_key===decision.id).length,1)
+  }else if(scenario==='wrong-signers'){
+   assert.equal(row.status,'needs_review');assert.equal(state.agreements.find(a=>a.id===f.id).status,'out_for_signature')
+   const e=state.executions.find(e=>e.agreement_id===f.id);assert.equal(e.status,'needs_review');assert.equal(JSON.parse(e.checks).find(c=>c.check==='signers').ok,false)
+   await f.tm.requester.command('execution.resolve',{agreementId:f.id,version:state.agreements.find(a=>a.id===f.id).version,executionId:e.id,reason:'Requester cannot accept mismatches'},{error:'FORBIDDEN'})
+  }else if(scenario==='revoked-between-reads'){
+   assert.equal(row.status,'cancelled');assert.equal(row.last_error,'AUTHORITY');assert.equal(state.executions.length,0)
+   assert.equal(edge.reads.filter(p=>p.endsWith('/auditTrail')).length,0,'revocation stops the next network read')
+  }else{
+   assert.equal(row.status,'retrying');assert.equal(row.last_error,scenario==='wrong-envelope'?'provider_envelope_mismatch':'provider_completion_incomplete')
+   assert.equal(state.executions.length,0);assert.equal(edge.reads.filter(p=>p.endsWith('/combinedDocument')).length,0)
+  }
+  if(['complete','revoked-between-reads'].includes(scenario)){
+   const reads=edge.reads.length;await h.scheduled(row.next_attempt_at+3600001)
+   assert.equal(edge.reads.length,reads,'completion and ended consent never reread provider files')
+  }
+ }
+}
+
+
+export function dropboxProvider() {
+ const edge={completed:false,signed:null,certificate:pdf('synthetic-locket-21 Dropbox audit trail'),reads:[],filesReady:false,archiveFault:null,beforeFiles:null}
+ edge.bindings={SIGNATURE_DROPBOX_KEY:'synthetic-locket-21'}
+ edge.outboundResponse=async request=>{
+  const u=new URL(request.url);assert.equal(u.hostname,'api.hellosign.com');assert.equal(request.method,'GET')
+  assert.equal(request.headers.get('authorization'),'Basic '+Buffer.from('synthetic-locket-21:').toString('base64'))
+  edge.reads.push(u.pathname)
+  if(u.pathname.startsWith('/v3/signature_request/files/')){
+   assert.equal(u.searchParams.get('file_type'),'zip')
+   if(edge.beforeFiles){const action=edge.beforeFiles;edge.beforeFiles=null;await action()}
+   if(!edge.filesReady)return new Response('Files preparing',{status:409})
+   const entries=[['signed.pdf',edge.signed],['audit.pdf',edge.certificate]]
+   if(edge.archiveFault==='missing')entries.pop()
+   if(edge.archiveFault==='duplicate')entries[1][0]='signed.pdf'
+   const archive=zip(entries)
+   if(edge.archiveFault==='crc'){const central=archive.indexOf(Buffer.from([0x50,0x4b,0x01,0x02]));archive[central+16]^=1}
+   return new Response(archive,{headers:{'content-type':'application/zip'}})
+  }
+  return Response.json({signature_request:{signature_request_id:decodeURIComponent(u.pathname.split('/').at(-1)),is_complete:edge.completed,is_declined:false,has_error:false,signatures:[
+   {signer_name:'Hana Park',signer_email_address:'hana@harbour.example',status_code:'signed',signed_at:1793012400},
+   {signer_name:'Olive Owner',signer_email_address:'owner@example.test',status_code:'signed',signed_at:1793016000}]}})
+ }
+ return edge
+}
+export async function dropboxRetrievalJourney(t) {
+ for(const scenario of ['complete','missing','duplicate','crc','revoked']){
+  const edge=dropboxProvider(),h=await installation(edge);t.after(()=>h.close())
+  const f=await prepareAcrobatFixture(h,edge,{provider:'dropbox-sign'})
+  await f.tm.owner.command('execution.retrieval.authorize',f.base,{error:'INVALID'})
+  const base={...f.base,signedName:'signed.pdf',certificateName:'audit.pdf'}
+  await f.tm.owner.command('execution.retrieval.authorize',{...base,certificateName:'signed.pdf'},{error:'RETRIEVAL_FILES'})
+  const decision=await f.tm.owner.command('execution.retrieval.authorize',base)
+  let state=await f.tm.owner.state(),row=state.executionRetrievals.find(r=>r.id===decision.id)
+  assert.equal(row.status,'waiting');assert.equal(edge.reads.length,1)
+  const archive=await(await f.tm.owner.request('/api/locket/export')).json()
+  assert.deepEqual(JSON.parse(archive.records.lk_execution_retrievals.find(r=>r.id===decision.id).binding).providerFiles,{signedName:'signed.pdf',certificateName:'audit.pdf'})
+  edge.completed=true
+  if(scenario==='complete'){
+   await h.scheduled(row.next_attempt_at+1)
+   state=await f.tm.owner.state();row=state.executionRetrievals.find(r=>r.id===decision.id)
+   assert.equal(row.status,'retrying');assert.equal(row.last_error,'provider_http_409');assert.equal(state.executions.length,0)
+  }
+  edge.filesReady=true;edge.archiveFault=scenario==='complete'||scenario==='revoked'?null:scenario
+  if(scenario==='revoked')edge.beforeFiles=async()=>assert.equal((await f.tm.owner.request('/auth/signout',{method:'POST',body:{}})).status,204)
+  await h.scheduled(row.next_attempt_at+1)
+  if(scenario==='revoked'){f.tm.owner=await h.signIn('owner@example.test');h.owner=f.tm.owner}
+  state=await f.tm.owner.state();row=state.executionRetrievals.find(r=>r.id===decision.id)
+  if(scenario==='complete'){
+   assert.equal(row.status,'reconciled');assert.equal(state.agreements.find(a=>a.id===f.id).status,'executed')
+   const e=state.executions.find(e=>e.agreement_id===f.id);assert.equal(e.provider,'dropbox-sign');assert.equal(e.executed_on,'2026-10-26')
+   assert.deepEqual(JSON.parse(e.signers).map(s=>s.email),['hana@harbour.example','owner@example.test'])
+   for(const [id,bytes] of [[e.signed_artifact_id,edge.signed],[e.certificate_artifact_id,edge.certificate]]){
+    const response=await f.tm.owner.request('/api/locket/files/'+id)
+    assert.equal(response.headers.get('x-locket-sha256'),createHash('sha256').update(bytes).digest('hex'));assert.deepEqual(Buffer.from(await response.arrayBuffer()),bytes)
+   }
+   assert.equal((await f.tm.requester.state()).notifications.items.filter(n=>n.event_key===decision.id).length,1)
+  }else{
+   assert.equal(row.status,scenario==='revoked'?'cancelled':'retrying')
+   assert.equal(row.last_error,scenario==='revoked'?'AUTHORITY':'provider_archive_invalid')
+   assert.equal(state.executions.length,0);assert.equal(state.artifacts.filter(a=>['signed','certificate'].includes(a.role)).length,0)
+   assert.equal(state.agreements.find(a=>a.id===f.id).status,'out_for_signature')
+  }
+  if(scenario==='complete'||scenario==='revoked'){const reads=edge.reads.length;await h.scheduled(row.next_attempt_at+3600001);assert.equal(edge.reads.length,reads)}
+ }
+}
+
 if(process.argv.includes('--clock')){
  const {execFileSync}=await import('node:child_process')
  const cleanups=[]
  try{
   const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()
   const result=await executionFollowupJourney({after:fn=>cleanups.push(fn)})
-  console.log(JSON.stringify({runId:'sx-locket-c-f1-clock-'+head,head,...result}))
+  console.log(JSON.stringify({runId:'sx-locket-c-f3-clock-'+head,head,...result}))
  }finally{for(const cleanup of cleanups.reverse())await cleanup()}
 }
