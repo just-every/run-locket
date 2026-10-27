@@ -181,7 +181,6 @@ const updateObligation: Handler = async (c, p) => {
     requireRole(c.actor, may.confirmTerms, 'confirm obligations')
     if (o.status !== 'proposed') fail('STATUS', 'Only a proposed obligation can be confirmed or rejected.', 409)
   }
-  if (action === 'confirm' && o.recurrence !== 'none' && !o.due_date) fail('INVALID', 'A recurring obligation needs a confirmed first due date.', 400)
   if (action === 'confirm' && !(await isReader(c, a.id, o.owner_id))) fail('INVALID', 'The obligation owner no longer has current agreement access.', 409)
   const status = action === 'confirm' ? 'confirmed' : action === 'reject' ? 'rejected' : 'done'
   const writes: Sql[] = []
