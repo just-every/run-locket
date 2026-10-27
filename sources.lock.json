@@ -4297,7 +4297,7 @@
       "executable": false
     },
     "src/ui/signature.tsx": {
-      "sha256": "3fd5a50db7f31d2835544353e15313bdb7fb1cbcc7735064b1e0199c06bc743a",
+      "sha256": "475010cc19f5e0cd5a600ce1f31028ab7fa4a733f9a917ef7e7cfa69ae0a6476",
       "executable": false
     },
     "src/ui/style/bulk-reminders.css": {
@@ -4473,7 +4473,7 @@
       "executable": false
     },
     "tests/api/execution-followup-journey.mjs": {
-      "sha256": "e377b89e63a8a7e2b5d696148063f2980d3c7db0339812ef9bb2d79389d46cd9",
+      "sha256": "3caf40d42ca6b966a989ca8665833ad46a024e7c299e445ab8f8952ada8e19a9",
       "executable": false
     },
     "tests/api/families.test.mjs": {

@@ -402,6 +402,6 @@ if(process.argv.includes('--clock')){
  try{
   const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()
   const result=await executionFollowupJourney({after:fn=>cleanups.push(fn)})
-  console.log(JSON.stringify({runId:'sx-locket-c-f4-clock-'+head,head,...result}))
+  console.log(JSON.stringify({runId:'sx-locket-c-i981-clock-'+head,head,...result}))
  }finally{for(const cleanup of cleanups.reverse())await cleanup()}
 }
