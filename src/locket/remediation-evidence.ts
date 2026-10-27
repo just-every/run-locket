@@ -3,6 +3,7 @@ import { fileInput, isPdf, storeArtifact } from './artifacts'
 import type { Ctx, Handler } from './commands'
 import { readablePages } from './execution-comparison'
 import { date, fail, integer, json, object, sql, text } from './model'
+import { advanceObligation } from './owner-obligations'
 import { bump } from './records'
 import { remediationRequirement, type RemediationRow } from './remediation-records'
 
@@ -30,7 +31,7 @@ export function assessRemediation(pages:string[]|null,requirement:any,kind:strin
  return {fields,status,reasons:values.filter(f=>f.status!=='match').map(f=>f.reason)}
 }
 function completion(c:Ctx,e:Awaited<ReturnType<typeof remediationRequirement>>,artifactId:string,evidenceId:string) {
- return [sql("UPDATE lk_obligations SET status='done',done_by=?,done_at=?,evidence_artifact_id=?,evidence_note=? WHERE id=?",c.actor.id,c.now,artifactId,`Verified remediation evidence ${evidenceId}`,e.o.id),sql("UPDATE lk_remediation_occurrences SET status='cancelled',outcome_code='obligation_completed' WHERE status='pending' AND request_id IN (SELECT id FROM lk_remediation_requests WHERE requirement_id=?)",e.r.id),bump(c,e.a)]
+ return [...advanceObligation(c,e.o).writes,sql("UPDATE lk_obligations SET status='done',resolution='done',done_by=?,done_at=?,evidence_artifact_id=?,evidence_note=? WHERE id=?",c.actor.id,c.now,artifactId,`Verified remediation evidence ${evidenceId}`,e.o.id),sql("UPDATE lk_remediation_occurrences SET status='cancelled',outcome_code='obligation_completed' WHERE status='pending' AND request_id IN (SELECT id FROM lk_remediation_requests WHERE requirement_id=?)",e.r.id),bump(c,e.a)]
 }
 const upload:Handler=async(c,p)=>{
  requireRole(c.actor,may.review,'submit obligation evidence')

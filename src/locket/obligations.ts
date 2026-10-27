@@ -17,6 +17,8 @@ import { day, deadline as zoned, termLabel, termValue as termText } from './disp
 import { date, fail, integer, json, object, oneOf, optionalDate, optionalText, sql, text, type Sql } from './model'
 import { agreementGuards, bump, visibleAgreement, type AgreementRow } from './records'
 import { riskLevels } from './obligation-risk'
+import { advanceObligation } from './owner-obligations'
+import { isReader, readerSql } from './deadline-reminders'
 
 export const termKeys = ['effective_date', 'end_date', 'initial_term_months', 'auto_renew', 'renewal_type', 'renewal_term_months', 'renewals_allowed', 'notice_days', 'governing_law', 'payment_terms'] as const
 type TermKey = (typeof termKeys)[number]
@@ -141,14 +143,14 @@ const addObligation: Handler = async (c, p) => {
   const a = await visibleAgreement(c, p.agreementId)
   requireEffective(a)
   const ownerId = text(p, 'ownerId', 64)
-  if (!(await c.db.prepare("SELECT 1 AS ok FROM oa_operators WHERE id=? AND status='active'").bind(ownerId).first())) fail('INVALID', 'The obligation owner must be an active member.', 400)
+  if (!(await isReader(c, a.id, ownerId))) fail('INVALID', 'The obligation owner must be an active person with current agreement access.', 400)
   const id = crypto.randomUUID()
   const evidence = p.evidence === undefined ? 'none' : oneOf(p, 'evidence', evidenceKinds), risk = p.risk === undefined ? 'medium' : oneOf(p, 'risk', riskLevels)
   return {
     allowed: may.review,
     result: { id },
     writes: [sql('INSERT INTO lk_obligations(id,agreement_id,description,owner_id,due_date,recurrence,citation,status,created_by,confirmed_by,done_by,done_at,created_at,evidence,risk) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, a.id, text(p, 'description', 2000), ownerId, optionalDate(p, 'dueDate'), oneOf(p, 'recurrence', ['none', 'monthly', 'quarterly', 'annually'] as const), json(await citation(c, a, p.citation)), 'proposed', c.actor.id, null, null, null, c.now, evidence, risk), bump(c, a)],
-    checks: agreementGuards(c, a),
+    checks: [...agreementGuards(c, a, p.version === undefined ? undefined : p), ...readerSql(c, a.id, ownerId)],
     audit: [{ action: 'obligation.add', agreementId: a.id, summary: 'Proposed an obligation' }],
   }
 }
@@ -169,23 +171,38 @@ const updateObligation: Handler = async (c, p) => {
   const a = await visibleAgreement(c, p.agreementId)
   const o = await c.db.prepare('SELECT * FROM lk_obligations WHERE id=? AND agreement_id=?').bind(p.obligationId, a.id).first<any>()
   if (!o) fail('NOT_FOUND', 'That obligation is not on this agreement.', 404)
-  const action = oneOf(p, 'action', ['confirm', 'reject', 'done'] as const)
-  if (action === 'done') {
-    if (o.status !== 'confirmed') fail('STATUS', 'Only a confirmed obligation can be marked done.', 409)
-    if (c.actor.id !== o.owner_id) requireRole(c.actor, may.confirmTerms, 'complete someone else’s obligation')
+  const action = oneOf(p, 'action', ['confirm', 'reject', 'done', 'waive'] as const)
+  const closing = action === 'done' || action === 'waive'
+  if (closing) {
+    if (o.status !== 'confirmed') fail('STATUS', 'Only a confirmed open occurrence can be completed or waived.', 409)
+    if (action === 'waive') requireRole(c.actor, may.manageRoles, 'waive an obligation occurrence')
+    else if (c.actor.id !== o.owner_id) requireRole(c.actor, may.confirmTerms, 'complete someone else’s obligation')
   } else {
     requireRole(c.actor, may.confirmTerms, 'confirm obligations')
     if (o.status !== 'proposed') fail('STATUS', 'Only a proposed obligation can be confirmed or rejected.', 409)
   }
+  if (action === 'confirm' && o.recurrence !== 'none' && !o.due_date) fail('INVALID', 'A recurring obligation needs a confirmed first due date.', 400)
+  if (action === 'confirm' && !(await isReader(c, a.id, o.owner_id))) fail('INVALID', 'The obligation owner no longer has current agreement access.', 409)
   const status = action === 'confirm' ? 'confirmed' : action === 'reject' ? 'rejected' : 'done'
   const writes: Sql[] = []
-  const remediationGuard=action==='done'?await remediationCompletionCheck(c,o.id):null
-  if (action === 'done') {
-    const proof = await evidenceFor(c, a, o, p)
-    writes.push(...proof.writes, sql("UPDATE lk_obligations SET status='done', done_by=?, done_at=?, evidence_artifact_id=?, evidence_link=?, evidence_note=? WHERE id=?", c.actor.id, c.now, proof.artifactId, proof.link, proof.note, o.id))
+  const remediationGuard = action === 'done' ? await remediationCompletionCheck(c, o.id) : null
+  let nextId: string | null = null
+  if (closing) {
+    const reason = action === 'waive' ? text(p, 'reason', 2000) : null
+    const proof = action === 'done' ? await evidenceFor(c, a, o, p) : { writes: [], artifactId: null, link: null, note: null }
+    writes.push(...proof.writes, sql("UPDATE lk_obligations SET status='done', resolution=?, waiver_reason=?, done_by=?, done_at=?, evidence_artifact_id=?, evidence_link=?, evidence_note=? WHERE id=?", action === 'waive' ? 'waived' : 'done', reason, c.actor.id, c.now, proof.artifactId, proof.link, proof.note, o.id))
+    const next = advanceObligation(c, o)
+    nextId = next.nextId
+    writes.push(...next.writes)
   } else writes.push(sql('UPDATE lk_obligations SET status=?, confirmed_by=? WHERE id=?', status, c.actor.id, o.id))
-  if (action === 'confirm') writes.push(...notificationWrites(c,{key:c.commandId,agreementId:a.id,recipientId:o.owner_id,kind:'assignment'}))
-  return { allowed: action === 'done' ? may.review : may.confirmTerms, result: { id: o.id, status }, writes: [...writes, bump(c, a)], checks: [...agreementGuards(c, a), ...(remediationGuard?[remediationGuard]:[]), sql('(SELECT status FROM lk_obligations WHERE id=?)=?', o.id, o.status)], audit: [{ action: `obligation.${action}`, agreementId: a.id, summary: `${status[0].toUpperCase() + status.slice(1)} obligation: ${o.description.slice(0, 80)}` }] }
+  if (action === 'confirm') writes.push(...notificationWrites(c, { key: `obligation-assignment:${o.id}`, agreementId: a.id, recipientId: o.owner_id, kind: 'assignment' }))
+  return {
+    allowed: action === 'waive' ? may.manageRoles : action === 'done' ? may.review : may.confirmTerms,
+    result: { id: o.id, status, lifecycleStatus: action === 'waive' ? 'waived' : status, nextId },
+    writes: [...writes, bump(c, a)],
+    checks: [...agreementGuards(c, a, p.version === undefined ? undefined : p), ...(action === 'confirm' ? readerSql(c, a.id, o.owner_id) : []), ...(remediationGuard ? [remediationGuard] : []), sql('(SELECT status FROM lk_obligations WHERE id=?)=?', o.id, o.status)],
+    audit: [{ action: `obligation.${action}`, agreementId: a.id, summary: `${action === 'waive' ? 'Waived occurrence' : status[0].toUpperCase() + status.slice(1)}: ${o.description.slice(0, 80)}${action === 'waive' ? '; ' + text(p, 'reason', 2000) : ''}${nextId ? '; retained occurrence and advanced confirmed recurrence' : ''}` }],
+  }
 }
 
 async function renewalOf(c: Ctx, id: unknown) {

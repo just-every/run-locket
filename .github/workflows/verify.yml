@@ -66,6 +66,15 @@ jobs:
         run: |
           LOCKET_SCREENSHOTS="${RUNNER_TEMP}/locket-commercial" node tests/browser/proposal-pricing-journey.mjs
           LOCKET_SCREENSHOTS="${RUNNER_TEMP}/locket-commercial" pnpm exec playwright test --config tests/browser/playwright.config.ts notices.spec.ts --grep 'LINK-001' --workers=1
+      - name: Prove native obligation lifecycle and owner lists
+        if: matrix.partition == 'core'
+        run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-obligations" pnpm exec playwright test --config tests/browser/playwright.config.ts obligation-evidence.spec.ts --workers=1
+      - name: Keep native obligation screens
+        if: matrix.partition == 'core'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-obligation-screens
+          path: ${{ runner.temp }}/locket-obligations
       - name: Prove model settings and records at both widths
         if: matrix.partition == 'core'
         run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-models" node tests/browser/model-settings-journey.mjs

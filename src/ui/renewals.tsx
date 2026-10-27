@@ -21,7 +21,7 @@ export function Renewals({ state, locket }: { state: LocketState; locket: Locket
   const [selected, setSelected] = useState(renewals[0]?.id ?? '')
   return (
     <div className="lk-renewals">
-      <div className="lk-titlebar"><div><h1>Renewals</h1><p className="lk-muted">Notice deadlines from confirmed terms, decisions, and notices approved and sent. A prepared or approved notice is not a sent notice.</p></div></div>
+      <div className="lk-titlebar"><div><h1>Renewals</h1><a href="#obligations">My obligations</a><p className="lk-muted">Notice deadlines from confirmed terms, decisions, and notices approved and sent. A prepared or approved notice is not a sent notice.</p></div></div>
       <DeadlineReminderSettings state={state} locket={locket} />
       <BulkReminders state={state} locket={locket} />
       <RenewalCalendars state={state} locket={locket} />

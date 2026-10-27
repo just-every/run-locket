@@ -53,7 +53,7 @@ The screens and any agent use the same HTTP API. Authenticate with a Base native
 | `execution.resolve` | owner, counsel | `{agreementId, version, executionId, reason}` |
 | `term.propose` | owner, counsel, approver, requester | `{agreementId, key:"effective_date"|"end_date"|"auto_renew"|"renewal_term_months"|"notice_days"|"governing_law"|"payment_terms", value, citation:{quote, page?}, reason?}` |
 | `term.decide` | owner, counsel, approver | `{agreementId, termId, decision:"confirm"|"reject", reason?}` |
-| `obligation.add` / `obligation.update` | add: owner, counsel, approver, requester; confirm/reject: owner, counsel, approver; done: its owner or those | `{agreementId, description, ownerId, dueDate?, recurrence:"none"|"monthly"|"quarterly"|"annually", evidence?:"none"|"file"|"link"|"note", risk?:"low"|"medium"|"high", citation}` / `{agreementId, obligationId, action:"confirm"|"reject"|"done", file?, link?, note?}` — done is refused (`EVIDENCE`) without the evidence kind the obligation requires |
+| `obligation.add` and `obligation.update` | add: owner, counsel, approver, requester; confirm and reject: owner, counsel, approver; done: its owner or those; waive: installation owner | `{agreementId, version?, description, ownerId, dueDate?, recurrence:"none"|"monthly"|"quarterly"|"annually", evidence?:"none"|"file"|"link"|"note", risk?:"low"|"medium"|"high", citation}` or `{agreementId, version?, obligationId, action:"confirm"|"reject"|"done"|"waive", file?, link?, note?, reason?}`. Completion requires its evidence kind; waiver requires a reason and records only a local tracking decision. |
 | `renewal.decide` | owner, approver | `{renewalId, decision:"renew"|"renegotiate"|"terminate", reason?}` |
 | `notice.prepare` / `notice.approve` / `notice.sent` | prepare: owner, counsel, approver, requester; approve: owner, approver (not the preparer unless owner); sent: owner, approver, requester | `{renewalId, recipient, body}` / `{noticeId}` / `{noticeId, method:"email"|"post"|"courier"|"hand"|"portal", sentAt, evidence?:file}` |
 | `field.save` | owner | `{id?,version?,name,kind,agreementTypes,helpText,requiredStages,editRoles,options}` — defines or revises typed metadata |
@@ -681,3 +681,11 @@ requesting owner and acceptance record stay in the model output and archive.
 Real summary generation remains unavailable until a matching passing summaries
 live record under REVIEW-006 exists. Test-only provider simulation supplies no
 live evaluation evidence and cannot enable a real task.
+
+### Native obligation lifecycle
+
+Workspace `obligations` retain the proposal record status and add `lifecycle_status`: proposed, rejected, upcoming, due, missed, done or waived. Due and missed use the agreement calendar zone. `ownerObligations` contains only the caller's confirmed and closed occurrences from currently accessible agreements; hidden-field roles receive neither list. Each occurrence retains its citation, owner, due date, completion actor, time and evidence. The `resolution` field distinguishes completion from waiver.
+
+Completing or waiving a recurring occurrence atomically retains it and creates one next confirmed occurrence, returned as `nextId`, with fresh evidence fields. `series_id`, `recurrence_anchor` and `occurrence_number` preserve the original monthly, quarterly or annual schedule with month-end clamping. `next_due_date` identifies the current open occurrence, without skipping missed dates. Replaying a command does not duplicate an occurrence or notification. A supplied `version` fences the displayed agreement revision; every write also repeats current server authority and source record guards. Proposed and rejected obligations never schedule reminders.
+
+The owner-only reasoned waiver is an interim conservative default pending CT review. It changes local tracking for one occurrence and grants no authority to amend or legally release a contract obligation. Built-in extraction remains unavailable; these manually cited flows invoke no model and establish no live REVIEW-006 result.

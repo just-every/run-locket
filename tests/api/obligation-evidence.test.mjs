@@ -4,6 +4,7 @@ import { installation } from './harness.mjs'
 import { executed, library, team } from './setup.mjs'
 import { file, pdf } from './files.mjs'
 import {remediationFixture,certificate} from './remediation-fixture.mjs'
+import { obligationLifecycleJourney } from './obligation-lifecycle-journey.mjs'
 import {erasureRequest,erasureConfirmation} from './erasure-fixture.mjs'
 
 const at = iso => Date.parse(iso)
@@ -80,6 +81,7 @@ test('OBL-002 evidence before done, overdue owner notice, escalation to the resp
   assert.deepEqual(rows.map(r => [r.kind, r.offset_days, r.recipient_reason, r.status]).sort(), [['escalation', -4, 'approver', 'accepted'], ['escalation', -4, 'responsible person', 'accepted'], ['reminder', -1, 'obligation owner', 'accepted']])
   assert.ok(s.audit.some(a => a.agreement_id === id && a.summary.startsWith('Escalated the obligation 4 days overdue to')))
   assert.equal(s.deadlineReminders.overdueEscalationDays, 3)
+  await obligationLifecycleJourney(h)
 })
 
 test('AGENT-008 owner approves exact requests and finite chases, rejects insufficient insurance and completes only with matching original evidence',async t=>{

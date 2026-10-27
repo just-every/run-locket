@@ -31,7 +31,7 @@ export function Counterparty({ state, id, locket }: { state: LocketState; id: st
   const party = found?.merged_into ? state.parties.find(p => p.id === found.merged_into) : found
   if (!party) return <Empty>No counterparty you can see has that identity.</Empty>
   const agreements = state.agreements.filter(a => a.party_id === party.id)
-  const open = state.obligations.filter(o => o.status === 'confirmed' && agreements.some(a => a.id === o.agreement_id))
+  const open = state.obligations.filter(o => ['confirmed', 'done'].includes(o.status) && agreements.some(a => a.id === o.agreement_id))
   const summary = state.counterparties[party.id]
   const merged = state.parties.filter(p => p.merged_into === party.id)
   const contacts = parse<Contact[]>(party.contacts ?? '[]'), signers = parse<Contact[]>(party.signatories ?? '[]')
@@ -71,12 +71,14 @@ export function Counterparty({ state, id, locket }: { state: LocketState; id: st
         <p data-party-risk={state.risk.parties[id]?.risk ?? 'none'}>Risk: {rolled(state.risk.parties[id])}</p>
         {open.length === 0 ? <Empty>No open obligations.</Empty> : (
           <ul className="lk-obligations">{open.map(o => (
-            <li key={o.id}>
-              <div className="lk-finding-head"><strong>{o.description}</strong><Badge value={state.risk.obligations[o.id]?.overdue ? 'overdue' : o.status} /></div>
+            <li key={o.id} data-obligation-id={o.id}>
+              <div className="lk-finding-head"><strong>{o.description}</strong><Badge value={o.lifecycle_status ?? o.status} /></div>
               <dl className="lk-obligation-facts">
                 <div><dt>Agreement</dt><dd><a href={`#agreement/${o.agreement_id}/terms`}>{agreements.find(a => a.id === o.agreement_id)?.title}</a></dd></div>
                 <div><dt>Owner</dt><dd><Person name={personName(state, o.owner_id)} /></dd></div>
                 <div><dt>Due</dt><dd>{day(o.due_date)}</dd></div>
+                <div><dt>Repeats</dt><dd>{o.recurrence === 'none' ? 'Once' : words(o.recurrence)}</dd></div>
+                <div><dt>Next due</dt><dd>{day(o.next_due_date)}</dd></div>
                 <div><dt>Risk</dt><dd><RiskLabel state={state} o={o} /></dd></div>
               </dl>
             </li>

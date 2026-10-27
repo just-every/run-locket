@@ -293,6 +293,27 @@ test('10 terms and obligations are confirmed against the executed text, and corr
   await tm.approver.command('obligation.update', { agreementId: id, obligationId: ob.id, action: 'confirm' })
   await tm.requester.command('obligation.update', { agreementId: id, obligationId: ob.id, action: 'done' })
   assert.equal((await tm.owner.state()).obligations.find(x => x.id === ob.id).status, 'done')
+  const other = await h.invite('synthetic-locket-second-owner@example.test', 'requester')
+  const ownerId = (await tm.owner.state()).actor.id
+  const clients = [tm.owner, tm.counsel, tm.approver, tm.requester, other]
+  const owners = [ownerId, tm.counsel.id, tm.approver.id, tm.requester.id, other.id]
+  const six = []
+  for (let i = 0; i < 6; i++) {
+    const proposed = await tm.counsel.command('obligation.add', { agreementId: id, description: `synthetic-locket-manual-${i + 1}`, ownerId: owners[i % 5], dueDate: '2027-01-31', recurrence: ['monthly', 'quarterly', 'annually', 'none', 'none', 'none'][i], citation: { quote: 'Goods: Packaging.' } })
+    six.push(proposed.id)
+  }
+  s = await tm.owner.state()
+  assert.deepEqual(s.obligations.filter(x => six.includes(x.id)).map(x => x.status), Array(6).fill('proposed'))
+  assert.equal(s.ownerObligations.filter(x => six.includes(x.id)).length, 0)
+  for (let i = 0; i < 6; i++) await tm.approver.command('obligation.update', { agreementId: id, obligationId: six[i], action: i === 5 ? 'reject' : 'confirm' })
+  for (let i = 0; i < 5; i++) {
+    const own = (await clients[i].state()).ownerObligations.filter(x => six.includes(x.id))
+    assert.deepEqual(own.map(x => [x.id, x.owner_id, x.next_due_date, x.recurrence]), [[six[i], owners[i], '2027-01-31', ['monthly','quarterly','annually','none','none'][i]]])
+  }
+  s = await tm.owner.state()
+  assert.equal(s.obligations.find(x => x.id === six[5]).lifecycle_status, 'rejected')
+  assert.deepEqual(s.obligations.filter(x => six.slice(0, 5).includes(x.id)).map(x => x.confirmed_by), Array(5).fill(tm.approver.id))
+
 })
 
 test('AGENT-003 / RENEW-001 the renewal queue computes notice deadlines in the agreement time zone and keeps sending evidence separate', async t => {

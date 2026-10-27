@@ -75,25 +75,28 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
         )}
       </section>
       <section className="lk-panel">
-        <div className="lk-panel-head"><h2>Obligations</h2></div>
+        <div className="lk-panel-head"><h2>Obligations</h2><a href="#obligations">My obligations</a></div>
         {obligations.length === 0 ? <Empty>No obligations recorded.</Empty> : (
           <ul className="lk-obligations">{obligations.map(o => (
-            <li key={o.id}>
-              <div className="lk-finding-head"><strong>{o.description}</strong><Badge value={o.status} /></div>
+            <li key={o.id} data-obligation-id={o.id}>
+              <div className="lk-finding-head"><strong>{o.description}</strong><Badge value={o.lifecycle_status ?? o.status} /></div>
               <dl className="lk-obligation-facts">
                 <div><dt>Owner</dt><dd><Person name={personName(state, o.owner_id)} /></dd></div>
                 <div><dt>Due</dt><dd>{day(o.due_date)}</dd></div>
+                <div><dt>Next due</dt><dd>{day(o.next_due_date)}</dd></div>
                 <div><dt>Repeats</dt><dd>{o.recurrence === 'none' ? 'Once' : words(o.recurrence)}</dd></div>
                 <div><dt>Risk</dt><dd><RiskLabel state={state} o={o} /></dd></div>
                 <div><dt>Evidence</dt><dd>{evidenceLabel[o.evidence] ?? 'None required'}</dd></div>
               </dl>
               {o.status === 'done' && <ObligationEvidence state={state} o={o} />}
+              {o.waiver_reason && <p>Waiver reason: {o.waiver_reason}</p>}
               <small>{cite(parse(o.citation))}</small>
               {o.status === 'confirmed' && o.due_date && <DeadlineReminderLog state={state} subjectId={o.id} />}
               <span className="lk-row-actions">
-                {o.status === 'proposed' && confirmer && <><button type="button" className="lk-small lk-primary" disabled={busy} onClick={() => void run('obligation.update', { agreementId: a.id, obligationId: o.id, action: 'confirm' })}>Confirm</button><button type="button" className="lk-small" disabled={busy} onClick={() => void run('obligation.update', { agreementId: a.id, obligationId: o.id, action: 'reject' })}>Reject</button></>}
+                {o.status === 'proposed' && confirmer && <><button type="button" className="lk-small lk-primary" disabled={busy} onClick={() => void run('obligation.update', { agreementId: a.id, version: a.version, obligationId: o.id, action: 'confirm' })}>Confirm</button><button type="button" className="lk-small" disabled={busy} onClick={() => void run('obligation.update', { agreementId: a.id, version: a.version, obligationId: o.id, action: 'reject' })}>Reject</button></>}
               </span>
               {['confirmed','done'].includes(o.status)&&<ObligationRemediation obligationId={o.id} ownerId={o.owner_id} actorId={state.actor.id} workspace={state.remediation} run={run} busy={busy} canConfigure={o.status==='confirmed'&&confirmer} canPrepare={o.status==='confirmed'&&can(state,'owner','counsel','approver','requester','agent')}/>}
+              {o.status === 'confirmed' && can(state, 'owner') && <details className="lk-disclosure"><summary>Waive this occurrence</summary><Form busy={busy} submit="Record waiver" onSubmit={data => run('obligation.update', { agreementId: a.id, version: a.version, obligationId: o.id, action: 'waive', reason: value(data, 'reason') })}><Field label="Waiver reason"><input name="reason" required /></Field></Form></details>}
               {o.status === 'confirmed' && !state.remediation.requirements.some(r=>r.obligation_id===o.id) && (o.owner_id === state.actor.id || confirmer) && <MarkDone a={a} o={o} locket={locket} />}
             </li>
           ))}</ul>
@@ -103,7 +106,7 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
             <summary>Add an obligation</summary>
             <Form busy={busy} submit="Propose obligation" onSubmit={async (data, form) => {
               const page = value(data, 'page')
-              if (await run('obligation.add', { agreementId: a.id, description: value(data, 'description'), ownerId: value(data, 'ownerId'), dueDate: value(data, 'dueDate') || undefined, evidence: value(data, 'evidence'), risk: value(data, 'risk'), recurrence: value(data, 'recurrence'), citation: { quote: value(data, 'quote'), page: page ? Number(page) : undefined } })) form.reset()
+              if (await run('obligation.add', { agreementId: a.id, version: a.version, description: value(data, 'description'), ownerId: value(data, 'ownerId'), dueDate: value(data, 'dueDate') || undefined, evidence: value(data, 'evidence'), risk: value(data, 'risk'), recurrence: value(data, 'recurrence'), citation: { quote: value(data, 'quote'), page: page ? Number(page) : undefined } })) form.reset()
             }}>
               <Field label="What must be done"><input name="description" required /></Field>
               <Field label="Responsible person"><select name="ownerId">{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
@@ -128,7 +131,7 @@ function MarkDone({ a, o, locket }: { a: Row; o: Row; locket: Locket }) {
   return (
     <Form busy={locket.busy} submit="Mark done" onSubmit={async data => {
       const file = data.get('file') as File | null
-      await locket.run('obligation.update', { agreementId: a.id, obligationId: o.id, action: 'done', ...(file?.size ? { file: await fileToPayload(file) } : {}), link: value(data, 'link') || undefined, note: value(data, 'note') || undefined })
+      await locket.run('obligation.update', { agreementId: a.id, version: a.version, obligationId: o.id, action: 'done', ...(file?.size ? { file: await fileToPayload(file) } : {}), link: value(data, 'link') || undefined, note: value(data, 'note') || undefined })
     }}>
       {o.evidence === 'file' && <Field label="Evidence file"><input type="file" name="file" /></Field>}
       {o.evidence === 'link' && <Field label="Evidence link"><input name="link" type="url" placeholder="https://" /></Field>}

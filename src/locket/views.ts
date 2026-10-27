@@ -40,6 +40,7 @@ import { approvalReminderState } from './approval-reminders'
 import { deadlineReminderState } from './deadline-reminders'
 import { installationSettings } from './installation'
 import { risks } from './obligation-risk'
+import { obligationWorkspace } from './owner-obligations'
 import { counterpartySummaries } from './counterparty-summary'
 import { customFields } from './custom-fields'
 
@@ -178,7 +179,8 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
     clickwrapVersions: await all(db, 'SELECT * FROM lk_clickwrap_versions ORDER BY terms_id, number DESC'),
     familyTerms: (await all(db, 'SELECT * FROM lk_family_terms')).filter(t => ids.has(t.root_id) && terms.some(source => source.id === t.term_id)),
     terms,
-    obligations,
+    obligations: obligationWorkspace(obligations, agreements, now),
+    ownerObligations: obligationWorkspace(obligations, agreements, now).filter(o => o.owner_id === actor.id && !['proposed','rejected'].includes(o.status)),
     risk: risks({ agreements, obligations }, now),
     renewals,
     reminderSchedules: await bulkReminderSchedules(env, actor),

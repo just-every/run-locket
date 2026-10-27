@@ -95,6 +95,7 @@ export interface LocketState extends importReconciliationWorkspace,ServiceLevelW
   savedViews: Row[]
   familyTerms: Row[]
   terms: Row[]
+  ownerObligations: Row[]
   obligations: Row[]
   renewals: Row[]
   reminderSchedules: Row[]

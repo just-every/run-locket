@@ -83,7 +83,7 @@ function message(env: Bindings, delivery: Delivery, items: Candidate[]) {
     overdue_obligation: 'An obligation notification is waiting in Locket.',
   }
   const lines = [delivery.kind === 'digest' ? 'Your daily Locket notifications. Sign in to review them.' : 'A notification is waiting in Locket. Sign in to review it.',
-    ...items.flatMap(({ row }) => [labels[row.kind] ?? 'An agreement update is waiting in Locket.', notificationLink(env, row)])]
+    ...items.flatMap(({ row }) => [row.event_key.startsWith('obligation-assignment:') ? 'An obligation assignment is waiting in Locket.' : labels[row.kind] ?? 'An agreement update is waiting in Locket.', notificationLink(env, row)])]
   return { subject: delivery.kind === 'digest' ? 'Your daily Locket notifications' : 'New notification in Locket', text: lines.join('\n\n'),
     html: lines.map(line => `<p>${line.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</p>`).join('') }
 }

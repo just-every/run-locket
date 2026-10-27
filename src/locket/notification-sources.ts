@@ -19,6 +19,7 @@ export const notificationSourceTables: Record<NotificationSource, string> = {
 }
 
 export async function notificationSourceChecks(c: Ctx, event: NotificationRow): Promise<{ ready: boolean; checks: Sql[] }> {
+  if (event.kind === 'assignment' && event.event_key.startsWith('obligation-assignment:')) return { ready: true, checks: [sql("EXISTS(SELECT 1 FROM lk_obligations WHERE id=? AND agreement_id=? AND owner_id=? AND status='confirmed')", event.event_key.slice('obligation-assignment:'.length), event.agreement_id, event.recipient_id)] }
   if(event.kind==='channel_approval')return channelDigestChecks(c,event)
   if(event.kind==='draft_retention'){
     const [,ruleVersion,id,version]=event.event_key.split(':')

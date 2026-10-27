@@ -48,12 +48,12 @@ export async function buildOutcomeReport(env:Bindings,actor:Actor,month:string,s
   // Service follow-up obligations inherit the complete claim's source restrictions.
   const sourceClaim=[...uptime,...performance].find(c=>c.obligation_id===o.id)
   if(sourceClaim&&!await permitted(sourceClaim))continue
-  const a=byId.get(o.agreement_id)!,due=zonedInstant(o.due_date,'23:59:59',a.timezone),done=o.status==='done'?o.done_at:null
-  const record=evidence(a.id,o.id,'obligation',o.description,null,{dueDate:o.due_date,dueAt:due,doneAt:done,side:o.responsible_side,citation:JSON.parse(o.citation)})
+  const a=byId.get(o.agreement_id)!,due=zonedInstant(o.due_date,'23:59:59',a.timezone),closed=o.status==='done'?o.done_at:null,done=o.resolution==='waived'?null:closed
+  const record=evidence(a.id,o.id,'obligation',o.description,null,{dueDate:o.due_date,dueAt:due,doneAt:done,closedAt:closed,resolution:o.resolution??null,side:o.responsible_side,citation:JSON.parse(o.citation)})
   const dueMonth=instantMonth(due)
-  if(due<now&&(done===null||done>due)&&dueMonth)addFigure(dueMonth,'deadlinesMissed',record)
+  if(due<now&&(closed===null||closed>due)&&dueMonth)addFigure(dueMonth,'deadlinesMissed',record)
   if(done!==null&&done>due){const m=instantMonth(done);if(m&&done<=now)addFigure(m,'deadlinesLate',record)}
-  for(const m of report.months){const b=monthBounds(m.month,settings.timezone),cutoff=Math.min(b.to,now);if(o.created_at<cutoff&&due<cutoff&&(done===null||done>=cutoff))addFigure(m,o.responsible_side==='ours'?'overdueOurs':o.responsible_side==='supplier'?'overdueSupplier':'overdueUnclassified',record)}
+  for(const m of report.months){const b=monthBounds(m.month,settings.timezone),cutoff=Math.min(b.to,now);if(o.created_at<cutoff&&due<cutoff&&(closed===null||closed>=cutoff))addFigure(m,o.responsible_side==='ours'?'overdueOurs':o.responsible_side==='supplier'?'overdueSupplier':'overdueUnclassified',record)}
  }
  const seenRenewals=new Set<string>()
  for(const h of [...history].sort((a,b)=>a.derived_at-b.derived_at||a.id.localeCompare(b.id))){

@@ -16,13 +16,14 @@ import { Library } from './library'
 import { Proposals } from './proposals'
 import { Portfolio } from './portfolio'
 import { Register } from './register'
+import { OwnerObligations } from './owner-obligations'
 import { Renewals } from './renewals'
 import { Notifications } from './notifications'
 import { money, partyName } from './format'
 import { sections, Shell } from './shell'
 import './style'
 
-const section = (view: string) => (['agreement', 'counterparty', 'new', 'import-signed', 'queue'].includes(view) ? 'agreements' : view === 'clickwrap' ? 'library' : view)
+const section = (view: string) => (['agreement', 'counterparty', 'new', 'import-signed', 'queue'].includes(view) ? 'agreements' : view === 'clickwrap' ? 'library' : view === 'obligations' ? 'renewals' : view)
 const pageTitle: Record<string, string> = { new: 'New request', 'import-signed': 'Import a signed file' }
 
 /** #view/id/tab/version: a section, or one agreement with its tab and the version shown. */
@@ -74,6 +75,7 @@ export function LocketApp() {
             {route.view === 'import-signed' && <LegacyImport state={state} locket={locket} />}
             {route.view === 'clickwrap' && <Clickwrap state={state} locket={locket} />}
             {route.view === 'library' && <Library state={state} locket={locket} />}
+            {route.view === 'obligations' && <OwnerObligations state={state} />}
             {route.view === 'renewals' && <Renewals state={state} locket={locket} />}
             {route.view === 'notifications' && <Notifications state={state} locket={locket} />}
             {route.view === 'proposals' && <Proposals state={state} locket={locket} />}
