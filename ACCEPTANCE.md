@@ -41,7 +41,7 @@ High-stakes paths have their own proof:
 
 ## Target clauses
 
-Contract status is `done`, `partial` (some behavior ships with named gaps), or `missing`. Builder status and evidence apply to this committed revision; its final branch HEAD identifies the candidate. CT's latest external judgment at `4f9e93d7a886ed1c6e2170be6939fe1bcb03e770` retained REVIEW-005 and LINK-001 as partial. This round completes local REVIEW-005 proof and extends LINK-001 while retaining its named gaps. Guarded landing and fresh CT judgment remain separate gates. Acceptance journeys run in the default product; provider fakes stand in only at the provider's network edge, and clauses that name a live sandbox or authorized real export need that run recorded before acceptance.
+Contract status is `done`, `partial` (some behavior ships with named gaps), or `missing`. CT reviewed the code and tests at commit `60e0c11ec4c1ecb1b415ec39c3b9bba0c9c19065` on 27 October 2026: REVIEW-005 is ACCEPT ON LANDING; LINK-001 STAYS PARTIAL. This documentation revision changes no product or test bytes from that candidate. The REVIEW-005 done row is conditional on guarded landing, not accepted DONE on main. Main equality, exact-SHA Verify and Run site success, and a complete full-history publication scan with zero new findings remain required. Acceptance journeys run in the default product; provider fakes stand in only at the provider's network edge, and clauses that name a live sandbox or authorized real export need that run recorded before acceptance.
 
 ### Intake and requests
 
