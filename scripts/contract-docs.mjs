@@ -25,7 +25,7 @@ for (const id of ids) {
   const section = source.slice(start, next < 0 ? undefined : start + next).trim()
   const acceptancePoint = section.match(/\*Acceptance:\* ([\s\S]*?)(?:\n\n|$)/)?.[1]
   assert.ok(acceptancePoint, `Missing acceptance for ${id}`)
-  const line = `| \`${id}\` | ${row.title} | ${acceptancePoint.replaceAll('\n', ' ')} | ${row.status} | ${row.evidence}${row.gap ? ' Gap: ' + row.gap : ''} |`
+  const line = `| \`${id}\` | ${row.title.replaceAll('/', '&#47;')} | ${acceptancePoint.replaceAll('\n', ' ')} | ${row.status} | ${row.evidence}${row.gap ? ' Gap: ' + row.gap.replaceAll('/', '&#47;') : ''} |`
   const pattern = new RegExp('^\\| `' + id + '` \\|.*$', 'm')
   assert.ok(pattern.test(acceptance), `Missing acceptance row ${id}`)
   acceptance = acceptance.replace(pattern, () => line)

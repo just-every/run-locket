@@ -1012,9 +1012,11 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 
 ## Status
 
-Judged from the code and tests at commit `60e0c11ec4c1ecb1b415ec39c3b9bba0c9c19065` (27 October 2026).
+Judged from the code and tests at commit `592c37cc38973079fd53a04bf10f72d7cc45cc0c` (27 October 2026).
 
-CT judgment: REVIEW-005 is accepted DONE at that main pin; LINK-001 STAYS PARTIAL.
+EXEC-002 local implementation evidence is pinned above. The final documentation and generator revision changes no relevant product or test bytes; its exact publication commit and clock receipt accompany the branch handoff.
+
+Historical CT judgment at `60e0c11ec4c1ecb1b415ec39c3b9bba0c9c19065`: REVIEW-005 is accepted DONE at that main pin; LINK-001 STAYS PARTIAL.
 
 The prior documentation revision recorded that judgment without changing product or test bytes from the reviewed candidate. This revision adds REVIEW-007 implementation and local evidence, pending its own guarded landing and CT review. The reviewed source pin is on main with successful exact-SHA Verify and Run site; REVIEW-005 is accepted DONE under the stated CT landing test. This later documentation revision requires its own guarded publication and exact-SHA CI gates.
 
