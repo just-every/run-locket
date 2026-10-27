@@ -987,6 +987,20 @@ async function automaticRetrievalJourney(t) {
   const failedReads = reads
   await h.scheduled(job.next_attempt_at - 1)
   assert.equal(reads, failedReads, 'backoff must withhold early retries')
+  // Repeated failed reads must reach the ceiling and remain there. Independent
+  // delays also reject a constant ceiling that discards exponential backoff.
+  const retryDelays = [60_000, 120_000, 240_000, 480_000, 960_000, 1_920_000, 3_600_000, 3_600_000]
+  for (const delay of retryDelays) {
+    const at = job.next_attempt_at, priorAttempts = job.attempts, beforeReads = reads
+    await h.scheduled(at - 1)
+    assert.equal(reads, beforeReads, 'each retry waits until its recorded due time')
+    await h.scheduled(at)
+    job = (await tm.owner.state()).executionRetrievals.find(r => r.agreement_id === id)
+    assert.equal(job.status, 'retrying')
+    assert.equal(job.attempts, priorAttempts + 1, 'one failed attempt is retained per due retry')
+    assert.equal(job.next_attempt_at - at, delay, 'failed reads grow exponentially only up to the one-hour ceiling')
+    assert.equal((await find(tm.owner, id)).status, 'out_for_signature')
+  }
   failDownload = false
   await h.scheduled(job.next_attempt_at + 1)
   s = await tm.owner.state(); job = s.executionRetrievals.find(r => r.agreement_id === id)
@@ -1086,6 +1100,96 @@ async function retrievalAuthorityJourney(t) {
       assert.deepEqual(JSON.parse(current.outcomes).map(o => o.status), ['reconciled'])
       assert.equal((await tm.requester.state()).notifications.items.filter(n => n.agreement_id === id && n.event_key === renewed.id && n.kind === 'signature').length, 1)
     }
+  }
+  await retrievalExpiryAndRoleJourney(t)
+}
+
+async function retrievalExpiryAndRoleJourney(t) {
+  // These are changes to a valid consent, not initial wrong-role refusals.
+  for (const scenario of ['expiry-before', 'role-before', 'role-result', 'role-failure']) {
+    let signed, beforeCertificate = null, failDownload = true, reads = 0
+    const certificate = pdf('synthetic-locket-31 certificate')
+    const h = await installation({ bindings: { SIGNATURE_DOCUSIGN_TOKEN: 'synthetic-locket-31' }, outboundResponse: async request => {
+      reads++
+      const path = new URL(request.url).pathname
+      if (path.endsWith('/recipients')) return Response.json({ signers: [{ name: 'Hana Park', email: 'hana@harbour.example', status: 'completed' }, { name: 'Olive Owner', email: 'owner@example.test', status: 'completed' }] })
+      if (path.endsWith('/documents/combined')) return failDownload ? new Response('Unavailable', { status: 503 }) : new Response(signed)
+      if (path.endsWith('/documents/certificate')) {
+        if (beforeCertificate) { const change = beforeCertificate; beforeCertificate = null; await change() }
+        return scenario === 'role-failure' ? new Response('Unavailable', { status: 503 }) : new Response(certificate)
+      }
+      return Response.json({ envelopeId: decodeURIComponent(path.split('/').at(-1)), status: 'completed', completedDateTime: '2026-10-26T12:00:00Z' })
+    } })
+    let closed = false
+    const close = async () => { if (!closed) { closed = true; await h.close() } }
+    t.after(close)
+    await h.setTime(Date.parse('2026-10-27T12:00:00Z'))
+    // Bootstrap precedes the pinned clock; use a fresh session at that clock.
+    h.owner = await h.signIn('owner@example.test')
+    const tm = await team(h), lib = await library(h, tm)
+    const { id, pkg } = await outForSignature(h, tm, lib, { title: `synthetic-locket-31 ${scenario}`, party: `synthetic-locket-31 ${scenario}` })
+    signed = await download(tm.owner, pkg.pdfArtifactId)
+    await tm.owner.command('signature.connection.configure', { provider: 'docusign', baseUrl: 'https://demo.docusign.net/restapi/v2.1', accountId: 'synthetic-locket-31', version: 0 })
+    const originalOwner = tm.owner, originalId = (await originalOwner.state()).actor.id
+    const stepUp = async client => {
+      assert.equal((await client.request('/auth/step-up', { method: 'POST', body: { action: 'owner:transfer' } })).status, 202)
+      const link = new URL(h.mails.at(-1).text.match(/https?:\/\/[^\s]+/)[0])
+      assert.equal((await client.request('/auth/confirm', { method: 'POST', body: { token: link.searchParams.get('token') } })).status, 303)
+    }
+    let observer = originalOwner
+    if (scenario.startsWith('role')) {
+      observer = await h.invite('synthetic-locket-retrieval-owner@example.test', 'viewer')
+      await stepUp(originalOwner)
+      const promoted = await originalOwner.request('/auth/operator/role', { method: 'POST', body: { operatorId: observer.id, role: 'owner' } })
+      assert.equal(promoted.status, 200, await promoted.text())
+      observer = await h.signIn('synthetic-locket-retrieval-owner@example.test')
+      await stepUp(observer)
+    }
+    const a = await find(originalOwner, id), payload = { agreementId: id, version: a.version, packageId: pkg.packageId, consent: true }
+    const first = await originalOwner.command('execution.retrieval.authorize', payload)
+    let job = (await observer.state()).executionRetrievals.find(r => r.id === first.id)
+    assert.equal(job.status, 'retrying', scenario + ': consent was valid at the initial failed read')
+    failDownload = false
+    const beforeReads = reads
+    if (scenario === 'expiry-before') {
+      const session = await (await originalOwner.request('/auth/session')).json()
+      assert.ok(session.expiresAt > job.next_attempt_at)
+      await h.setTime(session.expiresAt)
+      assert.equal((await originalOwner.request('/auth/session')).status, 401, 'the authorizing session has actually expired')
+      await h.scheduled(session.expiresAt)
+      observer = await h.signIn('owner@example.test')
+    } else {
+      const demote = async () => {
+        const response = await observer.request('/auth/operator/role', { method: 'POST', body: { operatorId: originalId, role: 'member' } })
+        assert.equal(response.status, 200, await response.text())
+      }
+      if (scenario === 'role-before') await demote()
+      else beforeCertificate = demote
+      await h.scheduled(job.next_attempt_at)
+      const demotedOwner = await h.signIn('owner@example.test')
+      assert.notEqual((await demotedOwner.state()).actor.role, 'owner', 'the consenting person has actually lost the owner role')
+    }
+    h.owner = observer
+    const state = await observer.state()
+    job = state.executionRetrievals.find(r => r.id === first.id)
+    assert.equal(job.status, 'cancelled', scenario + ': ended authority cannot record retrieval or another retry')
+    assert.equal(job.last_error, 'AUTHORITY', scenario)
+    assert.deepEqual(JSON.parse(job.outcomes).map(o => [o.status, o.code]), [['retrying', 'provider_http_503'], ['cancelled', 'AUTHORITY']], scenario + ': retain failure and authority outcomes')
+    assert.equal(state.executions.filter(e => e.agreement_id === id).length, 0, scenario)
+    assert.equal(state.artifacts.filter(f => f.agreement_id === id && ['signed', 'certificate'].includes(f.role)).length, 0, scenario)
+    assert.equal(state.agreements.find(a => a.id === id).status, 'out_for_signature', scenario)
+    if (scenario.endsWith('-before')) assert.equal(reads, beforeReads, scenario + ': refuse before any provider read')
+    if (scenario.startsWith('role')) {
+      await stepUp(observer)
+      const restored = await observer.request('/auth/operator/role', { method: 'POST', body: { operatorId: originalId, role: 'owner' } })
+      assert.equal(restored.status, 200, await restored.text())
+    }
+    const renewedOwner = await h.signIn('owner@example.test'), stoppedReads = reads
+    assert.equal((await renewedOwner.state()).actor.role, 'owner')
+    await h.scheduled(job.next_attempt_at + 3_600_001)
+    assert.equal(reads, stoppedReads, scenario + ': later login or restored owner role cannot revive consent')
+    assert.equal((await renewedOwner.state()).executionRetrievals.find(r => r.id === first.id).status, 'cancelled')
+    await close()
   }
 }
 
