@@ -329,3 +329,19 @@ consumers before deleting its queues, then confirms their absence in Cloudflare.
 It waits up to a minute for a deleted queue to disappear from the account list.
 If the provider still lists it, the error names the queue and the call; keep the
 record and rerun the printed removal command after resolving the cause.
+
+## Regenerate the edition source lock
+
+After the last intentional source, test or documentation edit, and after rebasing,
+run these commands from the checkout root:
+
+```sh
+node scripts/edition-authoring/cli.mjs lock
+node scripts/edition-authoring/cli.mjs check
+```
+
+The first command regenerates `sources.lock.json` from tracked working-tree
+bytes using the seed’s pinned edition tooling and retained source snapshots.
+The second checks freshness and source integrity, the same edition check used
+by Verify. Stage any new intended files before regenerating; never edit hashes
+by hand. Regeneration preserves the existing Base selection.
