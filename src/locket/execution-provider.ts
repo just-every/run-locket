@@ -37,9 +37,11 @@ export async function completedPackage(connection: SignatureConnection, envelope
   const members = await read(path + '/members'), events = await read(path + '/events')
   const sets = members.participantSets?.filter((s: any) => s.role === 'SIGNER')
   // Recipient groups need actual signer evidence; never choose one member by guess.
-  if (!Array.isArray(sets) || !sets.length || sets.some((s: any) => s.status !== 'COMPLETED' || !Array.isArray(s.memberInfos) || s.memberInfos.length !== 1)) throw Error('provider_completion_incomplete')
+  if (!Array.isArray(sets) || !sets.length || sets.some((s: any) => s.status !== 'COMPLETED' || !Array.isArray(s.memberInfos) || !s.memberInfos.length)) throw Error('provider_completion_incomplete')
   const signers = sets.map((s: any) => {
-    const member = s.memberInfos[0]
+    const candidates = s.memberInfos.filter((member: any) => Array.isArray(events.events) && events.events.some((e: any) => e.type === 'ESIGNED' && typeof e.participantEmail === 'string' && e.participantEmail.toLowerCase() === member.email?.toLowerCase()))
+    if (candidates.length !== 1) throw Error('provider_completion_incomplete')
+    const member = candidates[0]
     const signed = Array.isArray(events.events) ? events.events.filter((e: any) => e.type === 'ESIGNED' && typeof e.participantEmail === 'string' && e.participantEmail.toLowerCase() === member.email?.toLowerCase()) : []
     const dates = signed.map((e: any) => Date.parse(e.date))
     if (!member.name || !member.email || !dates.length || dates.some((d: number) => !Number.isFinite(d))) throw Error('provider_completion_incomplete')

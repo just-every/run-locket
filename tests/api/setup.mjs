@@ -33,8 +33,8 @@ export async function library(h, t) {
   return { templateVersionId: tpl.versionId, templateId: tpl.id, playbookId: playbook.id }
 }
 
-export async function agreement(h, t, lib, { title = 'Harbour supply', value = '48000', clause = 'net30', party = 'Harbour Supplies', timezone, restricted = false } = {}) {
-  const created = await t.requester.command('request.create', { title, type: 'supplier', restricted, party: { name: party, kind: 'supplier' }, value, templateVersionId: lib.templateVersionId, fields: { goods: 'Packaging' }, clauseChoices: { payment: clause }, ...(timezone ? { timezone } : {}) })
+export async function agreement(h, t, lib, { title = 'Harbour supply', value = '48000', clause = 'net30', party = 'Harbour Supplies', timezone, restricted = false, ownerId } = {}) {
+  const created = await t.requester.command('request.create', { title, type: 'supplier', restricted, ...(ownerId ? { ownerId } : {}), party: { name: party, kind: 'supplier' }, value, templateVersionId: lib.templateVersionId, fields: { goods: 'Packaging' }, clauseChoices: { payment: clause }, ...(timezone ? { timezone } : {}) })
   if(restricted)await h.owner.command('access.set',{agreementId:created.id,operatorId:t.approver.id,grant:'grant'})
   for (const requirement of (await t.requester.state()).requirements.filter(r => r.agreement_id === created.id))
     await t.requester.command('requirement.attach', { agreementId: created.id, requirementId: requirement.id, file: file(`${requirement.label}.pdf`, pdf(requirement.label)) })

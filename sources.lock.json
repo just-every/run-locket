@@ -97,7 +97,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "321974c065cdf8261762c3a822b8a56a5948f91b78d1b6aa04da3bb5f7872c1c",
+      "sha256": "022c30b5f33dee4a43c31db951a827226b281d3858b188e14b1294d0b6019e19",
       "executable": false
     },
     ".gitignore": {
@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "43a82bfd33c4b59339246dca3d8d185b59bc6555ffc9961835e310efad9ad2f4",
+      "sha256": "5a2792e8b8b6eddf63dbd47b1ebf311f1956698a6d80e609adc7c752e029ee88",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -117,7 +117,7 @@
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "df7ab97b6e6691bf13982116fe9d8401221994114dc9ae4f42455f2fe34b94be",
+      "sha256": "54303144ef6b177dafe375f8a800095c11779e554998cd5414a6541d2e71ccfa",
       "executable": false
     },
     "API.md": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "370bb49f51396597c03b5a37d6cd011a6377b541bc363454648826467fdd328b",
+      "sha256": "4e534b571ab1fad58fb892702de138f2e2f62f9eeb27f9b82ad4132a1508a12e",
       "executable": false
     },
     "DEMO.md": {
@@ -158,6 +158,10 @@
     },
     "docs/base-refresh.md": {
       "sha256": "5b0d5af3f9dd8b375e15de843b18fba03cb073b4850cadf0c6b33ab51ee8eb87",
+      "executable": false
+    },
+    "docs/CLAIMS.md": {
+      "sha256": "48a63985f6e46051f1ecf1a2457ffb79d33ffc6d6247a1ad7aaa66fa0577eb92",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -698,6 +702,10 @@
     },
     "scripts/build-deployment-spec.mjs": {
       "sha256": "b26ec8d9a0de92009bda775d5dd7511fd4cf53a22b640c5c6930149612d20e16",
+      "executable": false
+    },
+    "scripts/contract-docs.mjs": {
+      "sha256": "1a65bc12cafa0ad1b7cb91bee3089b750196eb709eed71012c06530b4d4c2e1d",
       "executable": false
     },
     "scripts/delivery/base/artifact.mjs": {
@@ -1409,7 +1417,7 @@
       "executable": false
     },
     "src/locket/execution-provider.ts": {
-      "sha256": "667ca1294ee5129af3b088ea0b57b2b2addba2628b366e8f21232de4ab3dc126",
+      "sha256": "7915c829f767bafe0000754295a0e8303cd94bfa29d036d062009521d308a74a",
       "executable": false
     },
     "src/locket/execution-retrieval.ts": {
@@ -4465,7 +4473,7 @@
       "executable": false
     },
     "tests/api/execution-followup-journey.mjs": {
-      "sha256": "09be7a4d59705b5a578b3cf10c7a199f54b6b976b66952725478c715982e6918",
+      "sha256": "d3b197d26e0ce31df859947b7f61bf139d9ddd713a3512653985b505b1403ec7",
       "executable": false
     },
     "tests/api/families.test.mjs": {
@@ -4613,7 +4621,7 @@
       "executable": false
     },
     "tests/api/setup.mjs": {
-      "sha256": "4b238095390296dde3492d8ffa2d4240733792caed64e551fe461f699e01d2d9",
+      "sha256": "17726813e8229ff50fb94c130d6fe176af4bff717381055b0a6cd23219e1393e",
       "executable": false
     },
     "tests/api/signature-packet-fixture.mjs": {
