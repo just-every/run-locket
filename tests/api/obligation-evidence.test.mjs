@@ -119,6 +119,16 @@ test('AGENT-008 owner approves exact requests and finite chases, rejects insuffi
  assert.deepEqual(Buffer.from(await original.arrayBuffer()),Buffer.from(compliantBytes))
  const archive=await(await h.owner.request('/api/locket/export')).json()
  assert.ok(archive.records.lk_remediation_evidence.some(x=>x.id===insufficient.id))
+ const originalQuote=JSON.parse(done.citation).quote
+ const recurring=await h.owner.command('obligation.add',{agreementId:a.id,description:'synthetic-locket-recurring-evidence',ownerId:state.actor.id,dueDate:'2026-08-31',recurrence:'annually',evidence:'file',citation:{quote:originalQuote}})
+ await h.owner.command('obligation.update',{agreementId:a.id,obligationId:recurring.id,action:'confirm'})
+ const recurringRequirement=await h.owner.command('remediation.configure',{obligationId:recurring.id,kind:'document',requirement:{description:'Retain the original annual report.'},citation:{quote:originalQuote}})
+ const recurringProof=await h.owner.command('remediation.evidence',{requirementId:recurringRequirement.id,file:file('synthetic-locket-annual-report.pdf',pdf('Original annual report'))})
+ await h.owner.command('obligation.update',{agreementId:a.id,obligationId:recurring.id,action:'done',file:file('synthetic-locket-bypass.pdf',pdf('Unreviewed'))},{error:'REMEDIATION_REQUIRED'})
+ await h.owner.command('remediation.confirm',{evidenceId:recurringProof.id,values:{document:true},reason:'Reviewed the original annual report against the confirmed requirement.'})
+ const recurringRows=(await h.owner.state()).obligations.filter(x=>x.series_id===recurring.id)
+ assert.deepEqual(recurringRows.map(x=>[x.due_date,x.lifecycle_status,x.evidence_artifact_id]),[['2026-08-31','done',recurringProof.artifactId],['2027-08-31','upcoming',null]])
+
 })
 
 test('AGENT-008 uncertain installation mail is attempted once and the owner can withdraw future chases without waiving the obligation',async t=>{

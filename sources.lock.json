@@ -1613,7 +1613,7 @@
       "executable": false
     },
     "src/locket/owner-obligations.ts": {
-      "sha256": "6a4745f10f6ed9a91b5a164e1c5188b031a2d99dad8f27379c2ca52cec952f85",
+      "sha256": "b9660e218339b9fd1aad3537793f30c07de89727b5f84f64a872c921dec707af",
       "executable": false
     },
     "src/locket/pandadoc-proposal.ts": {
@@ -1937,7 +1937,7 @@
       "executable": false
     },
     "src/locket/views.ts": {
-      "sha256": "9a88754f0f1c2c0d93b78871611f5c0d1dcff269776e403f20278350a2a37009",
+      "sha256": "733f5f90a1b753105c5ac71b906ac1ff7ab661a669d10750015046d943d64af7",
       "executable": false
     },
     "src/locket/word-pricing.ts": {
@@ -4541,11 +4541,11 @@
       "executable": false
     },
     "tests/api/obligation-evidence.test.mjs": {
-      "sha256": "e5f3066a730ba6d9a74435fba4821626bea8a3e0cdb98dab64552847d7346def",
+      "sha256": "94d36788d5b3393159c99f628d89a17cc641e9d9fbefad886b72b6ac6dbb5567",
       "executable": false
     },
     "tests/api/obligation-lifecycle-journey.mjs": {
-      "sha256": "7ec60a60b8d25f956b287c5dc5061122413200e5bdbd83994f0bf198e4614131",
+      "sha256": "9c77b5b25f9bc6d412e7d7268da66d77b68a8a02e2c34a11e9309e09cb1016cc",
       "executable": false
     },
     "tests/api/operations-update-fixture.mjs": {

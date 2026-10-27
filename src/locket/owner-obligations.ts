@@ -28,10 +28,12 @@ export function nextObligationDate(o: Row): string | null {
 
 /** Input has already passed current agreement and source access; never fetch a wider list. */
 export function obligationWorkspace(obligations: Row[], agreements: Row[], now: number): Row[] {
+  const zones = new Map(agreements.map(a => [a.id, a.timezone]))
+  const open = new Map(obligations.filter(o => o.status === 'confirmed').map(o => [o.series_id ?? o.id, o]))
   return obligations.map(o => {
-    const current = obligations.find(candidate => (candidate.series_id ?? candidate.id) === (o.series_id ?? o.id) && candidate.status === 'confirmed')
+    const current = open.get(o.series_id ?? o.id)
     return { ...o, series_id: o.series_id ?? o.id,
-      lifecycle_status: obligationLifecycle(o, agreements.find(a => a.id === o.agreement_id)!.timezone, now),
+      lifecycle_status: obligationLifecycle(o, zones.get(o.agreement_id), now),
       next_due_date: current?.due_date ?? null }
   })
 }

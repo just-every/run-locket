@@ -85,6 +85,7 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
   const obligationCandidates=mine(await all(db,'SELECT * FROM lk_obligations ORDER BY due_date'),ids),obligations=[]
   for(const obligation of obligationCandidates){const claim=await db.prepare('SELECT sources FROM lk_service_level_claims WHERE obligation_id=? UNION ALL SELECT sources FROM lk_service_performance_claims WHERE obligation_id=?').bind(obligation.id,obligation.id).first<{sources:string}>();if(!claim||await canReadServiceSources(db,actor,claim.sources))obligations.push(obligation)}
   const now=Date.now()
+  const obligationView = obligationWorkspace(obligations, agreements, now)
   const settings = await installationSettings(db), notices = mine(await all(db, 'SELECT * FROM lk_notices ORDER BY created_at'), ids)
   const parties = (await all(db, 'SELECT * FROM lk_parties ORDER BY name')).filter(p => !hiddenParties.has(p.id))
   if (scheduledReport) await recordReportReads(env, actor, agreements, scheduledReport)
@@ -179,8 +180,8 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
     clickwrapVersions: await all(db, 'SELECT * FROM lk_clickwrap_versions ORDER BY terms_id, number DESC'),
     familyTerms: (await all(db, 'SELECT * FROM lk_family_terms')).filter(t => ids.has(t.root_id) && terms.some(source => source.id === t.term_id)),
     terms,
-    obligations: obligationWorkspace(obligations, agreements, now),
-    ownerObligations: obligationWorkspace(obligations, agreements, now).filter(o => o.owner_id === actor.id && !['proposed','rejected'].includes(o.status)),
+    obligations: obligationView,
+    ownerObligations: obligationView.filter(o => o.owner_id === actor.id && !['proposed','rejected'].includes(o.status)),
     risk: risks({ agreements, obligations }, now),
     renewals,
     reminderSchedules: await bulkReminderSchedules(env, actor),
