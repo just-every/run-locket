@@ -525,7 +525,7 @@ a confirmed renewal term. Preparation returns a frozen pending-only proposal.
 `consent: true`. Private `NECTAR_ORIGIN` and `NECTAR_TOKEN` bindings select its
 target. The single-use send requires a pending receipt; uncertain sends never
 retry automatically. Locket uses Nectar's published `amendment` kind with `payload.setup: true`,
-then reads the created proposal back and requires its status to be pending.
+then reads the created proposal back and requires pending, non-stale status and identical retained setup input and evidence. A receipt with missing or changed input remains uncertain. The one-use attempt is recorded before transport; current session, agreement and field-policy checks guard the outcome write. Lost authority leaves uncertainty and never permits another send.
 The request uses the readable signed-PDF text with whitespace collapsed, never a changed approved draft.
 Preparation additionally requires `nectarMapping`: `customerId`, an exact
 `customerQuote`, `subscriptionQuote`, and one `lines` entry per price with

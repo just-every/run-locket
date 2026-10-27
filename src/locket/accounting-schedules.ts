@@ -83,7 +83,8 @@ export async function dispatchAccountingSchedule(c:Ctx,id:string){
  const a=await visibleAgreement(c,row.agreement_id)
  if(row.status!=='sending')return
  // An atomic claim precedes the network edge. A crash leaves uncertain, never resendable.
- await commit(c,may.manageRoles,[...agreementGuards(c,a),fullFieldsCheck(c.actor),policyVersionCheck((await repositoryPolicy(c.db)).version),sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='sending'",id),obligationGuard(row)],[sql("UPDATE lk_accounting_schedules SET status='uncertain' WHERE id=?",id)])
+ const checks=[...agreementGuards(c,a),fullFieldsCheck(c.actor),policyVersionCheck((await repositoryPolicy(c.db)).version),obligationGuard(row)]
+ await commit(c,may.manageRoles,[...checks,sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='sending'",id)],[sql("UPDATE lk_accounting_schedules SET status='uncertain' WHERE id=?",id)])
  if(a.version!==row.agreement_version||pantry(c)!==row.origin){await c.db.prepare("UPDATE lk_accounting_schedules SET status='cancelled' WHERE id=?").bind(id).run();return}
  try{
   const response=await remote(c,row,'POST')
@@ -92,7 +93,7 @@ export async function dispatchAccountingSchedule(c:Ctx,id:string){
   const record:any=await receipt(response)
   if(!matchesBill(record,row)||record.status!=='draft'){const observation=operationObservation('pantry',row.origin,c.now,false,'invalid_provider_receipt');await c.db.prepare(observation.sql).bind(...observation.params).run();return}
   const observation=operationObservation('pantry',row.origin,c.now,true,'draft_handoff_succeeded')
-  await c.db.batch([sql("UPDATE lk_accounting_schedules SET status='pending',remote_id=?,checked_at=? WHERE id=? AND status='uncertain'",record.id,c.now,id),observation].map(s=>c.db.prepare(s.sql).bind(...s.params)))
+  await commit(c,may.manageRoles,[...checks,sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='uncertain'",id)],[sql("UPDATE lk_accounting_schedules SET status='pending',remote_id=?,checked_at=? WHERE id=?",record.id,c.now,id),observation])
  }catch{const observation=operationObservation('pantry',row.origin,c.now,false,'draft_outcome_unknown');await c.db.prepare(observation.sql).bind(...observation.params).run()}
 }
 const refresh:Handler=async(c,p)=>{

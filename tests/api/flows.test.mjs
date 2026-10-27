@@ -1009,7 +1009,7 @@ test('Accepted Platter and PandaDoc sources retain exact custody and become nati
   for (const variant of ['simple', 'rich-usd', 'rich-fx', 'pandadoc', 'stripe', 'stripe-uncertain', 'unreadable', 'mismatch-accepted']) {
   console.log('Proposal handoff case:',variant)
   const rich = variant.startsWith('rich-'), foreign = variant === 'rich-fx', panda=variant==='pandadoc', stripe=variant.startsWith('stripe')
-  let status = 'draft', billingBody, billCalls = 0,pandaPdf
+  let status = 'draft', billingBody, billCalls = 0,pandaPdf, beforeReceipt, changeReceipt = () => {}
   const proposal = { id:'synthetic-locket-1',revision:1,title:'Customer subscription',clientName:'Synthetic customer',currency:'USD',scope:'Provide hosted services.',terms:'Start 2026-11-01. Initial term 12 months. Auto renewal 12 months. Notice 30 days. Renewal uplift 0%. Billing monthly in arrears. Not taxable.',options:[{id:'selected',cents:120000,tables:[{lines:[{name:'Service',description:'Hosted seats',quantity:'2',unitPrice:'500.00',lineTotalCents:100000},{name:'Support',description:'Annual support',quantity:'1',unitPrice:'200.00',lineTotalCents:20000}]}]}],acceptance:{revision:1,optionId:'selected',totalCents:120000,currency:'USD',acceptedAt:1793016000000} }
   if (rich) {
     proposal.currency = proposal.acceptance.currency = foreign ? 'GBP' : 'USD'
@@ -1036,7 +1036,13 @@ test('Accepted Platter and PandaDoc sources retain exact custody and become nati
       return Response.json({id:'synthetic-locket-quote-1',status:variant==='stripe-uncertain'?'accepted':'draft',subscription:null,subscription_schedule:null,customer:billingBody.get('customer'),subscription_data:{effective_date:Number(billingBody.get('subscription_data[effective_date]'))},metadata:Object.fromEntries([...billingBody].filter(([key])=>key.startsWith('metadata[')).map(([key,value])=>[key.slice(9,-1),value]))})
     }
     if(new URL(request.url).hostname==='platter.example.test'){assert.equal(new URL(request.url).pathname,'/api/platter/agent/context');return Response.json({proposals:[{...proposal,status}]})}
-    if(request.method==='GET'){assert.equal(new URL(request.url).pathname,'/api/nectar/proposals/synthetic-locket-pending-1');return Response.json({id:'synthetic-locket-pending-1',status:'pending'})}
+    if(request.method==='GET'){
+      assert.equal(new URL(request.url).pathname,'/api/nectar/proposals/synthetic-locket-pending-1')
+      if(beforeReceipt)await beforeReceipt()
+      const detail={id:'synthetic-locket-pending-1',kind:'amendment',status:'pending',stale:false,payload:{setup:true,input:structuredClone(billingBody.payload)},evidence:structuredClone(billingBody.evidence)}
+      changeReceipt(detail)
+      return Response.json(detail)
+    }
     assert.equal(new URL(request.url).pathname,'/api/nectar/proposal.create');billCalls++;billingBody=await request.json();assert.equal(billingBody.kind,'amendment');assert.equal(billingBody.payload.setup,true);return Response.json({id:'synthetic-locket-pending-1',kind:'amendment',impact:{}})
   }});t.after(()=>h.close())
   const requester=await h.invite('synthetic-locket-requester@example.test','requester')
@@ -1123,5 +1129,51 @@ test('Accepted Platter and PandaDoc sources retain exact custody and become nati
   assert.equal(billingBody.payload.subscription.renewal.auto_renew,true);assert.equal(billingBody.payload.subscription.renewal.months,12)
   assert.equal(billingBody.payload.items.length,rich?3:2);assert.equal(billingBody.payload.catalog.reduce((n,line,i)=>n+Number(line.unit_amount)*100*billingBody.payload.items[i].quantity,0),expectedTotal)
   assert.equal((await h.owner.state()).billingProposals.find(r=>r.id===prepared.id).status,'pending')
+  if(variant==='simple'){
+    const fresh=async()=>h.owner.command('billing.proposal.prepare',{agreementId:id,version:(await find(h.owner,id)).version,consent:true,nectarMapping})
+    // Matching pending transport is insufficient when any retained setup input differs.
+    const changes=[
+      detail=>{detail.payload.input.customer.id='synthetic-locket-other-customer'},
+      detail=>{detail.payload.input.catalog[0].unit_amount='0.01'},
+      detail=>{detail.payload.input.items[0].quantity=1},
+      detail=>{detail.payload.input.subscription.start_date='2026-12-01'},
+      detail=>{detail.payload.input.subscription.term_months=6},
+      detail=>{detail.payload.input.subscription.renewal.months=6},
+      detail=>{detail.payload.input.subscription.renewal.uplift_percent='5'},
+      detail=>{detail.evidence.digest='synthetic-locket-wrong-digest'},
+      detail=>{delete detail.payload.input},
+      detail=>{detail.stale=true},
+      detail=>{detail.status='approved'},
+    ]
+    for(const change of changes){
+      changeReceipt=change
+      const next=await fresh(),commandId=crypto.randomUUID(),before=billCalls
+      const send={agreementId:id,version:(await find(h.owner,id)).version,id:next.id,consent:true}
+      await h.owner.command('billing.proposal.send',send,{commandId})
+      const row=(await h.owner.state()).billingProposals.find(r=>r.id===next.id)
+      assert.equal(row.status,'uncertain');assert.equal(row.receipt_id,null);assert.equal(row.last_error,'matching_pending_receipt_required')
+      await h.owner.command('billing.proposal.send',send,{commandId})
+      await h.owner.command('billing.proposal.send',send,{error:'STALE'})
+      assert.equal(billCalls,before+1,'uncertain Nectar results must never resend')
+    }
+    changeReceipt=()=>{}
+    for(const loss of ['terms','policy','session']){
+      const next=await fresh(),before=billCalls
+      beforeReceipt=async()=>{
+        if(loss==='session')assert.equal((await h.owner.request('/auth/signout',{method:'POST',body:{}})).status,303)
+        if(loss==='terms')await h.owner.command('term.propose',{agreementId:id,key:'payment_terms',value:'Net 30',citation:{quote:proposal.terms}})
+        if(loss==='policy')await h.owner.command('repository.access',{version:0,enabled:false,grants:[],hiddenFields:[]})
+      }
+      const send={agreementId:id,version:(await find(h.owner,id)).version,id:next.id,consent:true}
+      await h.owner.command('billing.proposal.send',send,{error:loss==='session'?'AUTHORITY':'STALE'})
+      beforeReceipt=undefined
+      if(loss==='session')h.owner=await h.signIn('owner@example.test')
+      const state=await h.owner.state(),row=state.billingProposals.find(r=>r.id===next.id)
+      assert.equal(row.status,'uncertain');assert.equal(row.receipt_id,null)
+      assert.equal(state.audit.filter(r=>r.action==='billing.proposal.outcome').length,changes.length+1,'refused result writes must not add outcome audit')
+      await h.owner.command('billing.proposal.send',{...send,version:(await find(h.owner,id)).version},{error:'STALE'})
+      assert.equal(billCalls,before+1,'lost authority must not make the claimed attempt resendable')
+    }
+  }
   }
 })

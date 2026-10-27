@@ -694,6 +694,22 @@ test('LINK-001 refuses unconfirmed, stale and unconsented schedules and never re
  await h.owner.command('term.propose',{agreementId:other.source.id,key:'payment_terms',value:'Review changed payment terms',citation:{quote:other.quote}})
  await h.owner.command('accounting.schedule.send',{scheduleId:stale.id,payload:before.payload,consent:true},{error:'STALE'})
  assert.equal(calls.length,1)
+ // Revoke the authorizing session while the matching provider response is outstanding.
+ // A separate installation keeps this authority race isolated from the unknown-outcome case.
+ const delayedCalls=[],respond=pantryFake(delayedCalls)
+ const deferred=await installation({bindings:pantryBindings,outboundResponse:async request=>{
+   const response=await respond(request)
+   assert.ok((await deferred.owner.request('/auth/signout',{method:'POST',body:{}})).status<400)
+   return response
+ }});t.after(()=>deferred.close())
+ const active=await scheduleFixture(deferred);await active.confirm()
+ const candidate=await active.prepare(),retained=await active.row(candidate.id)
+ await deferred.owner.command('accounting.schedule.send',{scheduleId:candidate.id,payload:retained.payload,consent:true})
+ deferred.owner=await deferred.signIn('owner@example.test')
+ const unchanged=await active.row(candidate.id)
+ assert.equal(unchanged.status,'uncertain');assert.equal(unchanged.remote_id,null);assert.equal(unchanged.checked_at,null)
+ await deferred.owner.command('accounting.schedule.send',{scheduleId:candidate.id,payload:retained.payload,consent:true},{error:'STATUS'})
+ assert.equal(delayedCalls.length,1)
 })
 
 test('LINK-001 eight QuickBooks bills become 84 percent contract consumption only after exact owner allocation, with shared-vendor cents fenced',async t=>{
