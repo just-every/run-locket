@@ -36,7 +36,7 @@ export function ModelSettings({ state, locket }: { state: LocketState; locket: L
   </section>
   <section className="lk-panel" aria-label="Monthly model usage"><h2>Monthly usage · {usage.month} UTC</h2>
    <p>Live estimated cost: <strong>{usd(usage.estimatedUsd)} USD</strong></p>
-   {workspace.simulationAvailable && <p>Simulated estimated cost: <strong>{usd(usage.simulatedEstimatedUsd)} USD</strong> · No provider charge</p>}
+   {workspace.simulationAvailable && <p>Simulated estimated cost: <strong>{usd(usage.simulatedEstimatedUsd)} USD</strong></p>}
    <p>{usage.inputTokens.toLocaleString()} input tokens · {usage.outputTokens.toLocaleString()} output tokens</p>
    {!!usage.unpriced && <p>{usage.unpriced} requests have unknown usage. These are excluded from the estimate.</p>}
   </section>
