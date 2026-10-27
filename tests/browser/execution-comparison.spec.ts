@@ -316,7 +316,7 @@ async function acrobatRetrievalBrowserJourney(page:any) {
   expect((await product.state()).agreements.find((a:any)=>a.id===f.id).status).toBe('executed')
   await shot('reconciled')
   if(provider==='dropbox-sign'){
-   const packet=await prepareAcrobatFixture(product.h,edge,{provider,packetPurpose:'sign'})
+   const packet=await prepareAcrobatFixture(product.h,edge,{provider,packetPurpose:'sign',team:f.tm})
    edge.extraSigned=pdf('synthetic-locket-22 returned signed schedule')
    await page.goto(product.origin+`/app#agreement/${packet.id}/execution`);await page.reload()
    await page.getByLabel('Signed PDF name in ZIP').fill('signed.pdf')

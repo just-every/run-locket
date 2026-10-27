@@ -221,9 +221,9 @@ export function acrobatProvider() {
  }
  return edge
 }
-export async function prepareAcrobatFixture(h,edge,{provider='adobe-acrobat-sign',packetPurpose}={}) {
+export async function prepareAcrobatFixture(h,edge,{provider='adobe-acrobat-sign',packetPurpose,team:existingTeam}={}) {
  const {configurePacket,preparePacket,approvePacket}=await import('./signature-packet-fixture.mjs')
- const tm=await team(h),lib=await library(h,tm),id=await approved(h,tm,lib)
+ const tm=existingTeam??await team(h),lib=await library(h,tm),id=await approved(h,tm,lib)
  let documents=[]
  if(packetPurpose){
   const a=(await tm.owner.state()).agreements.find(a=>a.id===id)
