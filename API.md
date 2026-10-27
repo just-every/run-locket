@@ -563,7 +563,7 @@ Workers AI also uses `AI_WORKERS_ACCOUNT_ID`. No key is accepted by these comman
   `textract`, `document-ai` and `document-intelligence`. Rates are the owner's
   USD estimates per million tokens, with up to six decimal places. Configuration
   uses an optimistic version and an owner-attributed audit entry.
-- `model.run`: `{agreementId, task, consent, simulated?}`. Review and extraction
+- `model.run`: `{agreementId, task, consent, simulated?}`. Review, extraction and summaries
   require the current readable version, active applicable playbook, explicit
   consent and enabled installation and agreement type. A real request requires
   a committed complete passing REVIEW-006 live record matching the provider,
@@ -589,3 +589,24 @@ and provider-specific network-edge fakes. Simulation cannot
 produce a live evaluation record or make a real task available. Production
 settings offer no simulation-enabling command. REVIEW-006 retains the actual
 labelled datasets, live evaluation command, passing scores and provider receipts.
+
+
+## Version-pinned agreement summaries
+
+`model.run` also accepts `task:"summaries"` through the existing owner consent,
+provider and live-evaluation gates. The model must return one cited proposal for
+each required section: parties, our entity, each side's duties, price, payment,
+initial term, renewal term, notice period, notice deadline, termination, liability,
+insurance and accepted playbook exceptions. Every quote must match the pinned
+version text; an omitted section withholds the whole response. Confirmation is
+derived from the exact recorded term and its citation, never the model's label.
+All other lines stay proposed. A summary never applies a term or deadline.
+
+Workspace `summaries` and `GET /api/locket/summaries/ID` use current agreement and
+field access. The agreement's Review section links each quote to its pinned
+version. A new version or changed recorded terms marks the retained summary stale
+without rewriting its content. The original provider, prompt, document digests,
+requesting owner and acceptance record stay in the model output and archive.
+Real summary generation remains unavailable until a matching passing summaries
+live record under REVIEW-006 exists. Test-only provider simulation supplies no
+live evaluation evidence and cannot enable a real task.

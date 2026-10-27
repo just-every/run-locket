@@ -1,3 +1,4 @@
+import { AgreementSummaries } from './agreement-summaries'
 import { RedactedRenditions } from './versions'
 import { ExchangePanel } from './exchange'
 import { WordReview } from './word-review'
@@ -97,7 +98,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, passage, loc
           {a.status !== 'draft' && !state.requirements.some(r => r.agreement_id === a.id && !r.artifact_id && !r.waived_reason) && state.requirements.some(r => r.agreement_id === a.id) && <Attachments state={state} a={a} locket={locket} />}
         </>
       )}
-      {selected === 'review' && <Review state={state} a={a} locket={locket} />}
+      {selected === 'review' && <><Review state={state} a={a} locket={locket} /><AgreementSummaries state={state} agreementId={a.id} /></>}
       {selected === 'approvals' && <Approvals state={state} a={a} locket={locket} />}
       {selected === 'signature' && <Signature state={state} a={a} locket={locket} />}
       {selected === 'execution' && <Execution state={state} a={a} locket={locket} />}

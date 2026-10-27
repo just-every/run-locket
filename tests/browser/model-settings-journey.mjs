@@ -4,6 +4,7 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium, expect } from '@playwright/test'
 import { productPage } from './product-harness.mjs'
+import { agreementSummaryProof } from './agreement-summary-journey.mjs'
 import { modelBindings, modelFake, modelFixture } from '../api/model-settings-fixture.mjs'
 
 const browser = await chromium.launch({ headless: true, ...(process.env.LOCKET_CHROMIUM ? { executablePath: process.env.LOCKET_CHROMIUM } : {}), args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] })
@@ -84,4 +85,5 @@ try {
    console.log(`PASS ${width}: owner provider and OCR settings, refused unevaluated review, simulated review and extraction records with acceptance, exact monthly USD, NDA switch-off, focus and hover tooltip`)
   } finally { await p.close(); await context.close() }
  }
+ for (const width of [1440, 390]) await agreementSummaryProof(browser, width)
 } finally { await browser.close() }

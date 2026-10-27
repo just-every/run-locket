@@ -1,3 +1,4 @@
+import { agreementSummaries } from './agreement-summaries'
 import { modelSwitchAllows, modelWorkspace } from './model-settings'
 import { approvedRenditions } from './redacted-renditions'
 import { chatState, chatTables } from './chat-notifications'
@@ -93,6 +94,7 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
   const applications=await all(db,'SELECT id,source_playbook_id,scope FROM lk_playbook_applications')
   const activePlaybook=playbooks.find(p=>p.status==='active')
   return redactWorkspace({
+    summaries: await agreementSummaries(env,actor,ids),
     models: await modelWorkspace(env,actor,ids,now),
     redactedRenditions:fullReaders.includes(actor.role)?mine(await all(db,'SELECT * FROM lk_redacted_renditions ORDER BY id'),ids):[],
     remediation:await remediationState(env,actor),
