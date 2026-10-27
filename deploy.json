@@ -240,6 +240,11 @@
       "binding": "NECTAR_TOKEN",
       "environment": "NECTAR_TOKEN",
       "optional": true
+    },
+    {
+      "binding": "AI_WORKERS_ACCOUNT_ID",
+      "environment": "AI_WORKERS_ACCOUNT_ID",
+      "optional": true
     }
   ],
   "crons": [

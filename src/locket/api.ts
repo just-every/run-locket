@@ -1,3 +1,4 @@
+import { modelHandlers } from './model-settings'
 import { proposalHandoffHandlers } from './proposal-handoffs'
 import { executionCompletionResponse, retrievalHandlers } from './execution-retrieval'
 import { accountingAllocationHandlers } from './accounting-allocation'
@@ -92,7 +93,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
-  ...signatureHandlers(), ...redactedRenditionHandlers,
+  ...modelHandlers, ...signatureHandlers(), ...redactedRenditionHandlers,
   ...chatHandlers, ...scopedTokenHandlers, ...workforceHandlers,
   ...wordReviewHandlers,
   ...remediationHandlers,

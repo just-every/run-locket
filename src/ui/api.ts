@@ -12,6 +12,7 @@ export interface LocketState extends importReconciliationWorkspace,ServiceLevelW
  remediation:import('./obligation-remediation').RemediationWorkspace
  playbookRecommendations:{outcomes:Row[];issues:Row[];recommendations:Row[];applications:Row[]}
  agreementPlaybooks:Record<string,string|null>
+ models:Awaited<ReturnType<typeof import('../locket/model-settings').modelWorkspace>>
  familyModel:{enabled:boolean;model:string|null;endpoint:string|null}|null
  familyAnalyses:Row[]
  familyBlocks:string[]

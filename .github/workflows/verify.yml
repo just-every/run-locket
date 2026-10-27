@@ -60,3 +60,6 @@ jobs:
         run: |
           LOCKET_SCREENSHOTS="${RUNNER_TEMP}/locket-commercial" node tests/browser/proposal-pricing-journey.mjs
           LOCKET_SCREENSHOTS="${RUNNER_TEMP}/locket-commercial" pnpm exec playwright test --config tests/browser/playwright.config.ts notices.spec.ts --grep 'LINK-001' --workers=1
+      - name: Prove model settings and records at both widths
+        if: matrix.partition == 'core'
+        run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-models" node tests/browser/model-settings-journey.mjs

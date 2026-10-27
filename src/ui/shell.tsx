@@ -94,6 +94,7 @@ function Account({ state, onSignOut }: { state: LocketState; onSignOut: () => vo
       </summary>
       <div className="lk-account-menu">
         <p><strong>{state.actor.name}</strong><small>{roleLabel[state.actor.role]}</small></p>
+        {state.actor.role==='owner'&&<a href="#settings" onClick={e=>e.currentTarget.closest('details')?.removeAttribute('open')}>Settings</a>}
         <button type="button" onClick={onSignOut}>Sign out</button>
       </div>
     </details>

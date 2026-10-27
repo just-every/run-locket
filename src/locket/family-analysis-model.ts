@@ -1,3 +1,4 @@
+import { modelSwitchAllows } from './model-settings'
 import { familyAnalysisPrompt } from './family-analysis-prompt'
 import { familyEvaluationApproved } from './family-evaluations'
 import { aiConfig, createAiClient, AiError } from '../modules/ai/index.mjs'
@@ -40,6 +41,7 @@ export function validateAnalysis(raw:unknown,sources:FamilySource[]):AnalysisCon
  return conflicts
 }
 export async function analyzeFamily(c:Ctx,sources:FamilySource[]) {
+ for(const source of sources){const a=await c.db.prepare('SELECT type FROM lk_agreements WHERE id=?').bind(source.agreementId).first<{type:string}>();if(!await modelSwitchAllows(c.db,a?.type))fail('AI_DISABLED','AI is switched off for this installation or agreement type.',409)}
  if(c.env.AI_TRAINING_PROHIBITED!=='true')fail('PROVIDER_POLICY','The owner must configure a provider contract that prohibits training on these texts before any family model request.',409)
  if(!await familyEvaluationApproved(c.env))fail('EVALUATION_REQUIRED','REVIEW-006 requires a passing live evaluation for this exact provider, model and prompt. No model request was made.',409)
  const config=aiConfig(c.env as unknown as Record<string,unknown>)

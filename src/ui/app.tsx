@@ -1,3 +1,4 @@
+import { ModelSettings } from './model-settings'
 import { Connections } from './connections'
 import { ApprovalChannelReview } from './approval-channel-review'
 import { ApprovalChannelInbox } from './approval-channel-settings'
@@ -48,7 +49,7 @@ export function LocketApp() {
   }
   const active = section(route.view)
   const agreement = route.view === 'agreement' ? state?.agreements.find(a => a.id === route.id) : null
-  const title = sections.find(s => s.id === active)?.title ?? 'Agreements'
+  const title = route.view === 'settings' ? 'Settings' : sections.find(s => s.id === active)?.title ?? 'Agreements'
   const crumb = agreement && state ? (
     <><a href="#agreements"><strong>Agreements</strong></a><span> / {partyName(state, agreement.party_id)} / </span><span>{agreement.title}{agreement.value_cents !== null ? ` · ${money(agreement.value_cents)}` : ''}</span></>
   ) : pageTitle[route.view] ? <><a href="#agreements"><strong>Agreements</strong></a><span> / {pageTitle[route.view]}</span></> : <strong>{title}</strong>
@@ -62,6 +63,7 @@ export function LocketApp() {
             {route.view === 'approval-request' && <ApprovalChannelReview id={route.id} locket={locket}/>}
             {route.view === 'approval-word' && <ApprovalChannelInbox state={state}/>}
             {route.view === 'outcome-report' && <OutcomeReports state={state} locket={locket} month={route.id} />}
+            {route.view === 'settings' && <ModelSettings state={state} locket={locket}/>}
             {route.view === 'connections' && <Connections state={state} locket={locket}/>}
             {route.view === 'queue' && <RequestQueue state={state} locket={locket} />}
             {route.view === 'portfolio' && <Portfolio state={state} />}

@@ -468,6 +468,24 @@
       "name": "0081_proposal_handoffs.sql",
       "sha256": "c48c0a349796f2656485471c4e9c1e8ca204e6d32603e35b473330c90462ccd9",
       "sql": "CREATE TABLE lk_proposal_sources (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL UNIQUE REFERENCES lk_agreements(id) ON DELETE CASCADE,\n origin TEXT NOT NULL,\n proposal_id TEXT NOT NULL,\n revision INTEGER NOT NULL,\n snapshot TEXT NOT NULL,\n imported_by TEXT NOT NULL,\n imported_at INTEGER NOT NULL,\n UNIQUE(origin,proposal_id,revision)\n);\nCREATE TABLE lk_billing_proposals (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL REFERENCES lk_agreements(id) ON DELETE CASCADE,\n version_id TEXT NOT NULL REFERENCES lk_versions(id),\n payload TEXT NOT NULL,\n terms_digest TEXT NOT NULL,\n status TEXT NOT NULL,\n receipt_id TEXT,\n last_error TEXT,\n created_by TEXT NOT NULL,\n created_at INTEGER NOT NULL\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0082_accounting_providers.sql",
+      "sha256": "c8ac558cc8894cd6a510edd29badec08b6765db76b576aa192b4ac68755d6b71",
+      "sql": "ALTER TABLE lk_accounting_links ADD COLUMN provider TEXT NOT NULL DEFAULT 'quickbooks';\nALTER TABLE lk_accounting_links ADD COLUMN record_kind TEXT NOT NULL DEFAULT 'vendor';\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0083_accounting_occurrences.sql",
+      "sha256": "c7f66db0c84360268bf427030c747a2aab0ebd24e2544ae4684f36f22ac5d090",
+      "sql": "CREATE TABLE lk_accounting_schedule_occurrences (\n id TEXT PRIMARY KEY, agreement_id TEXT NOT NULL REFERENCES lk_agreements(id),\n obligation_id TEXT NOT NULL REFERENCES lk_obligations(id),\n agreement_version INTEGER NOT NULL, origin TEXT NOT NULL, payload TEXT NOT NULL,\n citation TEXT NOT NULL, amount_cents INTEGER NOT NULL, due_date TEXT NOT NULL,\n prepared_by TEXT NOT NULL, prepared_at INTEGER NOT NULL,\n status TEXT NOT NULL CHECK(status IN ('draft','sending','pending','accepted','uncertain','refused','cancelled')),\n remote_id TEXT, sent_at INTEGER, checked_at INTEGER,\n UNIQUE(obligation_id,due_date)\n);\nINSERT INTO lk_accounting_schedule_occurrences SELECT * FROM lk_accounting_schedules;\nDROP TABLE lk_accounting_schedules;\nALTER TABLE lk_accounting_schedule_occurrences RENAME TO lk_accounting_schedules;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0084_model_settings.sql",
+      "sha256": "63198f35deb89b897f4c3f03faf534a21004925c376155f9f0b95514acb97064",
+      "sql": "CREATE TABLE lk_model_settings (\n id TEXT PRIMARY KEY CHECK(id='installation'),\n configuration TEXT NOT NULL,\n version INTEGER NOT NULL,\n updated_by TEXT NOT NULL,\n updated_at INTEGER NOT NULL\n);\nCREATE TABLE lk_model_outputs (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL REFERENCES lk_agreements(id) ON DELETE CASCADE,\n version_id TEXT NOT NULL REFERENCES lk_versions(id),\n task TEXT NOT NULL,\n provider TEXT NOT NULL,\n model TEXT NOT NULL,\n prompt_version TEXT NOT NULL,\n playbook_version TEXT NOT NULL,\n input_digests TEXT NOT NULL,\n settings_version INTEGER NOT NULL,\n simulated INTEGER NOT NULL,\n status TEXT NOT NULL,\n content TEXT,\n input_tokens INTEGER,\n output_tokens INTEGER,\n estimated_usd_micros INTEGER,\n requested_by TEXT NOT NULL,\n accepted_by TEXT,\n accepted_at INTEGER,\n created_at INTEGER NOT NULL\n);\nCREATE TABLE lk_model_usage (\n id TEXT PRIMARY KEY,\n provider TEXT NOT NULL,\n model TEXT NOT NULL,\n simulated INTEGER NOT NULL,\n input_tokens INTEGER,\n output_tokens INTEGER,\n estimated_usd_micros INTEGER,\n created_at INTEGER NOT NULL\n);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
@@ -525,7 +543,8 @@
     "HUBSPOT_ACCESS_TOKEN"
   ],
   "schedules": [
-    "0 * * * *"
+    "0 * * * *",
+    "* * * * *"
   ],
   "queueConsumers": [],
   "healthPath": "/health",

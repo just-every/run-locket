@@ -544,3 +544,40 @@ provider mapping.
 For `proposal.import` with `provider:"pandadoc"`, configure private `PANDADOC_API_KEY` and supply `customerName` and exact `completedRecipientIds`. The fixed PandaDoc details endpoint must report the exact document completed and those recipients completed signers. The protected completed PDF must contain the explicitly mapped customer name and readable text. Details are checked again after download; changed sources are refused. The source snapshot retains the original details and points to the completed PDF in native chunked artifact custody, with its digest. Included pricing tables and selected optional rows must reconcile exactly; unsupported adjustments, quote-builder pricing and multiple-choice sections are refused. Fractional quantities and non-USD mapping share the native pricing door.
 
 For `billing.proposal.prepare` with `provider:"stripe"`, configure private `STRIPE_SECRET_KEY`. Supply `billingMapping` using the same exact quotes and per-line mapping as Nectar, plus explicit `stripePriceId` per line. Each existing active USD price must match the confirmed amount, licensed quantity and interval, with no transforms. This slice requires explicitly confirmed advance billing, no tax and zero renewal uplift. Stripe receives only a draft quote; the start date is its proposed effective date and the initial term and renewal instructions remain visible in its description and metadata for a billing person to implement before activation. Draft quote and line-item readback must match the exact customer, prices, quantities, dates and evidence, with no subscription or schedule activated. Locket never finalizes or accepts the quote and never retries an unknown send. Unreadable signed PDFs and manually mismatch-accepted executions refuse automatic preparation. Differing Nectar term lengths remain refused before dispatch while its setup protocol rejects them.
+
+## Model settings and proposal records
+
+The owner's account menu opens Settings. The owner alone reads `models` in
+`GET /api/locket/state`; other roles receive null. Credentials remain in the
+installation secret store: `AI_API_KEY` is the chosen provider's owner key;
+Workers AI also uses `AI_WORKERS_ACCOUNT_ID`. No key is accepted by these commands.
+
+- `model.configure`: `{version, enabled, provider, model, disabledTypes,
+  ocrProvider, noTrainingZeroRetention, inputUsdPerMillion, outputUsdPerMillion}`.
+  Providers are `anthropic`, `openai` and `workers-ai`; OCR choices are `none`,
+  `textract`, `document-ai` and `document-intelligence`. Rates are the owner's
+  USD estimates per million tokens, with up to six decimal places. Configuration
+  uses an optimistic version and an owner-attributed audit entry.
+- `model.run`: `{agreementId, task, consent, simulated?}`. Review and extraction
+  require the current readable version, active applicable playbook, explicit
+  consent and enabled installation and agreement type. A real request requires
+  a committed complete passing REVIEW-006 live record matching the provider,
+  model, task and prompt digest. No live records are shipped. Anthropic and
+  OpenAI additionally require the owner's no-training, zero-retention agreement.
+- `model.accept`: `{outputId}` records the accepting owner on a current-version
+  proposal. It never applies terms, findings or deadlines automatically.
+
+Every output retains its provider, exact model, prompt digest, playbook version,
+version and text digests, original-document digests, requested person, accepting
+person, token counts and estimated USD cost. Missing usage is labelled unknown.
+Monthly UTC usage comes from a separate retained ledger, including provider
+usage for withheld outputs. Simulated estimates are shown separately from live
+costs. Requests reserve and claim a durable output before provider dispatch;
+replay never sends again, and interrupted or unsupported replies remain uncertain.
+Source, authority, playbook and settings changes withhold returned proposals.
+
+The test installation explicitly enables `LOCKET_MODEL_SIMULATION` and intercepts
+only the fixed reserved invalid-domain provider endpoint. Simulation cannot
+produce a live evaluation record or make a real task available. Production
+settings offer no simulation-enabling command. REVIEW-006 retains the actual
+labelled datasets, live evaluation command, passing scores and provider receipts.

@@ -13,6 +13,9 @@ import branding from './branding.json'
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ LOCKET_MODEL_SIMULATION?: string
+ AI_WORKERS_ACCOUNT_ID?: string
+
  UPTIME_ORIGIN?:string
  UPTIME_METRICS_KEY?:string
  LINEN_ORIGIN?:string

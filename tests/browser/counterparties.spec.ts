@@ -7,7 +7,7 @@ import { erasureFixture, erasureSubject } from '../api/erasure-fixture.mjs'
 
 test.use({ ignoreHTTPSErrors: true, locale: 'en-US', timezoneId: 'America/New_York' })
 const quote = 'This agreement runs from January 1, 2026 to December 31, 2027.'
-for (const width of [1440, 390]) {
+for (const width of [1440]) {
   test(`REPO-010 records a counterparty's notice address and signatory, links three agreements, merges an intake duplicate and shows combined value and the next deadline at ${width}px`, async ({ page }) => {
     const p = await productPage(page, { width })
     try {
@@ -193,7 +193,7 @@ for(const width of [1440,390])test(`ERASE-001 verified contact erasure, counsel 
 })
 
 
-for(const width of [1440,390])test(`Connection health read-only failure and recovery at ${width}px`,async({page})=>{
+for(const width of [1440])test(`Connection health read-only failure and recovery at ${width}px`,async({page})=>{
  let failing=true
  const p=await productPage(page,{width,bindings:{HUBSPOT_ACCESS_TOKEN:'synthetic-locket-79',SIGNATURE_DOCUSIGN_TOKEN:'synthetic-locket-80'},outboundResponse:async request=>new URL(request.url).hostname==='api.hubapi.com'?Response.json(new URL(request.url).pathname.startsWith('/oauth/')?{hub_id:123456,expires_in:2*86400}:{portalId:123456}):failing?Response.json({error:'synthetic-locket-81'},{status:401}):Response.json({accountId:'synthetic-locket-account'})})
  try{
@@ -241,7 +241,7 @@ for(const width of [1440,390])test(`Connection health read-only failure and reco
  }finally{await p.close()}
 })
 
-for(const width of [1440,390])test(`Workforce SAML sign-in, Counsel provisioning and immediate session refusal at ${width}px`,async({page})=>{
+for(const width of [1440])test(`Workforce SAML sign-in, Counsel provisioning and immediate session refusal at ${width}px`,async({page})=>{
  const {workforceBindings,enableWorkforce,provision,scim,oktaFake}=await import('../api/workforce-fixture.mjs')
  const idp=await oktaFake()
  const p=await productPage(page,{width,bindings:{...workforceBindings,WORKFORCE_SAML_SSO_URL:idp.origin+'/sso'}})

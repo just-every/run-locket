@@ -7,7 +7,7 @@ export default defineConfig({
   workers: 1,
   timeout: 120_000,
   // The owner's Mac rule: a mock keychain and basic password store, so no browser asks for the login keychain.
-  use: { headless: true, trace: 'off', video: 'off', screenshot: 'off', launchOptions: { args: ['--use-mock-keychain', '--password-store=basic'] } },
+  use: { headless: true, trace: 'off', video: 'off', screenshot: 'off', launchOptions: { ...(process.env.LOCKET_CHROMIUM ? { executablePath: process.env.LOCKET_CHROMIUM } : {}), args: ['--no-sandbox', '--use-mock-keychain', '--password-store=basic'] } },
   reporter: [['list']],
   outputDir: process.env.LOCKET_BROWSER_OUTPUT || '/tmp/locket-browser-results',
 })
