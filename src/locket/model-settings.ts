@@ -5,7 +5,7 @@ import { bool, canonical, fail, integer, json, list, object, oneOf, parse, sha25
 import { agreementGuards, currentVersion, visibleAgreement } from './records'
 import { activePlaybook } from './review'
 import { applicableRecommendationPlaybook } from './playbook-recommendations'
-import { requireFullFields } from './repository-access'
+import { fullFieldsCheck, policyVersionCheck, repositoryPolicy, requireFullFields } from './repository-access'
 import { agreementTypes } from './agreements'
 import evaluations from './model-evaluation-records.json'
 
@@ -97,16 +97,16 @@ export async function completeModelCommand(c: Ctx, type: string, result: any) {
  if (s.version !== row.settings_version || a.current_version_id !== row.version_id) fail('STALE', 'Settings or source changed before dispatch.', 409)
  const v = await currentVersion(c, a), playbook = await c.db.prepare("SELECT * FROM lk_playbook_versions WHERE id=? AND status='active'").bind(row.playbook_version).first<any>()
  if (!playbook) fail('STALE', 'The playbook changed before dispatch.', 409)
- const checks = [...agreementGuards(c, a), settingsGuard(s.version), sql("EXISTS(SELECT 1 FROM lk_playbook_versions WHERE id=? AND status='active')", playbook.id)]
+ const policy = await repositoryPolicy(c.db)
+ const checks = [fullFieldsCheck(c.actor), policyVersionCheck(policy.version), ...agreementGuards(c, a), settingsGuard(s.version), sql("EXISTS(SELECT 1 FROM lk_playbook_versions WHERE id=? AND status='active')", playbook.id)]
  try { await commit(c, owner, [...checks, sql("EXISTS(SELECT 1 FROM lk_model_outputs WHERE id=? AND status='queued')", row.id)], [sql("UPDATE lk_model_outputs SET status='uncertain' WHERE id=?", row.id), sql('INSERT INTO lk_model_usage VALUES(?,?,?,?,NULL,NULL,NULL,?)', row.id, row.provider, row.model, row.simulated, row.created_at)]) }
  catch (error) { row = await c.db.prepare('SELECT * FROM lk_model_outputs WHERE id=?').bind(row.id).first<any>(); if (row.status !== 'queued') return { id: row.id, status: row.status }; throw error }
- // Current REVIEW-006 has no live records. The adapters are still configured
- // here so an approved exact model will use its fixed provider destination.
+ // Simulations use these same fixed provider adapters with network-edge fakes.
+ // They remain labelled simulated and never qualify an unevaluated real task.
  const payload = { model: s.model, store: false, messages: [{ role: 'system', content: modelPrompts[row.task as keyof typeof modelPrompts] }, { role: 'user', content: json({ text: v.text, rules: parse(playbook.rules) }) }], max_tokens: 4096 }
  let response: Response
  try {
-  if (row.simulated) response = await fetch('https://synthetic-locket.invalid/model', { method: 'POST', headers: { 'content-type': 'application/json' }, body: json({ provider: s.provider, task: row.task, ...payload }), signal: AbortSignal.timeout(30000) })
-  else if (s.provider === 'anthropic') {
+  if (s.provider === 'anthropic') {
    if (!c.env.AI_API_KEY) fail('MODEL_UNAVAILABLE', 'Configure the owner API key in the installation secret store.', 409)
    response = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': c.env.AI_API_KEY, 'anthropic-version': '2023-06-01' }, body: json({ model: s.model, system: payload.messages[0].content, messages: [payload.messages[1]], max_tokens: 4096 }), signal: AbortSignal.timeout(90000) })
   } else if (s.provider === 'workers-ai') {
@@ -121,9 +121,9 @@ export async function completeModelCommand(c: Ctx, type: string, result: any) {
   const body = envelope.result ?? envelope
   const inputTokens = integer({ n: body.usage?.prompt_tokens ?? body.usage?.input_tokens }, 'n', 0, 10000000), outputTokens = integer({ n: body.usage?.completion_tokens ?? body.usage?.output_tokens }, 'n', 0, 10000000)
   const micros = Math.round(inputTokens * s.inputUsdPerMillion + outputTokens * s.outputUsdPerMillion)
-  // Keep billing even when authority or switches change while the provider is
-  // working; the result stays withheld and cannot be accepted after a race.
-  await c.db.batch(['lk_model_outputs','lk_model_usage'].map(table => c.db.prepare(`UPDATE ${table} SET input_tokens=?,output_tokens=?,estimated_usd_micros=? WHERE id=?`).bind(inputTokens, outputTokens, micros, row.id)))
+  // Price only under the same current authority and source guards as content.
+  // A stale completion keeps the pre-dispatch uncertainty and unknown usage.
+  await commit(c, owner, checks, ['lk_model_outputs', 'lk_model_usage'].map(table => sql(`UPDATE ${table} SET input_tokens=?,output_tokens=?,estimated_usd_micros=? WHERE id=?`, inputTokens, outputTokens, micros, row.id)))
   const raw = body.choices?.[0]?.message?.content ?? body.content?.[0]?.text ?? body.response
   const proposals = list(object(typeof raw === 'string' ? JSON.parse(raw) : raw), 'proposals', 50).map(value => {
    const p = object(value), quote = text(p, 'quote', 20000)
@@ -135,7 +135,8 @@ export async function completeModelCommand(c: Ctx, type: string, result: any) {
   if (current.version !== s.version) fail('STALE', 'Model settings changed during the request; its output was withheld.', 409)
   await commit(c, owner, checks, [sql("UPDATE lk_model_outputs SET content=?,status='proposed' WHERE id=?", json({ proposals }), row.id), auditSql(c, { action: 'model.output', agreementId: a.id, summary: `Retained ${row.simulated ? 'simulated ' : ''}${row.task} output ${row.id}; human acceptance pending.` })])
  } catch {
-  await c.db.prepare("UPDATE lk_model_outputs SET status='uncertain' WHERE id=? AND status!='proposed'").bind(row.id).run()
+  // The guarded dispatch claim already retained uncertainty. No completion
+  // write is permitted after authority, source, playbook or settings change.
  }
  row = await c.db.prepare('SELECT id,status FROM lk_model_outputs WHERE id=?').bind(row.id).first<any>()
  return row

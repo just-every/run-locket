@@ -172,6 +172,7 @@ test('Model settings retain provider-simulated review and extraction provenance,
  const calls = [], h = await installation({ bindings: modelBindings, outboundResponse: modelFake(calls) }); t.after(() => h.close())
  await h.setTime(Date.parse('2026-10-17T16:00:00Z'))
  const f = await modelFixture(h), records = []
+ const originals = await (await h.owner.request('/api/locket/export')).json()
  const digest = value => createHash('sha256').update(value).digest('hex')
  for (const [provider, ocrProvider] of [['anthropic', 'textract'], ['openai', 'document-ai'], ['workers-ai', 'document-intelligence']]) {
   await configureModel(h, { provider, ocrProvider })
@@ -190,6 +191,8 @@ test('Model settings retain provider-simulated review and extraction provenance,
    assert.equal(inputs.version, version.digest); assert.equal(inputs.text, digest(modelQuote)); assert.equal(inputs.playbook, digest(playbook.rules))
    assert.deepEqual(inputs.documents, before.artifacts.filter(a => a.version_id === version.id).map(a => a.sha256))
    assert.ok(inputs.documents.length > 0)
+   assert.equal(calls.at(-1).provider, provider)
+   assert.equal(calls.at(-1).task, task)
    const prompt = calls.at(-1).messages[0].content
    assert.equal(row.prompt_version, digest(prompt))
    assert.deepEqual(JSON.parse(row.content).proposals, [{ key: task === 'review' ? 'payment' : 'notice_days', value: task === 'review' ? 'met' : '60', quote: modelQuote }])
@@ -200,6 +203,7 @@ test('Model settings retain provider-simulated review and extraction provenance,
    assert.equal(accepted.status, 'accepted'); records.push(result.id)
   }
  }
+ assert.deepEqual(calls.map(c => [c.provider, c.task]), [['anthropic','review'],['anthropic','extraction'],['openai','review'],['openai','extraction'],['workers-ai','review'],['workers-ai','extraction']])
  assert.equal(calls.length, 6)
  const state = await h.owner.state()
  assert.deepEqual(state.models.usage, { month: '2026-10', currency: 'USD', estimatedUsd: 0, simulatedEstimatedUsd: 0.042, inputTokens: 6000, outputTokens: 3000, unpriced: 0 })
@@ -209,6 +213,12 @@ test('Model settings retain provider-simulated review and extraction provenance,
  assert.deepEqual(archive.records.lk_model_outputs.map(r => r.id).sort(), records.sort())
  assert.equal(archive.records.lk_model_settings.length, 1)
  assert.equal(archive.records.lk_model_usage.length, 6)
+ assert.deepEqual(archive.files, originals.files)
+ for (const artifact of originals.files) {
+  const response = await h.owner.request('/api/locket/files/' + artifact.id)
+  assert.equal(response.status, 200)
+  assert.equal(Buffer.from(await response.arrayBuffer()).toString('base64'), artifact.base64)
+ }
  assert.equal(archive.records.lk_model_outputs.every(r => r.accepted_by === state.actor.id && r.simulated === 1), true)
  await h.setTime(Date.parse('2026-11-01T00:00:00Z'))
  assert.deepEqual((await h.owner.state()).models.usage, { month: '2026-11', currency: 'USD', estimatedUsd: 0, simulatedEstimatedUsd: 0, inputTokens: 0, outputTokens: 0, unpriced: 0 })
@@ -243,7 +253,12 @@ test('AI switches and unevaluated models refuse requests, denied people cannot c
  const stale = (await h.owner.state()).models.settings
  await configureModel(h, { enabled: true, disabledTypes: [], noTrainingZeroRetention: false })
  await h.owner.command('model.configure', stale, { error: 'STALE' })
- await h.owner.command('model.run', request, { error: 'PROVIDER_POLICY' })
+ for (const provider of ['openai', 'anthropic']) {
+  await configureModel(h, { provider, noTrainingZeroRetention: false })
+  const count = calls.length
+  await h.owner.command('model.run', request, { error: 'PROVIDER_POLICY' })
+  assert.equal(calls.length, count)
+ }
  await configureModel(h, { noTrainingZeroRetention: true })
  mode = 'quote'
  const invalid = await h.owner.command('model.run', request); assert.equal(invalid.status, 'uncertain')
@@ -262,4 +277,75 @@ test('AI switches and unevaluated models refuse requests, denied people cannot c
  const native = await modelFixture(noSimulation); await configureModel(noSimulation)
  await noSimulation.owner.command('model.run', { ...request, agreementId: native.nda.id }, { error: 'SIMULATION_UNAVAILABLE' })
  await noSimulation.owner.command('model.run', { ...request, agreementId: native.nda.id, simulated: false }, { error: 'EVALUATION_REQUIRED' })
+ await modelCompletionRaces()
 })
+
+async function modelCompletionRaces() {
+ const { modelBindings, modelFake, modelFixture, configureModel, modelQuote } = await import('./model-settings-fixture.mjs')
+ const { file, pdf } = await import('./setup.mjs')
+ const { randomUUID } = await import('node:crypto')
+ // One completion-refusal behaviour, exercised through each mutable binding.
+ for (const changed of ['session', 'role', 'source', 'playbook', 'settings']) {
+  const calls = [], entered = Promise.withResolvers(), release = Promise.withResolvers()
+  const fake = modelFake(calls)
+  const h = await installation({ bindings: modelBindings, outboundResponse: async request => {
+   const response = await fake(request)
+   entered.resolve(); await release.promise
+   return response
+  } })
+  try {
+   await h.setTime(Date.parse('2026-10-17T16:00:00Z'))
+   const f = await modelFixture(h); await configureModel(h)
+   const firstOwner = h.owner, ownerId = (await firstOwner.state()).actor.id
+   let observer = firstOwner
+   const stepUp = async client => {
+    const sent = await client.request('/auth/step-up', { method: 'POST', body: { action: 'owner:transfer' } })
+    assert.equal(sent.status, 202)
+    const link = new URL(h.mails.at(-1).text.match(/https?:\/\/[^\s]+/)[0])
+    const confirmed = await client.request('/auth/confirm', { method: 'POST', body: { token: link.searchParams.get('token') } })
+    assert.equal(confirmed.status, 303)
+   }
+   if (changed === 'role') {
+    observer = await h.invite('synthetic-locket-model-owner@example.test', 'viewer')
+    await stepUp(firstOwner)
+    const promoted = await firstOwner.request('/auth/operator/role', { method: 'POST', body: { operatorId: observer.id, role: 'owner' } })
+    assert.equal(promoted.status, 200, await promoted.text())
+    observer = await h.signIn('synthetic-locket-model-owner@example.test')
+    await stepUp(observer)
+   }
+   const commandId = randomUUID(), payload = { agreementId: f.supplier.id, task: 'review', consent: true, simulated: true }
+   const pending = firstOwner.command('model.run', payload, { commandId })
+   let timer
+   try { await Promise.race([entered.promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Provider dispatch did not arrive')), 10000) })]) }
+   finally { clearTimeout(timer) }
+   const before = await (await observer.request('/api/locket/export')).json()
+   assert.equal(before.records.lk_model_outputs.length, 1)
+   const row = before.records.lk_model_outputs[0]
+   assert.deepEqual([row.status, row.content, row.input_tokens, row.output_tokens, row.estimated_usd_micros], ['uncertain', null, null, null, null])
+   if (changed === 'session') {
+    const out = await firstOwner.request('/auth/signout', { method: 'POST', body: {} }); assert.equal(out.status, 204)
+    observer = await h.signIn('owner@example.test')
+   } else if (changed === 'role') {
+    const out = await observer.request('/auth/operator/role', { method: 'POST', body: { operatorId: ownerId, role: 'member' } })
+    assert.equal(out.status, 200, await out.text())
+   } else if (changed === 'source') {
+    const a = (await observer.state()).agreements.find(a => a.id === f.supplier.id)
+    await observer.command('version.upload', { agreementId: a.id, version: a.version, kind: 'upload', file: file('synthetic-locket-3.pdf', pdf(modelQuote + ' Revised.')), text: modelQuote + ' Revised.' })
+   } else if (changed === 'playbook') {
+    const revised = await observer.command('playbook.draft', { rules: [{ key: 'payment', title: 'Revised terms', preferred: 'Invoices payable within 15 days.', alternatives: [], authority: 'counsel' }] })
+    await observer.command('playbook.activate', { id: revised.id })
+   } else await configureModel(h, { enabled: false })
+   release.resolve()
+   assert.equal((await pending).status, 'uncertain', changed)
+   const after = await (await observer.request('/api/locket/export')).json()
+   for (const table of ['lk_model_outputs', 'lk_model_usage']) assert.deepEqual(after.records[table], before.records[table], `${changed}: retained ${table} unchanged`)
+   assert.deepEqual(after.records.lk_audit.filter(a => a.command_id === commandId), before.records.lk_audit.filter(a => a.command_id === commandId), changed)
+   assert.equal(calls.length, 1)
+   await observer.command('model.accept', { outputId: row.id }, { error: 'STALE' })
+   const state = await observer.state()
+   assert.equal(state.models.usage.unpriced, 1)
+   assert.equal(state.models.usage.simulatedEstimatedUsd, 0)
+   assert.deepEqual(state.terms, []); assert.deepEqual(state.deviations, [])
+  } finally { release.resolve(); await h.close() }
+ }
+}

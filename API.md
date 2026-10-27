@@ -576,13 +576,16 @@ Every output retains its provider, exact model, prompt digest, playbook version,
 version and text digests, original-document digests, requested person, accepting
 person, token counts and estimated USD cost. Missing usage is labelled unknown.
 Monthly UTC usage comes from a separate retained ledger, including provider
-usage for withheld outputs. Simulated estimates are shown separately from live
+usage for withheld outputs while completion authority remains valid. A stale completion
+keeps its pre-dispatch unknown usage; it never writes a price under lost authority. Simulated estimates are shown separately from live
 costs. Requests reserve and claim a durable output before provider dispatch;
 replay never sends again, and interrupted or unsupported replies remain uncertain.
 Source, authority, playbook and settings changes withhold returned proposals.
 
 The test installation explicitly enables `LOCKET_MODEL_SIMULATION` and intercepts
-only the fixed reserved invalid-domain provider endpoint. Simulation cannot
+the actual selected provider's fixed network destination. The same adapters
+shape requests and normalize replies; the tests supply synthetic owner credentials
+and provider-specific network-edge fakes. Simulation cannot
 produce a live evaluation record or make a real task available. Production
 settings offer no simulation-enabling command. REVIEW-006 retains the actual
 labelled datasets, live evaluation command, passing scores and provider receipts.
