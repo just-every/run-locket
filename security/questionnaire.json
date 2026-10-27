@@ -345,13 +345,13 @@
     },
     {
       "name": "HubSpot",
-      "data": "Owner-requested read-only account identity and health metadata; no agreement data is sent by the probe.",
+      "data": "Owner-requested account identity and health metadata; separately authorized exact executed-deal status property and matching deal readback.",
       "bindings": [
         "HUBSPOT_ACCESS_TOKEN"
       ],
       "connectors": [],
       "enabledByDefault": false,
-      "configuration": "Owner configures the connection and authorizes its use.",
+      "configuration": "The owner configures private credentials and the destination account revision, then separately authorizes the exact package, deal, status property and value. Retrieval consent grants no CRM write authority. Unknown writes remain uncertain and are never automatically resent.",
       "responsibility": "The buyer selects and contracts with each operator, determines processing terms and locations, grants minimum credentials and revokes access. A buyer-operated sibling service is not automatically a separate third-party processor."
     },
     {
@@ -427,6 +427,40 @@
       "enabledByDefault": false,
       "configuration": "Owner configures minimum price read and quote draft authority, explicitly maps every price and separately consents to sending. Draft quote readback is required; no finalization, acceptance, activation or uncertain resend is requested.",
       "responsibility": "The buyer selects the operator, authorizes processing, grants minimum credentials and determines retention and processing terms."
+    },
+    {
+      "name": "Google Drive",
+      "data": "Exact signed agreement PDFs and completion certificates, owner-selected folder identities and filenames, plus metadata and original-byte readback.",
+      "bindings": [
+        "EXECUTION_GOOGLE_DRIVE_TOKEN"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "The owner configures private credentials and the exact destination account revision, then separately authorizes each exact package, folder and naming rule. Retrieval consent grants no filing authority. Unknown writes remain uncertain and are never automatically resent.",
+      "responsibility": "The buyer selects and contracts with the operator, determines processing terms and locations, grants minimum credentials, and controls retention and access to filed copies."
+    },
+    {
+      "name": "Microsoft OneDrive and SharePoint",
+      "data": "Exact signed agreement PDFs and completion certificates, owner-selected folder identities and filenames, plus metadata and original-byte readback.",
+      "bindings": [
+        "EXECUTION_MICROSOFT_TOKEN"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "The owner configures private credentials and the exact destination account revision, then separately authorizes each exact package, folder and naming rule. Retrieval consent grants no filing authority. Unknown writes remain uncertain and are never automatically resent.",
+      "responsibility": "The buyer selects and contracts with the operator, determines processing terms and locations, grants minimum credentials, and controls retention and access to filed copies."
+    },
+    {
+      "name": "Owner-selected Chest installation",
+      "data": "Exact signed agreement PDFs and completion certificates, owner-selected folder identities and filenames, plus metadata and original-byte readback.",
+      "bindings": [
+        "CHEST_ORIGIN",
+        "CHEST_TOKEN"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "The owner configures private credentials and the exact destination account revision, then separately authorizes each exact package, folder and naming rule. Retrieval consent grants no filing authority. Unknown writes remain uncertain and are never automatically resent.",
+      "responsibility": "The buyer selects and contracts with the operator, determines processing terms and locations, grants minimum credentials, and controls retention and access to filed copies."
     }
   ],
   "assessedAt": "2026-10-27",
