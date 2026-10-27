@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "4d2d74b6b50724281512be74c014bd4f4384f10b487848d332501ccbcf3161ce",
+      "sha256": "04e939877a8db945af866aeb3b94dae698f0429e8fc9ad28815aa19d84b33951",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "234a52e5277905d788a9c72fc42f18139801f1c87a84ef77bee0d1cb6aecd99d",
+      "sha256": "b4eab14c54ca7af4f82637488e3a61e61e8eb4db6a7d40721bc5d44273c7d281",
       "executable": false
     },
     "DEMO.md": {
@@ -4445,7 +4445,7 @@
       "executable": false
     },
     "tests/api/execution-followup-journey.mjs": {
-      "sha256": "b3932402c6578eab0908e807e710300d32509d7bbdf671aff6a97a81f9b1cf01",
+      "sha256": "1bc7e38d65deb6b0a5f0544231e78ab275829140a35791893a90ae6afbf97252",
       "executable": false
     },
     "tests/api/families.test.mjs": {
@@ -4593,7 +4593,7 @@
       "executable": false
     },
     "tests/api/setup.mjs": {
-      "sha256": "e79abd36304803fbf8d65ba3855301ccd6484cf645b73d4bd312ef5199ecfc68",
+      "sha256": "4b238095390296dde3492d8ffa2d4240733792caed64e551fe461f699e01d2d9",
       "executable": false
     },
     "tests/api/signature-packet-fixture.mjs": {
@@ -4697,7 +4697,7 @@
       "executable": false
     },
     "tests/browser/execution-comparison.spec.ts": {
-      "sha256": "922eb8a740eceea154c7bbc109d676b177b556c38d8d0cb9bfe557603ee2434d",
+      "sha256": "74918f66a68300925476c9b3e130f2624701823bd3592d141e0402565a900368",
       "executable": false
     },
     "tests/browser/families.spec.ts": {
