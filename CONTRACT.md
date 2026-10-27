@@ -1012,9 +1012,9 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 
 ## Status
 
-Judged from the code and tests at candidate commit `HEAD` (27 October 2026); the branch handoff supplies the full immutable candidate SHA.
+Judged from the code and tests at commit `41cdb03ccd3d39746e9a9977ea0058ae32d658a4` (27 October 2026).
 
-The publication candidate is the exact branch head identified in the handoff. Its Verify and guarded landing receipts establish publication independently of local evidence.
+The publication candidate is the exact branch head identified by its full immutable SHA in the handoff. This documentation projection changes no product or test bytes from the judged implementation commit. Its Verify and guarded landing receipts establish publication independently of local evidence.
 
 EXEC-002 retains component browser evidence at 1440 and 390: a Dropbox ZIP containing two unmerged documents plus its separate audit PDF reaches the packet review hold. Original ZIP custody remains byte-for-byte and atomic with execution evidence. Computed typography is explicitly carved out: the execution-gate-proof spec is absent, and the recorded spec asserts no computed font size. No hosted-shell or computed-typography claim is made. The earlier separate 497 ms clock receipt is unestablished and is withdrawn. Guarded landing, exact-SHA Verify, Run site and the complete publication scan remain required before acceptance.
 
