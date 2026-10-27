@@ -68,14 +68,15 @@ export function Execution({ state, a, locket }: { state: LocketState; a: Row; lo
       </section>
       <section className="lk-panel">
         <div className="lk-panel-head"><h2>Automatic retrieval</h2></div>
-        <p className="lk-muted">Docusign returns are checked against the sent package. Changed documents stay unsigned for review. Retrieval stops when the authorizing owner session or provider connection changes.</p>
+        <p className="lk-muted">Docusign, Acrobat Sign and Dropbox Sign returns are checked against the sent package. Changed documents stay unsigned for review. Retrieval stops when the authorizing owner session or provider connection changes.</p>
         {retrievals.map(r => <article className="lk-card" key={r.id}>
           <Badge value={r.status} /><p>{r.attempts} retrieval attempts{r.last_error ? ` · ${r.last_error.startsWith('provider_http_') ? 'Provider returned HTTP '+r.last_error.slice(14) : 'Retrieval could not finish. Review the connection and retry schedule.'}` : ''}</p>
           {['waiting','retrying','retrieving'].includes(r.status) && <p>Next check {when(r.next_attempt_at)}. Signed evidence appears below after reconciliation.</p>}
           {can(state,'owner') && ['waiting','retrying','retrieving'].includes(r.status) && <button type="button" disabled={busy} onClick={() => void run('execution.retrieval.cancel',{agreementId:a.id,version:a.version})}>Cancel retrieval</button>}
         </article>)}
-        {can(state,'owner') && sent?.provider === 'docusign' && !retrievals.some(r=>r.package_id===sent.id && ['waiting','retrying','retrieving','reconciled','needs_review'].includes(r.status)) && <Form busy={busy} submit="Authorize retrieval" onSubmit={async data => { await run('execution.retrieval.authorize',{agreementId:a.id,version:a.version,packageId:sent.id,consent:data.get('consent')==='on'}) }}>
-          <label className="lk-check"><input type="checkbox" name="consent" required /> Retrieve and reconcile this exact sent package from the connected Docusign account.</label>
+        {can(state,'owner') && sent && ['docusign','adobe-acrobat-sign','dropbox-sign'].includes(sent.provider) && !retrievals.some(r=>r.package_id===sent.id && ['waiting','retrying','retrieving','reconciled','needs_review'].includes(r.status)) && <Form busy={busy} submit="Authorize retrieval" onSubmit={async data => { await run('execution.retrieval.authorize',{agreementId:a.id,version:a.version,packageId:sent.id,consent:data.get('consent')==='on',...(sent.provider==='dropbox-sign'?{signedName:value(data,'signedName'),certificateName:value(data,'certificateName')}:{})}) }}>
+          {sent.provider==='dropbox-sign'&&<><p>Name the exact two PDFs in the provider ZIP. Locket preserves their bytes and never splits a merged PDF or creates an audit trail.</p><Field label="Signed PDF name in ZIP"><input name="signedName" required/></Field><Field label="Provider audit trail name in ZIP"><input name="certificateName" required/></Field></>}
+          <label className="lk-check"><input type="checkbox" name="consent" required /> Retrieve and reconcile this exact sent package from the connected {providerName(sent.provider)} account.</label>
         </Form>}
       </section>
       <ExecutionFollowups state={state} a={a} locket={locket}/>
