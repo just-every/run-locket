@@ -82,18 +82,24 @@ export async function dispatchAccountingSchedule(c:Ctx,id:string){
  if(!row)return
  const a=await visibleAgreement(c,row.agreement_id)
  if(row.status!=='sending')return
+ if(a.version!==row.agreement_version||pantry(c)!==row.origin)return
+ const checks=[...agreementGuards(c,a),fullFieldsCheck(c.actor),policyVersionCheck((await repositoryPolicy(c.db)).version),obligationGuard(row)]
  // An atomic claim precedes the network edge. A crash leaves uncertain, never resendable.
- await commit(c,may.manageRoles,[...agreementGuards(c,a),fullFieldsCheck(c.actor),policyVersionCheck((await repositoryPolicy(c.db)).version),sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='sending'",id),obligationGuard(row)],[sql("UPDATE lk_accounting_schedules SET status='uncertain' WHERE id=?",id)])
- if(a.version!==row.agreement_version||pantry(c)!==row.origin){await c.db.prepare("UPDATE lk_accounting_schedules SET status='cancelled' WHERE id=?").bind(id).run();return}
+ await commit(c,may.manageRoles,[...checks,sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='sending'",id)],[sql("UPDATE lk_accounting_schedules SET status='uncertain' WHERE id=?",id)])
+ const recordOutcome=(writes:ReturnType<typeof sql>[])=>commit(c,may.manageRoles,[...checks,sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='uncertain'",id)],writes)
  try{
   const response=await remote(c,row,'POST')
   // A non-success response may follow a remote write; retain uncertainty conservatively.
-  if(!response.ok){const observation=operationObservation('pantry',row.origin,c.now,false,'draft_outcome_unknown');await c.db.prepare(observation.sql).bind(...observation.params).run();return}
+  if(!response.ok){const observation=operationObservation('pantry',row.origin,c.now,false,'draft_outcome_unknown');await recordOutcome([observation]);return}
   const record:any=await receipt(response)
-  if(!matchesBill(record,row)||record.status!=='draft'){const observation=operationObservation('pantry',row.origin,c.now,false,'invalid_provider_receipt');await c.db.prepare(observation.sql).bind(...observation.params).run();return}
+  if(!matchesBill(record,row)||record.status!=='draft'){const observation=operationObservation('pantry',row.origin,c.now,false,'invalid_provider_receipt');await recordOutcome([observation]);return}
   const observation=operationObservation('pantry',row.origin,c.now,true,'draft_handoff_succeeded')
-  await c.db.batch([sql("UPDATE lk_accounting_schedules SET status='pending',remote_id=?,checked_at=? WHERE id=? AND status='uncertain'",record.id,c.now,id),observation].map(s=>c.db.prepare(s.sql).bind(...s.params)))
- }catch{const observation=operationObservation('pantry',row.origin,c.now,false,'draft_outcome_unknown');await c.db.prepare(observation.sql).bind(...observation.params).run()}
+  await recordOutcome([sql("UPDATE lk_accounting_schedules SET status='pending',remote_id=?,checked_at=? WHERE id=? AND status='uncertain'",record.id,c.now,id),observation])
+ }catch{
+  // Lost authority or changed bindings cannot record even a failure observation.
+  // The pre-dispatch uncertain claim already records the unresolved attempt.
+  try{await recordOutcome([operationObservation('pantry',row.origin,c.now,false,'draft_outcome_unknown')])}catch{}
+ }
 }
 const refresh:Handler=async(c,p)=>{
  const {row,a}=await schedule(c,p)

@@ -694,7 +694,38 @@ test('LINK-001 refuses unconfirmed, stale and unconsented schedules and never re
  await h.owner.command('term.propose',{agreementId:other.source.id,key:'payment_terms',value:'Review changed payment terms',citation:{quote:other.quote}})
  await h.owner.command('accounting.schedule.send',{scheduleId:stale.id,payload:before.payload,consent:true},{error:'STALE'})
  assert.equal(calls.length,1)
+ await accountingCompletionRevocation()
 })
+
+async function accountingCompletionRevocation(){
+ const {pantryBindings,pantryFake,scheduleFixture}=await import('./accounting-schedule-fixture.mjs')
+ const calls=[],entered=Promise.withResolvers(),release=Promise.withResolvers(),fake=pantryFake(calls)
+ const h=await installation({bindings:pantryBindings,outboundResponse:async request=>{
+  const response=await fake(request);entered.resolve();await release.promise;return response
+ }})
+ let pending
+ try{
+  const f=await scheduleFixture(h);await f.confirm()
+  const proposed=await f.prepare(),row=await f.row(proposed.id),firstOwner=h.owner
+  const commandId=crypto.randomUUID(),payload={scheduleId:row.id,payload:row.payload,consent:true}
+  pending=firstOwner.command('accounting.schedule.send',payload,{commandId})
+  let timer
+  try{await Promise.race([entered.promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Pantry dispatch did not arrive')),10000)})])}finally{clearTimeout(timer)}
+  const before=await(await firstOwner.request('/api/locket/export')).json()
+  assert.ok(Array.isArray(before.records.lk_connection_health))
+  assert.equal(before.records.lk_accounting_schedules[0].status,'uncertain')
+  assert.equal(before.records.lk_accounting_schedules[0].remote_id,null)
+  assert.equal((await firstOwner.request('/auth/signout',{method:'POST',body:{}})).status,204)
+  h.owner=await h.signIn('owner@example.test')
+  release.resolve();await pending
+  const after=await(await h.owner.request('/api/locket/export')).json()
+  assert.deepEqual(after.records.lk_accounting_schedules,before.records.lk_accounting_schedules,'Revoked session cannot commit pending outcome or provider identity')
+  assert.deepEqual(after.records.lk_connection_health,before.records.lk_connection_health,'Revoked session cannot record provider health')
+  assert.deepEqual(after.records.lk_audit.filter(a=>a.command_id===commandId),before.records.lk_audit.filter(a=>a.command_id===commandId))
+  await h.owner.command('accounting.schedule.send',payload,{error:'STATUS'})
+  assert.equal(calls.length,1,'A later login cannot revive the uncertain send')
+ }finally{release.resolve();if(pending)await pending.catch(()=>{});await h.close()}
+}
 
 test('LINK-001 eight QuickBooks bills become 84 percent contract consumption only after exact owner allocation, with shared-vendor cents fenced',async t=>{
  const {accountingBindings,accountingFake}=await import('./renewal-brief-fixture.mjs')
@@ -783,11 +814,26 @@ test('LINK-001 incomplete provider evidence preserves snapshots and finite recur
    await h.owner.command('accounting.link',{agreementId:f.source.id,version:(await f.current()).version,provider,vendorId:'42',consent:true})
    const payload={agreementId:f.source.id,version:(await f.current()).version,since:'2026-11-01',through:'2026-12-31'}
    await h.owner.command('accounting.read',payload)
+   const retained=structuredClone((await h.owner.state()).accountingReads)
+   assert.equal(retained.length,1)
    for(const broken of ['failure','counterparty','incomplete',...(provider==='netsuite'?['currency']:[])]){
     mode=broken
     await h.owner.command('accounting.read',payload,{error:broken==='failure'?'ACCOUNTING_UNAVAILABLE':'ACCOUNTING_DATA'})
-    assert.equal((await h.owner.state()).accountingReads.length,1)
+    assert.deepEqual((await h.owner.state()).accountingReads,retained,'Failed read preserves every retained snapshot byte')
    }
+  }finally{await h.close()}
+ }
+ for(const [recurrence,dueDate,expected] of [
+  ['quarterly','2027-01-31',['2027-01-31','2027-04-30','2027-07-31']],
+  ['annually','2028-02-29',['2028-02-29','2029-02-28','2030-02-28']],
+ ]){
+  const calls=[],h=await installation({bindings:pantryBindings,outboundResponse:pantryFake(calls)})
+  try{
+   const f=await scheduleFixture(h,{recurrence,dueDate});await f.confirm()
+   const proposed=await f.prepare({occurrences:3,billDate:'2027-01-01'})
+   const rows=(await h.owner.state()).accountingSchedules.filter(r=>proposed.ids.includes(r.id)).sort((a,b)=>a.due_date.localeCompare(b.due_date))
+   assert.deepEqual(rows.map(r=>r.due_date),expected,recurrence)
+   assert.equal(calls.length,0)
   }finally{await h.close()}
  }
  for(const customer of [false,true]){

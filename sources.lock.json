@@ -109,7 +109,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "b583a6c57d31f24d2122db7496edd7a8f19b3ab1a266bd954de666c934489869",
+      "sha256": "fac4928406a42b68dc84acb9828fcb0986e80e6835caffc5332de4eb63493463",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -121,7 +121,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "37a4c27a894e017bdfbb5c2d5d3691088cea99239dffe2217e8bff235a9b3af2",
+      "sha256": "6e72dfcabdae1add4a865f6eaf5b36e60df9e4d39f9d9778c58f0fcfd8adba5a",
       "executable": false
     },
     "base-copies.json": {
@@ -129,7 +129,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e6f079aa08b7c68878b05482fa8ca23e45eb09786a127008b256697d829b3109",
+      "sha256": "e00a0b76a16e379bd5489a4a16e3d94d3ad4e7672c39d460488ebe533399c4e2",
       "executable": false
     },
     "DEMO.md": {
@@ -1157,7 +1157,7 @@
       "executable": false
     },
     "src/locket/accounting-schedules.ts": {
-      "sha256": "903127cd4f331f49f8d00070b7175ca8fdeb0cf4c11788fe5194d6df8b80afe3",
+      "sha256": "435fc743434fc7f860493f6fa473a9281550567dd47e3274cc6632c0a4ce8430",
       "executable": false
     },
     "src/locket/accounting-value.ts": {
@@ -1509,7 +1509,7 @@
       "executable": false
     },
     "src/locket/model-settings.ts": {
-      "sha256": "35340df3bc5bc53c6b00ee69a7e977469ffee7ba5e980a75a0c0969995b4badc",
+      "sha256": "05d986bbbe6651a21c7969721f3daa0750a6968fda2a0c5a4d5a695a83ada2b0",
       "executable": false
     },
     "src/locket/model.ts": {
@@ -4101,7 +4101,7 @@
       "executable": false
     },
     "src/ui/model-settings.tsx": {
-      "sha256": "8affe6afd3cccd04582f3d8f010612d2dcdd0b269dfd9b8ddba78ca991e719df",
+      "sha256": "c79dc096d776dd68930a18357339bdf8694e408e4f8b6535b2c4698f985e79ef",
       "executable": false
     },
     "src/ui/notes.tsx": {
@@ -4433,7 +4433,7 @@
       "executable": false
     },
     "tests/api/families.test.mjs": {
-      "sha256": "5d2f3b192bec5357b95f903bf4d3c5ec4e1fea73322275b7ea88591813499eb5",
+      "sha256": "49fbf654684df28d44d400a34d86af649890bc2fc3e7b99dedf13c96b3a9e5c9",
       "executable": false
     },
     "tests/api/family-analysis-fixture.mjs": {
@@ -4457,7 +4457,7 @@
       "executable": false
     },
     "tests/api/harness.mjs": {
-      "sha256": "087658eed1ed1edcbe1852b5391ef2ec55030b889c931c5585a8fa1d59fa059f",
+      "sha256": "6e41f89e566c947ff8e184d67286894224f543793e4a0f110eb62ff9cd307af1",
       "executable": false
     },
     "tests/api/intake-form-fixture.mjs": {
@@ -4465,7 +4465,7 @@
       "executable": false
     },
     "tests/api/model-settings-fixture.mjs": {
-      "sha256": "6c9452dafc522178f199e6dca0d93e36a3c222129396220062a4c45be4d243f4",
+      "sha256": "194ef8fcf6cce8ada38a6a60538909c07f764dd8fc512e5343b327228abfa2d9",
       "executable": false
     },
     "tests/api/move-in.test.mjs": {
@@ -4477,7 +4477,7 @@
       "executable": false
     },
     "tests/api/notices.test.mjs": {
-      "sha256": "cd4dca2f0e693b5e1777b093a4f6d88d43c98348c37c43c0b4253e5f41f53caa",
+      "sha256": "b9c5e2f06d3b77c0309d4c5bf2750aab9a9fb2b1b2813b91849306b920b406eb",
       "executable": false
     },
     "tests/api/notifications.test.mjs": {
