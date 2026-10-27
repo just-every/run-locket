@@ -10,6 +10,7 @@ import { commit, type Ctx, type Handler } from './commands'
 import { canonical, fail, integer, json, object, oneOf, list, sha256, sql, text } from './model'
 import { agreementGuards, currentVersion, visibleAgreement } from './records'
 import { textPdf } from './pdf'
+import { fullFieldsCheck, policyVersionCheck, repositoryPolicy } from './repository-access'
 
 function connection(env: Bindings, name: 'PLATTER'|'NECTAR') {
   const values = env as unknown as Record<string,unknown>, origin = values[name + '_ORIGIN'], token = values[name + '_TOKEN']
@@ -115,7 +116,10 @@ export async function dispatchBillingProposal(c:Ctx,id:string){
   if(row.version_id!==v.id||row.terms_digest!==digest)fail('STALE','Executed terms changed before dispatch.',409)
   const payload=JSON.parse(row.payload),stripe=payload.provider==='stripe'
   const target=stripe?null:connection(c.env,'NECTAR')
-  await commit(c,['owner'],[...agreementGuards(c,a),sql("(SELECT status FROM lk_billing_proposals WHERE id=?)='queued'",id)],[sql("UPDATE lk_billing_proposals SET status='sending' WHERE id=?",id)])
+  const checks=[...agreementGuards(c,a),fullFieldsCheck(c.actor),policyVersionCheck((await repositoryPolicy(c.db)).version)]
+  // Claim before the network call. Lost authority or a crash must retain an
+  // uncertain attempt rather than leave a proposal eligible for another send.
+  await commit(c,['owner'],[...checks,sql("(SELECT status FROM lk_billing_proposals WHERE id=?)='queued'",id)],[sql("UPDATE lk_billing_proposals SET status='uncertain',last_error='provider_outcome_unknown' WHERE id=?",id)])
   let status='uncertain',receipt:string|null=null,error:string|null='provider_outcome_unknown'
   try{
     if(stripe){({status,receipt,error}=await sendStripeDraft(c,id,payload))}else{
@@ -125,12 +129,14 @@ export async function dispatchBillingProposal(c:Ctx,id:string){
       if(typeof body.id==='string'){
         const check=await fetch(target!.origin+'/api/nectar/proposals/'+encodeURIComponent(body.id),{redirect:'manual',signal:AbortSignal.timeout(15_000),headers:{authorization:`Bearer ${target!.token}`}})
         const detail=check.ok?await check.json() as any:null
-        if(detail?.id===body.id&&detail.status==='pending'){status='pending';receipt=body.id;error=null}else error='pending_receipt_required'
+        // Nectar retains the submitted setup input beside its normalized plan.
+        // An ID and transport success alone cannot confirm the proposed terms.
+        if(detail?.id===body.id&&detail.status==='pending'&&detail.kind===payload.kind&&detail.stale===false&&canonical(detail.payload?.input)===canonical(payload.payload)&&canonical(detail.evidence)===canonical(payload.evidence)){status='pending';receipt=body.id;error=null}else error='matching_pending_receipt_required'
       }else error='pending_receipt_required'
     }
     else {status=response.status>=400&&response.status<500?'rejected':'uncertain';error=`provider_http_${response.status}`}
     }
   }catch{}
-  await c.db.batch([c.db.prepare("UPDATE lk_billing_proposals SET status=?,receipt_id=?,last_error=? WHERE id=? AND status='sending'").bind(status,receipt,error,id),c.db.prepare('INSERT INTO lk_audit VALUES(?,?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),Date.now(),c.actor.id,c.actor.name,c.actor.role,'billing.proposal.outcome',a.id,`Pending-only billing handoff: ${status}`,c.commandId)])
+  await commit(c,['owner'],[...checks,sql("EXISTS(SELECT 1 FROM lk_billing_proposals WHERE id=? AND status='uncertain' AND payload=? AND terms_digest=?)",id,row.payload,digest)],[sql("UPDATE lk_billing_proposals SET status=?,receipt_id=?,last_error=? WHERE id=?",status,receipt,error,id),sql('INSERT INTO lk_audit VALUES(?,?,?,?,?,?,?,?,?)',crypto.randomUUID(),Date.now(),c.actor.id,c.actor.name,c.actor.role,'billing.proposal.outcome',a.id,`Pending-only billing handoff: ${status}`,c.commandId)])
 }
 export const proposalHandoffHandlers={'proposal.import':importProposal,'billing.proposal.prepare':prepareBilling,'billing.proposal.send':sendBilling}
