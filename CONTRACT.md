@@ -1006,13 +1006,13 @@ Locket owns the contract lifecycle. These jobs stay with the buyer's chosen serv
 
 Judged from the code and tests at commit `60e0c11ec4c1ecb1b415ec39c3b9bba0c9c19065` (27 October 2026).
 
-CT judgment: REVIEW-005 is ACCEPT ON LANDING; LINK-001 STAYS PARTIAL.
+CT judgment: REVIEW-005 is accepted DONE at that main pin; LINK-001 STAYS PARTIAL.
 
-This documentation revision records that judgment without changing product or test bytes from the reviewed candidate. The REVIEW-005 done row is conditional on guarded landing; it is not a claim of accepted DONE on main.
+This documentation revision records that judgment without changing product or test bytes from the reviewed candidate. The reviewed source pin is on main with successful exact-SHA Verify and Run site; REVIEW-005 is accepted DONE under the stated CT landing test. This later documentation revision requires its own guarded publication and exact-SHA CI gates.
 
-REVIEW-005 satisfies the substantive acceptance and inherited controls. REVIEW-006 retains live evaluation generation, qualification and populated live-result display; provider simulations establish none of those live boundaries. LINK-001 remains partial for the outbound provider scope, destination changes and effective loss of field authority named in its Gap. Guarded landing still requires main equality, exact-SHA Verify and Run site success, and a complete full-history publication scan with zero new findings.
+REVIEW-005 satisfies the substantive acceptance and inherited controls. REVIEW-006 retains live evaluation generation, qualification and populated live-result display; provider simulations establish none of those live boundaries. LINK-001 remains partial for the outbound provider scope, destination changes and effective loss of field authority named in its Gap. The guarded lander still owns publication: no cloud publication-scan result is claimed. Landing this documentation revision requires main equality, exact-SHA Verify and Run site success, and a complete full-history publication scan with zero new findings.
 
-REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence below. INTAKE-006 and APPROVE-002 now have named public-door proof; REPO-009 and INT-003 now have named public-door policy and screen proof; REPO-012 proves the carved rendition obligations; REPO-013 proves its access exceptions, group hiding, hidden-value submission, access reports, privileged notes and audit diffs. REVIEW-005 records CT ACCEPT ON LANDING; LINK-001 remains partial with the unproved duties named in its Gap. LINK-003 retains the approved differing-term refusal boundary and every successful-handoff obligation. Other clause judgments retain their recorded baseline.
+REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence below. INTAKE-006 and APPROVE-002 now have named public-door proof; REPO-009 and INT-003 now have named public-door policy and screen proof; REPO-012 proves the carved rendition obligations; REPO-013 proves its access exceptions, group hiding, hidden-value submission, access reports, privileged notes and audit diffs. REVIEW-005 records CT accepted DONE at the reviewed main pin; LINK-001 remains partial with the unproved duties named in its Gap. LINK-003 retains the approved differing-term refusal boundary and every successful-handoff obligation. Other clause judgments retain their recorded baseline.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
