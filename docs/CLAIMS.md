@@ -5,8 +5,8 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 44 | 21 | 17 | 82 |
-| All | 63 | 21 | 17 | 101 |
+| Target and push further | 45 | 20 | 17 | 82 |
+| All | 64 | 20 | 17 | 101 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -67,7 +67,7 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | `APPROVE-004` | Approval reminders and escalation | target | done | [Source evidence](CONTRACT.md#status) |  |
 | `SIGN-002` | Live Docusign, Adobe Acrobat Sign and Dropbox Sign | target | partial | [Source evidence](CONTRACT.md#status) | OAuth, developer-account live sandbox receipts, verified callbacks, correction, provider reminders and provider voiding remain unproved; SIGN-005 packet transports alone do not complete this clause |
 | `SIGN-003` | Inkwell signing | target | missing | [Source evidence](CONTRACT.md#status) | BLOCKED: Inkwell public machine-send&#47;manage and signed outgoing completion events are absent at 6c4638762028477f6ddba6b6bd8fc18ad2fcbb04; requires the Inkwell seed before automatic signed PDF&#47;certificate retrieval can complete |
-| `EXEC-002` | Automatic retrieval and filing of executed agreements | target | partial | [Source evidence](CONTRACT.md#status) | CT ruling dated 27 October 2026: STAYS PARTIAL pending fresh CT judgment of the new capped retry, expired authorizing session and lost owner role retrieval assertions and mutation proof. Computed typography and hosted-shell proof remain explicitly carved out; no computed-font-size assertion or hosted-shell acceptance is claimed. Applicable live-provider receipts remain with SIGN-002, live storage authorization with INT-001 and live CRM interoperability with INTAKE-004. Exact-candidate Verify and guarded landing must establish main equality, successful Run site and the COMPLETE full-history publication scan with NEW 0. No original target or inherited duty is waived. |
+| `EXEC-002` | Automatic retrieval and filing of executed agreements | target | done | [Source evidence](CONTRACT.md#status) | Computed typography and hosted-shell acceptance are carved out by CT; neither is claimed. |
 | `SIGN-004` | Clickwrap acceptance of published terms | target | done | [Source evidence](CONTRACT.md#status) |  |
 | `SIGN-005` | Signer rules, signature fields and multi-document packets | target | done | [Source evidence](CONTRACT.md#status) | None for the network-edge packet acceptance. Live provider sending&#47;callbacks and sandbox receipts remain SIGN-002&#47;SIGN-003. |
 | `OBL-001` | Obligation extraction, owners and status | target | partial | [Source evidence](CONTRACT.md#status) | Built-in extraction, status values beyond done and owner lists do not exist |
