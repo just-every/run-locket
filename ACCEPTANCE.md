@@ -13,7 +13,7 @@ The primary journey: request an agreement, draft and negotiate it, review its ci
 | Later | 0 | 0 | 0 | 0 |
 | Full target | 38 | 59 | 41 | 138 |
 
-Judged from the code and tests at commit `5fb535c943584da9c28f588dc3e510fbfb688459` (27 October 2026). Field proof register: 8 rows; 0 passed, 0 failed, 8 not run.
+Judged from the code and tests at commit `5fb535c943584da9c28f588dc3e510fbfb688459` (27 October 2026). Field proof register: 9 rows; 0 passed, 0 failed, 9 not run.
 
 ## Core
 
@@ -45,7 +45,7 @@ Core · published · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-ROLE
 
 #### DRAFT-001 — Use an approved template
 
-Core · published · **done** · Rules D-1
+Core · published · **done** · Rules D-1, D-2
 
 **Requirement.** Owner or counsel author versioned templates with fields and clause wordings, and approve a version for use. A requester can only populate an approved version; required fields must be filled; the chosen clause wording is recorded. A later template version never rewrites a version already produced.
 
@@ -57,7 +57,7 @@ Core · published · **done** · Rules D-1
 
 #### PLAY-001 — Maintain the clause playbook
 
-Core · published · **done** · Rules D-1
+Core · published · **done** · Rules D-1, D-2, D-6
 
 **Requirement.** Owner or counsel keep versioned rules: preferred wording, allowed alternatives and who decides exceptions (counsel or approver). One version is active; each review finding records the playbook version it used.
 
@@ -81,7 +81,7 @@ Core · published · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### REVIEW-001 — Record review findings
 
-Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1
+Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1, D-2, D-6
 
 **Requirement.** A reviewer records, against a playbook rule, whether the rule is met, breached or cannot be determined, citing the exact passage by position and quote (checked against the version text), with proposed wording and open questions. An agent’s finding application carries standard; the company’s policy decides whether it is applied or held. Agent calls carry standard as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -93,7 +93,7 @@ Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-A
 
 #### APPROVE-001 — Approve the exact version
 
-Core · published · **done** · Cites BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · published · **done** · Cites BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-2, D-6
 
 **Requirement.** Every agreement needs commercial approval (owner or approver); each breached or undetermined finding needs an exception decision by the rule's authority. The requester cannot approve their own request unless they are the owner. Approvals pin version identity and decision context; a new version, a signing PDF or a value change withdraws them and the agreement returns to review.
 
@@ -105,7 +105,7 @@ Core · published · **done** · Cites BASE-INPUT-003, BASE-ROLE-001 · Rules D-
 
 #### SIGN-001 — Prepare for signature with any provider
 
-Core · published · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1
+Core · published · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1, D-2, D-3
 
 **Requirement.** From an approved version Locket produces the signature-ready PDF (the approved PDF itself; a text PDF for template versions; DOCX versions need the PDF they will be signed as, attached and approved first) and a routing manifest naming version identity, document SHA-256, approvals, provider and ordered recipients. A person can send it through Docusign, Adobe Acrobat Sign, Dropbox Sign, PandaDoc, Documenso, DocuSeal, paper or another route and record the envelope ID; this manual route stays available beside the live connections in `SIGN-002` and `SIGN-003`.
 
@@ -117,7 +117,7 @@ Core · published · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### EXEC-001 — Record and reconcile execution
 
-Core · published · **done** · Cites BASE-INPUT-003 · Rules D-1
+Core · published · **done** · Cites BASE-INPUT-003 · Rules D-1, D-2
 
 **Requirement.** The signed PDF and the provider's certificate are recorded (uploaded by a person, or retrieved by `EXEC-002`). Locket reconciles the envelope ID with the handoff, the signers with the package's signers, the document (confirmation and page count) and the certificate's presence. A clean match marks the agreement executed; a mismatch stays unsigned until owner or counsel accepts it with a reason. The same signed file or envelope cannot be recorded twice.
 
@@ -129,7 +129,7 @@ Core · published · **done** · Cites BASE-INPUT-003 · Rules D-1
 
 #### TERMS-001 — Confirm terms and obligations
 
-Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-INPUT-003 · Rules D-1
+Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-INPUT-003 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** People propose effective and end dates, auto-renewal, renewal term, notice period, governing law and payment terms, each citing words from the executed text (or a signed-PDF page when there is no text). Owner, counsel or approver confirm or reject each. Correcting a confirmed term supersedes it and keeps the history. Obligations have an owner, due date and recurrence; they are confirmed and then marked done. The renewal type, renewals allowed and the term roll-forward built on these terms are `RENEW-007`. Agent calls carry standard or commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -141,7 +141,7 @@ Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-A
 
 #### RENEW-001 — Work the renewal queue
 
-Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** Confirmed end date and notice period produce the notice deadline: the end of the deadline day (23:59:59) in the agreement's IANA time zone, including daylight-saving changes. Under the held company policy for standard or commitment, owner or approver decide renew, renegotiate or terminate; a notice is drafted (by a person or an agent proposal), approved for sending by owner or approver (not by its preparer unless owner), and then recorded as sent with method, time and optional evidence. `RENEW-007` extends the deadline to auto-renewing agreements, computing it from the current term rather than an end date already past. Agent calls carry commitment and external as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -167,7 +167,7 @@ Core · published · **done** · Cites BASE-DATA-001, BASE-INPUT-003, BASE-ROLE-
 
 #### ROLE-001 — Six roles enforced on the server
 
-Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1
+Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** Roles are **owner** (everything), **counsel** (library, legal exceptions, restricted agreements, execution mismatches), **approver** (commercial approval, renewal decisions, notice approval), **requester** (requests, versions, attachments, signature handoff), **viewer** (reads) and **agent** (legacy proposal identity; sponsored agents use the sponsor’s role and company policy). The installation's native owner is always owner; other operators are invited through Base sign-in and given a Locket role. REPO-007's personal saved-view preferences are available to every human role, including viewers; this never permits a business-record write, and sponsored agents’ preference writes carry standard under company policy. Agent calls carry access as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -179,7 +179,7 @@ Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-A
 
 #### SEC-001 — Writes recheck session, role and version atomically
 
-Core · published · **done** · Cites BASE-ACCESS-002, BASE-AGENT-002, BASE-AGENT-006, BASE-ROLE-001 · Rules D-1
+Core · published · **done** · Cites BASE-ACCESS-002, BASE-AGENT-002, BASE-AGENT-006, BASE-ROLE-001 · Rules D-1, D-2
 
 **Requirement.** Locket business writes atomically compare agreement and related-record revisions with their writes, so a change after preparation saves none of the prepared batch.
 
@@ -203,7 +203,7 @@ Core · published · **done** · Rules D-1
 
 #### ACCESS-001 — Restricted agreements are invisible to others
 
-Core · published · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · published · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-2, D-6
 
 **Requirement.** A restricted agreement and everything attached to it (versions, files, findings, approvals, terms, proposals, counterparty, search hits) is visible only to the owner, counsel, its requester, its responsible person and people explicitly granted access. To anyone else it does not exist.
 
@@ -215,7 +215,7 @@ Core · published · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### FILE-001 — Originals keep their exact bytes
 
-Core · published · **done** · Cites BASE-INPUT-003 · Rules D-1
+Core · published · **done** · Cites BASE-INPUT-003 · Rules D-1, D-2
 
 **Requirement.** Uploaded, signed, certificate and imported files are stored with their SHA-256 and served byte-for-byte with the digest in a response header; nothing rewrites an original.
 
@@ -227,7 +227,7 @@ Core · published · **done** · Cites BASE-INPUT-003 · Rules D-1
 
 #### PROPOSE-001 — Evidenced agent proposals and decisions
 
-Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** An agent uses the same business actions for its named sponsor, through the [documented API](API.md). It prepares proposals with evidence and assumptions: intake details, playbook findings, agreement-family links, extracted terms and renewal notice drafts. Approval runs the same checks as doing the work by hand, records who prepared and who decided, and links the result to the proposal. Applying findings carries standard, sending carries external and a binding confirmation or signature carries commitment; the company’s policy decides each call. A person’s own decision remains subject to the requester conflict rule. Agent calls carry standard, external and commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -239,7 +239,7 @@ Core · published · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-A
 
 #### MOVE-001 — DocuSign archive move-in
 
-Core · published · **done** · Cites BASE-AUDIT-001, BASE-INPUT-003 · Rules D-1
+Core · published · **done** · Cites BASE-AUDIT-001, BASE-INPUT-003 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** The DocuSign kit takes an Envelope Report CSV and the downloaded completed envelopes (one folder per envelope ID with the signed PDFs and `Summary.pdf`, the Certificate of Completion). A dry run shows every row's outcome (import, not completed, missing evidence, duplicate), missing certificates and files not in the report, and writes nothing. Applying the exact reviewed dry run creates imported agreements with the signed file and certificate kept byte-for-byte, an imported execution record (never a new signature event), and end date and notice period as proposed terms. The journal keeps the report and every supplied file. An unused batch can be undone; once an imported agreement is used, undo is refused and the history stays. Shape and limits: [IMPORT.md](IMPORT.md).
 
@@ -253,7 +253,7 @@ Core · published · **done** · Cites BASE-AUDIT-001, BASE-INPUT-003 · Rules D
 
 #### INTAKE-002 — Configurable request forms and routing
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2, D-5
 
 **Requirement.** Owner or counsel design a request form per agreement type without code: fields (text, number, USD money, date, pick list, person, counterparty, file), conditional questions (a supplier contract over $50,000 asks for a security questionnaire), required attachments, and routing rules that assign the responsible person, reviewer and approval route by type, value, department, region and risk answers. A form or rule change is drafted, previewed against sample answers that show the resulting route and required documents, then published as a new version; requests already in flight keep the version they started with. Each form also names who may launch it, by role, group or department (`REPO-009`). Anyone else does not see the form, and a launch through the API is refused. Detailed operational rules: [the INTAKE-002 record](docs/contract/operational-details.md#intake-002).
 
@@ -266,7 +266,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-0
 
 #### INTAKE-003 — Email intake
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004 · Rules D-1, D-2, D-3, D-6
 
 **Requirement.** Each installation has an intake address (Postmark inbound, or a forwarding rule from a Gmail or Outlook mailbox). An email to it, or a message forwarded by a staff member, becomes a draft request: the sender is matched to an operator, attachments are stored byte-for-byte as the first version and supporting files, and `INTAKE-007` proposes the request details. Mail from unknown senders is held for owner review, never auto-created. Replies on the thread attach to the same request.
 
@@ -280,7 +280,7 @@ Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### INTAKE-004 — CRM intake and status writeback: Salesforce, HubSpot and Orbit
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1, D-2, D-6
 
 **Requirement.** The owner connects Salesforce, HubSpot or Orbit with OAuth. A seller starts a contract request from an opportunity or deal (a Salesforce Lightning action, a HubSpot CRM card, an Orbit deal action); account, contacts, amount in USD and close date populate the request. The deal's products (Salesforce opportunity products, HubSpot line items, Orbit deal lines) come across with product, quantity, unit price, discount and term, and fill the pricing table of the generated order form (`DRAFT-002`). Locket writes the agreement's status, current version link and, on execution, the executed PDF link and key dates back to the deal. Field mappings are visible and editable; a failed writeback is shown on the agreement and the connection (`INT-004`).
 
@@ -296,7 +296,7 @@ Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### INTAKE-005 — Slack, Microsoft Teams and Nook intake and updates
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-ROLE-001 · Rules D-1, D-2, D-3
 
 **Requirement.** A `/contract` command or message shortcut in Slack, Microsoft Teams or Nook opens the request form and creates the request as the signed-in person. Request owners and watchers receive status changes, mentions, approval requests and signature completion in a direct message or a chosen channel, each linking to the record. Messages never reveal a restricted agreement to a channel member without access. Detailed operational rules: [the INTAKE-005 record](docs/contract/operational-details.md#intake-005). Notification consent, digest and outcomes follow NOTIFY-001. RL-102 governs provider/native identity and conversation-audience authorization.
 
@@ -309,7 +309,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-ROLE
 
 #### INTAKE-006 — Request queue, assignment and service levels
 
-Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-2, D-3
 
 **Requirement.** Legal and operations see one queue of open requests with responsible person, assignee, stage, needed-by date, age and the next action, filterable by type, team and status, plus a "my work" view. Assignment rules spread new requests across a team; a person can reassign with a reason. Each type has a service level (for example an NDA turned around in 2 business days); requests close to or past it are flagged and escalated to the team lead. The requester, the responsible person, owner or counsel can cancel a request that is not yet executed, choosing a reason (deal lost, no longer needed, duplicate, replaced by another request, other with a note). A canceled request leaves the open queue, keeps its versions and history, voids any envelope out for signature (`SIGN-002`), withdraws its approvals, and stops its reminders. It appears under a Canceled filter and in `REPORT-001` as canceled with its reason and the stage it reached. The owner or counsel can reopen it with a reason. Detailed operational rules: [the INTAKE-006 record](docs/contract/operational-details.md#intake-006).
 
@@ -322,7 +322,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, B
 
 #### INTAKE-007 — Third-party paper read at intake
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004 · Rules D-1, D-2, D-3, D-5, D-6
 
 **Requirement.** Under the held company policy for standard or commitment, when a counterparty's document arrives (upload, email or CRM), the built-in model (`REVIEW-005`) reads it and proposes the request details: agreement type, counterparty legal name, our entity, value, term, governing law and the template or playbook that applies, each citing the passage it came from. The requester confirms or corrects the proposal before the request is created. Agent calls carry standard as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -337,7 +337,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### REPO-002 — PDF text and OCR
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003, BASE-SECRET-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003, BASE-SECRET-001 · Rules D-1, D-2, D-6
 
 **Requirement.** Every PDF, including scanned and image-only signed copies, gets a searchable text layer with page and position anchors, run asynchronously with progress. A PDF that already carries a text layer is read directly. Scanned and image-only pages go to the OCR provider the owner chooses, with the owner's own credentials: Amazon Textract, Google Cloud Document AI (Enterprise Document OCR) or Azure AI Document Intelligence (Read model). Provider choice and switch-off sit with the model settings (`REVIEW-005`). The text layer is a derived rendition under D-1. Search, citations (`REVIEW-001`, `TERMS-001`) and extraction use it, and a person can see each page's OCR confidence and correct a misread passage, which is kept with history.
 
@@ -351,7 +351,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDI
 
 #### REPO-003 — Bulk repository import with extraction
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** An owner imports a legacy repository in bulk: a ZIP or folder of up to 10,000 PDF and DOCX files (files up to 50 MB, batches streamed in parts), or a connected Google Drive, OneDrive/SharePoint or Chest folder (`INT-001`), with an optional metadata CSV. Locket deduplicates by digest, runs OCR (`REPO-002`) and extraction (`REPO-004`), infers agreement families, and shows a reconciliation report (imported, duplicate, unreadable, needs review) before anything is used. Extracted parties, dates, renewal terms and USD values stay proposed until confirmed, individually or in bulk by a reviewer who has sampled them. On the day an imported agreement's renewal terms are confirmed, `RENEW-009` rolls an auto-renewing agreement forward past every end date already in the past, so it arrives with its current term, lifecycle status and next notice deadline. A batch can be undone until any of its agreements is used, like `MOVE-001`. Agent calls carry standard as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -364,7 +364,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### REPO-004 — Built-in term and metadata extraction
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** Under the held company policy for standard or commitment, for any executed or imported agreement, the built-in model proposes parties and our signing entity, effective, end and renewal dates, initial term, renewal type, renewal term, renewals allowed (`RENEW-007`), notice period and method, termination rights, governing law, payment terms, total and annual value in USD (with original currency kept), price-increase caps, liability caps, insurance requirements and every custom field (`REPO-005`), each citing its passage and confidence. Proposals follow `TERMS-001`: nothing drives a deadline until confirmed. Extraction accuracy is measured on a live provider under `REVIEW-006` and shown to the owner per field. A field whose latest live result is below its bar is marked low-confidence on every proposal and is never offered for bulk confirmation (`REPO-003`). Agent calls carry standard as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -377,7 +377,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### REPO-005 — Custom metadata fields
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-DATA-001, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-DATA-001, BASE-ROLE-001 · Rules D-1, D-2, D-6
 
 **Requirement.** The owner defines custom fields (text, number, USD money, date, pick list, yes/no, person, counterparty) per agreement type, with help text, required-at-stage rules and who may edit them. Fields appear on intake forms, the agreement page, extraction proposals, search filters, saved views, reports, exports and the API. Before shipping, custom fields join REPO-007's typed filters, sort, ordered columns and identical scoped CSV executor; unknown or inaccessible custom fields never act as a substitute value. Detailed operational rules: [the REPO-005 record](docs/contract/operational-details.md#repo-005). Agent calls carry standard as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -390,7 +390,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### REPO-006 — Search and structured filters
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** People search the full text of every version they may access (DOCX text and OCR text), titles, references, counterparties and field values, with clause-level hits that open the exact passage. Structured filters cover type, workflow stage (draft, in review, approved, out for signature, executed), lifecycle status (`RENEW-012`), counterparty, owner, department, value range, any date range (effective, current term end, next notice deadline, each taken from the current term under `RENEW-008`, plus the original end date), renewal type, governing law, playbook deviations and custom fields, and combine with the text query. Results respect `ACCESS-001`. Detailed operational rules: [the REPO-006 record](docs/contract/operational-details.md#repo-006).
 
@@ -403,7 +403,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### REPO-007 — Saved views and columns
 
-Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** A person saves a repository view (query, filters, sort and chosen columns) as private or shared with named current roles, pins it personally, and exports it to CSV. The query searches standard metadata and accessible version text. Filters all match together and support case-insensitive text equality/containment and inclusive lower/upper bounds; USD amounts are entered as decimal dollars and compared as exact cents, dates as calendar dates (created/updated dates are UTC; current-term notice dates use each agreement's zone). Nulls sort last, with agreement identity breaking ties. Chosen columns retain their selected order in the screen and CSV, including value, owner, confirmed original terms and separately labelled derived current-term/notice fields. Original confirmed dates are never replaced by the projection. Detailed operational rules: [the REPO-007 record](docs/contract/operational-details.md#repo-007).
 
@@ -415,7 +415,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, B
 
 #### REPO-008 — Agreement families
 
-Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-DATA-001, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-DATA-001, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2, D-6
 
 **Requirement.** Agreements link as amends, order under, statement of work under, schedule to, renews and supersedes. The family page shows the parent and every accessible child in ascending recorded start-date order, falling back to creation date, then creation time and identity for ties. Linking rechecks the current session, role, child, parent and ancestry versions atomically and refuses cycles. An agent’s family-link call carries standard, adding commitment for a governing-term decision; the company’s policy decides it. Detailed operational rules: [the REPO-008 record](docs/contract/operational-details.md#repo-008). Agent calls carry standard or commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -427,7 +427,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, B
 
 #### REPO-009 — Groups, departments and field-level access
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1, D-2, D-3, D-5
 
 **Requirement.** Beyond restricted agreements, the owner defines departments and groups (Sales, Procurement, HR, Finance) and grants each visibility by agreement type and department, and can hide specific fields (value, pricing schedules) from roles that may otherwise read the agreement. Every read, search hit, export, notification and connector payload applies the same rules. Before shipping, groups join REPO-007's definition-sharing audiences through current membership checks; field restrictions run before saved-view filters, sort, excerpts or projection, so a definition never grants access or leaks a hidden value indirectly. Detailed operational rules: [the REPO-009 record](docs/contract/operational-details.md#repo-009).
 
@@ -439,7 +439,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-00
 
 #### REPO-010 — Counterparty records
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001 · Rules D-1, D-2, D-5
 
 **Requirement.** Each counterparty has its legal entity name, entity type and state of formation, EIN where supplied, addresses, notice address and method, contacts and authorized signatories, every agreement in its families, total and annual contracted value in USD, and open obligations and deadlines. Duplicates are merged with history; CRM, accounting and procurement records (`INTAKE-004`, `LINK-001`, `LINK-002`) link to the same counterparty. Detailed operational rules: [the REPO-010 record](docs/contract/operational-details.md#repo-010).
 
@@ -451,7 +451,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDI
 
 #### REPO-011 — Bulk repository actions
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-ROLE-001 · Rules D-1, D-2, D-3
 
 **Requirement.** From a search, filter or saved view, select up to 5,000 agreement revisions, set or clear standard or custom fields, reassign the departing responsible person and their open obligations/reminders, or change group and department access. The guarded batches show per-record outcomes and skip changed or unauthorized records. Each change records activity linked to the operation. The field, group and ownership rules are in [the operational specification](docs/contract/operational-details.md#repo-011). Agent calls carry standard or access as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -464,7 +464,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### REPO-014 — Download selected contract originals
 
-Core · target · **partial** · From REPO-011 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · From REPO-011 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-2
 
 **Requirement.** Download selected originals, signed files and certificates as a single ZIP with a digest manifest, through the selection’s current record and field access. Agent calls carry standard or access as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -476,7 +476,7 @@ Core · target · **partial** · From REPO-011 · Cites BASE-AGENT-002, BASE-AGE
 
 #### REPO-015 — Update repository metadata through CSV
 
-Core · target · **partial** · From REPO-011 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-DATA-001, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · From REPO-011 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-DATA-001, BASE-ROLE-001 · Rules D-1, D-2
 
 **Requirement.** Export a selection’s metadata to CSV, edit it and re-import updates bound to the exported identities/revisions. A dry run shows the exact record/field diff; applying that reviewed diff uses each existing field and authority rule. Agent calls carry standard or access as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -488,7 +488,7 @@ Core · target · **partial** · From REPO-011 · Cites BASE-AGENT-002, BASE-AGE
 
 #### REPO-016 — Revert a bulk repository update
 
-Core · target · **partial** · From REPO-011 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · From REPO-011 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-ROLE-001 · Rules D-1, D-2
 
 **Requirement.** Revert one bulk operation, restoring its prior changed fields while retaining both changes in history. Current versions and permissions are rechecked; unrelated later edits remain and a field edited again is skipped. Agent calls carry standard or access as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -500,7 +500,7 @@ Core · target · **partial** · From REPO-011 · Cites BASE-AGENT-002, BASE-AGE
 
 #### REPO-012 — Redacted renditions
 
-Core · target · **done** · Cites BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · target · **done** · Cites BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-2
 
 **Requirement.** Owner or counsel produces a redacted rendition of a version as a new file beside the unchanged original, recording both digests. Counsel approves it for named hidden-field roles, which may then open, download, search and compare only approved renditions. A new version withholds the document until its rendition is approved.
 
@@ -526,7 +526,7 @@ Core · target · **done** · Cites BASE-AUDIT-001, BASE-ROLE-001 · Rules D-1
 
 #### DRAFT-002 — Word documents from templates
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-INPUT-003 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-INPUT-003 · Rules D-1, D-2
 
 **Requirement.** A populated template produces a formatted DOCX (and its PDF rendition) that keeps the template's styles, numbering, headers and tables, with conditional clauses chosen by the requester's answers and fields filled. Repeating pricing tables fill from line items (`INTAKE-004`, `LINK-003`) with a USD total. The template's signature blocks carry through as signature fields (`SIGN-006`). Business users generate standard agreements (NDA, MSA, order form, SOW) self-service; the result is the first version with its digest. Detailed operational rules: [the DRAFT-002 record](docs/contract/operational-details.md#draft-002).
 
@@ -539,7 +539,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA
 
 #### DRAFT-003 — Clause library in negotiation
 
-Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2
 
 **Requirement.** Approved clauses (preferred, fallback one, fallback two, walk-away) are searchable by topic with usage notes, the playbook rule they satisfy, and how often each was accepted. An approved template version is the library version. During negotiation a person inserts a clause into a new version in the browser, with the current authority, version and selected-passage checks; the inserted text, variant, library version and playbook provenance are recorded in that version and its digest, and earlier originals stay untouched. The count is once per agreement the person may access whose currently executed version retains that recorded template selection or negotiation insertion and whose execution records document confirmation; unchosen matching text and removed wording do not count. The current browser insertion produces a text PDF; Word formatting remains `DRAFT-002`/`NEG-002`. When the Word door (`NEG-003`) ships, it must provide the same approved-clause search, insertion, immutable provenance, version checks, audit and acceptance counting before it is done.
 
@@ -553,7 +553,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, B
 
 #### DRAFT-004 — Templates authored from existing Word documents
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1, D-2
 
 **Requirement.** Owner or counsel upload an existing Word template, mark fields and optional clauses in the browser (or with the Word add-in), preview it with sample answers, and approve it as a template version, keeping the document's formatting.
 
@@ -571,7 +571,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### PLAY-002 — Playbooks drafted from templates and history
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1, D-2, D-6
 
 **Requirement.** Under the held company policy for standard or commitment, the built-in model drafts playbook rules from the approved templates and past executed agreements: for each clause topic, the preferred position, fallbacks seen in signed deals and suggested exception authority, citing the agreements it learned from. Counsel edits, accepts or rejects each rule; nothing activates until counsel approves a new playbook version under `PLAY-001`. Agent calls carry commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -599,21 +599,20 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### NEG-003 — Locket for Word add-in
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-ROLE-001 · Rules D-1 · Register R-4
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-ROLE-001 · Rules D-1, D-2, D-6 · Register R-4, R-9
 
 **Requirement.** An Office add-in for Word on Windows, Mac and the web, distributed through Microsoft AppSource and the buyer's Microsoft 365 admin, signs in with the person's Locket session, opens the current version, shows playbook findings beside the clauses they cite, inserts clause-library text, applies accepted AI redlines as tracked changes, and saves back as a new version with the stale-version check. Approvers can review and approve the exact version from the add-in. Before this door ships it also satisfies `DRAFT-003`: approved-clause search, notes/rules, insertion into a new version, immutable library/playbook provenance, authority and stale/passage checks, command audit and retained-choice acceptance counts.
 
 **Acceptance.**
 1. Under the held company policy for standard, external and commitment, a Word-on-the-web journey opens an agreement in the add-in, sees three findings anchored to their clauses, applies one AI redline as a tracked change, saves as version 4, and is refused when saving over a version someone else has replaced; an approver approves version 4 from the add-in and the approval pins its digest.
-2. A sideloaded run in Word on the web against a Microsoft 365 developer tenant, and the add-in's passing AppSource validation, are recorded before the clause is accepted.
-3. The Word journey also searches indemnity, inserts an approved fallback with its library/playbook provenance and audited version checks, and sees its `DRAFT-003` count rise only after document-confirmed execution.
+2. The Word journey also searches indemnity, inserts an approved fallback with its library/playbook provenance and audited version checks, and sees its `DRAFT-003` count rise only after document-confirmed execution.
 
 **Evidence.** None.
 **Gap.** No Word add-in exists
 
 #### NEG-004 — Browser redlining and threaded comments
 
-Core · target · **done** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · target · **done** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-3
 
 **Requirement.** People edit a version in the browser with changes recorded as tracked changes, comment on a selected passage, @mention colleagues, reply in threads and resolve them. Saving creates a new version; mentions notify (`NOTIFY-001`). Browser revisions retain the base version, author, time and before/after line changes in the new version's identity, alongside its generated text PDF; comparison shows the edits without rewriting the earlier original. Replies and resolution stay on their root comment's document version; a changed thread revision must be reloaded before resolution. The existing document-edit and comment roles apply.
 
@@ -625,7 +624,7 @@ Core · target · **done** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE
 
 #### NEG-005 — Internal and external sides of a negotiation
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004 · Rules D-1, D-2, D-3, D-6
 
 **Requirement.** Every comment and version is marked internal or external. Internal comments, findings, approvals and internal-only versions never appear in anything shared with the counterparty (downloads, emails, the secure link). A person sends the external view by choice; Locket warns when an outgoing DOCX still carries internal comments or metadata and strips them.
 
@@ -637,7 +636,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### NEG-006 — Counterparty exchange by email and secure link
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1, D-3
 
 **Requirement.** A person sends the external version to counterparty contacts from Locket by email (Postmark, or the person's connected Gmail or Outlook) or a secure, expiring link where the counterparty can view, download, comment and upload a markup without an account. Replies with attachments come back as counterparty versions on the same agreement. Every send, open and upload is recorded. Detailed operational rules: [the NEG-006 record](docs/contract/operational-details.md#neg-006).
 
@@ -651,7 +650,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDI
 
 #### REVIEW-002 — Built-in playbook review
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** Under the held company policy for standard or commitment, on any version (ours or theirs, DOCX or OCR'd PDF), a person runs review: the built-in model checks every rule in the active playbook and returns, per rule, met, breached or cannot determine, with the exact cited passage, the reason, and proposed wording from the rule's fallbacks. Findings arrive as a proposal under `REVIEW-001`; a reviewer accepts, edits or rejects each one, and only accepted findings drive exception approvals. Review of a 40-page agreement against 30 rules completes within 2 minutes at the 90th percentile, measured on a live provider. Accuracy is measured live under `REVIEW-006` and shown to the owner per rule. Agent calls carry standard as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -664,7 +663,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### REVIEW-003 — Versioned AI redlines
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1, D-2, D-6
 
 **Requirement.** Accepted findings with proposed wording become tracked changes in the next version (browser and Word), each with its reason as a comment that is internal by default. Under the held company policy for standard or commitment, the reviewer edits the wording and the reason before anything is shared, and the version records which changes came from the model and who accepted them. Agent calls carry standard or external as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -676,7 +675,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### REVIEW-004 — Ask the repository
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** A person asks questions in plain English ("Which supplier agreements auto-renew next quarter with more than 60 days' notice?", "What is our liability cap with Acme?") and gets an answer with a list of matching agreements and cited passages, built only from agreements and fields the person may access. Answers that rely on proposed, unconfirmed values say so. Agent calls carry standard as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -689,7 +688,7 @@ Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### REVIEW-005 — Model choice, records and switch-off
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-DATA-003, BASE-DATA-006 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-DATA-003, BASE-DATA-006 · Rules D-1, D-2, D-6
 
 **Requirement.** The owner chooses the model provider (Anthropic or OpenAI with the owner's API key under a no-training, zero-retention agreement, or Cloudflare Workers AI) and can switch AI off for the installation or per agreement type. Every model output records the provider, model, prompt version, playbook version, input document digests and the person who accepted it. Usage and estimated cost are shown in USD per month. The same settings choose the OCR provider (`REPO-002`). Beside each provider and model they show its latest live evaluation (`REVIEW-006`). A task the model has not passed live is not offered. Agent calls carry security as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -702,7 +701,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### REVIEW-006 — Live accuracy evidence for every AI and OCR task
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1, D-6
 
 **Requirement.** No evaluated AI task (review, extraction, intake proposals, obligation extraction, questions over the repository, summaries or playbook drafting) and no OCR task is offered for a provider and model until an evaluation command in the repository has run the shipped prompts against that real provider and recorded the result. A fake never counts. Each run is committed as an evaluation record: provider, model, prompt version, dataset name, version and digest, per-field and per-rule scores, latency and USD cost. A new prompt version or model needs a new passing run before it is offered.
 
@@ -716,7 +715,7 @@ Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D
 
 #### REVIEW-008 — Extraction evaluation
 
-Core · target · **missing** · From REVIEW-006 · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-ROLE-001 · Rules D-1
+Core · target · **missing** · From REVIEW-006 · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** the CUAD v1 test split from the Atticus Project (102 of CUAD's 510 US commercial contracts, 41 labeled clause categories). It is scored on the categories that map to Locket fields: parties, agreement, effective and expiration dates, renewal term, notice period to terminate renewal, governing law, termination for convenience, cap on liability, uncapped liability, insurance, audit rights, minimum commitment, price restrictions, exclusivity and most favored nation. a held-out Locket set of 100 US commercial agreements (NDAs, MSAs, order forms, supplier agreements and amendments), labeled by counsel with normalized values (dates, day counts, USD amounts, states). It is kept out of prompt development, and its labels and digest are committed.
 
@@ -729,7 +728,7 @@ Core · target · **missing** · From REVIEW-006 · Cites BASE-AGENT-002, BASE-A
 
 #### REVIEW-009 — Review evaluation
 
-Core · target · **missing** · From REVIEW-006 · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1
+Core · target · **missing** · From REVIEW-006 · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1, D-5, D-6
 
 **Requirement.** 50 agreements from that held-out set against a 12-rule US supplier playbook, each rule labeled met, breached or cannot determine by counsel.
 
@@ -754,7 +753,7 @@ Core · target · **missing** · From REVIEW-006 · Cites BASE-AGENT-002, BASE-A
 
 #### REVIEW-011 — Intake evaluation
 
-Core · target · **missing** · From REVIEW-006 · Rules D-1
+Core · target · **missing** · From REVIEW-006 · Rules D-1, D-2, D-6
 
 **Requirement.** the first version of each of the 100 held-out agreements, as it would arrive from a counterparty, labeled by counsel with the intake fields `INTAKE-007` proposes (agreement type, counterparty legal name, our entity, value, term, governing law and the applicable template or playbook).
 
@@ -778,7 +777,7 @@ Core · target · **missing** · From REVIEW-006 · Rules D-1
 
 #### REVIEW-013 — Questions evaluation
 
-Core · target · **missing** · From REVIEW-006 · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-ROLE-001 · Rules D-1
+Core · target · **missing** · From REVIEW-006 · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-ROLE-001 · Rules D-1, D-6
 
 **Requirement.** 100 plain-English questions over the held-out set loaded as one repository, 60 that select agreements by terms and 40 that ask for a value in one agreement. Each is labeled by counsel with the exact matching agreements or the answer value and its passage. Ten are asked as a viewer without access to two restricted agreements in the set.
 
@@ -790,7 +789,7 @@ Core · target · **missing** · From REVIEW-006 · Cites BASE-AGENT-002, BASE-A
 
 #### REVIEW-014 — Summaries evaluation
 
-Core · target · **missing** · From REVIEW-006 · Rules D-1
+Core · target · **missing** · From REVIEW-006 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** Summaries are evaluated on the 50 review agreements from the counsel-labelled held-out set.
 
@@ -802,7 +801,7 @@ Core · target · **missing** · From REVIEW-006 · Rules D-1
 
 #### REVIEW-015 — Playbook drafting evaluation
 
-Core · target · **missing** · From REVIEW-006 · Rules D-1
+Core · target · **missing** · From REVIEW-006 · Rules D-1, D-2, D-5
 
 **Requirement.** two approved US templates (an MSA and a supplier agreement) and 40 executed agreements from the held-out set. Counsel grades every drafted rule as accepted, accepted with edits or rejected.
 
@@ -814,7 +813,7 @@ Core · target · **missing** · From REVIEW-006 · Rules D-1
 
 #### REVIEW-007 — Plain-English summary of one agreement
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** A person generates a plain-English summary of a single agreement for a business stakeholder. It covers the parties and our entity (`ENTITY-001`); what each side must do; price and payment; the term, renewal and notice deadline; termination rights; liability and insurance; and the playbook exceptions accepted. Every line cites its passage and says whether the value is confirmed or still proposed. The summary is pinned to the version it was made from. It is marked stale when a new version or a corrected term arrives, and is never silently rewritten. It can be shared only with people who may see the agreement. Under the held company policy for standard or commitment, the model run follows `REVIEW-005` and is offered only after the summaries bar in `REVIEW-006` is met. Agent calls carry standard or external as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -830,7 +829,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### APPROVE-002 — Conditional approval rules in USD
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** Owner-configured rules add approvers by agreement type, USD value thresholds, department, counterparty risk and accepted findings (for example: Finance over $100,000, Security when data processing is "yes", the CFO over $500,000), in sequence or in parallel, with named delegates while someone is away. A rule change is previewed against sample agreements before publishing (`INTAKE-002`). Approvals still pin the exact version and context (`APPROVE-001`). Detailed operational rules: [the APPROVE-002 record](docs/contract/operational-details.md#approve-002).
 
@@ -843,7 +842,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-0
 
 #### APPROVE-003 — Approve where people work
 
-Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1, D-2, D-3
 
 **Requirement.** The explicit generic approval-email link and phone approval under MOBILE-001 ship today; every channel added here must preserve its authenticated review, permission/version checks, no title/figures/digest in notification, audited outcomes and honest delivery labels. Automatic requests and broader channels remain this clause's work. Approvers are asked by email, Slack, Teams or Nook, in the Word add-in or on a phone (`MOBILE-001`). Every approval, wherever it is given, passes through the same server checks and pins the exact version digest the approver saw; an approval of a version that has since changed is refused and the approver is shown the new version.
 
@@ -855,7 +854,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, B
 
 #### APPROVE-004 — Approval reminders and escalation
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-MAIL-001, BASE-OPS-004 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-MAIL-001, BASE-OPS-004 · Rules D-1, D-2, D-3
 
 **Requirement.** A pending approval reminds its approver through their notification channel (`NOTIFY-001`, `APPROVE-003`) at owner-configured intervals. The default is after 1 business day, then daily, in the approver's US time zone. If it is still pending after a configured time (default 3 business days), it escalates to the approver's delegate (`APPROVE-002`), or to the rule's escalation contact when there is no delegate. Anyone working on the agreement can press "Remind approver", at most once every 4 hours per approver. Every reminder and escalation is recorded in the agreement's activity, and reminders stop as soon as the approval is given, declined or withdrawn. Detailed operational rules: [the APPROVE-004 record](docs/contract/operational-details.md#approve-004).
 
@@ -869,7 +868,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-0
 
 #### SIGN-002 — Live Docusign, Adobe Acrobat Sign and Dropbox Sign
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-MAIL-001, BASE-OPS-004, BASE-SECRET-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-MAIL-001, BASE-OPS-004, BASE-SECRET-001 · Rules D-1, D-2, D-3
 
 **Requirement.** The owner connects a Docusign, Adobe Acrobat Sign or Dropbox Sign account with OAuth. From an approved signature package (`SIGN-001`), Locket creates and sends the envelope with every document in the packet and the recipients, signing order, CCs and signature fields that `SIGN-005` decides, records the envelope ID, and tracks status through the provider's webhooks (Docusign Connect, Acrobat Sign webhooks, Dropbox Sign callbacks), verifying each callback's signature. People see sent, viewed, signed, declined and voided per signer, can send reminders, and Locket voids the envelope if the agreement changes after sending. A coordinator (`SIGN-007`) can correct a recipient who has not yet signed without voiding: fix a wrong name or email, or reassign the signer when they delegate to a colleague. Locket does this through each provider's own correction (Docusign's envelope recipient update, Acrobat Sign's participant replacement, Dropbox Sign's signer email update, and Inkwell's equivalent). Each correction records who changed whom and why in the routing manifest, which `EXEC-001` reconciles against. The document and its approval stay unchanged; a provider that cannot correct a recipient is shown as needing void and resend. Detailed operational rules: [the SIGN-002 record](docs/contract/operational-details.md#sign-002).
 
@@ -881,7 +880,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-MAIL
 
 #### SIGN-003 — Inkwell signing
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1, D-2
 
 **Requirement.** Inkwell, the Run Edit Run e-signature product, connects the same way as `SIGN-002`: Locket sends the approved package to the buyer's Inkwell installation, receives signed status events and retrieves the completed file and Inkwell's completion certificate automatically. Detailed operational rules: [the SIGN-003 record](docs/contract/operational-details.md#sign-003).
 
@@ -893,7 +892,7 @@ Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### EXEC-002 — Automatic retrieval and filing of executed agreements
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1, D-2, D-3, D-6
 
 **Requirement.** When a connected provider reports completion, Locket downloads the signed PDF and the certificate of completion, stores them byte-for-byte, runs `EXEC-001` reconciliation (mismatches held for owner or counsel), marks the agreement executed, starts extraction (`REPO-004`), files copies into the connected Google Drive, OneDrive/SharePoint or Chest folder by the owner's naming rule (`INT-001`), and notifies the requester and CRM. Retrieval failures retry with backoff and stay visible until resolved.
 
@@ -905,7 +904,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### SIGN-004 — Clickwrap acceptance of published terms
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-DATA-001, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-DATA-001, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2, D-3, D-5, D-6
 
 **Requirement.** Counsel or the owner publishes immutable versioned standard terms (terms of service, data processing addendum, partner terms) for acceptance on the buyer's website or app through an embeddable script or the API. Publishing trims outer whitespace, stores the resulting UTF-8 text and its SHA-256, and never rewrites an earlier version. The embed opens a top-level hosted review; acceptance requires a fresh unchecked checkbox and an explicit Accept action, never silent acceptance or acceptance in a frame. The Base-session door uses the current account and email, with a missing session returning through sign-in to the review; An agent’s terms acceptance carries commitment and follows the company’s policy (`PROPOSE-001`). The customer-site door needs no Locket membership: the customer's server signs its own signer ID and email with the installation's optional server-only signing key. The assertion binds installation, site, terms and exact version/digest, has a one-use nonce and at most ten minutes of validity, and is labeled site-asserted identity (not identity-proofed). Invalid assertions are refused, never replaced by Base authentication. Site identities are scoped by site origin and signer ID. Under the held company policy for standard or commitment, each acceptance records account, email, identity kind, exact terms version/digest, server time, transport IP, user agent and the hosted page shown; caller-supplied evidence cannot replace these values. Both doors preserve `SEC-002` command retry outcomes; reusing a nonce for a new command is refused. A new version can require reacceptance; an optional revision keeps the most recent required version's acceptance sufficient. Owner/counsel search, export and link evidence to counterparties; other Base users read/export only their own evidence. Links are audited annotations beside immutable acceptance evidence. The complete archive retains the terms and acceptances. No identity-proofing, signatory-authority or legal-validity claim is made. Agent calls carry commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -920,7 +919,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### SIGN-005 — Our signer by rule
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1, D-2
 
 **Requirement.** Locket decides who signs, where they sign and what they sign before an envelope leaves, so nothing needs tagging by hand in the provider. The owner sets rules that choose our signatory by agreement type, USD value, department and our contracting entity (`ENTITY-001`), on the same rule engine and preview as `APPROVE-002`. For example, the VP Sales signs under $100,000 and the CFO at $100,000 or more. Every rule set has a required fallback signer, used when no rule matches or the chosen signer is marked unavailable. Counterparty signers come from the request's contacts and the counterparty's authorized signatories (`REPO-010`). Agent calls carry standard or commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -932,7 +931,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### SIGN-006 — Fields from templates
 
-Core · target · **partial** · From SIGN-005 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · From SIGN-005 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-2
 
 **Requirement.** Templates carry signature blocks per party role: signature, name, title, date and initials. Locket writes these into the signing PDF as each provider's anchor or text tags (Docusign anchor tabs, Acrobat Sign text tags, Dropbox Sign text tags, and the same placements for Inkwell), so fields land on the blocks automatically. Agent calls carry standard or commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -944,7 +943,7 @@ Core · target · **partial** · From SIGN-005 · Cites BASE-AGENT-002, BASE-AGE
 
 #### SIGN-007 — Signature coordinator
 
-Core · target · **partial** · From SIGN-005 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · From SIGN-005 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-ROLE-001 · Rules D-1, D-2, D-6
 
 **Requirement.** Before sending, a signature coordinator reviews the packet. Coordinators are the roles that may hand an agreement off for signature (`ROLE-001`): the owner, an approver, or the agreement's requester. The owner can narrow coordination to a named Signature coordinators group (`REPO-009`), per agreement type. Counsel and viewers cannot coordinate. Agent coordination carries standard or commitment according to the change and follows company policy (`PROPOSE-001`). They can reorder, add or remove signers and add CCs. On a document with no template blocks, such as counterparty paper, they place fields by hand on a page preview. Every change is recorded in the routing manifest. Agent calls carry standard or commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -956,7 +955,7 @@ Core · target · **partial** · From SIGN-005 · Cites BASE-AGENT-002, BASE-AGE
 
 #### SIGN-008 — Packets
 
-Core · target · **partial** · From SIGN-005 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · target · **partial** · From SIGN-005 · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1, D-2
 
 **Requirement.** One envelope carries the main agreement plus approved signable attachments, such as a DPA, order form or SOW. Each document is pinned by digest and covered by the approval (`APPROVE-001`). Attachments that are not for signature can travel as reference documents. Agent calls carry standard or commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -970,7 +969,7 @@ Core · target · **partial** · From SIGN-005 · Cites BASE-AGENT-002, BASE-AGE
 
 #### OBL-001 — Obligation extraction, owners and status
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** Under the held company policy for standard or commitment, the built-in model proposes obligations from executed agreements (deliverables, payment milestones, service levels, insurance certificates, reporting, audit rights, data return or destruction, exclusivity, minimum commitments), each with the party bound, due date or recurrence, and citation. Confirmed obligations get an owner and status (upcoming, due, done, missed, waived) and appear on the owner's list and the counterparty page. Detailed operational rules: [the OBL-001 record](docs/contract/operational-details.md#obl-001). Agent calls carry standard as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -982,7 +981,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGEN
 
 #### OBL-002 — Fulfillment evidence and escalation
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004 · Rules D-1, D-2, D-3
 
 **Requirement.** Marking an obligation done requires evidence when its type says so (a file such as a certificate of insurance, a link, or a note). Overdue obligations notify the owner, then escalate to the agreement's responsible person and to an approver after the configured days; each obligation carries a risk rating that rolls up to the agreement and counterparty. Detailed operational rules: [the OBL-002 record](docs/contract/operational-details.md#obl-002).
 
@@ -994,7 +993,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-0
 
 #### RENEW-002 — Delivered reminders and escalation by email
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-MAIL-001, BASE-OPS-004 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-MAIL-001, BASE-OPS-004 · Rules D-1, D-2, D-3, D-5, D-6
 
 **Requirement.** Each renewal and obligation deadline sends reminder emails at owner-configured offsets (default 90, 60, 30 and 7 days before the notice deadline, taken from the current term under `RENEW-008`, so an auto-renewing agreement is reminded again every term) in the recipient's US time zone, from Postmark or the installation's mail provider, with a daily digest option. If no renewal decision is recorded by the 30-day reminder, Locket escalates to the agreement's approver and the owner. Every message keeps its provider message ID and delivery, bounce and complaint events; a bounced reminder is retried to an alternate recipient and shown on the deadline. Detailed operational rules: [the RENEW-002 record](docs/contract/operational-details.md#renew-002).
 
@@ -1006,7 +1005,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-MAIL-00
 
 #### RENEW-003 — Deadlines on Google Calendar and Outlook
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** A person connects Google Calendar or Outlook (Microsoft Graph) and chooses which deadlines appear (their own, their team's, all they may see). Notice deadlines, end dates and obligation due dates become calendar events with a link back, updated when a confirmed term is corrected and removed when the agreement ends or the deadline is met. Events follow the current term (`RENEW-008`): when an auto-renewing agreement rolls forward, the next term's notice deadline and end date are added.
 
@@ -1019,7 +1018,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D
 
 #### RENEW-004 — Bulk reminders for imported contracts
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2, D-3, D-5, D-6
 
 **Requirement.** After a bulk import (`REPO-003`, `MOVE-*`), a person selects confirmed agreements by view or filter and sets reminder schedules and owners on all of them in one action, with a preview of the deadlines that will be tracked and those skipped for missing confirmed terms. Deadlines come from each agreement's current term (`RENEW-008`), so auto-renewing agreements whose original end dates are past are tracked, and expired or terminated ones are skipped with that reason. Detailed operational rules: [the RENEW-004 record](docs/contract/operational-details.md#renew-004).
 
@@ -1031,7 +1030,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-0
 
 #### RENEW-005 — Renewal briefs and renewal workflows
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-ROLE-001, BASE-SECRET-001 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-ROLE-001, BASE-SECRET-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** At a configured lead time before each notice deadline, Locket prepares a renewal brief for the decision-maker: current terms and amendments, price-increase cap, spend to date and invoices (`LINK-001`), obligation and service-level history, open issues and the options (renew, renegotiate, terminate) with their deadlines. Choosing renew or renegotiate opens a renewal request linked as `renews` with the brief attached. Detailed operational rules: [the RENEW-005 record](docs/contract/operational-details.md#renew-005).
 
@@ -1044,7 +1043,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-0
 
 #### RENEW-006 — Send approved notices with delivery evidence
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2, D-3, D-5, D-6
 
 **Requirement.** An approved notice (`RENEW-001`) is sent from Locket by email to the counterparty's approved notice address with the PDF letter attached, or exported as a letter for certified mail or courier with the tracking number recorded. The current email connection is the installation's mail provider (currently Resend); other notice providers added by `INT-004` inherit the same approved-recipient/PDF, single-send and authenticated-event obligations before shipping. Until `REPO-010` adds the counterparty notice-address directory, the preparer enters the notice address on each draft and the approver reviews that exact recipient. `REPO-010` inherits the same frozen recipient when its directory ships. Detailed operational rules: [the RENEW-006 record](docs/contract/operational-details.md#renew-006).
 
@@ -1056,7 +1055,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-0
 
 #### RENEW-007 — Renewal terms confirmed
 
-Core · target · **done** · Cites BASE-INPUT-003 · Rules D-1
+Core · target · **done** · Cites BASE-INPUT-003 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** Most agreements a buyer brings in are evergreen SaaS and supplier contracts whose original end date is years past. Locket follows each one to its current term, so deadlines keep firing every term. Beside the effective date, end date (or an initial term in months), notice period, auto-renewal and renewal term that `TERMS-001` confirms, a person confirms the renewal type and the renewals allowed, each citing its passage. The renewal type is one of: fixed term (ends at its end date), auto-renews for the renewal term, evergreen (continues until either party gives notice), or optional renewal (renews only when we elect to). Renewals allowed is a whole number, and blank means unlimited. Extraction proposes all of them (`REPO-004`), and the Ironclad Lifecycle preset's properties map onto them (`MOVE-002`).
 
@@ -1068,7 +1067,7 @@ Core · target · **done** · Cites BASE-INPUT-003 · Rules D-1
 
 #### RENEW-008 — Derive the current contract term
 
-Core · target · **done** · From RENEW-007 · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1
+Core · target · **done** · From RENEW-007 · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** From the confirmed terms Locket derives every term in sequence. Each renewal term starts the day after the previous term ends and ends the day before the same calendar day one renewal term later (a 1-year term starting 1 March 2027 ends 29 February 2028). It derives the current term's start and end, the term number, renewals remaining and the next notice deadline (`RENEW-001`'s rule, in the agreement's zone, with `US-001`'s business-day option). This runs when terms are confirmed, including an imported agreement on the day it is confirmed (`REPO-003`, `MOVE-*`), and on a daily scheduled run (a Cloudflare Cron Trigger) for every agreement.
 
@@ -1080,7 +1079,7 @@ Core · target · **done** · From RENEW-007 · Cites BASE-AGENT-002, BASE-AGENT
 
 #### RENEW-009 — Commit an automatic renewal
 
-Core · target · **done** · From RENEW-007 · Rules D-1
+Core · target · **done** · From RENEW-007 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** When a notice deadline passes with no terminate decision recorded under `RENEW-001`, the renewal is committed: the next term and its notice deadline appear, and the roll-forward is recorded. For an optional renewal, the term rolls forward only when a renew decision is recorded and its notice is recorded as sent before the deadline; otherwise the agreement expires at the end date. Roll-forward stops after the renewals allowed, and the agreement then expires at the end of its last term.
 
@@ -1092,7 +1091,7 @@ Core · target · **done** · From RENEW-007 · Rules D-1
 
 #### RENEW-010 — Keep superseded term derivations
 
-Core · target · **done** · From RENEW-007 · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003 · Rules D-1
+Core · target · **done** · From RENEW-007 · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** Each roll-forward is a derived history entry beside the confirmed terms: term number, start, end, notice deadline, the confirmed terms it was computed from, when it was derived, and the decision state for that term (no decision, renew or renegotiate decided by a named person). Entries derived for periods before the agreement was in Locket are labeled as derived at import. The confirmed original end date is never changed. Correcting a confirmed term recomputes the chain, and the earlier derivation is kept as superseded.
 
@@ -1104,7 +1103,7 @@ Core · target · **done** · From RENEW-007 · Cites BASE-AGENT-002, BASE-AGENT
 
 #### RENEW-011 — Record termination and its effective date
 
-Core · target · **partial** · From RENEW-007 · Rules D-1
+Core · target · **partial** · From RENEW-007 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** A terminate decision stops the roll-forward. If no notice is recorded as sent by the notice deadline, the agreement is flagged to owner and counsel as "termination decided, notice not recorded by the deadline", with no roll-forward, until one of them records the notice with its evidence or confirms that the agreement renewed. A recorded termination takes effect on the current term's end date, or on an earlier effective date a person records with the clause that allows it.
 
@@ -1116,7 +1115,7 @@ Core · target · **partial** · From RENEW-007 · Rules D-1
 
 #### RENEW-012 — Show the agreement lifecycle
 
-Core · target · **done** · From RENEW-007 · Rules D-1
+Core · target · **done** · From RENEW-007 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** Every executed or imported agreement has a derived lifecycle status beside its workflow stage: not yet in effect (effective date in the future), active (in term and not auto-renewing, including a fixed term, an evergreen agreement and one with a termination noticed, which shows its end date), auto-renewing (with the days left to the next notice deadline), expired (past the end of its last term), or terminated (from the termination's effective date). An evergreen agreement has no notice deadline; it is listed for review on each anniversary of its effective date at an owner-configured lead time.
 
@@ -1128,7 +1127,7 @@ Core · target · **done** · From RENEW-007 · Rules D-1
 
 #### RENEW-013 — Reconcile lifecycle dashboard totals
 
-Core · target · **done** · From RENEW-007 · Cites BASE-AUDIT-001 · Rules D-1
+Core · target · **done** · From RENEW-007 · Cites BASE-AUDIT-001 · Rules D-1, D-2, D-6
 
 **Requirement.** Before RENEW-007 is done, REPORT-003's tiles, values, current-term countdowns and drilldowns must also assert optional/evergreen renewal types, renewal limits, early termination and the durable/superseded derivation history described here.
 
@@ -1140,7 +1139,7 @@ Core · target · **done** · From RENEW-007 · Cites BASE-AUDIT-001 · Rules D-
 
 #### RENEW-014 — Use current terms across contract work
 
-Core · target · **partial** · From RENEW-007 · Cites BASE-DATA-001, BASE-INPUT-003 · Rules D-1
+Core · target · **partial** · From RENEW-007 · Cites BASE-DATA-001, BASE-INPUT-003 · Rules D-1, D-2, D-3, D-5, D-6
 
 **Requirement.** Search and filters (`REPO-006`), saved views and columns (`REPO-007`), reports and the dashboard (`REPORT-002`, `REPORT-003`), reminders (`RENEW-002`), calendar events (`RENEW-003`), bulk schedules (`RENEW-004`), renewal briefs (`RENEW-005`), the API and webhooks (`INT-002`) and the archive (`PORT-001`) use the current term, its notice deadline and the lifecycle status, never an original end date that has passed.
 
@@ -1154,7 +1153,7 @@ Core · target · **partial** · From RENEW-007 · Cites BASE-DATA-001, BASE-INP
 
 #### LINK-001 — Accounting links: Pantry, QuickBooks Online and NetSuite
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1, D-2, D-3, D-5, D-6
 
 **Requirement.** The owner connects Pantry, QuickBooks Online or NetSuite. Agreements link to the vendor or customer record; Locket reads bills, invoices and payments for linked counterparties to show spend or revenue to date against the contract value and payment schedule in USD, and offers confirmed payment obligations to the accounting system as scheduled bills or invoice reminders for a person to accept there.
 
@@ -1166,7 +1165,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D
 
 #### LINK-002 — Procurement links: Purse and Coupa
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** A purchase request in Purse or Coupa that needs a contract opens a Locket request with supplier, amount and requester. On execution, Locket sends the supplier record the contract's key terms (value cap, dates, payment terms, renewal) so purchase orders draw down against it, and reads PO totals back to show remaining value.
 
@@ -1178,7 +1177,7 @@ Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D
 
 #### LINK-003 — Proposal and billing handoffs: Platter and Nectar
 
-Core · target · **partial** · Rules D-1
+Core · target · **partial** · Rules D-1, D-2, D-6
 
 **Requirement.** An accepted proposal in Platter (or PandaDoc) opens a customer contract request with the quoted products, prices and term. An executed customer agreement sends its confirmed pricing, start date, term and renewal terms to Nectar (or Stripe Billing) as a proposed subscription that a billing person activates there.
 
@@ -1205,7 +1204,7 @@ Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### INT-002 — Public API, webhooks, Zapier and Crank
 
-Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001, BASE-SECRET-001 · Rules D-1 · Register R-6
+Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001, BASE-SECRET-001 · Rules D-1, D-2, D-6 · Register R-6
 
 **Requirement.** A documented REST API covers every command and read the screens use, with scoped API tokens for integrations. Signed outgoing webhooks fire for request created, submitted, approved, sent for signature, executed, term confirmed, deadline approaching, renewal committed, agreement expired, agreement terminated and obligation overdue, with retries and a delivery log. Published Zapier and Crank apps expose the same triggers and actions. Under RL-101, a labelled short-lived delegated token is issued by the signed-in owner with explicit native scopes and an expiry no later than thirty days. It intersects current native rights, stops on revocation or issuer-session end and cannot mint credentials. This does not replace durable scoped service/integration authorization.
 
@@ -1218,7 +1217,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, B
 
 #### INT-003 — SSO and SCIM provisioning
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-ROLE-001, BASE-SIGNIN-001 · Rules D-1 · Register R-5
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-ROLE-001, BASE-SIGNIN-001 · Rules D-1, D-2 · Register R-5
 
 **Requirement.** Okta, Microsoft Entra ID, Google Workspace and Auth identities map provider groups to Locket roles and departments. Vendor-specific receipts remain distinct from standards proof.
 
@@ -1230,7 +1229,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-ROLE
 
 #### INT-004 — Connection health
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-MAIL-001, BASE-OPS-004, BASE-SECRET-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-MAIL-001, BASE-OPS-004, BASE-SECRET-001 · Rules D-1, D-2, D-3, D-6
 
 **Requirement.** Every connection (CRM, signing, storage, calendar, chat, accounting, procurement, mail, model) shows its status, the account it acts as, last successful sync, and each failure with its reason and a retry, and the owner is emailed when a connection starts failing or its credentials near expiry.
 
@@ -1242,7 +1241,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-MAIL
 
 #### NOTIFY-001 — Notifications and preferences
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1, D-2, D-3
 
 **Requirement.** People receive personal in-app and email notifications for today's request responsible-person assignment and reassignment, confirmed obligation assignment, explicit comment mentions, pending commercial and exception approvals, manual signature handoff/void/completion and accepted execution, overdue obligations and renewal/obligation deadlines. Only explicit operator identities are mentions; typing a display name never selects a recipient. Automatic approval requests follow the current route and exclude a requester who cannot approve their own request. Signature events go to the requester's and responsible person's accounts. Every recipient must be an active human with current agreement access. Detailed operational rules: [the NOTIFY-001 record](docs/contract/operational-details.md#notify-001).
 
@@ -1255,7 +1254,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA
 
 #### US-001 — US defaults
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1, D-2, D-5
 
 **Requirement.** A new installation defaults to USD with values entered and shown as US dollars, an installation time zone chosen from US zones (Eastern, Central, Mountain, Arizona, Pacific, Alaska, Hawaii) that new agreements inherit and can change per agreement, US date format, governing law chosen from US states and the District of Columbia (with other jurisdictions available), counterparty EIN in place of ABN, and an option to roll notice deadlines that fall on a weekend or US federal holiday to the previous business day. Agreements in another currency keep their original amount and show the USD equivalent at a recorded rate. Default required attachments: supplier agreements need a certificate of insurance and a Form W-9; customer agreements need a statement of work or order form; amendments need the signed parent; NDAs none. Detailed operational rules: [the US-001 record](docs/contract/operational-details.md#us-001).
 
@@ -1267,7 +1266,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-0
 
 #### AUDIT-001 — Filterable activity audit trail
 
-Core · target · **done** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · target · **done** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2
 
 **Requirement.** Locket records successful agreement business commands and views of restricted agreements, comparison results and downloaded contract files. The record identifies the agreement, action summary, actor role and downloaded artifact digest.
 
@@ -1279,7 +1278,7 @@ Core · target · **done** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE
 
 #### ERASE-001 — Personal-data erasure with legal hold
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004 · Rules D-1, D-2, D-3, D-5
 
 **Requirement.** On a verified request (for example under the California Consumer Privacy Act), the owner erases a person's personal data from contacts, comments and notifications while keeping executed agreements, signatures and audit records that must be retained, with a recorded reason. Agreements under a legal hold (set by counsel) cannot be deleted or have files removed until the hold is released. Retention rules delete or anonymize expired, unexecuted drafts after a configured period. Detailed operational rules: [the ERASE-001 record](docs/contract/operational-details.md#erase-001).
 
@@ -1291,7 +1290,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-0
 
 #### ENTITY-001 — Our contracting entities
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** The owner records each of the business's own legal entities: legal name, entity type, state or country of formation, EIN or foreign tax ID, registered and notice addresses, default currency and time zone, and authorized signatories. Every agreement names the entity that contracts. Templates, clause wordings, playbooks and signer rules (`SIGN-005`) can be limited to an entity. The entity's legal name, notice address and signatory fill templates and outgoing notices (`RENEW-006`). Search, saved views and reports filter and group by entity, and extraction proposes our entity from the document (`INTAKE-007`, `REPO-004`). Detailed operational rules: [the ENTITY-001 record](docs/contract/operational-details.md#entity-001).
 
@@ -1303,7 +1302,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006 · Rules D
 
 #### OPS-001 — Self-hosted install, updates and security answers
 
-Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-BACKUP-001, BASE-DATA-005, BASE-INSTALL-001, BASE-OPS-002, BASE-ROLE-001, BASE-SECRET-001 · Rules D-1 · Register R-7
+Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-BACKUP-001, BASE-DATA-005, BASE-INSTALL-001, BASE-OPS-002, BASE-ROLE-001, BASE-SECRET-001 · Rules D-1, D-4, D-5 · Register R-7
 
 **Requirement.** Locket releases carry release notes and migration lists at least monthly, with security fixes within seven days of an available fix. Notes identify changed AI behavior and backwards-incompatible integration changes. The security answers separate Locket’s controls from the buyer’s and Cloudflare’s responsibilities; [operational details](docs/contract/operational-details.md#ops-001) retain the questionnaire scope.
 
@@ -1317,7 +1316,7 @@ Core · target · **partial** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-BACK
 
 #### REPORT-001 — Cycle time, throughput and bottlenecks
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2
 
 **Requirement.** Dashboards show requests opened and completed by type and team, median and 90th-percentile time in each stage (intake, drafting, negotiation, approval, signature), the longest-waiting approvals and counterparties, and service-level performance (`INTAKE-006`), plus requests canceled by reason and the stage they reached, filterable by period. Detailed operational rules: [the REPORT-001 record](docs/contract/operational-details.md#report-001).
 
@@ -1330,7 +1329,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-0
 
 #### REPORT-002 — Custom and scheduled reports
 
-Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2, D-3, D-5
 
 **Requirement.** A person builds a report from a saved view (`REPO-007`) with grouping and totals (value in USD by counterparty, renewals by month) and schedules it weekly or monthly by email as CSV or PDF to chosen active people, who receive only the rows they may see. Each human role manages its own reports; an agent’s schedule changes carry standard, adding external for outside recipients, and the company’s policy decides them. The report freezes the saved-view definition when created; every preview, download and scheduled attachment executes that definition again with the current reader or recipient's agreement access. Grouping a date uses its calendar month and a USD amount uses formatted dollars; missing grouping values are explicitly unrecorded, and absent USD values are counted separately from the total. Reports also filter and group by our contracting entity (`ENTITY-001`) through the same saved-view executor. CSV contains grouped totals followed by the matching detailed rows, with `REPO-007`'s spreadsheet-safe quoting; PDF contains those same figures. Detailed operational rules: [the REPORT-002 record](docs/contract/operational-details.md#report-002). Agent calls carry standard or external as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -1342,7 +1341,7 @@ Core · target · **partial** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, B
 
 #### REPORT-003 — Portfolio dashboard
 
-Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** A home dashboard shows total contracted value in USD by type and by lifecycle status (`RENEW-012`), renewals and notice deadlines in the next 30, 60 and 90 days with their value (from each agreement's current term, with a days-to-deadline countdown), overdue obligations, agreements with accepted playbook exceptions, and agreements missing confirmed key terms. this applies to every recorded term and workflow: confirmed fixed/auto-renewing terms project the current term without rewriting the original end date; proposed terms never drive a tile. Contracted value includes executed/imported agreements, including expired ones, grouped by type and lifecycle; absent values are counted separately. Windows include through the named calendar day in the agreement's zone, excluding passed instants. Overdue means a confirmed, unfinished obligation with a due date before in that zone; the tile shows obligation count and distinct agreements, counting each agreement's value once. Accepted exceptions are current-version, non-invalidated approved exception decisions. Missing key terms means effective date, end date, auto-renewal, notice days, governing law or payment terms are unconfirmed, or an auto-renewal lacks its confirmed renewal months. A termination decision stops projection; a sent notice is recorded evidence, and a missed termination notice is flagged. `RENEW-007` must extend the dashboard to its optional/evergreen types, renewal limits, early termination and durable/superseded history before shipping; this clause is done for today's recorded capabilities.
 
@@ -1359,7 +1358,7 @@ Core · target · **done** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-0
 
 #### MOBILE-001 — Phone-width web app
 
-Core · target · **done** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1 · Register R-1, R-2
+Core · target · **done** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1, D-2, D-3, D-5 · Register R-1, R-2
 
 **Requirement.** Every screen works at 390 pixels wide: a person can submit a request, read a review summary, approve or decline from a notification link, search, see deadlines and upload a signed copy from the phone's files picker, without horizontal scrolling. Camera capture is carried by MOBILE-002 below, including its acceptance naming MOBILE-001. The current approval notification is an explicit Email approval link action by owner, counsel, approver or requester on an in-review version. Its named recipient must be an active owner/approver able to read the agreement and make its commercial decision. The email contains only a generic request and a signed-in review link, never title, figures or digest; the recipient reviews the current version and uses the same authenticated approval command. A guarded outbox records requester, recipient, time and provider receipt with an audit entry; retries never send the same request twice. The command result is an immutable queued-request acknowledgment under SEC-002; a separate mailReceipt snapshot reports the current provider outcome without rewriting that first result. Provider acceptance is not mailbox delivery, local/demo suppression means no email was sent, and interrupted/failed outcomes never claim acceptance or retry automatically. `APPROVE-003` and `NOTIFY-001` retain broader channels, automatic requests and preferences; they must preserve the same phone layout, authority, version checks, generic-link privacy and honest delivery labels before shipping. Signed-copy upload uses the phone's files picker; camera capture from MOBILE-001 is carried by `MOBILE-002` and must meet the same phone-width checks before shipping.
 
@@ -1374,7 +1373,7 @@ Core · target · **done** · Cites BASE-ACCESSIBILITY-001, BASE-AGENT-002, BASE
 
 #### MOBILE-002 — iOS and Android apps
 
-Core · target · **missing** · Cites BASE-ACCESSIBILITY-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1 · Register R-3
+Core · target · **missing** · Cites BASE-ACCESSIBILITY-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1, D-2, D-3 · Register R-3
 
 **Requirement.** This clause carries MOBILE-001's camera-upload requirement: capture a signed paper copy with the camera as a PDF and attach it to the execution record, keeping the same phone layout, current authority/version checks and byte-preserving file evidence. Native iOS and Android apps (App Store and Google Play) sign in with the installation, receive push notifications for approvals, mentions and deadlines, approve the exact version, search the repository and view documents, and capture a signed paper copy with the camera as a PDF.
 
@@ -1388,7 +1387,7 @@ Core · target · **missing** · Cites BASE-ACCESSIBILITY-001, BASE-INPUT-003, B
 
 #### MOVE-002 — Ironclad move-in
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-INPUT-003 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-INPUT-003 · Rules D-1, D-2, D-6
 
 **Requirement.** The kit reads Ironclad's three documented outputs, alone or together: Detailed operational rules: [the MOVE-002 record](docs/contract/operational-details.md#move-002).
 
@@ -1412,7 +1411,7 @@ Core · target · **missing** · Cites BASE-DATA-001, BASE-INPUT-003, BASE-SECRE
 
 #### MOVE-008 — Agiloft
 
-Core · target · **missing** · From MOVE-003 · Cites BASE-DATA-001, BASE-INPUT-003 · Rules D-1
+Core · target · **missing** · From MOVE-003 · Cites BASE-DATA-001, BASE-INPUT-003 · Rules D-1, D-2, D-6
 
 **Requirement.** Two sources, alone or together: - **Contracts table export:** the table's Export action, run by an Agiloft admin over a saved search of the Contracts table, as Excel or CSV with every field, including the record ID, contract type, status, company, dates, amount, auto-renewal fields and custom fields. The complete source shapes, field mappings, reviewed apply/undo and byte-preserving evidence rules are in [the migration specification](docs/contract/operational-details.md).
 
@@ -1424,7 +1423,7 @@ Core · target · **missing** · From MOVE-003 · Cites BASE-DATA-001, BASE-INPU
 
 #### MOVE-004 — SpotDraft
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-SECRET-001 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-SECRET-001 · Rules D-1, D-2, D-6
 
 **Requirement.** Each kit follows `MOVE-002`'s pattern: named sources, a reviewed dry run with an editable mapping, apply, undo and journal as `MOVE-001`. The complete source shapes, field mappings, reviewed apply/undo and byte-preserving evidence rules are in [the migration specification](docs/contract/operational-details.md).
 
@@ -1436,7 +1435,7 @@ Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### MOVE-009 — Juro
 
-Core · target · **missing** · From MOVE-004 · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1
+Core · target · **missing** · From MOVE-004 · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-DATA-001, BASE-INPUT-003, BASE-ROLE-001 · Rules D-1, D-2, D-6
 
 **Requirement.** Juro has no self-serve bulk document export: an admin can download repository contracts as PDFs only after Juro Support enables it for a limited time. The complete source shapes, field mappings, reviewed apply/undo and byte-preserving evidence rules are in [the migration specification](docs/contract/operational-details.md).
 
@@ -1448,7 +1447,7 @@ Core · target · **missing** · From MOVE-004 · Cites BASE-AGENT-002, BASE-AGE
 
 #### MOVE-005 — PandaDoc public API
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-SECRET-001 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-SECRET-001 · Rules D-1, D-2, D-3, D-6
 
 **Requirement.** Completed PandaDoc documents and Adobe Acrobat Sign agreements, with their audit trails, import like `MOVE-001`: originals and certificates byte-for-byte, imported execution records and proposed terms. The complete source shapes, field mappings, reviewed apply/undo and byte-preserving evidence rules are in [the migration specification](docs/contract/operational-details.md).
 
@@ -1460,7 +1459,7 @@ Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDI
 
 #### MOVE-010 — Adobe Acrobat Sign
 
-Core · target · **missing** · From MOVE-005 · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003 · Rules D-1
+Core · target · **missing** · From MOVE-005 · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003 · Rules D-1, D-2
 
 **Requirement.** two sources, alone or together: - **Reporting data export:** the CSV data export from the account's Reports section, run by an account or group admin. The complete source shapes, field mappings, reviewed apply/undo and byte-preserving evidence rules are in [the migration specification](docs/contract/operational-details.md).
 
@@ -1472,7 +1471,7 @@ Core · target · **missing** · From MOVE-005 · Cites BASE-AGENT-002, BASE-AGE
 
 #### MOVE-006 — Ironclad workflows in progress at cutover
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPUT-003 · Rules D-1, D-2
 
 **Requirement.** On the day the Ironclad license ends, a buyer still has active workflows mid-negotiation. The kit reads them from Ironclad's Workflows API: each workflow's ID, template or third-party paper, launch-form answers, current step, assignees, documents and counterparty. A dry run lists each one as an open Locket agreement at its matching stage. Workflows in create or review steps become drafts, and those in approval or signature steps become agreements in review. The latest document comes in as the current version and the counterparty's files as counterparty versions, byte-for-byte with their digests. Launch-form answers become request fields, and the Ironclad workflow ID is kept and searchable. Approvals and signatures given in Ironclad never carry over: each imported workflow is approved again under `APPROVE-001`. A workflow already out for signature in Ironclad is listed, so the owner can finish it there and import the signed copy under `MOVE-002`, or prepare a new signature package in Locket. Apply and undo follow `MOVE-001`.
 
@@ -1489,7 +1488,7 @@ Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-INPU
 
 #### MOVE-007 — Ironclad Clickwrap acceptance history
 
-Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001, BASE-SECRET-001 · Rules D-1
+Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDIT-001, BASE-DATA-001, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001, BASE-SECRET-001 · Rules D-1, D-2, D-3, D-6
 
 **Requirement.** A buyer moving clickwrap to `SIGN-004` keeps proof of who accepted what. The kit reads the acceptance activity from Ironclad Clickwrap through either of two sources: the activity CSV export a Clickwrap admin downloads from the dashboard, or the Clickwrap REST API (the former PactSafe API) for signers, activity and contract versions, called with an API access token. The endpoints and columns are recorded in the fixture's README from Ironclad's Clickwrap developer documentation before the fixture is built. It reads the signer's identifier and email, the contract and version accepted, acceptance time, IP address, and each version's document. It imports them as acceptance records labeled imported, linked to each terms version kept byte-for-byte. From then on, Locket's own versions and re-acceptance rules apply. Apply and undo follow `MOVE-001`.
 
@@ -1506,7 +1505,7 @@ Core · target · **missing** · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AUDI
 
 #### AGENT-001 — Invoices reconciled against signed terms
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-DATA-003, BASE-DATA-006, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-DATA-003, BASE-DATA-006, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** joins each executed agreement's confirmed pricing, rate cards, price-increase caps, discounts, payment terms and amendments with the bills, invoices, credits and purchase orders linked through `LINK-001` and `LINK-002`, and flags overcharges, increases above the cap, missed volume discounts, early-payment terms not taken and unclaimed credits, each with the clause and transaction cited and the USD amount at stake. For an approved finding it drafts the dispute or credit request to the supplier. Detailed operational rules: [the AGENT-001 record](docs/contract/operational-details.md#agent-001). Agent calls carry standard, money, commitment and external as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -1519,7 +1518,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-002 — Service levels and supplier performance
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-MAIL-001, BASE-OPS-004 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-MAIL-001, BASE-OPS-004 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** reads service-level commitments (uptime, response and resolution times, delivery dates) from confirmed terms and compares them with performance evidence: monitoring results from Uptime, tickets from Linen or HappyToHelp, delivery records, or the supplier's own reports. It computes service credits owed under the agreement's formula, records misses as obligation breaches by the supplier, and drafts the credit claim before the claim window closes. Detailed operational rules: [the AGENT-002 record](docs/contract/operational-details.md#agent-002). Agent calls carry standard, money, commitment and external as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -1531,7 +1530,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-003 — Renewal decision to verified notice delivery
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2, D-3, D-5, D-6
 
 **Requirement.** a person selects an exact passage from the executed text rendition, with the confirmed deadline and recorded renewal decision (`RENEW-001`), and the counterparty's recorded email and courier notice address (`REPO-010`). The agent prepares a frozen PDF notice from those facts, labelled "prepared draft, not legal advice or proof of service". It does not infer legal wording or decide adequacy. `REPO-002` inherits selection from future OCR renditions. Sending uses `RENEW-006`'s installation mail door (Resend with signed Svix callbacks today); Postmark and any other provider are configurations of that same door, not separate integrations, and `INT-004` inherits its obligations. Detailed operational rules: [the AGENT-003 record](docs/contract/operational-details.md#agent-003). Agent calls carry standard, commitment and external as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -1543,7 +1542,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-004 — Authorized renegotiation to an executed amendment
 
-Core · push-further · **missing** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-MAIL-001, BASE-OPS-004 · Rules D-1
+Core · push-further · **missing** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-MAIL-001, BASE-OPS-004 · Rules D-1, D-2, D-3, D-6
 
 **Requirement.** under a written mandate from the decision-maker (target price, acceptable term, walk-away and which playbook positions may be offered), it drafts the counterparty email and the amendment from the template and playbook, sends each round as an external call decided by the company’s policy, reads the counterparty's replies and markups (`NEG-006`, `NEG-002`), proposes the next response within the mandate, and stops at execution: the amendment is approved under `APPROVE-001`, signed under `SIGN-002`, and the family's governing terms updated under `AGENT-005`. Detailed operational rules: [the AGENT-004 record](docs/contract/operational-details.md#agent-004). Agent calls carry standard, commitment and external as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -1555,7 +1554,7 @@ Core · push-further · **missing** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-005 — Governing terms across a contract family
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003, BASE-MAIL-001, BASE-OPS-004, BASE-ROLE-001 · Rules D-1, D-2, D-5, D-6
 
 **Requirement.** compares the parent agreement, order forms, statements of work and amendments; finds conflicting dates, prices, notice rights and precedence clauses; and proposes the currently governing value of each key term with the exact passages, propagating confirmed results to deadlines and obligations. Detailed operational rules: [the AGENT-005 record](docs/contract/operational-details.md#agent-005). Agent calls carry standard or commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -1568,7 +1567,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-006 — Signed document matches the approved version
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-PUBLIC-001, BASE-PUBLIC-002, BASE-ROLE-001 · Rules D-1, D-2, D-6
 
 **Requirement.** compares the approved version, the provider envelope, the signed document and the extracted terms; identifies edits made after approval, missing pages, missing signatures or initials and signers who differ from the routing; and refreshes obligations only from a confirmed execution. Detailed operational rules: [the AGENT-006 record](docs/contract/operational-details.md#agent-006). Agent calls carry standard or commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -1581,7 +1580,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-007 — Exceptions become measured playbook changes
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008 · Rules D-1, D-2, D-6
 
 **Requirement.** Under the held company policy for commitment and external, compares approved exceptions, counterparty negotiation outcomes and later operational issues (disputes, missed obligations, credits from `AGENT-001` and `AGENT-002`), and recommends a revised clause position with examples, the expected effect on cycle time (`REPORT-001`) and the agreements that would have been affected. Detailed operational rules: [the AGENT-007 record](docs/contract/operational-details.md#agent-007). Agent calls carry standard or commitment as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -1593,7 +1592,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-008 — Obligation remediation to verified evidence
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-INPUT-003 · Rules D-1, D-2, D-5
 
 **Requirement.** for an overdue or at-risk obligation (an expired certificate of insurance, a missing SOC 2 report, an unreturned data-destruction certificate, our own late deliverable), it identifies the responsible party, drafts the request to the supplier contact or the internal owner, chases on schedule, checks returned evidence against the requirement (coverage amount, dates, named insured) and marks the obligation fulfilled only when the evidence matches. Detailed operational rules: [the AGENT-008 record](docs/contract/operational-details.md#agent-008). Agent calls carry standard, commitment and external as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -1605,7 +1604,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### AGENT-009 — Missed obligations and avoidable spend report
 
-Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-ROLE-001 · Rules D-1
+Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007, BASE-AGENT-008, BASE-AUDIT-001, BASE-ROLE-001 · Rules D-1, D-2, D-3
 
 **Requirement.** each month it reports, in USD where measurable, deadlines missed or met late, auto-renewals that renewed without a recorded decision (the roll-forwards `RENEW-010` records with no decision, excluding those derived for periods before the agreement was in Locket), overdue obligations on both sides, overcharges and credits found and recovered (`AGENT-001`, `AGENT-002`) and spend on agreements past their end date, each figure linking to its evidence, and compares with prior months. Detailed operational rules: [the AGENT-009 record](docs/contract/operational-details.md#agent-009). Agent calls carry standard or external as computed in the Agent surface; the company’s policy decides every call, including any review, approval or refusal.
 
@@ -1621,7 +1620,7 @@ Core · push-further · **partial** · Cites BASE-AGENT-002, BASE-AGENT-005, BAS
 
 #### SURFACE-001 — Registry and shared conformance
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AGENT-013 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-002, BASE-AGENT-006, BASE-AGENT-013 · Rules D-1, D-5
 
 **Requirement.** The contract operations registry equals the tool and non-tool tables above.
 
@@ -1647,7 +1646,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-003 · Ru
 
 #### SURFACE-003 — Sponsored contract work
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-004, BASE-AGENT-005 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-004, BASE-AGENT-005 · Rules D-1, D-2
 
 **Requirement.** Sponsorship maps to Locket’s owner, counsel, approver, requester and viewer rights and record/field grants.
 
@@ -1660,7 +1659,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-004, BASE
 
 #### SURFACE-004 — Internal and outside exposure classes
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-006 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-006 · Rules D-1, D-3, D-5
 
 **Requirement.** Locket computes standard and external from the resolved destination and recipients.
 
@@ -1674,7 +1673,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-006 · Ru
 
 #### SURFACE-005 — Money and commitment classes
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-006 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-006 · Rules D-1, D-2, D-6
 
 **Requirement.** Billing-impacting and binding contract calls use the facts described above.
 
@@ -1701,7 +1700,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-006 · Ru
 
 #### SURFACE-007 — Erasure, sensitive fields and running services
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-006 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-006 · Rules D-1, D-3, D-6
 
 **Requirement.** Locket computes destructive, sensitive and live from the actual affected records, fields and services.
 
@@ -1715,7 +1714,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-006 · Ru
 
 #### SURFACE-008 — Company policy on contract decisions
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-007 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-007 · Rules D-1, D-2, D-3, D-5, D-6
 
 **Requirement.** Locket’s native agent proposals, MCP tools and integration-token agent calls use the same company decision for the same version and facts.
 
@@ -1728,7 +1727,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-007 · Ru
 
 #### SURFACE-009 — Contract decision attribution
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-008, BASE-AGENT-009 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-008, BASE-AGENT-009 · Rules D-1, D-2, D-3, D-5
 
 **Requirement.** Agreement history distinguishes preparation, company-policy decisions and a person’s actual approval.
 
@@ -1741,7 +1740,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-008, BASE
 
 #### SURFACE-010 — Contract events and source handoffs
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-010 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-010 · Rules D-1, D-2, D-5
 
 **Requirement.** The listed contract events link changed records and keep imported history distinguishable from new execution.
 
@@ -1754,7 +1753,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-010 · Ru
 
 #### SURFACE-011 — Contract work capacity and policy spend
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-011 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-011 · Rules D-1, D-6
 
 **Requirement.** Locket reports model/OCR provider estimates and the affected agreements/files before a bulk or paid task.
 
@@ -1767,7 +1766,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-011 · Ru
 
 #### SURFACE-012 — Version and evidence conflicts
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-012 · Rules D-1
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-012 · Rules D-1, D-2, D-3, D-5, D-6
 
 **Requirement.** Contract actions retain their source/version bindings through tool retries and interrupted work.
 
@@ -1780,7 +1779,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-012 · Ru
 
 #### SURFACE-013 — A stranger runs a contract week
 
-Agent surface · target · **missing** · From new · Cites BASE-AGENT-013 · Rules D-1 · Register R-8
+Agent surface · target · **missing** · From new · Cites BASE-AGENT-013 · Rules D-1, D-2, D-5, D-6 · Register R-8
 
 **Requirement.** Given only the installation URL, a stranger agent completes a seeded week as the contract operations clerk.
 
@@ -1810,3 +1809,4 @@ None.
 | R-6 | Zapier and Crank partner app publication | INT-002 | not run | | |
 | R-7 | Licensed current SIG Lite workbook, revision and exact question identifiers | OPS-001 | not run | | |
 | R-8 | MCP client interoperability receipts from Claude, ChatGPT, Codex and Copilot | SURFACE-013 | not run | | |
+| R-9 | Sideloaded Word-on-the-web add-in receipt against a real Microsoft 365 developer tenant | NEG-003 | not run | | |
