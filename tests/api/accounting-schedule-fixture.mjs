@@ -49,7 +49,7 @@ export async function accountingDestinationChanges(){
    const f=await scheduleFixture(h);await f.confirm()
    const proposal=await f.prepare(),row=await f.row(proposal.id)
    assert.equal(row.destination_revision,1)
-   const send={scheduleId:row.id,payload:row.payload,consent:true},commandId=crypto.randomUUID()
+   const send={scheduleId:row.id,payload:row.payload,consent:true},commandId=crypto.randomUUID(),checkedCommandId=crypto.randomUUID()
    const archive=async()=>await(await h.owner.request('/api/locket/export')).json()
    const original=await archive()
    if(phase==='before-send'){
@@ -65,6 +65,13 @@ export async function accountingDestinationChanges(){
    }else{
     await h.owner.command('accounting.schedule.send',send)
     assert.equal((await f.row(row.id)).status,'pending')
+    if(phase==='before-check'){
+     await h.owner.command('accounting.schedule.check',{scheduleId:row.id},{commandId:checkedCommandId})
+     const checked=await archive(),reads=calls.length
+     await h.owner.command('accounting.schedule.check',{scheduleId:row.id},{commandId:checkedCommandId})
+     assert.deepEqual((await archive()).records,checked.records,'An unchanged check replay retains the same outcome without a new read or audit')
+     assert.equal(calls.length,reads)
+    }
     if(phase==='check-response'){
      mode='posted';pause=true
      pending=h.owner.command('accounting.schedule.check',{scheduleId:row.id},{commandId,error:'STALE'})
@@ -83,7 +90,12 @@ export async function accountingDestinationChanges(){
     await h.owner.command('accounting.schedule.send',send,{error:'STALE'})
     await h.owner.command('accounting.schedule.prepare',{agreementId:f.source.id,version:(await f.current()).version,obligationId:f.obligation.id,amount:'1250.50',billDate:'2026-10-26',vendorId:'synthetic-locket-7',accountId:'synthetic-locket-8',citation:{quote:f.quote},confirmAllocation:true},{error:'STALE'})
    }
-   if(phase==='before-check')await h.owner.command('accounting.schedule.check',{scheduleId:row.id},{error:'STALE'})
+   if(phase==='before-check'){
+    const replaced=await archive()
+    await h.owner.command('accounting.schedule.check',{scheduleId:row.id},{error:'STALE'})
+    await h.owner.command('accounting.schedule.check',{scheduleId:row.id},{commandId:checkedCommandId,error:'STALE'})
+    assert.deepEqual((await archive()).records,replaced.records,'Refused acceptance checks change nothing at the replacement destination')
+   }
    // Restoring the former origin must not restore its former consent revision.
    await configurePantry(h)
    const afterChange=await archive()
@@ -121,9 +133,11 @@ export async function accountingDestinationChanges(){
     assert.equal(calls.length,1)
    }else{
     await h.owner.command('accounting.schedule.check',{scheduleId:row.id},{error:'STALE'})
+    if(phase==='before-check')await h.owner.command('accounting.schedule.check',{scheduleId:row.id},{commandId:checkedCommandId,error:'STALE'})
     assert.equal((await f.row(row.id)).status,'pending')
     assert.equal(calls.filter(c=>c.method==='POST').length,1)
-    assert.equal(calls.filter(c=>c.method==='GET').length,phase==='check-response'?1:0)
+    assert.equal(calls.filter(c=>c.method==='GET').length,1)
+    assert.deepEqual((await archive()).records,after.records,'Refused acceptance checks change nothing after restoring the former destination')
    }
    const retained=(await archive()).records
    assert.equal(retained.lk_accounting_schedules[0].destination_revision,1)

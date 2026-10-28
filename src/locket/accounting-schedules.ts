@@ -121,4 +121,10 @@ const refresh:Handler=async(c,p)=>{
  }catch(error){if(error instanceof Error&&'code' in error)throw error;fail('PANTRY_UNAVAILABLE','Pantry could not be read; the prior outcome is preserved.',502)}
  return {allowed:may.manageRoles,result:{id:row.id},checks:[...agreementGuards(c,a),destinationGuard({origin:row.origin,revision:row.destination_revision}),sql('(SELECT status FROM lk_accounting_schedules WHERE id=?)=?',row.id,row.status)],writes:[sql('UPDATE lk_accounting_schedules SET status=?,checked_at=? WHERE id=?',status,c.now,row.id)],audit:[{action:'accounting.schedule.check',agreementId:a.id,summary:status==='accepted'?'Pantry reports the exact scheduled draft accepted by its own authorized workflow. Payment remains unconfirmed.':'Pantry draft remains pending human acceptance; no payment is recorded.'}]}
 }
+// A cached command outcome cannot authorize acceptance against an old destination.
+export async function authorizeAccountingScheduleCheck(c:Ctx,p:Record<string,unknown>){
+ const {row,a}=await schedule(c,p)
+ await currentPantryDestination(c,{origin:row.origin,revision:row.destination_revision})
+ await commit(c,may.manageRoles,[...agreementGuards(c,a),fullFieldsCheck(c.actor),destinationGuard({origin:row.origin,revision:row.destination_revision})],[])
+}
 export const accountingScheduleHandlers={'accounting.schedule.prepare':prepare,'accounting.schedule.send':send,'accounting.schedule.check':refresh}

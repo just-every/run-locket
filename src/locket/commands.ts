@@ -3,7 +3,7 @@ import { completeModelCommand } from './model-settings'
 import { authorizeAccountingComparison } from './accounting-comparison'
 import { dispatchBillingProposal } from './proposal-handoffs'
 import { runExecutionRetrievals } from './execution-retrieval'
-import { dispatchAccountingSchedule } from './accounting-schedules'
+import { authorizeAccountingScheduleCheck, dispatchAccountingSchedule } from './accounting-schedules'
 import { alertConnectionFailure } from './connection-health'
 import { authorizeErasureResult } from './privacy-access'
 import { integrationCommandChecks, scopedTokenResult } from './scoped-tokens'
@@ -119,6 +119,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     if(type==='execution.retrieval.authorize')await runExecutionRetrievals(env,c.now,(result as {id:string}).id)
     if(type==='execution.followup.authorize')await runExecutionFollowups(env,c.now,(result as {id:string}).id)
     if(type==='accounting.schedule.send')await dispatchAccountingSchedule(c,(result as {id:string}).id)
+    if(type==='accounting.schedule.check')await authorizeAccountingScheduleCheck(c,payload)
     if(type.startsWith('accounting.destination.'))requireRole(c.actor,['owner'],'read accounting destination outcomes')
     if(type==='notification.chat.identity')requireRole(c.actor,['owner'],'read chat identity outcomes')
     if(type==='token.create')result=await scopedTokenResult(c,result)
