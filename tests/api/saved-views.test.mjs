@@ -388,7 +388,7 @@ test('REPO-009 current group and department grants intersect restricted access a
  await repositoryExceptionsJourney(h)
 })
 
-test('REPO-011 reviewed bulk changes preserve custody, reassign open work, round-trip exact CSV differences and revert with history', async t => {
+test('REPO-011 REPO-014 REPO-015 REPO-016 reviewed bulk changes preserve custody, reassign open work, round-trip exact CSV differences and revert with history', async t => {
  const h=await installation();t.after(()=>h.close())
  const {ids,originals}=await repositoryBulkFixture(h.owner)
  const colleague=await h.invite('synthetic-locket-901@example.test','approver'),viewer=await h.invite('synthetic-locket-902@example.test','viewer')

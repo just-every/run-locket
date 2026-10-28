@@ -4,7 +4,7 @@
 // effective date to confirmed end date, both inclusive) scaled to 365 days and
 // rounded half up to the cent; one without a value or without both dates is
 // listed as not counted. Agreements group by family (REPO-008), and the next
-// notice deadline is the earliest current one (RENEW-007, US-001 rolling).
+// notice deadline is the earliest current one (RENEW-008, US-001 rolling).
 import { lifecycle } from './lifecycle'
 
 type Row = { id: string; [key: string]: any }

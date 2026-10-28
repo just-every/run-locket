@@ -53,9 +53,9 @@ jobs:
       - run: pnpm exec playwright install chromium
         if: matrix.partition == 'core'
       - run: pnpm exec rer check --profile first-party
-      - name: Check generated execution contract documents
+      - name: Check generated contract documents
         if: matrix.partition == 'core'
-        run: node scripts/contract-docs.mjs check EXEC-002 SIGN-002 SIGN-003 INT-001 INTAKE-004
+        run: node src/base/contract-docs.mjs check
       - name: Check edition source lock freshness
         if: matrix.partition == 'core'
         run: node scripts/edition-authoring/cli.mjs check > /dev/null

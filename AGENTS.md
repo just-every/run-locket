@@ -98,12 +98,13 @@ flags, private state, deployment inputs and remote limitations.
 
 ## Work on Locket
 
-Lander-Regenerate for touched target clauses: `node scripts/contract-docs.mjs write CLAUSE...`,
-then `node scripts/contract-docs.mjs check CLAUSE...`, using the same clause IDs.
-This preserves untouched legacy acceptance records, copies touched acceptance sentences and policy paragraphs verbatim and regenerates `docs/CLAIMS.md` and the source summary counts.
-The execution campaign uses `EXEC-002 SIGN-002 SIGN-003 INT-001 INTAKE-004`.
-Regenerate the edition source lock last with
-`node scripts/edition-authoring/cli.mjs lock`, then run its `check` command.
+Lander-Regenerate: node src/base/contract-docs.mjs write
+Lander-Regenerate: node scripts/edition-authoring/cli.mjs lock
+
+CONTRACT.md is the sole acceptance/status source. After editing it, run the shared
+contract-docs write and check commands, regenerate the source lock last, then run
+`node scripts/edition-authoring/cli.mjs check`. The compatibility command under
+scripts/ accepts the former touched IDs and delegates to the full shared generator.
 
 Read [CONTRACT.md](CONTRACT.md), [ACCEPTANCE.md](ACCEPTANCE.md), [API.md](API.md)
 and [IMPORT.md](IMPORT.md) before changing product behaviour. Keep the twelve

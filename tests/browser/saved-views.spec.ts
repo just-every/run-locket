@@ -265,7 +265,7 @@ test(`REPO-009 Sales visibility, hidden value and current group shares at 1440px
   }
 })
 
-test(`REPO-011 reviews filtered bulk changes, exact CSV differences and reversible history at 1440px and 390px`,async({page})=>{
+test(`REPO-011 REPO-015 REPO-016 reviews filtered bulk changes, exact CSV differences and reversible history at 1440px and 390px`,async({page})=>{
   test.setTimeout(240_000)
   for (const width of [1440, 390]) {
  const {repositoryBulkBrowserJourney}=await import('./repository-bulk-journey.mjs')

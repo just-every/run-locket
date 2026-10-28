@@ -61,7 +61,7 @@ import { renewalScenario } from './portfolio-fixture.mjs'
 const projected = async (h,id) => {const response=await h.owner.request('/api/locket/portfolio');assert.equal(response.status,200);return(await response.json()).lifecycle[id]}
 async function advance(h,at){await h.setTime(at);Object.assign(h.owner,await h.signIn('owner@example.test'))}
 
-test('RENEW-007 imports durable current terms, rolls once at the deadline and supersedes corrected derivations without rewriting originals', async t => {
+test('RENEW-008 RENEW-009 RENEW-010 imports durable current terms, rolls once at the deadline and supersedes corrected derivations without rewriting originals', async t => {
   const h=await installation({bindings:{TEST_NOW:String(clock)}});t.after(()=>h.close())
   const a=await renewalScenario(h.owner)
   let s=await h.owner.state(),c=await projected(h,a.id)
@@ -88,7 +88,7 @@ test('RENEW-007 imports durable current terms, rolls once at the deadline and su
   assert.ok(archive.records.lk_renewal_history.some(x=>x.id===history[0].id))
 })
 
-test('RENEW-007 optional election needs this term’s timely sent notice and renewal limits expire the final term',async t=>{
+test('RENEW-009 optional election needs this term’s timely sent notice and renewal limits expire the final term',async t=>{
  const h=await installation({bindings:{TEST_NOW:String(clock)}});t.after(()=>h.close())
  const limited=await renewalScenario(h.owner,{renewals_allowed:'2'})
  let c=await projected(h,limited.id)
@@ -110,7 +110,7 @@ test('RENEW-007 optional election needs this term’s timely sent notice and ren
  c=await projected(h,optional.id);assert.equal(c.status,'expired');assert.equal(c.term,2)
 })
 
-test('RENEW-007 termination stops commitment, flags missing evidence, and a cited earlier effective date changes portfolio lifecycle',async t=>{
+test('RENEW-011 termination stops commitment, flags missing evidence, and a cited earlier effective date changes portfolio lifecycle',async t=>{
  const h=await installation({bindings:{TEST_NOW:String(clock)}});t.after(()=>h.close())
  const a=await renewalScenario(h.owner),r=(await h.owner.state()).renewals.find(x=>x.agreement_id===a.id)
  await h.owner.command('renewal.decide',{renewalId:r.id,decision:'terminate'})
@@ -138,7 +138,7 @@ test('RENEW-007 termination stops commitment, flags missing evidence, and a cite
  c=await projected(h,timely.id);assert.equal(c.status,'terminated');assert.equal(c.term,5)
 })
 
-test('RENEW-007 evergreen anniversaries have owner-configured review lead time and no notice deadline',async t=>{
+test('RENEW-012 evergreen anniversaries have owner-configured review lead time and no notice deadline',async t=>{
  const h=await installation({bindings:{TEST_NOW:String(clock)}});t.after(()=>h.close())
  const a=await renewalScenario(h.owner,{renewal_type:'evergreen',end_date:null,initial_term_months:null})
  await h.owner.command('renewal.review.configure',{agreementId:a.id,version:(await a.current()).version,leadDays:60})
@@ -155,7 +155,7 @@ test('RENEW-007 evergreen anniversaries have owner-configured review lead time a
  c=await projected(h,a.id);assert.equal(c.status,'terminated');assert.equal(c.deadline,null)
 })
 
-test('RENEW-007 calendar provider and reminder delivery follow the durable current term and remove ended events',async t=>{
+test('RENEW-014 calendar provider and reminder delivery follow the durable current term and remove ended events',async t=>{
  let failing=false
  const events=new Map(),requests=[]
  const h=await installation({bindings:{TEST_NOW:String(clock)},outboundResponse:async request=>{
