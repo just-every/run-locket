@@ -1,260 +1,1693 @@
-# Locket acceptance record
+<!-- Generated from CONTRACT.md by contract-docs. Edit CONTRACT.md, then regenerate. -->
 
-This record lists the acceptance evidence for every clause in [CONTRACT.md](CONTRACT.md), with the clause's status from the contract's [Status](CONTRACT.md#status) table, so a build round can work towards it. The contract is a target: released clauses are proven locally today, and target and push-further clauses name the journey that will prove them.
+# Accept a Locket product installation
 
-Status **LOCAL PROVEN** means the named test passed in a local run of this checkout. It is not hosted, provider, legal or real-owner acceptance. **NOT PROVEN** means the clause is `partial` or `missing` in the contract and its acceptance journey does not yet exist or does not yet pass; a clause moves to LOCAL PROVEN only when its journey passes through a public door (route, command, built page or browser journey) with fakes only at a paid or network provider edge.
+The primary journey: Exercise the capabilities and acceptance journeys below.
 
-## Released flows
+## Progress
 
-Each released flow has one test in `tests/api/flows.test.mjs`, run through authenticated HTTP against the real Worker with D1 and every migration applied. `rer verify` runs them with the move-in, security and portability proofs, the emitted-Worker runtime and email-link checks, the build and the typecheck. The browser journeys in `tests/browser/journey.spec.ts` walk the same flows through the screens at 1440 and 390 pixels wide.
+| Tier | Done | Partial | Missing | Total |
+| --- | ---: | ---: | ---: | ---: |
+| Core | 64 | 20 | 17 | 101 |
+| Agent surface | 0 | 0 | 0 | 0 |
+| Later | 0 | 0 | 0 | 0 |
+| Full target | 64 | 20 | 17 | 101 |
 
-| # | Clause | What a person can do | Test | Status |
-| --- | --- | --- | --- | --- |
-| 1 | `REPO-001` | Import a legacy PDF or DOCX keeping exact bytes, source ID and provenance; duplicates refused | `01 legacy PDF and DOCX keep original bytes, source identity and provenance` | LOCAL PROVEN |
-| 2 | `INTAKE-001` | Capture a request with counterparty, value, owner and dates; review blocked until required attachments exist | `02 intake captures the deal and blocks review until required attachments are present` | LOCAL PROVEN |
-| 3 | `DRAFT-001` | Populate only an approved template version, with fields and chosen clause wording | `03 only an approved template version populates a request, with its fields and chosen clauses` | LOCAL PROVEN |
-| 4 | `PLAY-001` | Keep a versioned clause playbook; findings cite the version used | `04 the clause playbook is versioned and reviews cite the version they used` | LOCAL PROVEN |
-| 5 | `NEG-001` | Add negotiation versions, compare them, comment; originals untouched | `05 successive negotiation versions compare line by line and keep untouched originals and comments` | LOCAL PROVEN |
-| 6 | `REVIEW-001` | Record met / breached / cannot-determine findings with exact citations; agents only propose | `06 review findings cite exact passages, separate met, breached and cannot-determine, and agents only propose` | LOCAL PROVEN |
-| 7 | `APPROVE-001` | Route commercial and exception approvals; approvals pin version and context and are withdrawn by changes | `07 approvals route exceptions to the right authority and pin the exact version and context` | LOCAL PROVEN |
-| 8 | `SIGN-001` | Produce the signature-ready PDF and routing manifest and record the handoff | `08 an approved version becomes a signature-ready PDF and routing manifest for the existing provider` | LOCAL PROVEN |
-| 9 | `EXEC-001` | Ingest signed file and certificate; reconcile envelope, signers, document; hold mismatches; refuse duplicates | `09 execution ingests the signed file and certificate and reconciles envelope, signers and document` | LOCAL PROVEN |
-| 10 | `TERMS-001` | Confirm terms and obligations against the executed text; corrections keep history | `10 terms and obligations are confirmed against the executed text, and corrections keep history` | LOCAL PROVEN |
-| 11 | `RENEW-001` | Compute notice deadlines in the agreement's zone; decide; approve a notice; record sending separately | `11 the renewal queue computes notice deadlines in the agreement time zone and keeps sending evidence separate` | LOCAL PROVEN |
-| 12 | `PORT-001` | Search only permitted agreements; export the complete archive; restore into an empty installation | `12 search returns only agreements the person may access, and the owner exports every record and file`; `tests/portable.mjs` | LOCAL PROVEN |
+Judged from the code and tests at commit `5fb535c943584da9c28f588dc3e510fbfb688459` (27 October 2026). Field proof register: 0 rows; 0 passed, 0 failed, 0 not run.
 
-## Released safeguards
+## Core
 
-High-stakes paths have their own proof:
+### Released flows
 
-| Clause | What is proven | Test | Status |
-| --- | --- | --- | --- |
-| `ROLE-001` | Signed-out and cross-site business requests, viewers, agents and demoted approvers are refused; human personal view preferences under REPO-007 do not grant business writes | `tests/api/security.test.mjs` (`sessions, roles, idempotent commands and stale writes are enforced by the server`); `tests/api/saved-views.test.mjs` names ROLE-001 and asserts viewer preferences with agent writes refused | LOCAL PROVEN |
-| `SEC-001` | Revoked sessions and decisions against a stale snapshot are refused with nothing saved | `tests/api/security.test.mjs` | LOCAL PROVEN |
-| `SEC-002` | Retried commands return their first outcome; a reused identity with new content is refused | `tests/api/security.test.mjs` | LOCAL PROVEN |
-| `ACCESS-001` | A restricted request prepared by an agent stays hidden, counterparty included, from everyone outside it; restricted search results are hidden | `tests/api/security.test.mjs` (`a restricted request prepared by an agent stays hidden, counterparty included, from everyone outside it`); flow test 12 | LOCAL PROVEN |
-| `FILE-001` | Stored originals, signed files and certificates download byte for byte with their digest | flow tests 01, 05 and 09 | LOCAL PROVEN |
-| `PROPOSE-001` | Agent findings and terms apply only after a person approves; agents cannot decide | flow tests 06 and 10; `tests/api/security.test.mjs` | LOCAL PROVEN |
-| `MOVE-001` | The DocuSign archive dry run writes nothing and reports every row; applying the exact reviewed dry run keeps signed files and certificates byte-for-byte; a later batch that repeats held envelopes changes nothing; an unused batch undoes completely while the journal keeps the report and files; re-import after undo works; correcting an imported end date keeps the rejected value; once used, undo is refused | `tests/api/move-in.test.mjs` | LOCAL PROVEN |
+#### REPO-001 — Import a legacy agreement
 
-**Restore** (`tests/portable.mjs`, part of `PORT-001`): a populated installation (library, an executed agreement with files, confirmed terms, a renewal and a DocuSign move-in) goes through `rer export` and `rer import` into an empty installation; every Locket record and file matches; the old session no longer works; the new owner session undoes the restored move-in and corrects a term.
+Core · published · **done**
 
-## Target clauses
+**Requirement.** A person uploads a PDF or DOCX with where it came from and its source ID. Locket keeps the original bytes and SHA-256, the source system and ID, the original filename, who imported it and when, and reads DOCX text. The same bytes or the same source ID cannot be imported twice.
 
-Contract status is `done`, `partial` (some behavior ships with named gaps), or `missing`. CT reviewed the code and tests at commit `60e0c11ec4c1ecb1b415ec39c3b9bba0c9c19065` on 27 October 2026: REVIEW-005 is accepted DONE at that main pin; LINK-001 STAYS PARTIAL. The prior documentation revision changed no product or test bytes from that candidate. This revision adds REVIEW-007 implementation and local evidence, pending its own guarded landing and CT review. The reviewed source pin is on main with successful exact-SHA Verify and Run site; REVIEW-005 is accepted DONE under the stated CT landing test. This later documentation revision requires its own guarded publication and exact-SHA CI gates, including the complete full-history publication scan with zero new findings. Acceptance journeys run in the default product; provider fakes stand in only at the provider's network edge, and clauses that name a live sandbox or authorized real export need that run recorded before acceptance.
+**Acceptance.**
+1. downloading the stored file and comparing bytes and digest, and the refused duplicates (flow test 01).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/agreements.ts`
+**Gap.** None.
+
+#### INTAKE-001 — Capture a request
+
+Core · published · **done**
+
+**Requirement.** A requester records title, request type, counterparty (existing or new), value, responsible person, needed-by and start dates, and whether it is restricted. Each type carries its default required attachments (`US-001`), and more can be added. A request cannot go to review while a required attachment is missing unless owner or counsel waives it with a reason. Amendments and order forms must name their parent agreement.
+
+**Acceptance.**
+1. the stored request and the refused submission until the attachment is present (flow test 02).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/agreements.ts`
+**Gap.** None.
+
+#### DRAFT-001 — Use an approved template
+
+Core · published · **done**
+
+**Requirement.** Owner or counsel author versioned templates with fields and clause wordings, and approve a version for use. A requester can only populate an approved version; required fields must be filled; the chosen clause wording is recorded. A later template version never rewrites a version already produced.
+
+**Acceptance.**
+1. the refusal of a draft template, the populated text and the unchanged earlier version (flow test 03).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/library.ts`
+**Gap.** None.
+
+#### PLAY-001 — Maintain the clause playbook
+
+Core · published · **done**
+
+**Requirement.** Owner or counsel keep versioned rules: preferred wording, allowed alternatives and who decides exceptions (counsel or approver). One version is active; each review finding records the playbook version it used.
+
+**Acceptance.**
+1. activation superseding the earlier version and findings citing it (flow test 04).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/library.ts`
+**Gap.** None.
+
+#### NEG-001 — Negotiate in versions
+
+Core · published · **done**
+
+**Requirement.** People add our revisions and counterparty markups (PDF or DOCX), compare any two versions line by line, and comment with quoted passages. Originals stay byte-for-byte. A version added against a stale view of the agreement is refused.
+
+**Acceptance.**
+1. the comparison of two DOCX versions and the untouched downloads (flow test 05).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/diff.ts`
+**Gap.** None.
+
+#### REVIEW-001 — Record review findings
+
+Core · published · **done**
+
+**Requirement.** A reviewer records, against a playbook rule, whether the rule is met, breached or cannot be determined, citing the exact passage by position and quote (checked against the version text), with proposed wording and open questions. Agents submit findings only as proposals.
+
+**Acceptance.**
+1. the refused mismatched quote and an agent's findings applied only after counsel's approval (flow test 06).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/review.ts`
+**Gap.** None.
+
+#### APPROVE-001 — Approve the exact version
+
+Core · published · **done**
+
+**Requirement.** Every agreement needs commercial approval (owner or approver); each breached or undetermined finding needs an exception decision by the rule's authority. The requester cannot approve their own request unless they are the owner. Approvals pin version identity and decision context; a new version, a signing PDF or a value change withdraws them and the agreement returns to review.
+
+**Acceptance.**
+1. the route, the role refusals, and the withdrawal after a new version and after a value change (flow test 07).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/review.ts`
+**Gap.** None.
+
+#### SIGN-001 — Prepare for signature with any provider
+
+Core · published · **done**
+
+**Requirement.** From an approved version Locket produces the signature-ready PDF (the approved PDF itself; a text PDF for template versions; DOCX versions need the PDF they will be signed as, attached and approved first) and a routing manifest naming version identity, document SHA-256, approvals, provider and ordered recipients. A person can send it through Docusign, Adobe Acrobat Sign, Dropbox Sign, PandaDoc, Documenso, DocuSeal, paper or another route and record the envelope ID; this manual route stays available beside the live connections in `SIGN-002` and `SIGN-003`.
+
+**Acceptance.**
+1. the downloaded PDF and manifest and the recorded handoff (flow test 08).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/execution.ts`
+**Gap.** None.
+
+#### EXEC-001 — Record and reconcile execution
+
+Core · published · **done**
+
+**Requirement.** The signed PDF and the provider's certificate are recorded (uploaded by a person, or retrieved by `EXEC-002`). Locket reconciles the envelope ID with the handoff, the signers with the package's signers, the document (confirmation and page count) and the certificate's presence. A clean match marks the agreement executed; a mismatch stays unsigned until owner or counsel accepts it with a reason. The same signed file or envelope cannot be recorded twice.
+
+**Acceptance.**
+1. a reconciled execution, a mismatch held for review, and a refused duplicate (flow test 09).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/execution.ts`
+**Gap.** None.
+
+#### TERMS-001 — Confirm terms and obligations
+
+Core · published · **done**
+
+**Requirement.** People propose effective and end dates, auto-renewal, renewal term, notice period, governing law and payment terms, each citing words from the executed text (or a signed-PDF page when there is no text). Owner, counsel or approver confirm or reject each. Correcting a confirmed term supersedes it and keeps the history. Obligations have an owner, due date and recurrence; they are confirmed and then marked done. The renewal type, renewals allowed and the term roll-forward built on these terms are `RENEW-007`.
+
+**Acceptance.**
+1. an agent's terms confirmed by an approver, a correction that keeps the superseded value, and an obligation through to done (flow test 10).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/obligations.ts`
+**Gap.** None.
+
+#### RENEW-001 — Work the renewal queue
+
+Core · published · **done**
+
+**Requirement.** Confirmed end date and notice period produce the notice deadline: the end of the deadline day (23:59:59) in the agreement's IANA time zone, including daylight-saving changes. Owner or approver decide renew, renegotiate or terminate; a notice is drafted (by a person or an agent proposal), approved for sending by owner or approver (not by its preparer unless owner), and then recorded as sent with method, time and optional evidence. `RENEW-007` extends the deadline to auto-renewing agreements, computing it from the current term rather than an end date already past.
+
+**Acceptance.**
+1. deadlines on both sides of a daylight-saving change and a notice that stays "approved, not sent" until sending is recorded (flow test 11).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/dates.ts`
+**Gap.** None.
+
+#### PORT-001 — Search, export and restore
+
+Core · published · **done**
+
+**Requirement.** People search titles, counterparties, references and version text of the agreements they may access. The owner exports a complete archive of every record and every file's exact bytes and digest. `rer export` and `rer import` restore the whole installation into an empty one, after which the restored owner signs in afresh and continues work, including undoing a restored move-in.
+
+**Acceptance.**
+1. restricted results hidden from others, the archive's digests, and a fresh-install restore compared record by record and byte by byte (flow test 12 and `tests/portable.mjs`).
+
+**Evidence.** `tests/api/flows.test.mjs`; `tests/portable.mjs`
+**Gap.** None.
+
+### Released safeguards
+
+#### ROLE-001 — Six roles enforced on the server
+
+Core · published · **done**
+
+**Requirement.** Roles are **owner** (everything), **counsel** (library, legal exceptions, restricted agreements, execution mismatches), **approver** (commercial approval, renewal decisions, notice approval), **requester** (requests, versions, attachments, signature handoff), **viewer** (reads) and **agent** (reads and prepares proposals only). The installation's native owner is always owner; other operators are invited through Base sign-in and given a Locket role. REPO-007's personal saved-view preferences are available to every human role, including viewers; this never permits a business-record write, and agents remain read-only for preferences.
+
+**Acceptance.**
+1. signed-out and cross-site requests, viewers, agents and demoted approvers refused by the server (security test).
+
+**Evidence.** `tests/api/security.test.mjs`; `tests/api/saved-views.test.mjs`; `src/locket/access.ts`
+**Gap.** None.
+
+#### SEC-001 — Writes recheck session, role and version atomically
+
+Core · published · **done**
+
+**Requirement.** Every command re-reads the session and role and repeats the session, role and record-version checks inside the D1 batch that writes, so a revoked session, removed role or changed record saves nothing.
+
+**Acceptance.**
+1. a revoked session and a decision against a stale snapshot both refused with no write (security test).
+
+**Evidence.** `tests/api/security.test.mjs`; `src/locket/commands.ts`
+**Gap.** None.
+
+#### SEC-002 — Retried commands return their first outcome
+
+Core · published · **done**
+
+**Requirement.** Every command carries a command identity. Retrying the same identity and content returns the first outcome; reusing it for different content is refused.
+
+**Acceptance.**
+1. a retried command returning its first result and a reused identity with new content refused (security test).
+
+**Evidence.** `tests/api/security.test.mjs`; `src/locket/commands.ts`
+**Gap.** None.
+
+#### ACCESS-001 — Restricted agreements are invisible to others
+
+Core · published · **done**
+
+**Requirement.** A restricted agreement and everything attached to it (versions, files, findings, approvals, terms, proposals, counterparty, search hits) is visible only to the owner, counsel, its requester, its responsible person and people explicitly granted access. To anyone else it does not exist.
+
+**Acceptance.**
+1. an agent-prepared restricted request, counterparty included, hidden from everyone outside it, and restricted search results hidden (security test and flow test 12).
+
+**Evidence.** `tests/api/security.test.mjs`; `src/locket/records.ts`
+**Gap.** None.
+
+#### FILE-001 — Originals keep their exact bytes
+
+Core · published · **done**
+
+**Requirement.** Uploaded, signed, certificate and imported files are stored with their SHA-256 and served byte-for-byte with the digest in a response header; nothing rewrites an original.
+
+**Acceptance.**
+1. downloads compared byte for byte with their uploads (flow tests 01, 05 and 09).
+
+**Evidence.** `tests/api/flows.test.mjs`; `src/locket/artifacts.ts`
+**Gap.** None.
+
+#### PROPOSE-001 — Agents prepare, people approve
+
+Core · published · **done**
+
+**Requirement.** An agent is an invited operator with the `agent` role using the same HTTP API ([API.md](API.md)). It prepares proposals with evidence and assumptions: intake details, playbook findings, agreement-family links, extracted terms and renewal notice drafts. Approval runs the same checks as doing the work by hand, records who prepared and who decided, and links the result to the proposal. An agent never approves, signs, sends or confirms anything; nobody may decide a proposal they prepared unless they are the owner.
+
+**Acceptance.**
+1. agent findings and terms applied only after a person's approval, and agent writes refused (flow tests 06 and 10, security test).
+
+**Evidence.** `tests/api/flows.test.mjs`; `tests/api/security.test.mjs`; `src/locket/proposals.ts`
+**Gap.** None.
+
+#### MOVE-001 — DocuSign archive move-in
+
+Core · published · **done**
+
+**Requirement.** The DocuSign kit takes an Envelope Report CSV and the downloaded completed envelopes (one folder per envelope ID with the signed PDFs and `Summary.pdf`, the Certificate of Completion). A dry run shows every row's outcome (import, not completed, missing evidence, duplicate), missing certificates and files not in the report, and writes nothing. Applying the exact reviewed dry run creates imported agreements with the signed file and certificate kept byte-for-byte, an imported execution record (never a new signature event), and end date and notice period as proposed terms. The journal keeps the report and every supplied file. An unused batch can be undone; once an imported agreement is used, undo is refused and the history stays. Shape and limits: [IMPORT.md](IMPORT.md).
+
+**Acceptance.**
+1. dry run, apply with originals, repeated envelopes unchanged, undo, re-import and refused undo once used (move-in test).
+
+**Evidence.** `tests/api/move-in.test.mjs`; `src/locket/imports/docusign.ts`
+**Gap.** None.
 
 ### Intake and requests
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `INTAKE-002` | Configurable request forms and routing | A browser journey creates a supplier form with a conditional security question and a rule routing values over $50,000 to counsel, limits launching to the Procurement group, previews two sample requests (one above, one below the threshold) and sees the two routes, publishes, then submits both requests through the form; an in-flight request created before publishing keeps its original route; a requester outside Procurement does not see the form and their API launch is refused. Proven by `tests/browser/journey.spec.ts` — INTAKE-002 supplier form previews, publishes, freezes routes and limits launching at 1440px (and the 390px variant) — for every listed browser point, and `tests/api/flows.test.mjs` — configurable supplier forms preview conditions and routes, publish immutable versions and enforce launch membership — for typed fields, all routing dimensions, membership/approval guards, version retention and exact files. `tests/browser/intake-form-live.mjs` passes the same journey through native rer dev at both widths. | done | LOCAL PROVEN |
-| `INTAKE-003` | Email intake | A Workers journey with a Postmark inbound fake posts a forwarded counterparty MSA with a DOCX and a PDF; a draft request appears for the matched sender with both files and their digests, and proposed details awaiting confirmation. A reply attaches to the same request, and mail from an unknown sender lands in the held queue. A live run against a Postmark inbound stream on a Postmark test server is recorded before the clause is accepted. | missing | NOT PROVEN |
-| `INTAKE-004` | CRM intake and status writeback: Salesforce, HubSpot and Orbit | a Workers journey with a HubSpot API fake and an Orbit fake starts a request from a deal, sees the mapped fields, drives the agreement to executed and reads the deal's status, link and end date written back; a forced 500 on writeback shows a retryable failure on both the agreement and the connection. A deal with three line items produces an order form whose pricing table lists them and totals the deal amount in USD. The same journey runs against a Salesforce fake. Live runs against a Salesforce Developer Edition org and a HubSpot developer test account are recorded before the clause is accepted. The deal's HubSpot company is linked to the counterparty and shown on its `REPO-010` page. | missing |  Gap: No CRM connector exists |
-| `INTAKE-005` | Slack, Microsoft Teams and Nook intake and updates | A journey with a Slack API fake submits a request from the shortcut, receives the approval-needed and executed messages in direct messages, and confirms that a restricted agreement's update is withheld from a channel whose members lack access. The same journey runs against Teams and Nook fakes. The new events and channels assert inherited NOTIFY-001 personal inbox, channel and digest preferences, generic links, current access, one-use claims and honest outcomes. | partial | `tests/api/approval-mail.test.mjs` — Signed Slack commands and shortcuts launch native requests only for the mapped current person and consume each launch once (signature, native actor, shortcut, replay, mapping change, expiry); Chat status updates verify current conversation members before disclosing generic approval and execution links (Slack and Teams, restricted audience, native signature flow, privacy, archive); Chat delivery claims preserve consent, uncertain outcomes, complete membership and current access across retries (opt-in, complete membership, concurrency, no resend, digest withholding); `tests/browser/notifications.spec.ts` — Chat status consent, member mapping, receipts and navigation tooltips at 1440 and 390 pixels (shortcut form, settings, receipts and tooltips). Gap: Teams and Nook intake; Nook status delivery requires its NOOK-063 API; watcher subscriptions and complete lifecycle coverage; chat digest batching. Pending ct approval of owner-only exact identity mapping, complete human audience authorization, authenticated Slack bot exclusion, and withholding when membership or digest delivery is unavailable. |
-| `INTAKE-006` | Request queue, assignment and service levels | A browser journey at 1440 and 390 pixels creates three requests, sees them assigned round-robin, reassigns one, advances the clock past an NDA's 2-business-day service level and sees it flagged and the team lead notified. It cancels one request in negotiation as "deal lost": the request leaves the open queue, appears under Canceled with its reason, and is counted in `REPORT-001`'s canceled-by-reason figures. A viewer's cancel is refused, and counsel reopens the request with a reason. The new events/channels assert inherited NOTIFY-001 personal inbox, channel/digest preferences, generic links, current access, one-use claims and honest outcomes. | done | LOCAL PROVEN — `tests/api/flows.test.mjs`: INTAKE-006 rotates a guarded team queue, escalates once through personal notifications and preserves reasoned cancellations; `tests/browser/journey.spec.ts`: INTAKE-006 request assignment, cancellation and service levels at 1440px/390px. Current manual packages close locally with explicit separate provider-void instruction; SIGN-002/003 inherit provider confirmation. |
-| `INTAKE-007` | Third-party paper read at intake | A journey with a model-provider fake uploads a supplier's DOCX and a scanned PDF; each yields a cited proposal, a wrong value is corrected before confirmation, and the created request records who confirmed and that the source was a model proposal. The clause is accepted only when a live run under `REVIEW-006` meets the intake bar. | partial | NOT PROVEN |
+#### INTAKE-002 — Configurable request forms and routing
+
+Core · target · **done**
+
+**Requirement.** Owner or counsel design a request form per agreement type without code: fields (text, number, USD money, date, pick list, person, counterparty, file), conditional questions (a supplier contract over $50,000 asks for a security questionnaire), required attachments, and routing rules that assign the responsible person, reviewer and approval route by type, value, department, region and risk answers. A form or rule change is drafted, previewed against sample answers that show the resulting route and required documents, then published as a new version; requests already in flight keep the version they started with. Each form also names who may launch it, by role, group or department (`REPO-009`). Anyone else does not see the form, and a launch through the API is refused.
+
+**Acceptance.**
+1. a browser journey creates a supplier form with a conditional security question and a rule routing values over $50,000 to counsel, limits launching to the Procurement group, previews two sample requests (one above, one below the threshold) and sees the two routes, publishes, then submits both requests through the form; an in-flight request created before publishing keeps its original route; a requester outside Procurement does not see the form and their API launch is refused.
+2. Current semantics: owner-managed groups and departments establish launch membership only, without granting agreement access.
+3. A form's selected launch roles, groups and departments are alternatives (OR); its routing conditions are conjunctive (AND), with the first matching rule replacing the default route and adding documents.
+4. Conditions compare the request type, recorded USD equivalent, an explicitly selected current department membership, region or visible earlier answers.
+5. Only visible typed answers participate.
+6. Owner and counsel can manage drafts; launching, including for those roles, requires the published form's selected audience.
+7. A type with published forms must use a currently permitted published form through `request.create`; omitting the form cannot bypass routing.
+8. Each launch retains its immutable published version, typed answers, responsible person, named reviewer, approval role and required documents. Routing answers, value and responsible person stay fixed on that request; a changed deal uses a new request. Existing owner authority and independent playbook exceptions remain. Reviewer assignment uses existing notification/access rules and grants no new restricted access. Draft changes and later publication cannot rewrite an in-flight route. INTAKE-003/004/005/007 and RENEW-005 inherit the same published-form audience, typed-answer and pinned-route checks when they add request creation. INTAKE-006 carries team/round-robin assignment and reasoned reassignment; APPROVE-002 carries richer ordered/delegated approval routes. REPO-009 retains its full agreement/group sharing and field-hiding obligations; these intake memberships alone do not satisfy them.
+
+**Evidence.** `tests/browser/journey.spec.ts` — INTAKE-002 supplier form previews, publishes, freezes routes and limits launching at 1440px (and the 390px variant): visual designer/conditional question, both sample routes/documents, publish and both submissions, frozen in-flight route, outsider hidden/API refused; `tests/api/flows.test.mjs` — configurable supplier forms preview conditions and routes, publish immutable versions and enforce launch membership: typed fields, routing dimensions, publication/membership/approval guards and exact files; `tests/browser/intake-form-live.mjs` — native rer dev at both widths
+**Gap.** None.
+
+#### INTAKE-003 — Email intake
+
+Core · target · **missing**
+
+**Requirement.** Each installation has an intake address (Postmark inbound, or a forwarding rule from a Gmail or Outlook mailbox). An email to it, or a message forwarded by a staff member, becomes a draft request: the sender is matched to an operator, attachments are stored byte-for-byte as the first version and supporting files, and `INTAKE-007` proposes the request details. Mail from unknown senders is held for owner review, never auto-created. Replies on the thread attach to the same request.
+
+**Acceptance.**
+1. a Workers journey with a Postmark inbound fake posts a forwarded counterparty MSA with a DOCX and a PDF; a draft request appears for the matched sender with both files and their digests, and proposed details awaiting confirmation.
+2. A reply attaches to the same request, and mail from an unknown sender lands in the held queue.
+3. A live run against a Postmark inbound stream on a Postmark test server is recorded before the clause is accepted.
+
+**Evidence.** None.
+**Gap.** No inbound email path exists
+
+#### INTAKE-004 — CRM intake and status writeback: Salesforce, HubSpot and Orbit
+
+Core · target · **missing**
+
+**Requirement.** The owner connects Salesforce, HubSpot or Orbit with OAuth. A seller starts a contract request from an opportunity or deal (a Salesforce Lightning action, a HubSpot CRM card, an Orbit deal action); account, contacts, amount in USD and close date populate the request. The deal's products (Salesforce opportunity products, HubSpot line items, Orbit deal lines) come across with product, quantity, unit price, discount and term, and fill the pricing table of the generated order form (`DRAFT-002`). Locket writes the agreement's status, current version link and, on execution, the executed PDF link and key dates back to the deal. Field mappings are visible and editable; a failed writeback is shown on the agreement and the connection (`INT-004`).
+
+**Acceptance.**
+1. a Workers journey with a HubSpot API fake and an Orbit fake starts a request from a deal, sees the mapped fields, drives the agreement to executed and reads the deal's status, link and end date written back; a forced 500 on writeback shows a retryable failure on both the agreement and the connection.
+2. A deal with three line items produces an order form whose pricing table lists them and totals the deal amount in USD.
+3. The same journey runs against a Salesforce fake.
+4. Live runs against a Salesforce Developer Edition org and a HubSpot developer test account are recorded before the clause is accepted.
+5. The deal's HubSpot company is linked to the counterparty and shown on its `REPO-010` page.
+
+**Evidence.** None.
+**Gap.** No CRM connector exists
+
+#### INTAKE-005 — Slack, Microsoft Teams and Nook intake and updates
+
+Core · target · **partial**
+
+**Requirement.** A `/contract` command or message shortcut in Slack, Microsoft Teams or Nook opens the request form and creates the request as the signed-in person. Request owners and watchers receive status changes, mentions, approval requests and signature completion in a direct message or a chosen channel, each linking to the record. Messages never reveal a restricted agreement to a channel member without access.
+
+Before shipping, these new events and channels inherit `NOTIFY-001` personal inbox/channel/digest preferences, generic authenticated-link messages, current-access checks, single-use send claims and honest outcomes.
+
+**Acceptance.**
+1. a journey with a Slack API fake submits a request from the shortcut, receives the approval-needed and executed messages in direct messages, and confirms that a restricted agreement's update is withheld from a channel whose members lack access.
+2. The same journey runs against Teams and Nook fakes.
+
+**Evidence.** `tests/api/approval-mail.test.mjs` — Signed Slack commands and shortcuts launch native requests only for the mapped current person and consume each launch once (signature, native actor, shortcut, replay, mapping change, expiry); Chat status updates verify current conversation members before disclosing generic approval and execution links (Slack and Teams, restricted audience, native signature flow, privacy, archive); Chat delivery claims preserve consent, uncertain outcomes, complete membership and current access across retries (opt-in, complete membership, concurrency, no resend, digest withholding); `tests/browser/notifications.spec.ts` — Chat status consent, member mapping, receipts and navigation tooltips at 1440 and 390 pixels (shortcut form, settings, receipts and tooltips)
+**Gap.** Teams and Nook intake; Nook status delivery requires its NOOK-063 API; watcher subscriptions and complete lifecycle coverage; chat digest batching. Pending ct approval of owner-only exact identity mapping, complete human audience authorization, authenticated Slack bot exclusion, and withholding when membership or digest delivery is unavailable.
+
+#### INTAKE-006 — Request queue, assignment and service levels
+
+Core · target · **done**
+
+**Requirement.** Legal and operations see one queue of open requests with responsible person, assignee, stage, needed-by date, age and the next action, filterable by type, team and status, plus a "my work" view. Assignment rules spread new requests across a team; a person can reassign with a reason. Each type has a service level (for example an NDA turned around in 2 business days); requests close to or past it are flagged and escalated to the team lead. The requester, the responsible person, owner or counsel can cancel a request that is not yet executed, choosing a reason (deal lost, no longer needed, duplicate, replaced by another request, other with a note). A canceled request leaves the open queue, keeps its versions and history, voids any envelope out for signature (`SIGN-002`), withdraws its approvals, and stops its reminders. It appears under a Canceled filter and in `REPORT-001` as canceled with its reason and the stage it reached. The owner or counsel can reopen it with a reason.
+
+Before shipping, these new events and channels inherit `NOTIFY-001` personal inbox/channel/digest preferences, generic authenticated-link messages, current-access checks, single-use send claims and honest outcomes.
+
+**Acceptance.**
+1. a browser journey at 1440 and 390 pixels creates three requests, sees them assigned round-robin, reassigns one, advances the clock past an NDA's 2-business-day service level and sees it flagged and the team lead notified.
+2. It cancels one request in negotiation as "deal lost": the request leaves the open queue, appears under Canceled with its reason, and is counted in `REPORT-001`'s canceled-by-reason figures.
+3. A viewer's cancel is refused, and counsel reopens the request with a reason.
+4. The owner configures one current group, team lead and business-day interval per request type.
+5. Stable member-id order and a guarded cursor rotate new requests; inactive or non-working roles are skipped.
+6. Membership grants no agreement access: restricted requests use only existing permitted readers.
+7. Requester, responsible person, owner or counsel reassign with a reason; only owner/counsel reopen.
+8. New requests default to 2 business days for NDAs and 5 for other types until configured, using US-001 business days in the agreement zone; a warning starts one business day before the deadline. Saving a team rule explicitly enables team-lead escalation; unconfigured defaults flag only. Each configured warning/breach is recorded once per request/reopening and uses NOTIFY-001's current-access, personal-channel and claimed-send path. Reopening starts a new service-level interval and never restores approvals or packages. Cancellation history and its original stage remain in period-filtered reporting after reopening. Every current signing door is manual: cancellation closes local packages and explicitly tells the person to void a manually sent envelope with its provider separately; it never claims a remote void. SIGN-002/003 inherit confirmed provider void and visible failed/uncertain outcomes before adding automatic envelopes. MOVE-006 and all future request-creation doors inherit the same queue snapshot and cancellation safeguards.
+
+**Evidence.** `tests/api/flows.test.mjs` — INTAKE-006 rotates a guarded team queue, escalates once through personal notifications and preserves reasoned cancellations (assignment, authority, cancellation, SLA and notification safeguards); `tests/browser/journey.spec.ts` — INTAKE-006 request assignment, cancellation and service levels at 1440px/390px (queue, filters, reassignment, canceled report, reopening, flags and inbox)
+**Gap.** None for current doors; SIGN-002/003 inherit actual provider void; future creation doors inherit queue snapshots
+
+#### INTAKE-007 — Third-party paper read at intake
+
+Core · target · **partial**
+
+**Requirement.** When a counterparty's document arrives (upload, email or CRM), the built-in model (`REVIEW-005`) reads it and proposes the request details: agreement type, counterparty legal name, our entity, value, term, governing law and the template or playbook that applies, each citing the passage it came from. The requester confirms or corrects the proposal before the request is created.
+
+**Acceptance.**
+1. a journey with a model-provider fake uploads a supplier's DOCX and a scanned PDF; each yields a cited proposal, a wrong value is corrected before confirmation, and the created request records who confirmed and that the source was a model proposal.
+2. The clause is accepted only when a live run under `REVIEW-006` meets the intake bar.
+
+**Evidence.** `src/locket/proposals.ts`
+**Gap.** Built-in extraction does not exist
 
 ### Repository and ingestion
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `REPO-002` | PDF text and OCR | A journey with an OCR-provider fake uploads a 20-page scanned agreement; the text becomes searchable, a term is cited to page 14, the original downloads with its original digest, and a corrected passage keeps the machine reading in history. The same journey runs against Textract, Document AI and Document Intelligence fakes. The clause is accepted only when a live OCR run under `REVIEW-006` meets the OCR bar with at least one named provider. | partial | NOT PROVEN |
-| `REPO-003` | Bulk repository import with extraction | A journey imports a 500-file fixture ZIP with 12 duplicates, 3 unreadable files and a CSV; the report counts match, every file keeps its digest, 50 sampled extractions are confirmed in bulk and the rest stay proposed, renewal deadlines appear only for confirmed terms, and undo before use removes the batch while keeping the journal. A supplier agreement in the batch signed in 2022 with a 1-year auto-renewing term shows as auto-renewing with its current term and next notice deadline once its terms are confirmed, not a deadline in 2022. | partial | NOT PROVEN |
-| `REPO-004` | Built-in term and metadata extraction | A journey with a model-provider fake extracts 14 standard fields and two custom fields from a fixture MSA with citations; a person confirms twelve, corrects one and rejects one; the renewal deadline appears after the end date and notice period are confirmed. The clause is accepted only when a live run under `REVIEW-006` meets the extraction bars. | partial | NOT PROVEN |
-| `REPO-005` | Custom metadata fields | `tests/api/saved-views.test.mjs`: “REPO-005 typed metadata enforces owner definitions, edit roles, stage requirements and approval context through commands” (all types, help/scope/edit rules, false/zero, intake, approval refusal, API and archive); “REPO-005 required metadata fences review, signature handoff and reconciled execution atomically” (later required stages); “REPO-005 REPO-006 REPO-007 typed custom queries, ordering, scoped CSV and report groups use confirmed values” (typed query/filter/sort/ordered columns, current scope, CSV and CSV/PDF reports); “REPO-005 REPO-008 cited custom proposals require human acceptance and preserve scoped, stale governing family sources” (proposals and inherited family behavior). `tests/browser/saved-views.spec.ts`: “REPO-005 defines typed fields, blocks incomplete approval, saves metadata views and accepts cited family values at 1440px” and “REPO-005 defines typed fields, blocks incomplete approval, saves metadata views and accepts cited family values at 390px” (all changed native screens, both required acceptance fields, matching CSV and API). | done | LOCAL PROVEN |
-| `REPO-006` | Search and structured filters | Clause-named `tests/api/search.test.mjs` + `tests/browser/search.spec.ts`: literal liability search, supplier/USD/current-term date filters together, exact current and historical version passages unfolded and highlighted at 1440/390, 2023 original end with 2027 current-term end, expired-only lifecycle search, current-version deviation filters, metadata-only matches without fabricated citations, original Unicode offsets, restricted match absent for viewer and access grant and revocation rechecked, restricted-read audit, invalid fields and signed-out refusal; current department names in combined filters and columns, pinned intake department fallback and explicit reclassification. The existing REPO-009 API journey in `tests/api/saved-views.test.mjs` also proves department query, saved filters, sorting and CSV without hidden values. Current capabilities conform; REPO-002/004/005/009 and RENEW-007 must assert inherited OCR, new fields, departments, field hiding and lifecycle behavior before shipping. | done | LOCAL PROVEN |
-| `REPO-007` | Saved views and columns | Clause-named `tests/api/saved-views.test.mjs` and `tests/browser/saved-views.spec.ts` save Supplier renewals next quarter with selected/reordered value, owner and notice-deadline columns and inclusive current-term filters. At 1440/390 the creator sees two matching suppliers, a role-shared approver sees only the permitted one, personal pins survive reload, and CSV matches the ordered visible results. API assertions cover private/wrong-role definitions hidden, current grants/revocation, creator-only/stale mutations, viewer-owned preferences, independent pins, agent write refusal, exact USD/date validation, formula-safe quoted multiline CSV and full archive retention. REPO-005 inherits custom-field query/filter/sort/columns/CSV; REPO-009 inherits group membership and field restrictions before filtering/sorting/excerpts/projection. | done | LOCAL PROVEN |
-| `REPO-008` | Agreement families | Clause-named `tests/api/families.test.mjs` + `tests/browser/families.spec.ts` link MSA, two orders and amendment; date-ordered family, selected amended end date and source citation at 1440/390; all six relations, guarded ancestry, cycles/stale parent, requester/agent refusal, approved agent link, stale superseded source, restricted scope, audit and archive. Explicit owner/counsel choice never sets legal precedence or feeds renewal deadlines; AGENT-005 carries conflict propagation; REPO-004/005 and MOVE-002/003/004/005/006/007 inherit family checks. | done | LOCAL PROVEN |
-| `REPO-009` | Groups, departments and field-level access | A journey grants Sales visibility of customer agreements only and hides value from viewers; a Sales viewer sees customer agreements without value in the register, search, CSV export and API state, and sees no supplier agreement. Before shipping, groups join REPO-007 sharing through current membership checks and field restrictions apply before filters, sort, excerpts and projection. Current membership, type and department grants and field hiding now have named public-door proof. | done | LOCAL PROVEN: `tests/api/saved-views.test.mjs` — REPO-009 current group and department grants intersect restricted access and hide fields before all repository projections (Sales customer-only register, search, CSV and state; hidden values before filters, sort and excerpts; owner and counsel access, original bytes, own-group sharing, auditing and next-request revocation). `tests/api/repository-policy-journey.mjs` continues that journey with unmatched requester loss and group restoration, unclassified department refusal, hidden approver skipped and owner approval completed, FIELD_ACCESS for every registered non-view business command, and delivered mention and digest privacy. `tests/browser/saved-views.spec.ts` — REPO-009 Sales visibility, hidden value and current group shares at 1440px and 390px (pre-save disclosure including request, update, approve, comment, signing and report restrictions, skipped approvers; policy, register, search, CSV, group shares, hidden totals, revocation and tooltips). REPO-012 now proves approved redacted renditions. REPO-013 supplies exceptions, per-group hiding, hidden-field submissions, access review, privileged notes and policy and classification diffs. INT-002 inherits future connector and webhook payload checks; ERASE-001 retains legal-hold custody. Policy approved 24 October; carved under ct direction 25 October |
-| `REPO-010` | Counterparty records | Clause-named `tests/api/counterparties.test.mjs`: a signatory without a title and an unknown notice method are refused; a Delaware corporation is recorded with EIN, registered and notice addresses, courier notice, a contact and a signatory. Three agreements link to it (an imported MSA with confirmed dates, its amendment linked as a family member, a draft), plus a restricted pilot. Intake creates "ACME Robotics", which is submitted and approved; a requester's merge and a stale merge are refused, counsel's merge moves its agreement (back to in review, approval withdrawn as "Counterparty merged"), keeps the duplicate as merged history with who and why and audits it; merging again or editing the duplicate is refused, and intake by its name or identity lands on the kept record. The kept record totals $180,000 contracted and $60,000 annual (120,000 over 730 days), lists the undated agreements, groups the MSA family and names the MSA's Nov 1, 2027 deadline next; a viewer's totals leave out the restricted pilot. Clause-named `tests/browser/counterparties.spec.ts` at 1440 and 390 pixels creates the duplicate through intake, records the notice address, courier method, EIN and signatory on the counterparty page, merges the duplicate there and sees all four agreements, $170,000 contracted, $60,000 annual and the Mon Nov 1, 2027, 11:59 pm ET deadline. The linked HubSpot company is asserted by `INTAKE-004`. | done | LOCAL PROVEN |
-| `REPO-011` | Bulk repository actions | A journey filters 300 imported agreements, sets Department = Sales on all of them, and reassigns a departing owner's 40 agreements and their open obligations to a colleague. It moves 25 agreements to the Finance group and downloads 20 originals as a ZIP whose digests match. It then exports the CSV, corrects the type on 15 rows and re-imports it, seeing a dry-run diff of exactly those 15 before applying. Each record's activity shows its audited change, and reverting the department change restores the prior values with history kept. A viewer's bulk edit is refused, and a record changed after selection is reported as skipped. | done | `tests/browser/repository-bulk-scale.mjs`: exact 300/40/25/20/15 journey, per-record audit and revert, viewer refusal and stale skip; run on exact candidate outside Verify and cited in landing report. `tests/api/saved-views.test.mjs`: REPO-011 reviewed bulk changes preserve custody, reassign open work, round-trip exact CSV differences and revert with history; REPO-011 SEC-001 rejects viewers and direct agent writes, skips stale records, enforces field roles and requires human review of proposals. `tests/browser/saved-views.spec.ts`: REPO-011 reviews filtered bulk changes, exact CSV differences and reversible history at 1440px/390px. |
-| `REPO-012` | Redacted renditions | The Sales viewer downloads the rendition; searching 748392 misses; the original's bytes are unchanged. Inherits REPO-009 field and access checks and REPO-011 bulk custody. | done | LOCAL PROVEN: `tests/api/saved-views.test.mjs` — Counsel-approved renditions preserve originals and scope every read to the current policy and version (Sales exact download, searching 748392 misses, originals unchanged, both digests, pending and wrong-role refusal, approved-text comparison, new-version and policy withholding). `tests/browser/saved-views.spec.ts` — REPO-009 Sales visibility, hidden value and current group shares at 1440px and 390px, rendition continuation in `tests/browser/repository-access-journey.mjs` (owner upload, counsel review and approval, Sales open and download, new-version withholding). Human-redacted file and text only; no automatic redaction. |
-| `REPO-013` | Access exceptions, review and hidden-field work | The share expires; the submitted value is stored and redacted on read-back; the audit CSV shows the diff; the access report names each reader's grant. Inherits REPO-009 field and access checks and REPO-011 bulk guards. | done | LOCAL PROVEN: `tests/api/saved-views.test.mjs` — REPO-009 current group and department grants intersect restricted access and hide fields before all repository projections with `tests/api/repository-exceptions-journey.mjs` proves reasoned owner and counsel exceptions, exact-boundary expiry and revocation without bypassing restricted custody; group-hidden fields before state, search, repository query, sort, CSV and every registered business command; requester-only stored hidden-value submission and redacted read-back; current reader grant reasons and membership revocation; privileged-note custody and refusal. The same parent test retains exact policy and classification before-and-after audit CSV assertions. `tests/browser/saved-views.spec.ts` — REPO-009 Sales visibility, hidden value and current group shares at 1440px and 390px with `tests/browser/repository-exceptions-journey.mjs` proves shares, expiry, group hiding, hidden-value submission, reader reports and privileged-note privacy at both widths; its existing continuation retains policy diff and CSV proof and navigation tooltips. `tests/api/counterparties.test.mjs` — “Scoped privacy delegates intersect current access, preserve owner authority and lose preview replay after revocation” proves privileged content stays redacted in delegated erasure previews and replay. |
+#### REPO-002 — PDF text and OCR
+
+Core · target · **partial**
+
+**Requirement.** Every PDF, including scanned and image-only signed copies, gets a searchable text layer with page and position anchors, run asynchronously with progress. A PDF that already carries a text layer is read directly. Scanned and image-only pages go to the OCR provider the owner chooses, with the owner's own credentials: Amazon Textract, Google Cloud Document AI (Enterprise Document OCR) or Azure AI Document Intelligence (Read model). Provider choice and switch-off sit with the model settings (`REVIEW-005`). The original bytes are untouched; the text layer is a derived rendition. Search, citations (`REVIEW-001`, `TERMS-001`) and extraction use it, and a person can see each page's OCR confidence and correct a misread passage, which is kept with history.
+
+**Acceptance.**
+1. a journey with an OCR-provider fake uploads a 20-page scanned agreement; the text becomes searchable, a term is cited to page 14, the original downloads with its original digest, and a corrected passage keeps the machine reading in history.
+2. The same journey runs against Textract, Document AI and Document Intelligence fakes.
+3. The clause is accepted only when a live OCR run under `REVIEW-006` meets the OCR bar with at least one named provider.
+
+**Evidence.** `src/locket/docx.ts`
+**Gap.** PDF text extraction and OCR do not exist
+
+#### REPO-003 — Bulk repository import with extraction
+
+Core · target · **partial**
+
+**Requirement.** An owner imports a legacy repository in bulk: a ZIP or folder of up to 10,000 PDF and DOCX files (files up to 50 MB, batches streamed in parts), or a connected Google Drive, OneDrive/SharePoint or Chest folder (`INT-001`), with an optional metadata CSV. Locket deduplicates by digest, runs OCR (`REPO-002`) and extraction (`REPO-004`), infers agreement families, and shows a reconciliation report (imported, duplicate, unreadable, needs review) before anything is used. Extracted parties, dates, renewal terms and USD values stay proposed until confirmed, individually or in bulk by a reviewer who has sampled them. On the day an imported agreement's renewal terms are confirmed, `RENEW-007` rolls an auto-renewing agreement forward past every end date already in the past, so it arrives with its current term, lifecycle status and next notice deadline. A batch can be undone until any of its agreements is used, like `MOVE-001`.
+
+**Acceptance.**
+1. a journey imports a 500-file fixture ZIP with 12 duplicates, 3 unreadable files and a CSV; the report counts match, every file keeps its digest, 50 sampled extractions are confirmed in bulk and the rest stay proposed, renewal deadlines appear only for confirmed terms, and undo before use removes the batch while keeping the journal.
+2. A supplier agreement in the batch signed in 2022 with a 1-year auto-renewing term shows as auto-renewing with its current term and next notice deadline once its terms are confirmed, not a deadline in 2022.
+
+**Evidence.** `src/locket/imports/commands.ts`; `tests/api/move-in.test.mjs`
+**Gap.** Generic PDF/DOCX bulk import, OCR, extraction and large-file streaming do not exist
+
+#### REPO-004 — Built-in term and metadata extraction
+
+Core · target · **partial**
+
+**Requirement.** For any executed or imported agreement, the built-in model proposes parties and our signing entity, effective, end and renewal dates, initial term, renewal type, renewal term, renewals allowed (`RENEW-007`), notice period and method, termination rights, governing law, payment terms, total and annual value in USD (with original currency kept), price-increase caps, liability caps, insurance requirements and every custom field (`REPO-005`), each citing its passage and confidence. Proposals follow `TERMS-001`: nothing drives a deadline until confirmed. Extraction accuracy is measured on a live provider under `REVIEW-006` and shown to the owner per field. A field whose latest live result is below its bar is marked low-confidence on every proposal and is never offered for bulk confirmation (`REPO-003`).
+
+**Acceptance.**
+1. a journey with a model-provider fake extracts 14 standard fields and two custom fields from a fixture MSA with citations; a person confirms twelve, corrects one and rejects one; the renewal deadline appears after the end date and notice period are confirmed.
+2. The clause is accepted only when a live run under `REVIEW-006` meets the extraction bars.
+
+**Evidence.** `src/locket/proposals.ts`; `src/locket/obligations.ts`
+**Gap.** Built-in extraction does not exist; native custom metadata ships under REPO-005
+
+#### REPO-005 — Custom metadata fields
+
+Core · target · **done**
+
+**Requirement.** The owner defines custom fields (text, number, USD money, date, pick list, yes/no, person, counterparty) per agreement type, with help text, required-at-stage rules and who may edit them. Fields appear on intake forms, the agreement page, extraction proposals, search filters, saved views, reports, exports and the API. Before shipping, custom fields join REPO-007's typed filters, sort, ordered columns and identical scoped CSV executor; unknown or inaccessible custom fields never act as a substitute value.
+
+**Acceptance.**
+1. a journey adds a "Data processing" yes/no field and a "Cost center" pick list required before approval, sees approval refused until the field is filled, filters the repository by both fields and finds them in the CSV export and the API state.
+2. Current semantics: the Library defines fields for the existing agreement types.
+3. Text, finite numbers, exact decimal USD, real calendar dates, configured pick options, JSON yes/no and existing person/counterparty references retain their types; false and zero are filled values.
+4. Required-at-stage rules continue through later workflow stages; native legacy imports and edits of imported history use the executed-stage checks.
+5. The configured human edit roles apply through intake, edits and proposal decisions, with current agreement and definition revisions fenced in the write batch.
+6. A metadata change withdraws earlier approvals and returns an approved agreement to review.
+7. The current native proposal door accepts an exact current-version citation and keeps values proposed until a permitted human accepts or corrects them; executed records also retain the existing signed-text citation checks.
+8. Confirmed custom key terms use REPO-008's visible-family, explicit governing-selection and stale-source path. Query, typed filters, sort, ordered columns, scoped CSV, report grouping and report exports all use the shared REPO-006/007 executor. REPO-004 carries built-in provider extraction for these same fields; REPO-009 carries field hiding before matching, filtering, sorting, excerpts and projection.
+
+**Evidence.** `tests/api/saved-views.test.mjs`: “REPO-005 typed metadata enforces owner definitions, edit roles, stage requirements and approval context through commands” (all types, help/scope/edit rules, false/zero, intake, approval refusal, API and archive); “REPO-005 required metadata fences review, signature handoff and reconciled execution atomically” (later required stages); “REPO-005 REPO-006 REPO-007 typed custom queries, ordering, scoped CSV and report groups use confirmed values” (typed query/filter/sort/ordered columns, current scope, CSV and CSV/PDF reports); “REPO-005 REPO-008 cited custom proposals require human acceptance and preserve scoped, stale governing family sources” (proposals and inherited family behavior). `tests/browser/saved-views.spec.ts`: “REPO-005 defines typed fields, blocks incomplete approval, saves metadata views and accepts cited family values at 1440px” and “REPO-005 defines typed fields, blocks incomplete approval, saves metadata views and accepts cited family values at 390px” (all changed native screens, both required acceptance fields, matching CSV and API).
+**Gap.** None.
+
+#### REPO-006 — Search and structured filters
+
+Core · target · **done**
+
+**Requirement.** People search the full text of every version they may access (DOCX text and OCR text), titles, references, counterparties and field values, with clause-level hits that open the exact passage. Structured filters cover type, workflow stage (draft, in review, approved, out for signature, executed), lifecycle status (`RENEW-007`), counterparty, owner, department, value range, any date range (effective, current term end, next notice deadline, each taken from the current term under `RENEW-007`, plus the original end date), renewal type, governing law, playbook deviations and custom fields, and combine with the text query. Results respect `ACCESS-001`.
+
+**Acceptance.**
+1. a journey searches "limitation of liability" filtered to supplier agreements over $100,000 ending in the next 180 days, opens a hit at its passage, and a viewer without access to a restricted match does not see it.
+2. An auto-renewing agreement whose original end date is in 2023 but whose current term ends in the window is found, and filtering by lifecycle status "expired" returns only expired agreements.
+3. Current scope and inheritance: every metadata field, confirmed term, version-text rendition, workflow stage and lifecycle state that exists today uses the permission-scoped repository executor shared with REPO-007.
+4. The board search and View settings search standard metadata and all accessible versions; View settings combines the query with typed filters.
+5. Department matching uses the current department name, from an explicit owner classification or otherwise the pinned request-form answer, after agreement visibility is applied.
+6. Renaming a department updates matching and projection; an explicit reclassification supersedes the intake answer.
+7. The same field supports saved filters, sorting, ordered columns and CSV.
+8. Filters intersect; USD uses exact cents and date bounds are inclusive calendar dates, with original dates distinct from derived current-term dates. Playbook deviations mean non-met findings on the current version, filterable by presence or clause key. Version-text search is a literal Unicode case-insensitive match and returns one link per matching paragraph per version, including older versions, with immutable version identity and exact original-text offsets. Following a link opens that version, unfolds the matching passage, highlights it and scrolls to it. Metadata-only matches have no invented passage. This clause is done for every capability that exists today. REPO-002 adds OCR renditions and page/position anchors to the same searchable, navigable path before shipping; REPO-004 adds newly extracted field values; REPO-005 adds custom fields; REPO-009 adds departments and applies field hiding before matching, filtering or returning excerpts; RENEW-007 adds its expanded lifecycle/current-term states to the same search and filters. Each asserts this inherited behavior before it ships.
+
+**Evidence.** `tests/api/search.test.mjs` — REPO-006 current-term structured search, all version passages, scoped filters, literal offsets and authenticated navigation data (combined search, lifecycle, passages, current access, department fallback and reclassification); `tests/browser/search.spec.ts` — REPO-006 structured current-term search and exact current and older passages at 1440px and 390px (department filter and column, passage navigation and tooltips); `tests/api/saved-views.test.mjs` — REPO-009 current group and department grants intersect restricted access and hide fields before all repository projections (department query, saved filters, sorting and CSV with hidden values)
+**Gap.** Current capabilities conform; REPO-002/004/005/009 and RENEW-007 inherit expanded rendition, field and lifecycle search before shipping
+
+#### REPO-007 — Saved views and columns
+
+Core · target · **done**
+
+**Requirement.** A person saves a repository view (query, filters, sort and chosen columns) as private or shared with named current roles, pins it personally, and exports it to CSV. The query searches standard metadata and accessible version text. Filters all match together and support case-insensitive text equality/containment and inclusive lower/upper bounds; USD amounts are entered as decimal dollars and compared as exact cents, dates as calendar dates (created/updated dates are UTC; current-term notice dates use each agreement's zone). Nulls sort last, with agreement identity breaking ties. Chosen columns retain their selected order in the screen and CSV, including value, owner, confirmed original terms and separately labelled derived current-term/notice fields. Original confirmed dates are never replaced by the projection.
+
+Each human role, including a viewer, can manage their own view preferences; agents can read shared definitions and results but cannot save, pin or delete. Only the creator updates or deletes a definition, with its current revision checked atomically; each person's pin is independent. A role share exposes only the explicitly shared definition and never grants agreement access. Every read and CSV export re-evaluates the query using the current viewer's agreement visibility. Private definitions, names and pins are hidden from other people; the owner's complete archive retains all definitions and pins. The CSV matches visible selected columns and sorted rows, uses standard quoting and prefixes spreadsheet formula-looking text with an apostrophe without changing stored values.
+
+This clause is done for every field and role that exists today. REPO-005 adds real custom fields to the same validated query/filter/sort/column/CSV path before it ships. REPO-009 adds real group shares and applies its field restrictions before filtering, sorting, search excerpts or projection, so no view grants access or exposes a hidden value indirectly.
+
+**Acceptance.**
+1. REPO-007 public API and browser journeys save "Supplier renewals next quarter" with ordered value, owner and notice-deadline columns, share it with approvers, reopen it as an approver with fewer permitted rows, and export matching CSV.
+2. At 1440/390 the controls, personal pins and resulting columns work without horizontal page scrolling.
+3. API assertions cover private and wrong-role definitions hidden by guessed ID, current access grant/revocation, creator-only/stale mutations, independent pins, viewer-owned preferences, agent write refusal, exact USD/date filters and formula-safe multiline CSV.
+4. REPO-005 and REPO-009 assert their inherited custom-field/group/field-access behavior before shipping.
+
+**Evidence.** `src/locket/saved-views.ts`; `src/locket/repository.ts`; `tests/api/saved-views.test.mjs`; `tests/browser/saved-views.spec.ts`
+**Gap.** None.
+
+#### REPO-008 — Agreement families
+
+Core · target · **done**
+
+**Requirement.** Agreements link as amends, order under, statement of work under, schedule to, renews and supersedes. The family page shows the parent and every accessible child in ascending recorded start-date order, falling back to creation date, then creation time and identity for ties. Linking rechecks the current session, role, child, parent and ancestry versions atomically and refuses cycles. An agent's proposed link is decided by owner or counsel.
+
+Owner or counsel explicitly selects a currently confirmed term from a visible linked document as the family's governing value for that key. The family page cites its document, quote and page where supplied. This records a human choice, never automatic legal precedence. A superseded source or changed source relation is visibly stale and needs review; a source the viewer cannot access is omitted. The recorded-value slice stays non-blocking and never changes a renewal deadline automatically. On the AGENT-005 path only, counsel’s explicit cited selection may propagate the renewal deadline and explicitly selected obligation dates. AGENT-005 carries executed conflict detection, counsel’s resolution and that propagation. REPO-004 (additional extracted term keys), REPO-005 (custom fields used as key terms), and MOVE-002, MOVE-003, MOVE-004, MOVE-005, MOVE-006 and MOVE-007 (new imported record kinds) inherit the same family visibility, citation, guarded selection and stale-source checks before shipping.
+
+**Acceptance.**
+1. clause-named `tests/api/families.test.mjs` and `tests/browser/families.spec.ts` link an MSA, two orders and an amendment at 1440/390; date order matches the recorded dates, the explicitly selected amended end date cites the amendment, and its source opens.
+2. API assertions cover all six relations, cycle and stale-parent refusal, requester/agent write refusal, a human-decided agent link, stale superseded terms, restricted members hidden, signed-out refusal, attributed audit and complete archive.
+3. Browser assertions include the requester's read-only family screen and no horizontal scrolling.
+
+**Evidence.** `src/locket/families.ts`; `src/locket/family-projection.ts`; `src/ui/family.tsx`; `tests/api/families.test.mjs`; `tests/browser/families.spec.ts`
+**Gap.** None.
+
+#### REPO-009 — Groups, departments and field-level access
+
+Core · target · **done**
+
+**Requirement.** Beyond restricted agreements, the owner defines departments and groups (Sales, Procurement, HR, Finance) and grants each visibility by agreement type and department, and can hide specific fields (value, pricing schedules) from roles that may otherwise read the agreement. Every read, search hit, export, notification and connector payload applies the same rules. Before shipping, groups join REPO-007's definition-sharing audiences through current membership checks; field restrictions run before saved-view filters, sort, excerpts or projection, so a definition never grants access or leaks a hidden value indirectly.
+
+**Acceptance.**
+1. a journey grants Sales visibility of customer agreements only and hides value from viewers; a Sales viewer sees customer agreements without value in the register, search, CSV export and API state, and sees no supplier agreement.
+2. Owner-configured repository grants now intersect ACCESS-001: after the owner enables them, a non-owner/non-counsel reader needs current membership in a matching group/department, the agreement type and any selected agreement department.
+3. Explicit restricted grants do not bypass this intersection.
+4. The owner classifies existing agreements by department; published-form department answers supply the department until an explicit classification exists.
+5. Group-shared saved definitions use current membership on reads, pins and execution, and never grant agreement access.
+6. Policy approved by ct on 23 October 2026 at 11:28Z and reaffirmed on 24 October at 17:06Z: owner and counsel retain full access; unmatched readers are denied; only the owner manages visibility and field policy and classification.
+7. Other human creators share a view only to a group they currently belong to.
+8. Hiding value, pricing schedules or a custom field removes structured values before search, filters, sorting, CSV and projection. Hidden-field filters and sorts are refused. Because immutable originals and arbitrary quotations may repeat a hidden value, affected roles cannot obtain original files, comparisons, free-text evidence, reports or consequential business-command outcomes; they receive a labelled structured view instead. This avoids inventing safe redaction or changing original bytes. The existing owner archive retains all originals. Future connectors and fields inherit these checks before shipping. Enabling the policy also denies a requester, responsible person or explicitly granted person who matches no grant, even on their own agreement; an unclassified agreement is outside every department-scoped grant. Field hiding is per role, installation-wide. A role with any hidden field is read-only for business commands: it cannot request, update, approve, comment, coordinate signing or run reports, and approval rules skip its members. The owner's access form states this before saving.
+
+**Evidence.** `tests/api/saved-views.test.mjs` — REPO-009 current group and department grants intersect restricted access and hide fields before all repository projections (Sales customer-only register, search, CSV and state; hiding before filters, sort and excerpts; full owner and counsel access, exact originals, own-group sharing, auditing and revocation; `tests/api/repository-policy-journey.mjs` continuation: own-request loss and group restoration, unclassified refusal, skipped hidden approver and completed owner approval, every registered business command returns FIELD_ACCESS, delivered mention and digest privacy). `tests/browser/saved-views.spec.ts` — REPO-009 Sales visibility, hidden value and current group shares at 1440px and 390px (pre-save warning and all business consequences; policy, register, search, CSV, sharing, hidden totals, revocation and tooltips)
+**Gap.** REPO-012 supplies approved redacted renditions; REPO-013 supplies exceptions, per-group hiding, hidden-field submission, access review, privileged notes and policy and classification diffs. INT-002 inherits future connector and webhook payload checks; ERASE-001 retains legal-hold custody
+
+#### REPO-010 — Counterparty records
+
+Core · target · **done**
+
+**Requirement.** Each counterparty has its legal entity name, entity type and state of formation, EIN where supplied, addresses, notice address and method, contacts and authorized signatories, every agreement in its families, total and annual contracted value in USD, and open obligations and deadlines. Duplicates are merged with history; CRM, accounting and procurement records (`INTAKE-004`, `LINK-001`, `LINK-002`) link to the same counterparty.
+
+Exactly: anyone who takes requests (owner, counsel, approver, requester) records a counterparty's legal name, kind, entity type, state or country of formation, EIN or foreign tax ID (`US-001`), email, registered address, notice address and method (email, post, courier or by hand), contacts and authorized signatories (name, email and title); Locket records signatories and never validates signing authority. The page shows only the agreements the reader may see (`ACCESS-001`), grouped by family (`REPO-008`), with their open obligations and `OBL-002` risk. Total contracted value is the USD value (`US-001`) of its executed and imported agreements; annual value is each one's value over its confirmed effective date to confirmed end date (both inclusive) scaled to 365 days and rounded half up to the cent, and an agreement without a value or without both dates is listed as not counted. The next notice deadline is the earliest current one (`RENEW-007`, with `US-001` rolling). Owner or counsel merge a duplicate into the record they keep, giving a reason: in one guarded write its agreements and clickwrap acceptances move to the kept record, approvals of agreements still in negotiation stop counting (the counterparty in their decision context changed), and the duplicate stays as history marked merged into the kept record with who, when and why; intake by the duplicate's name or identity lands on the kept record, and a merged record cannot be edited or merged again. CRM, accounting and procurement links (`INTAKE-004`, `LINK-001`, `LINK-002`) each attach their external record to this same counterparty and show it on this page before they ship.
+
+**Acceptance.**
+1. a journey adds a counterparty with a notice address, links three agreements, merges a duplicate created by intake, and sees the combined value and open deadlines on the counterparty page; the linked HubSpot company is asserted by `INTAKE-004`'s journey.
+
+**Evidence.** `src/locket/counterparties.ts`; `src/locket/counterparty-summary.ts`; `tests/api/counterparties.test.mjs`; `tests/browser/counterparties.spec.ts`
+**Gap.** None.
+
+#### REPO-011 — Bulk repository actions
+
+Core · target · **done**
+
+**Requirement.** From any search, filter or saved view (`REPO-006`, `REPO-007`), a person selects up to 5,000 agreements and acts on all of them at once:
+
+- Set or clear a standard or custom field (`REPO-005`), such as Department = Sales or a corrected agreement type.
+- Reassign the responsible person, and every open obligation and reminder a departing person owns (`OBL-001`, `RENEW-002`), to a named colleague.
+- Change group and department access (`REPO-009`).
+- Download the selected originals, signed files and certificates as one ZIP with a manifest of file digests.
+- Export the selection's metadata to CSV, edit it in a spreadsheet and re-import it as an update. A dry run shows the diff by record and field, and nothing changes until a person applies that exact dry run.
+
+Every bulk change is applied record by record through the same role, access, version and atomic checks as a single edit (`SEC-001`). A record the person may not edit, or one that changed after it was selected, is reported as skipped and left untouched. Each changed record shows an audited change linked to the bulk operation (`AUDIT-001`). A bulk operation can be reverted as one, which restores the prior values and keeps both changes in history. Restricted agreements stay invisible to people without access (`ACCESS-001`). Viewers cannot run bulk actions; agents may only propose a bulk update for a person to apply (`PROPOSE-001`).
+
+**Acceptance.**
+1. a journey filters 300 imported agreements, sets Department = Sales on all of them, and reassigns a departing owner's 40 agreements and their open obligations to a colleague.
+2. It moves 25 agreements to the Finance group and downloads 20 originals as a ZIP whose digests match.
+3. It then exports the CSV, corrects the type on 15 rows and re-imports it, seeing a dry-run diff of exactly those 15 before applying.
+4. Each record's activity shows its audited change, and reverting the department change restores the prior values with history kept.
+5. A viewer's bulk edit is refused, and a record changed after selection is reported as skipped.
+6. Exactly: the selected search/view is frozen as record revisions, up to 5,000.
+7. Dry-run review and application resume in bounded native guarded batches, with a visible count and per-record outcome.
+8. Required fields retain their existing validation; optional fields can be cleared. Access classification and our entity use their existing owner/counsel authority. Assigned agreement groups additionally require current membership and intersect restricted/type/department policy; clearing group assignment restores that underlying policy, never a restricted-access grant. Ownership reassignment moves only the departing responsible person’s open obligations and stored reminder schedules, preserving their other settings. ZIP streams original/signed/certificate bytes with a SHA-256 manifest. CSV updates use exported record identities/revisions and apply the exact reviewed diff. Revert checks current versions, permissions and the operation’s changed fields, preserving unrelated later edits and skipping a field edited again. Agents submit an evidenced proposal; an authorized person separately reviews and applies it. Later REPO-012/013 and INT-002 inherit these current group, field and record checks.
+
+**Evidence.** `tests/browser/repository-bulk-scale.mjs`: 300 imported agreements / 300 department updates / 40 owner and open-obligation reassignments / 25 Finance group moves / 20 digest-matching ZIP originals / 15 exact CSV corrections / 300 audited reverts / viewer refusal and stale skip (exact-candidate heavy-slot run cited in landing report); `tests/api/saved-views.test.mjs`: REPO-011 reviewed bulk changes preserve custody, reassign open work, round-trip exact CSV differences and revert with history (stored reminders, signed/certificate ZIPs and archive); REPO-011 SEC-001 rejects viewers and direct agent writes, skips stale records, enforces field roles and requires human review of proposals (typed custom/entity roles and evidenced proposals); `tests/browser/saved-views.spec.ts`: REPO-011 reviews filtered bulk changes, exact CSV differences and reversible history at 1440px/390px
+**Gap.** None for current repository metadata, access and files; REPO-012/013 and INT-002 inherit current checks
+
+#### REPO-012 — Redacted renditions
+
+Core · target · **done**
+
+**Requirement.** Owner or counsel produces a redacted rendition of a version as a new file beside the unchanged original, recording both digests. Counsel approves it for named hidden-field roles, which may then open, download, search and compare only approved renditions. A new version withholds the document until its rendition is approved.
+
+**Acceptance.**
+1. the Sales viewer downloads the rendition; searching 748392 misses; the original's bytes are unchanged.
+
+**Evidence.** `tests/api/saved-views.test.mjs` — Counsel-approved renditions preserve originals and scope every read to the current policy and version (Sales download, 748392 search miss, unchanged original bytes, both digests, counsel approval, approved-text comparison, new-version withholding and current-policy refusal); `tests/browser/saved-views.spec.ts` — REPO-009 Sales visibility, hidden value and current group shares at 1440px and 390px, rendition continuation in `tests/browser/repository-access-journey.mjs` (upload, approval, Sales open and exact download, new-version withholding)
+**Gap.** None; files and searchable text are human-produced and counsel-approved, never automatically redacted
+
+#### REPO-013 — Access exceptions, review and hidden-field work
+
+Core · target · **done**
+
+**Requirement.** Owner or counsel shares one agreement with a named person, with a reason and an expiry. The share overrides group grants, never ACCESS-001. Fields can be hidden per group. A hidden-value requester submits a value they cannot read back. Policy and classification changes record before and after in AUDIT-001. Owner and counsel see who can read any agreement and why. Privileged legal notes are visible only to owner and counsel.
+
+**Acceptance.**
+1. the share expires; the submitted value is stored and redacted on read-back; the audit CSV shows the diff; the access report names each reader's grant.
+
+**Evidence.** `tests/api/saved-views.test.mjs` — REPO-009 current group and department grants intersect restricted access and hide fields before all repository projections with `tests/api/repository-exceptions-journey.mjs` proves reasoned owner and counsel exceptions, exact-boundary expiry and revocation without bypassing restricted custody; group-hidden fields before state, search, repository query, sort, CSV and every registered business command; requester-only stored hidden-value submission and redacted read-back; current reader grant reasons and membership revocation; privileged-note custody and refusal. The same parent test retains exact policy and classification before-and-after audit CSV assertions. `tests/browser/saved-views.spec.ts` — REPO-009 Sales visibility, hidden value and current group shares at 1440px and 390px with `tests/browser/repository-exceptions-journey.mjs` proves shares, expiry, group hiding, hidden-value submission, reader reports and privileged-note privacy at both widths; its existing continuation retains policy diff and CSV proof and navigation tooltips. `tests/api/counterparties.test.mjs` — “Scoped privacy delegates intersect current access, preserve owner authority and lose preview replay after revocation” proves privileged content stays redacted in delegated erasure previews and replay.
+**Gap.** None; existing restricted custody, field hiding and bulk guards remain in force
 
 ### Drafting and playbooks
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `DRAFT-002` | Word documents from templates | A journey populates an approved Word-based MSA template whose answers include a conditional data-processing clause; the downloaded DOCX opens with the template's styles and numbering, contains the conditional clause and the fields, renders a three-row pricing table with its total, and its PDF rendition is approved for signing. | done | LOCAL PROVEN — `tests/api/clause-library.test.mjs`: DRAFT-004 authors four source fields and an optional paragraph, previews and approves immutable Word then a requester generates without losing formatting (styles/numbering, conditional clause, fields); DRAFT-002 populated Word MSA keeps conditional wording and three price rows, requires the reviewed PDF and pins its approval for signing (three supplied items/$1426 and a two-item/$526 selection, repeated rows, exact USD totals, invalid quantity and empty-item refusals, PDF approval). `tests/browser/clause-library.spec.ts`: DRAFT-004 author/requester journey at 1440/390 also configures the pricing table, supplies three items, attaches a reviewed PDF and generates another priced version. `tests/browser/word-template-open.mjs` opens the actual populated MSA in LibreOffice, checks the exported PDF including the calculated total, then approves/packages those exact bytes. |
-| `DRAFT-003` | Clause library in negotiation | `tests/api/clause-library.test.mjs` and `tests/browser/clause-library.spec.ts` name DRAFT-003: approved indemnity variants, usage notes/rules, browser fallback insertion at 1440/390, library/playbook provenance in version identity and export, unchanged original, count after document-confirmed execution, recorded template selections counted once per accessible agreement, removed wording excluded, and approval/authority/version/passage refusals. The library version is the approved template version; browser insertion produces a text PDF. NEG-003 inherits the same Word search/insertion/provenance/audit/count obligation before shipping. | done | LOCAL PROVEN |
-| `DRAFT-004` | Templates authored from existing Word documents | A journey uploads a firm's NDA DOCX, marks four fields and one optional clause, previews with sample answers, approves it, and a requester generates an NDA from it under `DRAFT-002`. | done | LOCAL PROVEN — `tests/api/clause-library.test.mjs`: DRAFT-004 authors four source fields and an optional paragraph, previews and approves immutable Word then a requester generates without losing formatting (all acceptance points); DRAFT-004 refuses forged or overlapping markings, stale previews, unapproved use and unsafe Word sources without changing originals (refusals); `tests/browser/clause-library.spec.ts`: DRAFT-004 uploads Word, marks four fields and an optional paragraph, previews, approves and generates as requester at 1440px/390px; `tests/browser/word-template-open.mjs` opens the generated Word in LibreOffice. |
-| `PLAY-002` | Playbooks drafted from templates and history | A journey with a model-provider fake drafts rules from two templates and 20 executed agreements; counsel accepts six, edits two and rejects one; the new playbook version activates only on approval and cites its source agreements. The clause is accepted only when a live run under `REVIEW-006` meets the playbook-drafting bar. | missing | NOT PROVEN |
+#### DRAFT-002 — Word documents from templates
+
+Core · target · **done**
+
+**Requirement.** A populated template produces a formatted DOCX (and its PDF rendition) that keeps the template's styles, numbering, headers and tables, with conditional clauses chosen by the requester's answers and fields filled. Repeating pricing tables fill from line items (`INTAKE-004`, `LINK-003`) with a USD total. The template's signature blocks carry through as signature fields (`SIGN-005`). Business users generate standard agreements (NDA, MSA, order form, SOW) self-service; the result is the first version with its digest.
+
+**Acceptance.**
+1. a journey populates an approved Word-based MSA template whose answers include a conditional data-processing clause; the downloaded DOCX opens with the template's styles and numbering, contains the conditional clause and the fields, renders a three-row pricing table with its total, and its PDF rendition is approved for signing.
+2. Word-authored templates (`DRAFT-004`) populate the approved source package’s selected fields and Include/Omit paragraph choices, preserving existing run/paragraph styles, numbering, tables, headers, footers and other untouched parts.
+3. A source field may span formatted runs; its replacement inherits the first selected run’s formatting.
+4. Values remain plain text, XML-escaped.
+5. The generated original DOCX, populated text, fields, chosen clauses and template version join the exact version digest.
+6. Text-authored templates retain their existing text/PDF path.
+7. For a Word-authored version a person exports/reviews a PDF in their document editor and attaches it through the existing rendition door; adding it withdraws earlier approvals.
+8. Signing refuses a Word version without that reviewed PDF and packages the exact newly approved PDF, without silently flattening its formatting. Owner/counsel selects a prototype item row and later total row in an existing Word table, previews the current selection with supplied line items, then approves it. Intake, template previews and later version generation all accept descriptions, positive integer quantities and exact USD unit prices, repeat the prototype row and calculate line/grand totals without floating-point arithmetic. The first cell records description/quantity/unit price and the last records the line total; only the selected body rows and grand-total cell change. INTAKE-004 and LINK-003 inherit this same validated line-item door when their connected sources ship; SIGN-005 retains its signature-block-to-field placement obligation and inherits the exact-version/reviewed-PDF boundary.
+
+**Evidence.** `tests/api/clause-library.test.mjs` — DRAFT-004 authors four source fields and an optional paragraph, previews and approves immutable Word then a requester generates without losing formatting (styles/numbering, conditional clause, fields); DRAFT-002 populated Word MSA keeps conditional wording and three price rows, requires the reviewed PDF and pins its approval for signing (supplied three-item and two-item rows/calculated totals, invalid quantities, PDF refusal/approval/package); `tests/browser/word-template-open.mjs` (real LibreOffice open/export and actual reviewed PDF approved/packaged); `tests/browser/clause-library.spec.ts` — DRAFT-004 uploads Word, marks four fields and an optional paragraph, previews, approves and generates as requester at 1440px/390px
+**Gap.** None for current source-field/optional-paragraph/manual line-item doors; INTAKE-004/LINK-003 inherit the validated line-item door and SIGN-005 retains signature-field placement.
+
+#### DRAFT-003 — Clause library in negotiation
+
+Core · target · **done**
+
+**Requirement.** Approved clauses (preferred, fallback one, fallback two, walk-away) are searchable by topic with usage notes, the playbook rule they satisfy, and how often each was accepted. An approved template version is the library version. During negotiation a person inserts a clause into a new version in the browser, with the current authority, version and selected-passage checks; the inserted text, variant, library version and playbook provenance are recorded in that version and its digest, and earlier originals stay untouched. The count is once per agreement the person may access whose currently executed version retains that recorded template selection or negotiation insertion and whose execution records document confirmation; unchosen matching text and removed wording do not count. The current browser insertion produces a text PDF; Word formatting remains `DRAFT-002`/`NEG-002`. When the Word door (`NEG-003`) ships, it must provide the same approved-clause search, insertion, immutable provenance, version checks, audit and acceptance counting before it is done.
+
+**Acceptance.**
+1. the `DRAFT-003` API and browser journeys search for "indemnity", inspect all four approved variants with usage notes and the playbook rule, insert fallback one into a new browser version at 1440 and 390 pixels, verify the text and immutable library/playbook provenance, and execute the agreement so the acceptance count rises.
+2. They prove the original download is unchanged, template selections also count, removed wording does not, archive export retains provenance, and draft/retired clauses, viewers and stale or mismatched selections are refused.
+3. `NEG-003` must assert the same Word-door obligation when it ships.
+
+**Evidence.** `src/locket/clause-insertion.ts`; `src/locket/clause-provenance.ts`; `tests/api/clause-library.test.mjs`; `tests/browser/clause-library.spec.ts`
+**Gap.** None.
+
+#### DRAFT-004 — Templates authored from existing Word documents
+
+Core · target · **done**
+
+**Requirement.** Owner or counsel upload an existing Word template, mark fields and optional clauses in the browser (or with the Word add-in), preview it with sample answers, and approve it as a template version, keeping the document's formatting.
+
+**Acceptance.**
+1. a journey uploads a firm's NDA DOCX, marks four fields and one optional clause, previews with sample answers, approves it, and a requester generates an NDA from it under `DRAFT-002`.
+2. The owner/counsel uploads an original DOCX, selects exact source offsets for fields and whole paragraphs for optional clauses, previews explicit sample answers with a downloadable populated DOCX, and approves that exact marking revision.
+3. Later marking edits require a fresh preview; approved/retired versions and original bytes are immutable, and an uploaded revision creates a new template version.
+4. The existing shared Library read policy applies to Word sources and previews as it does to template bodies.
+5. The parser validates ZIP bounds, entry identities, expanded sizes and CRCs.
+6. Active content, external relationships, tracked changes, document fields and text boxes are refused with an explicit unsupported-source error, without altering the source; accept/remove them in Word first.
+7. Current field markings cover main-document paragraphs and tables; untouched document formatting/parts remain intact.
+
+**Evidence.** `tests/api/clause-library.test.mjs` — DRAFT-004 authors four source fields and an optional paragraph, previews and approves immutable Word then a requester generates without losing formatting (all acceptance points and format/source custody); DRAFT-004 refuses forged or overlapping markings, stale previews, unapproved use and unsafe Word sources without changing originals (refusals); `tests/browser/clause-library.spec.ts` — DRAFT-004 uploads Word, marks four fields and an optional paragraph, previews, approves and generates as requester at 1440px/390px (all authoring/requester screens); `tests/browser/word-template-open.mjs` (real editor opening)
+**Gap.** Current main-document plain-text fields and whole-paragraph optionals; unsupported active/tracked/externally linked source packages are explicitly refused
+
+#### PLAY-002 — Playbooks drafted from templates and history
+
+Core · target · **missing**
+
+**Requirement.** The built-in model drafts playbook rules from the approved templates and past executed agreements: for each clause topic, the preferred position, fallbacks seen in signed deals and suggested exception authority, citing the agreements it learned from. Counsel edits, accepts or rejects each rule; nothing activates until counsel approves a new playbook version under `PLAY-001`.
+
+**Acceptance.**
+1. a journey with a model-provider fake drafts rules from two templates and 20 executed agreements; counsel accepts six, edits two and rejects one; the new playbook version activates only on approval and cites its source agreements.
+2. The clause is accepted only when a live run under `REVIEW-006` meets the playbook-drafting bar.
+
+**Evidence.** None.
+**Gap.** Playbooks are authored by hand only
 
 ### Negotiation
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `NEG-002` | Word tracked changes round-trip | A journey uploads a fixture DOCX with 12 tracked changes and 4 comments from two authors; all are listed with authors and positions; accepting 9 and rejecting 3 creates a new version whose downloaded DOCX carries the remaining comments and our replies as Word comments, and the counterparty file downloads with its original digest. The output opens without repair in Word and LibreOffice. | partial | `tests/api/browser-edits.test.mjs` — Word review preserves twelve authored revisions, resolves nine and rejects three, round-trips comments and replies, and strips private outgoing content; Word review refuses stale and unauthorized changes, mismatched move decisions and inaccessible originals. `tests/browser/word-review.spec.ts` — Word tracks twelve changes, nine accepts and three rejects, retained replies and cleaned outputs at 1440px/390px. `tests/browser/word-review-open.mjs` opens clean/redline in LibreOffice. Gap: licensed Word opening without repair; explicitly refused structural/text-box/non-main-story revisions. |
-| `NEG-003` | Locket for Word add-in | A Word-on-the-web journey opens an agreement in the add-in, sees three findings anchored to their clauses, applies one AI redline as a tracked change, saves as version 4, and is refused when saving over a version someone else has replaced; an approver approves version 4 from the add-in and the approval pins its digest. A sideloaded run in Word on the web against a Microsoft 365 developer tenant, and the add-in's passing AppSource validation, are recorded before the clause is accepted. The Word journey must also search indemnity, insert an approved fallback with its DRAFT-003 library/playbook provenance and audited authority/version/passage checks, and see its count rise only after document-confirmed execution. | missing | NOT PROVEN |
-| `NEG-004` | Browser redlining and threaded comments | Clause-named `tests/api/browser-edits.test.mjs` and `tests/browser/browser-edits.spec.ts`: at 1440/390 edit two clauses, select a third passage, mention counsel, then sign in as counsel to reply and resolve; the saved version shows exactly the two tracked edits and the API comparison matches their recorded before/after lines. Assert author/time/base provenance, generated PDF, untouched original bytes, approval withdrawal, notification delivery, stale/unchanged/unauthorized edits, wrong anchors, cross-version/closed threads, revision guards, restricted reads, resolution persistence and archive retention. `tests/browser/browser-edits-live.mjs` repeats the edit/comment/reply/resolve path through real rer dev at both widths; local mail stays suppressed. | done | LOCAL PROVEN |
-| `NEG-005` | Internal and external sides of a negotiation | A journey adds two internal and one external comment, shares the version with the counterparty under `NEG-006`, and confirms the counterparty view and the outgoing DOCX contain only the external comment; an attempt to send a file still carrying an internal comment is warned and cleaned. | partial | Native sharing boundary is proven by `tests/api/browser-edits.test.mjs` and `tests/browser/browser-edits.spec.ts` NEG-006 journeys: two internal/one external Locket comments, embedded Word comment/private metadata cleanup warning and explicit approval, no private comments in public view/Word output, unchanged original custody. ct (22 Oct 2026, 854aeca) approves the owner/counsel explicit-designation and plain-rendition boundary. Gap: format-preserving outgoing Word files (NEG-002) and Gmail/Outlook sends (NEG-006) must apply the same internal-content stripping and warning before they ship; a plain rendition never satisfies NEG-002. |
-| `NEG-006` | Counterparty exchange by email and secure link | A journey with a Postmark fake sends version 2 to a counterparty contact, opens the secure link as the counterparty, uploads a markup and comments; version 3 appears as a counterparty version with its digest, the activity shows sent, opened and uploaded, and the link refuses access after expiry. | partial | Server-generated purpose-separated HMAC capabilities retain only hashes; reply capability cannot open the public document and a link capability cannot authorize inbound mail. Existing v2 and v3 journey also asserts NOT_CURRENT after a newer upload. Added public-door tests in `tests/api/browser-edits.test.mjs`: Exchange capabilities end when the contact, external comment or sending session is withdrawn; Rejected, uncertain and rate-limited exchange mail attempts retain honest outcomes and never resend. Contact removal, comment withdrawal, native sign-out and native session revocation refuse open, download, comment and upload. Raw link and reply capabilities are absent from the archive. Gap: Sending through the person’s connected Gmail or Outlook remains blocked on owner mail-account authorization. Original-format round-trip stays with NEG-002. Separate server-generated link and inbound-only reply capabilities now ship; legacy reply addresses require a fresh exchange. No live mail-account receipt is claimed. This round passed real component browser proof against Worker and D1 at 1440 and 390; native rer startup failed and is not claimed as passing. |
+#### NEG-002 — Word tracked changes round-trip
+
+Core · target · **partial**
+
+**Requirement.** Locket reads Word tracked changes (insertions, deletions, moves, formatting), comments and their authors from a counterparty's DOCX and shows them as redlines against the version they were made on. It writes a DOCX with Locket-side changes as tracked changes and comments, attributed to the person who made them. Accepting or rejecting changes produces a new version; the counterparty's original file stays byte-for-byte. Clean and redline outputs are both available.
+
+**Acceptance.**
+1. a journey uploads a fixture DOCX with 12 tracked changes and 4 comments from two authors; all are listed with authors and positions; accepting 9 and rejecting 3 creates a new version whose downloaded DOCX carries the remaining comments and our replies as Word comments, and the counterparty file downloads with its original digest.
+2. The output opens without repair in Word and LibreOffice.
+
+**Evidence.** `tests/api/browser-edits.test.mjs` — Word review preserves twelve authored revisions, resolves nine and rejects three, round-trips comments and replies, and strips private outgoing content (12 changes/4 comments, authors/positions, 9 accept/3 reject, attributed edit, replies, source digest, clean/redline and format cleanup); Word review refuses stale and unauthorized changes, mismatched move decisions and inaccessible originals; `tests/browser/word-review.spec.ts` — Word tracks twelve changes, nine accepts and three rejects, retained replies and cleaned outputs at 1440px/390px; `tests/browser/word-review-open.mjs` — both outputs open/render without repair in LibreOffice
+**Gap.** Licensed Word opening proof unavailable; structural revisions, text boxes and non-main-story revisions explicitly refused; plain rendition never satisfies this clause
+
+#### NEG-003 — Locket for Word add-in
+
+Core · target · **missing**
+
+**Requirement.** An Office add-in for Word on Windows, Mac and the web, distributed through Microsoft AppSource and the buyer's Microsoft 365 admin, signs in with the person's Locket session, opens the current version, shows playbook findings beside the clauses they cite, inserts clause-library text, applies accepted AI redlines as tracked changes, and saves back as a new version with the stale-version check. Approvers can review and approve the exact version from the add-in. Before this door ships it also satisfies `DRAFT-003`: approved-clause search, notes/rules, insertion into a new version, immutable library/playbook provenance, authority and stale/passage checks, command audit and retained-choice acceptance counts.
+
+**Acceptance.**
+1. a Word-on-the-web journey opens an agreement in the add-in, sees three findings anchored to their clauses, applies one AI redline as a tracked change, saves as version 4, and is refused when saving over a version someone else has replaced; an approver approves version 4 from the add-in and the approval pins its digest.
+2. A sideloaded run in Word on the web against a Microsoft 365 developer tenant, and the add-in's passing AppSource validation, are recorded before the clause is accepted.
+3. The Word journey also searches indemnity, inserts an approved fallback with its library/playbook provenance and audited version checks, and sees its `DRAFT-003` count rise only after document-confirmed execution.
+
+**Evidence.** None.
+**Gap.** No Word add-in exists
+
+#### NEG-004 — Browser redlining and threaded comments
+
+Core · target · **done**
+
+**Requirement.** People edit a version in the browser with changes recorded as tracked changes, comment on a selected passage, @mention colleagues, reply in threads and resolve them. Saving creates a new version; mentions notify (`NOTIFY-001`). Browser revisions retain the base version, author, time and before/after line changes in the new version's identity, alongside its generated text PDF; comparison shows the edits without rewriting the earlier original. Replies and resolution stay on their root comment's document version; a changed thread revision must be reloaded before resolution. The existing document-edit and comment roles apply.
+
+**Acceptance.**
+1. a browser journey at 1440 and 390 pixels edits two clauses, comments on a third, mentions counsel, who replies and resolves; the saved version shows the tracked edits and the compare view lists exactly those changes.
+
+**Evidence.** `src/locket/browser-edits.ts`; `src/locket/comment-threads.ts`; `tests/api/browser-edits.test.mjs`; `tests/browser/browser-edits.spec.ts`; `tests/browser/browser-edits-live.mjs`
+**Gap.** None.
+
+#### NEG-005 — Internal and external sides of a negotiation
+
+Core · target · **partial**
+
+**Requirement.** Every comment and version is marked internal or external. Internal comments, findings, approvals and internal-only versions never appear in anything shared with the counterparty (downloads, emails, the secure link). A person sends the external view by choice; Locket warns when an outgoing DOCX still carries internal comments or metadata and strips them.
+
+**Acceptance.**
+1. a journey adds two internal and one external comment, shares the version with the counterparty under `NEG-006`, and confirms the counterparty view and the outgoing DOCX contain only the external comment; an attempt to send a file still carrying an internal comment is warned and cleaned.
+
+**Evidence.** `tests/api/browser-edits.test.mjs`: NEG-006 sends a clean external v2 through the installation mail door, accepts an exact v3 markup and audits scoped account-free use (two internal/one external comment, embedded internal Word comment and private author metadata removed, unchanged original); NEG-006 refuses internal versions, unsafe disclosure, forged scope, revoked links and removed sender authority (refused unapproved rendition/disclosure); `tests/browser/browser-edits.spec.ts`: NEG-006 sends external v2, receives counterparty v3 and expires without an account at 1440px/390px (explicit clean-rendition warning/approval and no private comments)
+**Gap.** ct (22 Oct 2026, 854aeca) approves the owner/counsel explicit-designation and plain-rendition boundary. Gap: format-preserving outgoing Word files (NEG-002) and Gmail/Outlook sends (NEG-006) must apply the same internal-content stripping and warning before they ship; a plain rendition never satisfies NEG-002.
+
+#### NEG-006 — Counterparty exchange by email and secure link
+
+Core · target · **partial**
+
+**Requirement.** A person sends the external version to counterparty contacts from Locket by email (Postmark, or the person's connected Gmail or Outlook) or a secure, expiring link where the counterparty can view, download, comment and upload a markup without an account. Replies with attachments come back as counterparty versions on the same agreement. Every send, open and upload is recorded.
+
+**Acceptance.**
+1. a journey with a Postmark fake sends version 2 to a counterparty contact, opens the secure link as the counterparty, uploads a markup and comments; version 3 appears as a counterparty version with its digest, the activity shows sent, opened and uploaded, and the link refuses access after expiry.
+2. Authority and disclosure (ct 22 Oct 2026): only owner or counsel initiates sharing.
+3. A version and each shared comment require explicit external designation; a separate recorded-contact disclosure approval authorizes a pinned plain Word rendition and an expiring email/link.
+4. The rendition includes only reviewed version text and explicitly external Locket comments; original bytes are retained, while source formatting, embedded comments and metadata are removed.
+5. The no-account bearer token is hashed at rest and scoped to one version/contact; possession is attributed to that designated contact without claiming identity verification.
+6. Every request rechecks expiry/revocation, the sender’s current native session/role/access, the recorded contact and external designation.
+7. Removing a contact, withdrawing external content, erasure or sender authority invalidates access.
+8. Email is a single claimed Postmark attempt with honest accepted/suppressed/rejected/uncertain outcomes; uncertain attempts are not automatically resent. Provider-authenticated replies to the scoped address require a configured inbound secret/domain and the designated contact’s sender address; sender identity is not verified. Exact PDF/DOCX reply attachments become counterparty versions in one guarded batch; they never execute or approve an agreement. Later NEG-002/005, INT-002 and connector doors inherit this explicit disclosure, current-access and erasure boundary. Possession of the link or reply address is attributed to the designated contact; neither the link nor a reply’s sender address proves identity. Access also ends when the sender’s session, role or agreement access ends, and the sender is told this when sending. New reply addresses carry a separate inbound-only capability and cannot open the public document. Legacy reply addresses must be replaced by a fresh exchange. Counterparty uploads and comments are recorded as external.
+
+**Evidence.** `tests/api/browser-edits.test.mjs`: NEG-006 sends a clean external v2 through the installation mail door, accepts an exact v3 markup and audits scoped account-free use (Postmark fake, v2 no-account open/download/comment/upload, exact v3 digest/bytes, activity, expiry, authenticated multi-attachment email replies and replay); NEG-006 refuses internal versions, unsafe disclosure, forged scope, revoked links and removed sender authority (explicit consent, access/revocation/erasure and no private comments); `tests/browser/browser-edits.spec.ts`: NEG-006 sends external v2, receives counterparty v3 and expires without an account at 1440px/390px (sender review, public link, download/comment/markup, returned version and expired link); `tests/browser/exchange-live.mjs`: the same journey through the native Start /exchange route with a separate no-account context at 1440/390 (review, markup and revocation) ; the existing email-reply journey asserts honest sender-identity audit wording, and the browser journey asserts send-form and activity disclosures. Server-generated purpose-separated HMAC capabilities retain only hashes; reply capability cannot open the public document and a link capability cannot authorize inbound mail. Existing v2 and v3 journey also asserts NOT_CURRENT after a newer upload. Added public-door tests in `tests/api/browser-edits.test.mjs`: Exchange capabilities end when the contact, external comment or sending session is withdrawn; Rejected, uncertain and rate-limited exchange mail attempts retain honest outcomes and never resend. Contact removal, comment withdrawal, native sign-out and native session revocation refuse open, download, comment and upload. Raw link and reply capabilities are absent from the archive.
+**Gap.** Sending through the person’s connected Gmail or Outlook remains blocked on owner mail-account authorization. Original-format round-trip stays with NEG-002. Separate server-generated link and inbound-only reply capabilities now ship; legacy reply addresses require a fresh exchange. No live mail-account receipt is claimed. This round passed real component browser proof against Worker and D1 at 1440 and 390; native rer startup failed and is not claimed as passing.
 
 ### Built-in AI review
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `REVIEW-002` | Built-in playbook review | A journey with a model-provider fake runs review on a fixture supplier agreement against a 12-rule playbook; findings cite passages that match the version text, a quote that is not in the text is refused, a reviewer edits one proposed wording and rejects one finding, and the exception route reflects only accepted findings. The clause is accepted only when a live run under `REVIEW-006` meets the review bars, including the 2-minute time. | partial | NOT PROVEN |
-| `REVIEW-003` | AI redlines a person edits before sending | A journey accepts three findings, edits one redline's wording and one reason, saves the version, and sees three tracked changes attributed to the reviewer with model provenance, with reasons internal unless marked external. | done | `tests/api/browser-edits.test.mjs` — Accepted findings become three reviewer-attributed browser and Word redlines with edited wording, reasons and retained model provenance; Review redlines refuse unaccepted, overlapping, stale and unauthorized application without sending or changing originals. `tests/browser/review-redlines.spec.ts` — Reviewer edits three accepted findings, saves attributed browser and Word redlines and keeps reasons internal at 1440px/390px. Deterministic application of accepted external proposals makes no model request; built-in review evaluation remains REVIEW-006. |
-| `REVIEW-004` | Ask the repository | A journey with a model-provider fake asks both questions over a fixture repository; the first returns the exact matching agreements with their confirmed terms cited, the second cites the clause; a viewer without access to a restricted agreement gets an answer that omits it. The clause is accepted only when a live run under `REVIEW-006` meets the questions bar. | missing | NOT PROVEN |
-| `REVIEW-005` | Model choice, records and switch-off | A journey configures a provider fake, runs review and extraction, reads each output's record (model, prompt, playbook and input digests), switches AI off for NDAs and sees review refused on an NDA, and reads the month's usage in USD. A model with no passing live evaluation for review is shown as not evaluated, and review is refused with it. | done | `tests/api/families.test.mjs` — Model settings retain provider-simulated review and extraction provenance, acceptance and exact monthly USD estimates (all three model providers, all three OCR choices, exact prompt and playbook and original-document digests, accepting owner, concurrent replay, retained ledger and UTC month boundary); AI switches and unevaluated models refuse requests, denied people cannot configure or accept, and unsafe provider replies stay withheld (installation and NDA refusal, owner-only authority, consent, policy, stale configuration, invalid citations, provider failure and real-task evaluation refusal). `tests/browser/model-settings-journey.mjs` — owner settings, review and extraction output records, accepting person, exact monthly USD, NDA switch-off refusal, not-evaluated review and focus and hover tooltips at 1440 and 390; invoked by push Verify. No live evaluation is claimed; REVIEW-006 remains missing. Gap: None for REVIEW-005. REVIEW-006 retains labeled datasets, live evaluation generation, qualification and populated live-result display; simulation never supplies live evaluation evidence. |
-| `REVIEW-006` | Live accuracy evidence for every AI and OCR task | The evaluation command run against a provider fake refuses to record a result, because it is not a live run. A live run with Anthropic (and with OpenAI or Workers AI where offered), covering every task above, plus one with at least one named OCR provider, is committed with dataset digests and meets every bar. The model settings (`REVIEW-005`) show those results. A recorded run that misses one bar leaves that task unavailable for that model. | missing | NOT PROVEN |
-| `REVIEW-007` | Plain-English summary of one agreement | A journey with a model-provider fake summarizes a fixture MSA. Every line cites a passage in the version text, and an unconfirmed renewal term is labeled proposed. Adding version 3 marks the summary stale, and a viewer without access to the agreement cannot open the summary. | done | `tests/api/families.test.mjs` — Model settings retain provider-simulated review and extraction provenance, acceptance and exact monthly USD estimates (summaryJourney continuation for version-pinned MSA summaries), with `tests/api/agreement-summary-fixture.mjs` (summaryJourney): exact fourteen-section MSA output and source offsets, invented quote and omitted-section refusal, proposed renewal versus confirmed notice, no inferred deadlines, immutable version and corrected-term staleness, current restricted and hidden-field refusal, grant and revoke, archive and attributed reads. `tests/browser/model-settings-journey.mjs` invokes `tests/browser/agreement-summary-journey.mjs` (agreementSummaryProof) in push Verify: summary request and evaluation gate, cited current and stale summaries, pinned source links and denied viewer screens at 1440 and 390. No live-provider evaluation is claimed; REVIEW-006 still gates real summary availability. |
+#### REVIEW-002 — Built-in playbook review
+
+Core · target · **partial**
+
+**Requirement.** On any version (ours or theirs, DOCX or OCR'd PDF), a person runs review: the built-in model checks every rule in the active playbook and returns, per rule, met, breached or cannot determine, with the exact cited passage, the reason, and proposed wording from the rule's fallbacks. Findings arrive as a proposal under `REVIEW-001`; a reviewer accepts, edits or rejects each one, and only accepted findings drive exception approvals. Review of a 40-page agreement against 30 rules completes within 2 minutes at the 90th percentile, measured on a live provider. Accuracy is measured live under `REVIEW-006` and shown to the owner per rule.
+
+**Acceptance.**
+1. a journey with a model-provider fake runs review on a fixture supplier agreement against a 12-rule playbook; findings cite passages that match the version text, a quote that is not in the text is refused, a reviewer edits one proposed wording and rejects one finding, and the exception route reflects only accepted findings.
+2. The clause is accepted only when a live run under `REVIEW-006` meets the review bars, including the 2-minute time.
+
+**Evidence.** `src/locket/review.ts`; `src/locket/proposals.ts`; `tests/api/flows.test.mjs`
+**Gap.** The built-in model run does not exist
+
+#### REVIEW-003 — AI redlines a person edits before sending
+
+Core · target · **done**
+
+**Requirement.** Accepted findings with proposed wording become tracked changes in the next version (browser and Word), each with its reason as a comment that is internal by default. The reviewer edits the wording and the reason before anything is shared, and the version records which changes came from the model and who accepted them.
+
+**Acceptance.**
+1. a journey accepts three findings, edits one redline's wording and one reason, saves the version, and sees three tracked changes attributed to the reviewer with model provenance, with reasons internal unless marked external.
+
+**Evidence.** `tests/api/browser-edits.test.mjs` — Accepted findings become three reviewer-attributed browser and Word redlines with edited wording, reasons and retained model provenance (three accepted findings, edits, tracked replacements, reviewer/model provenance, internal/default and external reasons, original bytes/archive); Review redlines refuse unaccepted, overlapping, stale and unauthorized application without sending or changing originals (guards). `tests/browser/review-redlines.spec.ts` — Reviewer edits three accepted findings, saves attributed browser and Word redlines and keeps reasons internal at 1440px/390px (editor, saved model/source attribution, browser/Word and shared tooltips)
+**Gap.** None for accepted review-proposal redlines; REVIEW-002/005/006 retain built-in live model evaluation.
+
+#### REVIEW-004 — Ask the repository
+
+Core · target · **missing**
+
+**Requirement.** A person asks questions in plain English ("Which supplier agreements auto-renew next quarter with more than 60 days' notice?", "What is our liability cap with Acme?") and gets an answer with a list of matching agreements and cited passages, built only from agreements and fields the person may access. Answers that rely on proposed, unconfirmed values say so.
+
+**Acceptance.**
+1. a journey with a model-provider fake asks both questions over a fixture repository; the first returns the exact matching agreements with their confirmed terms cited, the second cites the clause; a viewer without access to a restricted agreement gets an answer that omits it.
+2. The clause is accepted only when a live run under `REVIEW-006` meets the questions bar.
+
+**Evidence.** None.
+**Gap.** No question answering exists
+
+#### REVIEW-005 — Model choice, records and switch-off
+
+Core · target · **done**
+
+**Requirement.** The owner chooses the model provider (Anthropic or OpenAI with the owner's API key under a no-training, zero-retention agreement, or Cloudflare Workers AI) and can switch AI off for the installation or per agreement type. Every model output records the provider, model, prompt version, playbook version, input document digests and the person who accepted it. Usage and estimated cost are shown in USD per month. The same settings choose the OCR provider (`REPO-002`). Beside each provider and model they show its latest live evaluation (`REVIEW-006`). A task the model has not passed live is not offered.
+
+**Acceptance.**
+1. A journey configures a provider fake, runs review and extraction, reads each output's record (model, prompt, playbook and input digests), switches AI off for NDAs and sees review refused on an NDA, and reads the month's usage in USD.
+2. A model with no passing live evaluation for review is shown as not evaluated, and review is refused with it.
+
+**Evidence.** `tests/api/families.test.mjs` — Model settings retain provider-simulated review and extraction provenance, acceptance and exact monthly USD estimates (all three model providers, all three OCR choices, exact prompt and playbook and original-document digests, accepting owner, concurrent replay, retained ledger and UTC month boundary); AI switches and unevaluated models refuse requests, denied people cannot configure or accept, and unsafe provider replies stay withheld (installation and NDA refusal, owner-only authority, consent, policy, stale configuration, invalid citations, provider failure and real-task evaluation refusal). `tests/browser/model-settings-journey.mjs` — owner settings, review and extraction output records, accepting person, exact monthly USD, NDA switch-off refusal, not-evaluated review and focus and hover tooltips at 1440 and 390; invoked by push Verify. No live evaluation is claimed; REVIEW-006 remains missing.
+**Gap.** None for REVIEW-005. REVIEW-006 retains labeled datasets, live evaluation generation, qualification and populated live-result display; simulation never supplies live evaluation evidence.
+
+#### REVIEW-006 — Live accuracy evidence for every AI and OCR task
+
+Core · target · **missing**
+
+**Requirement.** No AI task (review, extraction, intake proposals, obligation extraction, questions over the repository, summaries or playbook drafting) and no OCR task is offered for a provider and model until an evaluation command in the repository has run the shipped prompts against that real provider and recorded the result. A fake never counts. Each run is committed as an evaluation record: provider, model, prompt version, dataset name, version and digest, per-field and per-rule scores, latency and USD cost. A new prompt version or model needs a new passing run before it is offered.
+
+The labeled sets are named:
+
+- **Clause location:** the CUAD v1 test split from the Atticus Project (102 of CUAD's 510 US commercial contracts, 41 labeled clause categories). It is scored on the categories that map to Locket fields: parties, agreement, effective and expiration dates, renewal term, notice period to terminate renewal, governing law, termination for convenience, cap on liability, uncapped liability, insurance, audit rights, minimum commitment, price restrictions, exclusivity and most favored nation.
+- **Normalized values:** a held-out Locket set of 100 US commercial agreements (NDAs, MSAs, order forms, supplier agreements and amendments), labeled by counsel with normalized values (dates, day counts, USD amounts, states). It is kept out of prompt development, and its labels and digest are committed.
+- **Review:** 50 agreements from that held-out set against a 12-rule US supplier playbook, each rule labeled met, breached or cannot determine by counsel.
+- **OCR:** the 102 CUAD test contracts rendered as 200-dpi greyscale page images, scored against CUAD's text.
+- **Intake:** the first version of each of the 100 held-out agreements, as it would arrive from a counterparty, labeled by counsel with the intake fields `INTAKE-007` proposes (agreement type, counterparty legal name, our entity, value, term, governing law and the applicable template or playbook).
+- **Obligations:** the same 100 held-out agreements, with every obligation labeled by counsel: type, the party bound, due date or recurrence, and the passage that creates it.
+- **Questions:** 100 plain-English questions over the held-out set loaded as one repository, 60 that select agreements by terms and 40 that ask for a value in one agreement. Each is labeled by counsel with the exact matching agreements or the answer value and its passage. Ten are asked as a viewer without access to two restricted agreements in the set.
+- **Playbook drafting:** two approved US templates (an MSA and a supplier agreement) and 40 executed agreements from the held-out set. Counsel grades every drafted rule as accepted, accepted with edits or rejected.
+
+The bars a run must meet:
+
+- **Extraction:** clause-location recall of at least 0.85 and precision of at least 0.80 for each mapped CUAD category. Exact-value accuracy of at least 0.90 for each normalized field, and at least 0.95 for end date, notice period and auto-renewal, the fields that drive deadlines.
+- **Review:** per-rule agreement with counsel of at least 0.85. No rule may call a breached case "met" in more than 3% of its breached cases. Every cited quote matches the version text.
+- **OCR:** character error rate of at most 2% overall and at most 5% on any single contract, with the page anchor correct for every cited passage.
+- **Intake:** exact-value accuracy of at least 0.90 for each intake field, and at least 0.95 for agreement type and counterparty legal name.
+- **Obligations:** obligation recall of at least 0.85 and precision of at least 0.80, with the party bound correct for at least 0.95 and the due date or recurrence correct for at least 0.90 of matched obligations. Every cited passage matches the version text.
+- **Questions:** for selection questions, the exact matching set for at least 0.85 of questions, and no answer may include an agreement the asker cannot see. For value questions, the correct value with a passage that matches the version text for at least 0.90 of questions. Every answer that relies on a proposed value says so.
+- **Summaries:** every summary line of the 50 review agreements cites a passage that matches the version text, and the term, renewal and notice-deadline lines meet the extraction bars for those fields.
+- **Playbook drafting:** at least 0.80 of drafted rules accepted or accepted with edits, and every cited source agreement and passage exists.
+- **Speed:** at the 90th percentile, review of a 40-page agreement against 30 rules in 2 minutes and extraction of a 40-page agreement in 60 seconds.
+
+**Acceptance.**
+1. the evaluation command run against a provider fake refuses to record a result, because it is not a live run.
+2. A live run with Anthropic (and with OpenAI or Workers AI where offered), covering every task above, plus one with at least one named OCR provider, is committed with dataset digests and meets every bar.
+3. The model settings (`REVIEW-005`) show those results.
+4. A recorded run that misses one bar leaves that task unavailable for that model.
+
+**Evidence.** None.
+**Gap.** No evaluation command, labeled set or recorded live run exists
+
+#### REVIEW-007 — Plain-English summary of one agreement
+
+Core · target · **done**
+
+**Requirement.** A person generates a plain-English summary of a single agreement for a business stakeholder. It covers the parties and our entity (`ENTITY-001`); what each side must do; price and payment; the term, renewal and notice deadline; termination rights; liability and insurance; and the playbook exceptions accepted. Every line cites its passage and says whether the value is confirmed or still proposed. The summary is pinned to the version it was made from. It is marked stale when a new version or a corrected term arrives, and is never silently rewritten. It can be shared only with people who may see the agreement. The model run follows `REVIEW-005` and is offered only after the summaries bar in `REVIEW-006` is met.
+
+**Acceptance.**
+1. a journey with a model-provider fake summarizes a fixture MSA.
+2. Every line cites a passage in the version text, and an unconfirmed renewal term is labeled proposed.
+3. Adding version 3 marks the summary stale, and a viewer without access to the agreement cannot open the summary.
+
+**Evidence.** `tests/api/families.test.mjs` — Model settings retain provider-simulated review and extraction provenance, acceptance and exact monthly USD estimates (summaryJourney continuation for version-pinned MSA summaries), with `tests/api/agreement-summary-fixture.mjs` (summaryJourney): exact fourteen-section MSA output and source offsets, invented quote and omitted-section refusal, proposed renewal versus confirmed notice, no inferred deadlines, immutable version and corrected-term staleness, current restricted and hidden-field refusal, grant and revoke, archive and attributed reads. `tests/browser/model-settings-journey.mjs` invokes `tests/browser/agreement-summary-journey.mjs` (agreementSummaryProof) in push Verify: summary request and evaluation gate, cited current and stale summaries, pinned source links and denied viewer screens at 1440 and 390. No live-provider evaluation is claimed; REVIEW-006 still gates real summary availability.
+**Gap.** None.
 
 ### Approval routing
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `APPROVE-002` | Conditional approval rules in USD | A journey publishes rules for $100,000 and $500,000 thresholds and a data-processing condition, submits a $600,000 supplier agreement with data processing and sees Finance, Security and CFO approvals required in order; a delegate approves for an absent approver; a value change withdraws all three. | done | LOCAL PROVEN: `tests/api/flows.test.mjs` — APPROVE-002 publishes previewed conditional routes, orders exact-version decisions and attributes current away delegates (all rule conditions, publication/snapshot, ordered/parallel authority, delegate/access, reminders and withdrawal); existing configurable supplier-form flow (frozen-input refusal); `tests/browser/approval-reminders.spec.ts` — APPROVE-002 publishes Finance Security CFO stages, delegates and withdraws changed-value decisions at 1440px/390px. |
-| `APPROVE-003` | Approve where people work | `tests/api/approval-mail.test.mjs` — APPROVE-003 / MOBILE-001 / SEC-002 emails a generic authenticated review link once, then records the exact version through the normal approval command (Postmark and Slack/Teams/Nook wire payloads, actor/digest, stale email refusal/current version, automatic requests, Word manifest, personal channels, frozen named order/delegate, reminders and archive); MOBILE-001 / NOTIFY-001 approval email checks sender, recipient role, current version, self-approval and restricted visibility on the server (refusals); MOBILE-001 / NOTIFY-001 local suppression and uncertain provider outcomes never claim sending or resend on replay (unknowns). `tests/browser/mobile-approval.spec.ts` — APPROVE-003 / MOBILE-001 opens the received approval email, refuses a replaced version, approves the current version and uploads signed evidence at 1440px/390px (actual chat action, Word inbox, personal settings, current email decision and files) | done | LOCAL PROVEN |
-| `APPROVE-004` | Approval reminders and escalation | Clause-named `tests/api/approval-reminders.test.mjs` uses the mail-provider fake and the Worker's scheduled handler at controlled times. An approver in Central time is asked on Monday 09:00 CT: nothing at Tuesday 08:59, one reminder at 09:00 (an overlapping run sends no second), generic text with the review link only. A viewer's manual reminder and one for a person with no request are refused; the requester's manual reminder is sent and a second within 4 hours is refused (`TOO_SOON`, available at exactly +4 h). Daily reminders follow on Wednesday and Thursday, and on Thursday 09:00 CT (3 business days) the escalation reaches the approver's delegate once. A missed Friday slot is sent once on Saturday; Sunday and Monday 08:59 add nothing. After approval no reminder or escalation goes out and Remind approver is refused; the activity shows reminders 1-4 by the scheduler with honest provider labels, the manual request and reminder, and the escalation. A second test sets 2/2/2 business-day intervals and an escalation contact as owner (an approver is refused): Thanksgiving is skipped, the contact receives escalations, a restricted agreement the contact cannot read escalates to the owner, a declined and a withdrawn (new version) approval stop, and a Saturday 00:30 ET / Friday 21:30 PT request is reminded Tuesday 00:30 ET for the default zone but Tuesday 21:30 PT for a Pacific approver. `tests/browser/approval-reminders.spec.ts` at 1440 and 390 pixels saves intervals and a delegate after the approver chooses their own Central zone, shows the pending approver, reminder and escalation, sends Remind approver with the provider label, hides it for 4 hours, and shows the entries in the agreement history. NOTIFY-001 cross-door API and personal-policy browser journeys assert self-only zone/digest and preserved owner routing, including concurrent personal changes. | done | LOCAL PROVEN |
+#### APPROVE-002 — Conditional approval rules in USD
+
+Core · target · **done**
+
+**Requirement.** Owner-configured rules add approvers by agreement type, USD value thresholds, department, counterparty risk and accepted findings (for example: Finance over $100,000, Security when data processing is "yes", the CFO over $500,000), in sequence or in parallel, with named delegates while someone is away. A rule change is previewed against sample agreements before publishing (`INTAKE-002`). Approvals still pin the exact version and context (`APPROVE-001`).
+
+**Acceptance.**
+1. a journey publishes rules for $100,000 and $500,000 thresholds and a data-processing condition, submits a $600,000 supplier agreement with data processing and sees Finance, Security and CFO approvals required in order; a delegate approves for an absent approver; a value change withdraws all three.
+2. The owner saves a rule draft, previews explicit sample answers, then publishes an immutable version.
+3. Each native request captures that version (including an explicit no-rules snapshot) when created; an upgrade backfills pre-existing native requests with no-rules snapshots; later publication cannot reroute it.
+4. Within that snapshot, matching uses current recorded native inputs: type, an inclusive minimum USD value, department, low/medium/high/unknown counterparty risk, data-processing yes/no and a person-recorded breached/undetermined finding clause key.
+5. Conditions within a rule all match.
+6. Rules with equal stage numbers run in parallel; later stages wait for every earlier stage to approve.
+7. Matching named commercial steps together satisfy APPROVE-001's commercial requirement; the published form's counsel requirement and every legal exception remain separate.
+8. A form's original department/risk/data-processing answers cannot be overwritten through the new input door. An owner or approver records their own availability/delegate; only the owner changes another person's. The current active named approver acts while present, or their current active named delegate while away, with existing agreement access and requester self-approval refusal. Away status grants no access. The owner retains existing explicit approval authority, labelled and attributed when acting for a named approver. Decisions retain the actual actor, named principal, rule and availability revision. The rule route and recorded answers join the exact-version decision context; a value, answer, finding, version or applicable department change withdraws affected decisions. APPROVE-004's configured business-day intervals, delegate-first escalation, four-hour manual limit and stopping behavior, and NOTIFY-001's personal channels/digest/current access/one-use claims/honest outcomes cover every current named step. APPROVE-003 and SIGN-005 inherit the same frozen rule version, preview, order, access and current-delegate checks before adding their doors.
+
+**Evidence.** `tests/api/flows.test.mjs` — APPROVE-002 publishes previewed conditional routes, orders exact-version decisions and attributes current away delegates (conditions, preview/publication, frozen routes, ordered/parallel decisions, current delegate/access, reminders and withdrawal); existing configurable supplier-form flow (frozen-input refusal); `tests/browser/approval-reminders.spec.ts` — APPROVE-002 publishes Finance Security CFO stages, delegates and withdraws changed-value decisions at 1440px/390px (designer/previews, $600,000 route, delegate, reminders, withdrawals)
+**Gap.** None for current doors; APPROVE-003/SIGN-005 inherit frozen rules and current authority/order checks
+
+#### APPROVE-003 — Approve where people work
+
+Core · target · **done**
+
+**Requirement.** The explicit generic approval-email link and phone approval under MOBILE-001 ship today; every channel added here must preserve its authenticated review, permission/version checks, no title/figures/digest in notification, audited outcomes and honest delivery labels. Automatic requests and broader channels remain this clause's work. Approvers are asked by email, Slack, Teams or Nook, in the Word add-in or on a phone (`MOBILE-001`). Every approval, wherever it is given, passes through the same server checks and pins the exact version digest the approver saw; an approval of a version that has since changed is refused and the approver is shown the new version.
+
+**Acceptance.**
+1. a journey sends an approval request by email (Postmark fake) and Slack (fake); approving from the Slack action records the approver and version digest; a second approver acting from an email link after a new version was added is refused and shown the new version.
+
+**Evidence.** `tests/api/approval-mail.test.mjs` — APPROVE-003 / MOBILE-001 / SEC-002 emails a generic authenticated review link once, then records the exact version through the normal approval command (Postmark and Slack/Teams/Nook wire payloads, actor/digest, stale email refusal/current version, automatic requests, Word manifest, personal channels, frozen named order/delegate, reminders and archive); MOBILE-001 / NOTIFY-001 approval email checks sender, recipient role, current version, self-approval and restricted visibility on the server (refusals); MOBILE-001 / NOTIFY-001 local suppression and uncertain provider outcomes never claim sending or resend on replay (unknowns). `tests/browser/mobile-approval.spec.ts` — APPROVE-003 / MOBILE-001 opens the received approval email, refuses a replaced version, approves the current version and uploads signed evidence at 1440px/390px (actual chat action, Word inbox, personal settings, current email decision and files)
+**Gap.** None
+
+#### APPROVE-004 — Approval reminders and escalation
+
+Core · target · **done**
+
+**Requirement.** A pending approval reminds its approver through their notification channel (`NOTIFY-001`, `APPROVE-003`) at owner-configured intervals. The default is after 1 business day, then daily, in the approver's US time zone. If it is still pending after a configured time (default 3 business days), it escalates to the approver's delegate (`APPROVE-002`), or to the rule's escalation contact when there is no delegate. Anyone working on the agreement can press "Remind approver", at most once every 4 hours per approver. Every reminder and escalation is recorded in the agreement's activity, and reminders stop as soon as the approval is given, declined or withdrawn.
+
+The exact rules the code uses:
+
+- **Pending approval.** Today an approval is pending for a named approver when an approval request (the explicit email link under `MOBILE-001`) names an active owner or approver, the agreement is in review on the same current version (identity and digest), and no live commercial decision exists for that version. Approving or rejecting by anyone, a new version, leaving review, or the approver losing the owner/approver role ends it. Rule-added approvers under APPROVE-002 now use the same configured intervals and manual limit for the currently unlocked named step, with the current away delegate as recipient and delegate-first escalation to the rule contact or owner. Automatic channel requests (`APPROVE-003`) inherit these reminders and escalation before shipping.
+- **Channel.** Email through the installation's mail provider, with the same generic text and signed-in review link as the approval email: no title, figures or digest. Other channels (`NOTIFY-001`, `APPROVE-003`) inherit the obligation. Labels are honest: provider acceptance is not mailbox delivery, local/demo suppression means nothing was sent, and an unknown outcome is never resent automatically.
+- **Business days and zone.** Monday to Friday, skipping US federal holidays as observed (a Saturday holiday is observed the Friday before, a Sunday holiday the Monday after), counted in the approver's US time zone (Eastern, Central, Mountain, Arizona, Pacific, Alaska or Hawaii; America/New_York until the approver chooses one). Reminder n is due at the request's local time of day on the business day that is (first + (n − 1) × repeat) business days after the request's local date; the escalation is due the same way after the escalation interval. The first request to that approver for that version starts the clock.
+- **Intervals.** The owner sets the first reminder (1–30 business days, default 1), the repeat (1–30, default 1) and the escalation (1–60, default 3). Changes apply to pending approvals from the next run.
+- **Scheduling.** A Cloudflare Cron Trigger runs hourly (`triggers.crons` in `wrangler.jsonc`, `crons` in `deploy.json`), so a reminder goes out within the hour after it is due. Each run sends only the latest due reminder for each pending approval; a slot is sent at most once, even when runs overlap.
+- **Escalation target.** Once per pending approval: the approver's delegate, else the owner-chosen escalation contact (the only escalation rule until `APPROVE-002` rules ship; each rule then names its own), else the installation owner. Each candidate must be an active owner or approver, someone other than the approver, able to read the agreement, and not its requester unless they are the owner; otherwise the next one is used. Each person sets their own US time zone in their preferences (shared with `RENEW-002`) and each owner or approver their delegate; the owner may set another person's delegate and bounce alternate, but cannot change their zone or digest through either preferences door. Those controls are read-only for another person. An owner routing edit atomically checks its personal-zone/digest snapshot, never overwrites a concurrent personal choice and never creates personal preferences when they are unset. A delegate here receives the escalation; acting for an absent approver, and the "away" status, remain `APPROVE-002`'s.
+- **Manual reminder.** Owner, counsel, approver or requester able to read the agreement may press "Remind approver" for a pending approver. A second manual reminder for the same approver on the same agreement within 4 hours of the last one is refused (`TOO_SOON`, with the time it becomes available). Viewers and agents cannot send one.
+- **Activity.** The request to remind, each reminder (automatic ones attributed to the Locket scheduler) and the escalation are recorded in the agreement's activity with recipient and provider outcome.
+
+**Acceptance.**
+1. a journey with a mail-provider fake and a controlled clock submits an agreement for approval.
+2. The approver is reminded after 1 business day and escalated to their delegate after 3.
+3. A manual reminder is sent and a second one within 4 hours is refused.
+4. Once the approver approves, no further reminder goes out, and each reminder and the escalation appear in the activity.
+
+**Evidence.** `src/locket/approval-reminders.ts`; `src/locket/approval-reminder-dispatch.ts`; `tests/api/approval-reminders.test.mjs`; `tests/browser/approval-reminders.spec.ts`; `tests/browser/notifications-policy.spec.ts`; `tests/api/notifications.test.mjs`
+**Gap.** None.
 
 ### Signing and execution
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `SIGN-002` | Live Docusign, Adobe Acrobat Sign and Dropbox Sign | a Workers journey with a Docusign API fake sends an approved two-document package with its `SIGN-005` signers and fields, receives signed callbacks for viewed, one signer completed and envelope completed, rejects a callback with a bad signature, and voids an envelope when a new version is added. A counterparty signer's mistyped email is corrected, and a second signer is reassigned to a delegate, both without voiding; the envelope keeps its ID, the manifest records both changes, and `EXEC-001` reconciles cleanly against the corrected signers. The same journey runs against Acrobat Sign and Dropbox Sign fakes. A live sandbox run against each provider's developer account is recorded before the clause is accepted. | partial | `src/locket/execution.ts`; `tests/api/flows.test.mjs` Gap: OAuth, developer-account live sandbox receipts, verified callbacks, correction, provider reminders and provider voiding remain unproved; SIGN-005 packet transports alone do not complete this clause |
-| `SIGN-003` | Inkwell signing | a journey against an Inkwell installation fake sends a package, receives completion and retrieves the file and certificate, which `EXEC-001` reconciles cleanly. | missing | `src/locket/signature-inkwell.ts` (draft preparation only) Gap: BLOCKED: Inkwell public machine-send&#47;manage and signed outgoing completion events are absent at 6c4638762028477f6ddba6b6bd8fc18ad2fcbb04; requires the Inkwell seed before automatic signed PDF&#47;certificate retrieval can complete |
-| `EXEC-002` | Automatic retrieval and filing of executed agreements | a journey with a Docusign fake completes an envelope; within one minute the agreement is executed with the signed file and certificate digests matching the fake's, a copy is in the Drive fake's folder under the naming rule, and HubSpot's deal shows executed; a forced download failure leaves a visible retrying state and no executed status. | done | `tests/api/flows.test.mjs` — 09 execution ingests the signed file and certificate and reconciles envelope, signers and document: automaticRetrievalJourney and retrievalAuthorityJourney retain the exact-byte, backoff, mismatch and authority proofs; executionFollowupJourney in `tests/api/execution-followup-journey.mjs` proves separately consented extraction kickoff, exact signed and certificate copies in Google Drive, OneDrive, SharePoint and Chest under the owner filename rule, matching HubSpot executed readback and requester notice. executionFollowupRefusals proves absent consent, changed model or connection, cancellation, mismatched destination bytes or CRM values, unsafe redirects and mid-flight lost authority or connection cannot complete or resend; the populated journey also proves restricted and hidden-field reads, retained decisions, erasure preview and legal hold. `tests/browser/execution-comparison.spec.ts` — AGENT-006 changed signed liability is visible and held until reasoned acceptance at 1440px/390px: executionFollowupBrowserJourney records independent exact-package filing, extraction and CRM consent and matching outcomes at both widths. acrobatRetrievalJourney proves regional Acrobat agreement polling, attributed completed signers, exact signed PDF and audit-trail bytes, waiting and retry states, mismatches held, ambiguous or incomplete evidence refused, requester notice and authority rechecked before each read. dropboxRetrievalJourney proves Basic-authenticated status and ZIP reads with owner-bound distinct file names, exact bytes and digests, provider preparation backoff, missing or duplicate entries, unsafe names and damaged CRC in any document refused, and stale authority refusing custody. Its signable-packet scenario proves a real three-entry Dropbox packet reaches the packet_documents hold, retains the exact complete ZIP and both selected PDFs, refuses requester acceptance and permits separate reasoned counsel acceptance. The browser journey displays that hold and downloads the exact retained ZIP. The component screens are recorded at both widths; existing navigation tooltips appear on focus and hover. Computed typography and hosted-shell proof are carved out. acrobatRetrievalJourney additionally asserts uniquely evidenced recipient groups, refused ambiguous groups, reference packets and held signable packets with separate counsel acceptance. executionFollowupJourney asserts completion within one minute in Verify; its fresh exact-candidate standalone clock receipt is supplied in the branch handoff. Its independent execution, digest, four-destination filing, filename, CRM, extraction, requester-notice and no-resend assertions remain at lines 114 through 144 of `tests/api/execution-followup-journey.mjs`. In `tests/api/flows.test.mjs`, automaticRetrievalJourney retains visible failure and no execution at lines 976 through 978, callback refusal at line 986 and early retry refusal at line 989; lines 992 through 1002 now exercise every due delay through the one-hour ceiling twice and refuse early reads. retrievalAuthorityJourney retains the prior cancellation and binding scenarios; retrievalExpiryAndRoleJourney at line 1107 adds natural authorizing-session expiry, owner-role loss before the next read and during both successful and failed provider responses. Lines 1175 through 1191 assert cancellation, retained outcomes, absent execution and signed-file custody, refused early reads and no revival after login or restored ownership. CT accepted the distinct sensitivity of the prior fifteen mutations at dbf3a2df1675663283c0d1d7a5eb69fdf1cfae5e. The branch handoff separately supplies observed failures for unrestricted exponential retry, a removed delay ceiling, ignored session expiry and reused transferred-owner authority, plus the restored passing run. Gap: Computed typography and hosted-shell acceptance are carved out by CT; neither is claimed. |
-| `SIGN-004` | Clickwrap acceptance of published terms | `tests/api/clickwrap.test.mjs` and `tests/browser/clickwrap.spec.ts` name SIGN-004: owner/counsel publishes immutable UTF-8 terms (outer whitespace trimmed); the real website embed opens explicit top-level review for site-asserted users with no Locket session; version 2 requires a fresh checkbox/Accept at 1440/390; counterparty links, search and CSV show both digests/times/IP/page evidence. Base users also accept; agents are refused and missing sessions return through sign-in. Assertions bind site-scoped identity and exact terms, expire within ten minutes and consume a nonce once; bad signatures/versions/origins/expiry never fall back to Base. SEC-002 retries return the first outcome; a new command cannot reuse a nonce. Private read scope, optional revisions, audits and complete archives are asserted. Site identity is labeled asserted, never identity-proofed; no legal/signatory validity is claimed. | done | LOCAL PROVEN |
-| `SIGN-005` | Signer rules, signature fields and multi-document packets | `tests/api/signature-packets.test.mjs` — Signer rules preview and freeze type, exact USD bounds, entity, department and unavailable fallback before packet approval (rule boundaries/fallback/preview authority); Approved MSA plus DPA and template fields reach three real adapter network edges; the identical manifest shape prepares only a draft in Inkwell (USD 250000 CFO, two documents/digests, template fields, provider wire payloads, immutable source and tagged custody, USD 50000 VP, frozen rules and fallback review); Counterparty PDF page seven signature and date plus CC travel through every adapter without changing approved bytes (manual placements/CC/retained sources); Current coordinator group and requester relationship guard signer edits; edits withdraw exact packet approval and archives retain evidence (group/viewer/requester refusal, agent proposal, changed approval and archive); An uncertain provider send is visible, has one network attempt and cannot silently retry or be marked sent manually (unknowns). `tests/browser/signature-packets.spec.ts` — Signature coordinator reviews template packet, previews signer rules and places page seven fields with CC at 1440px/390px (template packet, fallback, manual page preview/tooltip and provider receipt) | done | LOCAL PROVEN |
+#### SIGN-002 — Live Docusign, Adobe Acrobat Sign and Dropbox Sign
+
+Core · target · **partial**
+
+**Requirement.** The owner connects a Docusign, Adobe Acrobat Sign or Dropbox Sign account with OAuth. From an approved signature package (`SIGN-001`), Locket creates and sends the envelope with every document in the packet and the recipients, signing order, CCs and signature fields that `SIGN-005` decides, records the envelope ID, and tracks status through the provider's webhooks (Docusign Connect, Acrobat Sign webhooks, Dropbox Sign callbacks), verifying each callback's signature. People see sent, viewed, signed, declined and voided per signer, can send reminders, and Locket voids the envelope if the agreement changes after sending. A coordinator (`SIGN-005`) can correct a recipient who has not yet signed without voiding: fix a wrong name or email, or reassign the signer when they delegate to a colleague. Locket does this through each provider's own correction (Docusign's envelope recipient update, Acrobat Sign's participant replacement, Dropbox Sign's signer email update, and Inkwell's equivalent). Each correction records who changed whom and why in the routing manifest, which `EXEC-001` reconciles against. The document and its approval stay unchanged; a provider that cannot correct a recipient is shown as needing void and resend. Provider credentials stay in the owner's secret store.
+
+Before shipping, these new events and channels inherit `NOTIFY-001` personal inbox/channel/digest preferences, generic authenticated-link messages, current-access checks, single-use send claims and honest outcomes.
+
+**Acceptance.**
+1. a Workers journey with a Docusign API fake sends an approved two-document package with its `SIGN-005` signers and fields, receives signed callbacks for viewed, one signer completed and envelope completed, rejects a callback with a bad signature, and voids an envelope when a new version is added.
+2. A counterparty signer's mistyped email is corrected, and a second signer is reassigned to a delegate, both without voiding; the envelope keeps its ID, the manifest records both changes, and `EXEC-001` reconciles cleanly against the corrected signers.
+3. The same journey runs against Acrobat Sign and Dropbox Sign fakes.
+4. A live sandbox run against each provider's developer account is recorded before the clause is accepted.
+
+**Evidence.** `src/locket/execution.ts`; `tests/api/flows.test.mjs`
+**Gap.** OAuth, developer-account live sandbox receipts, verified callbacks, correction, provider reminders and provider voiding remain unproved; SIGN-005 packet transports alone do not complete this clause
+
+#### SIGN-003 — Inkwell signing
+
+Core · target · **missing**
+
+**Requirement.** Inkwell, the Run Edit Run e-signature product, connects the same way as `SIGN-002`: Locket sends the approved package to the buyer's Inkwell installation, receives signed status events and retrieves the completed file and Inkwell's completion certificate automatically.
+
+Before shipping, these new events and channels inherit `NOTIFY-001` personal inbox/channel/digest preferences, generic authenticated-link messages, current-access checks, single-use send claims and honest outcomes.
+
+**Acceptance.**
+1. a journey against an Inkwell installation fake sends a package, receives completion and retrieves the file and certificate, which `EXEC-001` reconciles cleanly.
+
+**Evidence.** `src/locket/signature-inkwell.ts` (draft preparation only)
+**Gap.** BLOCKED: Inkwell public machine-send/manage and signed outgoing completion events are absent at 6c4638762028477f6ddba6b6bd8fc18ad2fcbb04; requires the Inkwell seed before automatic signed PDF/certificate retrieval can complete
+
+#### EXEC-002 — Automatic retrieval and filing of executed agreements
+
+Core · target · **done**
+
+**Requirement.** When a connected provider reports completion, Locket downloads the signed PDF and the certificate of completion, stores them byte-for-byte, runs `EXEC-001` reconciliation (mismatches held for owner or counsel), marks the agreement executed, starts extraction (`REPO-004`), files copies into the connected Google Drive, OneDrive/SharePoint or Chest folder by the owner's naming rule (`INT-001`), and notifies the requester and CRM. Retrieval failures retry with backoff and stay visible until resolved.
+
+**Acceptance.**
+1. a journey with a Docusign fake completes an envelope; within one minute the agreement is executed with the signed file and certificate digests matching the fake's, a copy is in the Drive fake's folder under the naming rule, and HubSpot's deal shows executed; a forced download failure leaves a visible retrying state and no executed status.
+
+**Evidence.** `tests/api/flows.test.mjs` — 09 execution ingests the signed file and certificate and reconciles envelope, signers and document: automaticRetrievalJourney and retrievalAuthorityJourney retain the exact-byte, backoff, mismatch and authority proofs; executionFollowupJourney in `tests/api/execution-followup-journey.mjs` proves separately consented extraction kickoff, exact signed and certificate copies in Google Drive, OneDrive, SharePoint and Chest under the owner filename rule, matching HubSpot executed readback and requester notice. executionFollowupRefusals proves absent consent, changed model or connection, cancellation, mismatched destination bytes or CRM values, unsafe redirects and mid-flight lost authority or connection cannot complete or resend; the populated journey also proves restricted and hidden-field reads, retained decisions, erasure preview and legal hold. `tests/browser/execution-comparison.spec.ts` — AGENT-006 changed signed liability is visible and held until reasoned acceptance at 1440px/390px: executionFollowupBrowserJourney records independent exact-package filing, extraction and CRM consent and matching outcomes at both widths. acrobatRetrievalJourney proves regional Acrobat agreement polling, attributed completed signers, exact signed PDF and audit-trail bytes, waiting and retry states, mismatches held, ambiguous or incomplete evidence refused, requester notice and authority rechecked before each read. dropboxRetrievalJourney proves Basic-authenticated status and ZIP reads with owner-bound distinct file names, exact bytes and digests, provider preparation backoff, missing or duplicate entries, unsafe names and damaged CRC in any document refused, and stale authority refusing custody. Its signable-packet scenario proves a real three-entry Dropbox packet reaches the packet_documents hold, retains the exact complete ZIP and both selected PDFs, refuses requester acceptance and permits separate reasoned counsel acceptance. The browser journey displays that hold and downloads the exact retained ZIP. The component screens are recorded at both widths; existing navigation tooltips appear on focus and hover. Computed typography and hosted-shell proof are carved out. acrobatRetrievalJourney additionally asserts uniquely evidenced recipient groups, refused ambiguous groups, reference packets and held signable packets with separate counsel acceptance. executionFollowupJourney asserts completion within one minute in Verify; its fresh exact-candidate standalone clock receipt is supplied in the branch handoff. Its independent execution, digest, four-destination filing, filename, CRM, extraction, requester-notice and no-resend assertions remain at lines 114 through 144 of `tests/api/execution-followup-journey.mjs`. In `tests/api/flows.test.mjs`, automaticRetrievalJourney retains visible failure and no execution at lines 976 through 978, callback refusal at line 986 and early retry refusal at line 989; lines 992 through 1002 now exercise every due delay through the one-hour ceiling twice and refuse early reads. retrievalAuthorityJourney retains the prior cancellation and binding scenarios; retrievalExpiryAndRoleJourney at line 1107 adds natural authorizing-session expiry, owner-role loss before the next read and during both successful and failed provider responses. Lines 1175 through 1191 assert cancellation, retained outcomes, absent execution and signed-file custody, refused early reads and no revival after login or restored ownership. CT accepted the distinct sensitivity of the prior fifteen mutations at dbf3a2df1675663283c0d1d7a5eb69fdf1cfae5e. The branch handoff separately supplies observed failures for unrestricted exponential retry, a removed delay ceiling, ignored session expiry and reused transferred-owner authority, plus the restored passing run.
+**Gap.** Computed typography and hosted-shell acceptance are carved out by CT; neither is claimed.
+
+#### SIGN-004 — Clickwrap acceptance of published terms
+
+Core · target · **done**
+
+**Requirement.** Counsel or the owner publishes immutable versioned standard terms (terms of service, data processing addendum, partner terms) for acceptance on the buyer's website or app through an embeddable script or the API. Publishing trims outer whitespace, stores the resulting UTF-8 text and its SHA-256, and never rewrites an earlier version. The embed opens a top-level hosted review; acceptance requires a fresh unchecked checkbox and an explicit Accept action, never silent acceptance or acceptance in a frame. The Base-session door uses the current account and email, with a missing session returning through sign-in to the review; Locket agent-role accounts cannot accept (`PROPOSE-001`). The customer-site door needs no Locket membership: the customer's server signs its own signer ID and email with the installation's optional server-only signing key. The assertion binds installation, site, terms and exact version/digest, has a one-use nonce and at most ten minutes of validity, and is labeled site-asserted identity (not identity-proofed). Invalid assertions are refused, never replaced by Base authentication. Site identities are scoped by site origin and signer ID. Each acceptance records account, email, identity kind, exact terms version/digest, server time, transport IP, user agent and the hosted page shown; caller-supplied evidence cannot replace these values. Both doors preserve `SEC-002` command retry outcomes; reusing a nonce for a new command is refused. A new version can require reacceptance; an optional revision keeps the most recent required version's acceptance sufficient. Owner/counsel search, export and link evidence to counterparties; other Base users read/export only their own evidence. Links are audited annotations beside immutable acceptance evidence. The complete archive retains the terms and acceptances. No identity-proofing, signatory-authority or legal-validity claim is made.
+
+**Acceptance.**
+1. the `SIGN-004` API and browser journeys publish version 1, accept it through the real embed on a fixture website as a customer with no Locket session, publish version 2 requiring reacceptance and see the same account prompted with an unchecked checkbox.
+2. At 1440/390 the exact terms/digest, site-asserted identity and accepted receipt are visible, a counterparty is linked and the searchable CSV contains both versions, digests, times, IP and page evidence.
+3. API proof also covers Base acceptance, immutable prior text, optional revisions, same-command retries, refused nonce replay, wrong signatures/origins/expiry/versions and agent-role acceptance, no invalid-assertion fallback, private read scope, attributed audit events and the complete archive.
+4. The missing-Base-session browser path returns through sign-in.
+
+**Evidence.** `src/locket/clickwrap/records.ts`; `src/locket/clickwrap/http.ts`; `tests/api/clickwrap.test.mjs`; `tests/browser/clickwrap.spec.ts`
+**Gap.** None.
+
+#### SIGN-005 — Signer rules, signature fields and multi-document packets
+
+Core · target · **done**
+
+**Requirement.** Locket decides who signs, where they sign and what they sign before an envelope leaves, so nothing needs tagging by hand in the provider.
+
+- **Our signer by rule.** The owner sets rules that choose our signatory by agreement type, USD value, department and our contracting entity (`ENTITY-001`), on the same rule engine and preview as `APPROVE-002`. For example, the VP Sales signs under $100,000 and the CFO at $100,000 or more. Every rule set has a required fallback signer, used when no rule matches or the chosen signer is marked unavailable. Counterparty signers come from the request's contacts and the counterparty's authorized signatories (`REPO-010`).
+- **Fields from templates.** Templates carry signature blocks per party role: signature, name, title, date and initials. Locket writes these into the signing PDF as each provider's anchor or text tags (Docusign anchor tabs, Acrobat Sign text tags, Dropbox Sign text tags, and the same placements for Inkwell), so fields land on the blocks automatically.
+- **Signature coordinator.** Before sending, a signature coordinator reviews the packet. Coordinators are the roles that may hand an agreement off for signature today (`ROLE-001`): the owner, an approver, or the agreement's requester. The owner can narrow coordination to a named Signature coordinators group (`REPO-009`), per agreement type. Counsel, viewers and agents cannot coordinate; an agent may propose a change for a coordinator to apply (`PROPOSE-001`). They can reorder, add or remove signers and add CCs. On a document with no template blocks, such as counterparty paper, they place fields by hand on a page preview. Every change is recorded in the routing manifest.
+- **Packets.** One envelope carries the main agreement plus approved signable attachments, such as a DPA, order form or SOW. Each document is pinned by digest and covered by the approval (`APPROVE-001`). Attachments that are not for signature can travel as reference documents.
+
+**Acceptance.**
+1. a journey takes a $250,000 MSA plus a DPA from templates to the Docusign fake as one envelope holding both documents and their digests.
+2. The CFO is the internal signer by rule, and the fields sit on each template's signature blocks as anchor tabs.
+3. A $50,000 agreement routes to the VP Sales, and with the CFO marked unavailable the fallback signer is chosen.
+4. On a counterparty PDF, the coordinator places a signature and a date field on page 7 and adds a CC, and the envelope carries those placements.
+5. With coordination narrowed to the Signature coordinators group, a requester outside it and a viewer are refused when they reorder signers.
+6. The same packet reaches the Acrobat Sign, Dropbox Sign and Inkwell fakes with matching fields.
+
+**Evidence.** `tests/api/signature-packets.test.mjs` — Signer rules preview and freeze type, exact USD bounds, entity, department and unavailable fallback before packet approval (rule boundaries/fallback/preview authority); Approved MSA plus DPA and template fields reach three real adapter network edges; the identical manifest shape prepares only a draft in Inkwell (USD 250000 CFO, two documents/digests, template fields, provider wire payloads, immutable source and tagged custody, USD 50000 VP, frozen rules and fallback review); Counterparty PDF page seven signature and date plus CC travel through every adapter without changing approved bytes (manual placements/CC/retained sources); Current coordinator group and requester relationship guard signer edits; edits withdraw exact packet approval and archives retain evidence (group/viewer/requester refusal, agent proposal, changed approval and archive); An uncertain provider send is visible, has one network attempt and cannot silently retry or be marked sent manually (unknowns). `tests/browser/signature-packets.spec.ts` — Signature coordinator reviews template packet, previews signer rules and places page seven fields with CC at 1440px/390px (template packet, fallback, manual page preview/tooltip and provider receipt)
+**Gap.** None for the network-edge packet acceptance. Live provider sending/callbacks and sandbox receipts remain SIGN-002/SIGN-003.
 
 ### Obligations and renewals
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `OBL-001` | Obligation extraction, owners and status | a journey with a model-provider fake extracts six obligations from a fixture supplier agreement, a person confirms five with owners and rejects one; the confirmed ones appear on each owner's list with their next due dates and recurrence. The clause is accepted only when a live run under `REVIEW-006` meets the obligations bar. | partial | `tests/api/flows.test.mjs` — 10 terms and obligations are confirmed against the executed text, and corrections keep history (six manually cited proposals, five confirmed with distinct owners, one rejected and exact personal lists); `tests/api/obligation-evidence.test.mjs` — OBL-002 evidence before done, overdue owner notice, escalation to the responsible person and approver after the configured days, and risk raised to the counterparty (native lifecycle continuation in `tests/api/obligation-lifecycle-journey.mjs`: dated states, evidence, recurrence, stale and revoked access, reminder claims and archive); `tests/browser/obligation-evidence.spec.ts` — OBL-002 refuses an insurance obligation done without its certificate, emails and escalates an overdue one and shows the raised risk on the counterparty page at 1440px&#47;390px (terms, owner list and counterparty) Gap: Built-in extraction of every named obligation kind and its party-bound, date, recurrence and citation fields; six-obligation model-provider-fake extraction journey; counsel-labelled held-out obligations material and a passing exact provider, model and prompt live REVIEW-006 obligations record remain required. An undated manually confirmed recurrence remains unscheduled; no first date is inferred. Native manually cited lifecycle proof does not satisfy extraction acceptance. Built-in extraction stays unavailable. Conservative owner-only reasoned local occurrence waiver default awaits CT approval. |
-| `OBL-002` | Fulfillment evidence and escalation | Clause-named `tests/api/obligation-evidence.test.mjs` on the Worker with D1, its scheduled handler at controlled times and the mail-provider fake: an unknown evidence kind and a zero escalation delay are refused, counsel cannot set the delay; an insurance obligation needing a file is refused done without one and with only a note, then done with the certificate kept as its evidence; a link obligation refuses an ftp link and keeps an https one. Two obligations due Monday August 10 (Eastern): nothing at 08:59 on the 11th, one generic overdue email each at 09:00 (no repeat at 09:30, no title in the text, a signed-in terms link); the open one is raised from medium to high, and the agreement and counterparty roll up to high with two overdue. One is then done; at 09:00 on the 14th the approver and the responsible person receive one escalation for the other only, recorded in the outbox (-1 reminder, -4 escalations) and the audit. Clause-named `tests/browser/obligation-evidence.spec.ts` at 1440 and 390 pixels is refused marking the insurance obligation done without its certificate, attaches it and sees it as evidence, runs the overdue notice and escalation, sees the report raised from medium to high and the counterparty page's risk High with one overdue obligation. | done | LOCAL PROVEN |
-| `RENEW-002` | Delivered reminders and escalation by email | Clause-named `tests/api/deadline-reminders.test.mjs` uses the mail-provider fake, the Worker's scheduled handler and signed Resend events at controlled times. An approved, executed agreement in America/Chicago with a confirmed 31 Dec end date and 60-day notice (deadline 1 Nov) reminds its responsible person 90, 60, 30 and 7 days before at 9:00 CDT: nothing at 8:59, one email at 9:00, none on an overlapping run, generic text with the renewals link only. With no decision at 30 days the approver who approved it and the owner each receive one escalation. A signed bounce on the 30-day reminder is shown on that reminder and retried once to the responsible person's alternate (counsel); a replayed event changes nothing and a mismatched recipient is refused. The activity shows four scheduler reminders, two escalations, the provider bounce and the alternate retry with honest provider labels; every accepted message keeps its provider ID and the responsible person's view carries no addresses. A second test: only the owner sets offsets (14 and 3, then 14, 3 and 1); an agent's and another person's preference changes are refused; an obligation owner in Los Angeles with the daily digest is reminded at 9:00 PT in one digest per day with generic lines (obligation and renewal reminders on one morning share it); a recorded renewal decision stops its later reminders; a complaint on a digest is recorded without a retry. `tests/browser/deadline-reminders.spec.ts` at 1440 and 390 pixels saves offsets and a Mountain-time digest preference, sends nothing for an offset 20 days past, then shows the sent reminder, Provider: bounced and the alternate retry on the renewal. | done | LOCAL PROVEN |
-| `RENEW-003` | Deadlines on Google Calendar and Outlook | A journey with Google Calendar and Graph fakes connects both, confirms terms and sees the notice-deadline event created; correcting the end date moves the event; recording the renewal decision marks it done. Live runs against a Google Workspace test calendar and a Microsoft 365 developer tenant are recorded before the clause is accepted. | partial | RENEW-007 Google fake deadline/end create, move, roll-forward and removal in `tests/api/portfolio.test.mjs`. Gap: person OAuth, own/team scopes, obligation events, both-provider decision completion and required live Workspace/Microsoft 365 runs. |
-| `RENEW-004` | Bulk reminders for imported contracts | Clause-named `tests/api/bulk-reminders.test.mjs` + `tests/browser/bulk-reminders.spec.ts`: public 40-record DocuSign batch, filter/view selection, 34 tracked/six missing, 20 old auto-renewing current deadlines, owner/offset/09:00 instants, unchanged originals, reload/resume and progress at 1440/390; larger selection spans guarded batches and resumes preview/apply; expired/terminated, stale/access/role/owner/replay refusals, audit and archive. Schedules are not delivered email (RENEW-002); REPO-003 and MOVE-002/003/004/005/006/007 inherit scheduling. | done | LOCAL PROVEN |
-| `RENEW-005` | Renewal briefs and renewal workflows | A journey with an accounting fake reaches the lead time on a supplier agreement; the brief cites the cap clause and shows spend to date; choosing renegotiate opens a linked renewal request routed under `INTAKE-002`. | done | LOCAL PROVEN — `tests/api/notices.test.mjs`: RENEW-005 prepares one cited accounting brief at lead time and opens the current intake-routed renewal with exact PDF custody (all acceptance points), and RENEW-005 refuses stale, inaccessible and unauthorized workflows; failed accounting never saves a zero-spend brief (refusals); `tests/browser/notices.spec.ts`: RENEW-005 reviews cited cap and accounting spend then opens an intake-routed renegotiation at 1440px/390px. |
-| `RENEW-006` | Send approved notices with delivery evidence | Clause-named `tests/api/notices.test.mjs` and `tests/browser/notices.spec.ts` prove exact approved PDF bytes/digest and recipient through the configured Base mail provider fake (Resend), retained message ID, separate provider acceptance and signed delivered/bounced events, replay/collision/tamper/recipient refusals, single-send concurrent retries, restricted scope, denied roles, suppressed/rejected outcomes and complete archives. At 1440/390 a certified-mail notice stays sent, delivery unconfirmed with its tracking number until separately labeled manual delivery evidence. Real rer dev journeys cover draft/PDF/approval, local suppression and courier tracking at both widths. No legal-service or live-provider claim; REPO-010 inherits the frozen recipient and INT-004 future provider checks. | done | LOCAL PROVEN |
-| `RENEW-007` | Auto-renewal roll-forward and lifecycle status | With the clock at 17 October 2026, a journey imports an agreement effective 1 March 2022 with a 1-year term, auto-renewal, 1-year renewals, unlimited renewals and 60 days' notice in America/New_York, and confirms its terms. It shows as auto-renewing with a current term of 1 March 2026 to 28 February 2027 (term 5) and a notice deadline of 30 December 2026 at 23:59:59 Eastern, 74 days away. Four roll-forwards are recorded as derived at import, and the confirmed end date of 28 February 2023 is unchanged. Its `RENEW-002` reminders are scheduled against 30 December 2026, the calendar fake holds that deadline, and the dashboard's 90-day notice-deadline tile counts it. The clock advances past the deadline with no decision. The renewal is recorded as committed with no decision, and the next term (1 March 2027 to 29 February 2028) and its deadline of 31 December 2027 appear with their reminders. The same agreement with 2 renewals allowed shows expired from 1 March 2025, with no deadline or reminder. A terminate decision with its notice recorded as sent before 30 December 2026 stops the roll-forward. The agreement shows active with an end date of 28 February 2027, then terminated from 1 March 2027. A terminate decision with no notice recorded by the deadline is flagged and does not roll forward. Correcting the renewal term to 18 months recomputes the current term to 1 March 2026 to 31 August 2027 and the notice deadline to 2 July 2027, and keeps the earlier derivation as superseded. Dashboard parity must also cover optional/evergreen types, renewal limits, early termination and durable/superseded derivation history: every affected REPORT-003 tile/value/countdown/drilldown uses these before RENEW-007 is done. | done | `tests/api/portfolio.test.mjs` — RENEW-007 imports durable current terms, rolls once at the deadline and supersedes corrected derivations without rewriting originals (17 October clock, term 5, four import rolls, original retained, leap term 6, idempotent cron, 18-month correction/supersession/archive); RENEW-007 optional election needs this term’s timely sent notice and renewal limits expire the final term (optional notice, two-renewal expiry, prior-term send refused); RENEW-007 termination stops commitment, flags missing evidence, and a cited earlier effective date changes portfolio lifecycle (timely sent stop, missing-notice flag and resolution, early termination); RENEW-007 evergreen anniversaries have owner-configured review lead time and no notice deadline (anniversary/review notification, termination); RENEW-007 calendar provider and reminder delivery follow the durable current term and remove ended events (Google fake deadline, both-term 60-day reminders, moved events and removal). `tests/browser/renewal-lifecycle.spec.ts` — Current renewal terms, optional and evergreen types, limits, termination and superseded history agree with every portfolio drilldown at 1440px/390px (all affected tiles, USD totals, exact drilldowns, queue, histories and correction countdowns) |
+#### OBL-001 — Obligation extraction, owners and status
+
+Core · target · **partial**
+
+**Requirement.** The built-in model proposes obligations from executed agreements (deliverables, payment milestones, service levels, insurance certificates, reporting, audit rights, data return or destruction, exclusivity, minimum commitments), each with the party bound, due date or recurrence, and citation. Confirmed obligations get an owner and status (upcoming, due, done, missed, waived) and appear on the owner's list and the counterparty page.
+
+Before shipping, these new events and channels inherit `NOTIFY-001` personal inbox/channel/digest preferences, generic authenticated-link messages, current-access checks, single-use send claims and honest outcomes.
+
+**Acceptance.**
+1. a journey with a model-provider fake extracts six obligations from a fixture supplier agreement, a person confirms five with owners and rejects one; the confirmed ones appear on each owner's list with their next due dates and recurrence.
+2. The clause is accepted only when a live run under `REVIEW-006` meets the obligations bar.
+
+**Evidence.** `tests/api/flows.test.mjs` — 10 terms and obligations are confirmed against the executed text, and corrections keep history (six manually cited proposals, five confirmed with distinct owners, one rejected and exact personal lists); `tests/api/obligation-evidence.test.mjs` — OBL-002 evidence before done, overdue owner notice, escalation to the responsible person and approver after the configured days, and risk raised to the counterparty (native lifecycle continuation in `tests/api/obligation-lifecycle-journey.mjs`: dated states, evidence, recurrence, stale and revoked access, reminder claims and archive); `tests/browser/obligation-evidence.spec.ts` — OBL-002 refuses an insurance obligation done without its certificate, emails and escalates an overdue one and shows the raised risk on the counterparty page at 1440px&#47;390px (terms, owner list and counterparty)
+**Gap.** Built-in extraction of every named obligation kind and its party-bound, date, recurrence and citation fields; six-obligation model-provider-fake extraction journey; counsel-labelled held-out obligations material and a passing exact provider, model and prompt live REVIEW-006 obligations record remain required. An undated manually confirmed recurrence remains unscheduled; no first date is inferred. Native manually cited lifecycle proof does not satisfy extraction acceptance. Built-in extraction stays unavailable. Conservative owner-only reasoned local occurrence waiver default awaits CT approval.
+
+#### OBL-002 — Fulfillment evidence and escalation
+
+Core · target · **done**
+
+**Requirement.** Marking an obligation done requires evidence when its type says so (a file such as a certificate of insurance, a link, or a note). Overdue obligations notify the owner, then escalate to the agreement's responsible person and to an approver after the configured days; each obligation carries a risk rating that rolls up to the agreement and counterparty.
+
+Exactly: each obligation records the evidence it needs to be marked done (none, a file such as a certificate of insurance, a web link starting https:// or http://, or a note) and a risk rating (low, medium or high, medium unless set). Marking it done without the required kind of evidence is refused; a file is kept with its exact bytes and digest as evidence for that obligation, and any other evidence given is kept too. A confirmed obligation not done is overdue once its due date has ended (23:59:59 in the agreement's zone). At 9:00 the next day in its owner's time zone (`RENEW-002` preferences, else the agreement's zone) the owner is emailed, at most one day late; the owner-configured number of days after that (1 to 60, default 3) the agreement's responsible person and the approver who gave its current commercial approval are emailed, or the owner when no one approved it (an imported agreement). Each message is generic (how many days overdue and a signed-in link, never the title, counterparty or value), sent once per obligation, due date and recipient through the `RENEW-002` outbox with its honest provider outcome, and marking the obligation done stops any not yet sent. Overdue raises an obligation's rating one level (low to medium, medium to high, high stays high); an agreement's risk is the highest raised rating among its open obligations, and a counterparty's the highest among the agreements the reader may see, shown on the counterparty page with how many obligations are overdue. Obligation kinds that `OBL-001` extraction adds inherit the evidence and risk fields, and their overdue escalation, before they ship.
+
+**Acceptance.**
+1. a journey marks an insurance obligation done and is refused without a certificate, attaches one and succeeds; another obligation passes its due date, its owner is emailed (the installation's mail-provider fake), and after three more days the approver is notified and the counterparty page shows the raised risk.
+
+**Evidence.** `src/locket/obligations.ts`; `src/locket/obligation-risk.ts`; `tests/api/obligation-evidence.test.mjs`; `tests/browser/obligation-evidence.spec.ts`
+**Gap.** None.
+
+#### RENEW-002 — Delivered reminders and escalation by email
+
+Core · target · **done**
+
+**Requirement.** Each renewal and obligation deadline sends reminder emails at owner-configured offsets (default 90, 60, 30 and 7 days before the notice deadline, taken from the current term under `RENEW-007`, so an auto-renewing agreement is reminded again every term) in the recipient's US time zone, from Postmark or the installation's mail provider, with a daily digest option. If no renewal decision is recorded by the 30-day reminder, Locket escalates to the agreement's approver and the owner. Every message keeps its provider message ID and delivery, bounce and complaint events; a bounced reminder is retried to an alternate recipient and shown on the deadline.
+
+**Acceptance.**
+1. a Workers journey with a mail-provider fake and a controlled clock confirms an end date and 60-day notice in America/Chicago, advances to each offset and receives the four reminders at 9:00 local time, sees escalation at 30 days without a decision, and sees a bounce event shown on the deadline with the alternate recipient emailed.
+2. The exact rules the code uses: - **Deadlines.** Every renewal notice deadline without a recorded decision, and every confirmed obligation with a due date, until the deadline passes (an obligation's deadline is 11:59 pm on its due date in the agreement's zone).
+3. Recording a renewal decision, marking an obligation done, or a corrected term that moves the date ends the old reminders; a new deadline (a corrected term, or the next term once `RENEW-007` rolls an auto-renewing agreement forward) gets its own reminders.
+4. Future deadline kinds (`OBL-002`, `RENEW-003`, `RENEW-005`) inherit these rules before they ship. - **Recipient and offsets.** A `RENEW-004` schedule that matches the current deadline names the recipient and its offsets; otherwise the agreement's responsible person (renewals) or the obligation's owner is reminded at the owner's offsets (1–12 whole days, 0–730, default 90, 60, 30 and 7).
+5. A recipient who can no longer read the agreement, or is inactive, is replaced by the installation owner. - **Time.** 9:00 am on (deadline date − offset) in the recipient's US time zone, set in their preferences; until they set one, the deadline's own zone.
+6. A Cloudflare Cron Trigger runs hourly (`triggers.crons` in `wrangler.jsonc`, `crons` in `deploy.json`), so a reminder goes out within the hour.
+7. Each run sends only the latest due reminder for a deadline, at most once, and at most 24 hours late; a reminder whose time passed longer ago (for example an offset already past when the deadline or schedule appeared) is never sent, as `RENEW-004` labels it. - **Daily digest.** A person who turns on the digest gets one email per local day with every reminder that came due for them, in place of separate emails; reminders arriving after that day's digest went out wait for the next day's.
+8. Escalations and alternate retries are always sent on their own. - **Escalation.** Once 9:00 am on the day 30 days before an undecided renewal's notice deadline has passed, Locket emails once each the agreement's approver (whoever gave its live commercial approval) and the installation owner, each in their own zone, if they can still read the agreement. Obligations do not escalate here (`OBL-002`). - **Messages and events.** Email through the installation's mail provider (Resend today), with generic text: the kind of deadline, days left and a signed-in link, never titles, parties or values. Every message keeps its provider message ID. The signed Resend endpoint used for notices (`RENEW-006`) records delivered, bounced, delayed, failed and complained events for these messages, shown on the deadline. Provider acceptance is never reported as delivery and local/demo suppression as sent. - **Bounce retry.** The first bounce of a reminder (or of a digest, for each reminder in it) is retried once, to the bounced person's chosen alternate recipient, else the agreement's responsible person, else the owner, the first who is someone else and can read the agreement. A retry is never retried again; complaints are recorded without a retry. - **Activity.** Each reminder, digest inclusion, escalation, provider event and alternate retry is recorded in the agreement's activity, attributed to the Locket scheduler or the provider.
+
+**Evidence.** `src/locket/deadline-reminders.ts`; `src/locket/deadline-reminder-dispatch.ts`; `tests/api/deadline-reminders.test.mjs`; `tests/browser/deadline-reminders.spec.ts`
+**Gap.** None.
+
+#### RENEW-003 — Deadlines on Google Calendar and Outlook
+
+Core · target · **partial**
+
+**Requirement.** A person connects Google Calendar or Outlook (Microsoft Graph) and chooses which deadlines appear (their own, their team's, all they may see). Notice deadlines, end dates and obligation due dates become calendar events with a link back, updated when a confirmed term is corrected and removed when the agreement ends or the deadline is met. Events follow the current term (`RENEW-007`): when an auto-renewing agreement rolls forward, the next term's notice deadline and end date are added.
+
+**Acceptance.**
+1. a journey with Google Calendar and Graph fakes connects both, confirms terms and sees the notice-deadline event created; correcting the end date moves the event; recording the renewal decision marks it done.
+2. Live runs against a Google Workspace test calendar and a Microsoft 365 developer tenant are recorded before the clause is accepted.
+
+**Evidence.** `tests/api/portfolio.test.mjs` — RENEW-007 calendar provider and reminder delivery follow the durable current term and remove ended events
+**Gap.** Person OAuth, own/team scopes, obligation events, both-provider decision completion and live Workspace/Microsoft 365 proof
+
+#### RENEW-004 — Bulk reminders for imported contracts
+
+Core · target · **done**
+
+**Requirement.** After a bulk import (`REPO-003`, `MOVE-*`), a person selects confirmed agreements by view or filter and sets reminder schedules and owners on all of them in one action, with a preview of the deadlines that will be tracked and those skipped for missing confirmed terms. Deadlines come from each agreement's current term (`RENEW-007`), so auto-renewing agreements whose original end dates are past are tracked, and expired or terminated ones are skipped with that reason.
+
+Current scheduling covers every imported agreement kind that exists today (legacy upload and MOVE-001 DocuSign archives); REPO-003, MOVE-002, MOVE-003, MOVE-004, MOVE-005, MOVE-006 and MOVE-007 inherit the same reviewed current-term scheduling before shipping. Owners and approvers select a currently active reminder owner who can read the selection. Offsets are whole calendar days before the notice deadline, at 09:00 in each agreement's zone; past offset times are labeled as past, never sent. The user selects the whole set in one action without a user-facing count cap; a durable operation previews and applies it in sequential guarded batches of at most 100 records, with progress and resume after interruption. Each batch is atomic; completed batches remain recorded if a later batch is refused. The actor's reviewed preview expires after 30 minutes and is applied only while actor/owner access, agreement revisions and projected deadlines still match. A later agreement or lifecycle change marks stored schedules as needing review. This clause stores schedules; RENEW-002 retains actual dispatch, escalation and delivery evidence, and a schedule is never labeled delivered.
+
+**Acceptance.**
+1. clause-named `tests/api/bulk-reminders.test.mjs` and `tests/browser/bulk-reminders.spec.ts` move a synthetic 40-record fixture through the public DocuSign bulk-import door, select it by view/filter, preview 34 tracked deadlines and six missing-term skips, reload/resume the review, and apply with visible progress at 1440/390.
+2. All 20 pre-2025 auto-renewing agreements use future current-term notice deadlines, original terms stay unchanged, owners/offsets/local 09:00 instants match the preview, and stored schedules never claim delivery.
+3. API assertions include expired/terminated skips, stale/role/access/owner refusals, protected replay, audit/archive, and a larger whole selection resumed across multiple preview/apply batches without a user-facing cap.
+
+**Evidence.** `src/locket/bulk-reminders.ts`; `src/locket/bulk-reminder-operations.ts`; `tests/api/bulk-reminders.test.mjs`; `tests/browser/bulk-reminders.spec.ts`
+**Gap.** None.
+
+#### RENEW-005 — Renewal briefs and renewal workflows
+
+Core · target · **done**
+
+**Requirement.** At a configured lead time before each notice deadline, Locket prepares a renewal brief for the decision-maker: current terms and amendments, price-increase cap, spend to date and invoices (`LINK-001`), obligation and service-level history, open issues and the options (renew, renegotiate, terminate) with their deadlines. Choosing renew or renegotiate opens a renewal request linked as `renews` with the brief attached.
+
+**Acceptance.**
+1. a journey with an accounting fake reaches the lead time on a supplier agreement; the brief cites the cap clause and shows spend to date; choosing renegotiate opens a linked renewal request routed under `INTAKE-002`.
+2. An owner configures the lead time and an active owner/approver decision-maker with current agreement access.
+3. The hourly scheduled run prepares one immutable brief per current deadline and source revision, using REPORT-003’s current-term projection; RENEW-007 inherits its expanded term types and durable history.
+4. The brief retains confirmed terms and their citations, person-confirmed price-increase caps, accessible amendments, obligations with their evidence and observed service-level history, unresolved comments/findings, and all three options with the current notice deadline.
+5. A read-only, owner-authorized QuickBooks vendor link adds dated USD bills incurred since the confirmed effective date (else recorded start, else installation record date).
+6. Bills are vendor-period spend, with outstanding balances shown separately; no allocation across contracts or payment total is inferred.
+7. Missing credentials, failed pages, non-USD data and oversized selections never produce a zero or partial total.
+8. No accounting write, renewal choice or supplier contact occurs automatically. Renew/renegotiate is an explicit decision by the named decision-maker or owner. It opens one request linked as `renews` through the same current published INTAKE-002 form, typed answers, launch audience, requirements, queue and frozen approval-rule snapshot as any request, preserving source restrictions/group boundaries, repeating erasure re-entry checks on the new answers and brief, and attaching the brief’s exact PDF bytes. Changed sources/configuration require a newly reviewed brief. State and downloads recheck access to every included source; roles with hidden fields receive no brief content. Original snapshots, decisions and accounting provenance remain in the owner archive. LINK-001 retains other accounting providers, payments and outbound proposed schedules.
+
+**Evidence.** `tests/api/notices.test.mjs` — RENEW-005 prepares one cited accounting brief at lead time and opens the current intake-routed renewal with exact PDF custody (lead time, cap/current terms/amendment/obligation/issue/native service-level history, QuickBooks fake spend, options/deadline, routing, PDF/replay/archive); RENEW-005 refuses stale, inaccessible and unauthorized workflows; failed accounting never saves a zero-spend brief (failures/access/staleness); `tests/browser/notices.spec.ts` — RENEW-005 reviews cited cap and accounting spend then opens an intake-routed renegotiation at 1440px/390px (settings, review, choice, form, linked request)
+**Gap.** None for current fixed/auto-renewing terms; RENEW-007 inherits expanded types/history; LINK-001 retains wider accounting scope
+
+#### RENEW-006 — Send approved notices with delivery evidence
+
+Core · target · **done**
+
+**Requirement.** An approved notice (`RENEW-001`) is sent from Locket by email to the counterparty's approved notice address with the PDF letter attached, or exported as a letter for certified mail or courier with the tracking number recorded. The current email connection is the installation's mail provider (currently Resend); other notice providers added by `INT-004` inherit the same approved-recipient/PDF, single-send and authenticated-event obligations before shipping. Until `REPO-010` adds the counterparty notice-address directory, the preparer enters the notice address on each draft and the approver reviews that exact recipient. `REPO-010` inherits the same frozen recipient when its directory ships.
+
+Preparing the draft freezes a downloadable PDF and its SHA-256 beside the immutable text and recipient, before approval. An older draft first prepares its PDF; an older approval without a frozen letter requires a new notice and approval for provider email. Existing notice-approval and record-send roles apply. A guarded one-use dispatch rechecks session, role, agreement access/revision and approval before sending the frozen PDF. Its retained message records sender, recipient, subject, text, PDF identity/digest, requester and provider message ID. Retrying a command returns its first queued acknowledgment and never calls the provider twice; current provider outcomes are separate state. Local/demo suppression means no email was sent; rejected, uncertain or interrupted attempts never claim sending or delivery, and never retry automatically.
+
+Resend callbacks at `/api/locket/notice-events/resend` verify the provider's timestamped signature over the exact bytes with the optional server-only endpoint key, match the message ID and approved recipient, and retain delivered, bounced, delayed and failed events. Identical provider retries add no event; an identity collision is refused. Provider acceptance means sent with delivery unconfirmed; delivered/bounced states are labeled provider reports, never legal service. Manual certified-mail/courier tracking records its number and stays sent, delivery unconfirmed until an authorized person records a nonfuture delivery time after sending and an evidence note. Manual evidence is labeled separately, preserved with its actor in the activity and retained in the archive. All records and PDF downloads respect agreement access. Whether any evidence is legally effective notice remains counsel's decision.
+
+**Acceptance.**
+1. `RENEW-006` in `tests/api/notices.test.mjs` and `tests/browser/notices.spec.ts` sends an approved termination notice through the configured Base provider fake, proving its attached PDF is byte-identical to the approved download and its SHA-256, message ID, sent status and signed delivered event appear at 1440/390.
+2. A certified-mail notice records its tracking number and stays sent, delivery unconfirmed until manually recorded delivery, visibly separate from provider evidence.
+3. API assertions cover duplicate/concurrent command replay with one send, invalid/stale signatures, wrong recipients, event replay/collision, bounce history, rejected/suppressed outcomes, denied roles, restricted evidence and full archive retention.
+4. The real `rer dev` journey exercises draft/PDF/approval, honest local suppression and courier unconfirmed/delivered states at both widths.
+
+**Evidence.** `src/locket/notice-mail.ts`; `src/locket/notice-events.ts`; `src/locket/notice-tracking.ts`; `tests/api/notices.test.mjs`; `tests/browser/notices.spec.ts`
+**Gap.** None.
+
+#### RENEW-007 — Auto-renewal roll-forward and lifecycle status
+
+Core · target · **done**
+
+**Requirement.** Most agreements a buyer brings in are evergreen SaaS and supplier contracts whose original end date is years past. Locket follows each one to its current term, so deadlines keep firing every term.
+
+- **Renewal terms confirmed.** Beside the effective date, end date (or an initial term in months), notice period, auto-renewal and renewal term that `TERMS-001` confirms, a person confirms the renewal type and the renewals allowed, each citing its passage. The renewal type is one of: fixed term (ends at its end date), auto-renews for the renewal term, evergreen (continues until either party gives notice), or optional renewal (renews only when we elect to). Renewals allowed is a whole number, and blank means unlimited. Extraction proposes all of them (`REPO-004`), and the Ironclad Lifecycle preset's properties map onto them (`MOVE-002`).
+- **Current term derived.** From the confirmed terms Locket derives every term in sequence. Each renewal term starts the day after the previous term ends and ends the day before the same calendar day one renewal term later (a 1-year term starting 1 March 2027 ends 29 February 2028). It derives the current term's start and end, the term number, renewals remaining and the next notice deadline (`RENEW-001`'s rule, in the agreement's zone, with `US-001`'s business-day option). This runs when terms are confirmed, including an imported agreement on the day it is confirmed (`REPO-003`, `MOVE-*`), and on a daily scheduled run (a Cloudflare Cron Trigger) for every agreement.
+- **Roll-forward.** When a notice deadline passes with no terminate decision recorded under `RENEW-001`, the renewal is committed: the next term and its notice deadline appear, and the roll-forward is recorded. For an optional renewal, the term rolls forward only when a renew decision is recorded and its notice is recorded as sent before the deadline; otherwise the agreement expires at the end date. Roll-forward stops after the renewals allowed, and the agreement then expires at the end of its last term.
+- **Derived history, never a rewrite.** Each roll-forward is a derived history entry beside the confirmed terms: term number, start, end, notice deadline, the confirmed terms it was computed from, when it was derived, and the decision state for that term (no decision, renew or renegotiate decided by a named person). Entries derived for periods before the agreement was in Locket are labeled as derived at import. The confirmed original end date is never changed. Correcting a confirmed term recomputes the chain, and the earlier derivation is kept as superseded.
+- **Termination.** A terminate decision stops the roll-forward. If no notice is recorded as sent by the notice deadline, the agreement is flagged to owner and counsel as "termination decided, notice not recorded by the deadline", with no roll-forward, until one of them records the notice with its evidence or confirms that the agreement renewed. A recorded termination takes effect on the current term's end date, or on an earlier effective date a person records with the clause that allows it.
+- **Lifecycle status.** Every executed or imported agreement has a derived lifecycle status beside its workflow stage: not yet in effect (effective date in the future), active (in term and not auto-renewing, including a fixed term, an evergreen agreement and one with a termination noticed, which shows its end date), auto-renewing (with the days left to the next notice deadline), expired (past the end of its last term), or terminated (from the termination's effective date). An evergreen agreement has no notice deadline; it is listed for review on each anniversary of its effective date at an owner-configured lead time.
+- **Dashboard inheritance.** Before RENEW-007 is done, REPORT-003's tiles, values, current-term countdowns and drilldowns must also assert optional/evergreen renewal types, renewal limits, early termination and the durable/superseded derivation history described here.
+- **Used everywhere.** Search and filters (`REPO-006`), saved views and columns (`REPO-007`), reports and the dashboard (`REPORT-002`, `REPORT-003`), reminders (`RENEW-002`), calendar events (`RENEW-003`), bulk schedules (`RENEW-004`), renewal briefs (`RENEW-005`), the API and webhooks (`INT-002`) and the archive (`PORT-001`) use the current term, its notice deadline and the lifecycle status, never an original end date that has passed.
+
+**Acceptance.**
+1. with the clock at 17 October 2026, a journey imports an agreement effective 1 March 2022 with a 1-year term, auto-renewal, 1-year renewals, unlimited renewals and 60 days' notice in America/New_York, and confirms its terms. - It shows as auto-renewing with a current term of 1 March 2026 to 28 February 2027 (term 5) and a notice deadline of 30 December 2026 at 23:59:59 Eastern, 74 days away.
+2. Four roll-forwards are recorded as derived at import, and the confirmed end date of 28 February 2023 is unchanged. - Its `RENEW-002` reminders are scheduled against 30 December 2026, the calendar fake holds that deadline, and the dashboard's 90-day notice-deadline tile counts it. - The clock advances past the deadline with no decision.
+3. The renewal is recorded as committed with no decision, and the next term (1 March 2027 to 29 February 2028) and its deadline of 31 December 2027 appear with their reminders. - The same agreement with 2 renewals allowed shows expired from 1 March 2025, with no deadline or reminder. - A terminate decision with its notice recorded as sent before 30 December 2026 stops the roll-forward.
+4. The agreement shows active with an end date of 28 February 2027, then terminated from 1 March 2027.
+5. A terminate decision with no notice recorded by the deadline is flagged and does not roll forward. - Dashboard parity is asserted for optional/evergreen types, limits and early termination, including its durable/superseded current-term derivations and every affected REPORT-003 tile and drilldown. - Correcting the renewal term to 18 months recomputes the current term to 1 March 2026 to 31 August 2027 and the notice deadline to 2 July 2027, and keeps the earlier derivation as superseded.
+
+**Evidence.** `tests/api/portfolio.test.mjs` — RENEW-007 imports durable current terms, rolls once at the deadline and supersedes corrected derivations without rewriting originals (17 October clock, term 5, four import rolls, original retained, leap term 6, idempotent cron, 18-month correction/supersession/archive); RENEW-007 optional election needs this term’s timely sent notice and renewal limits expire the final term (optional notice, two-renewal expiry, prior-term send refused); RENEW-007 termination stops commitment, flags missing evidence, and a cited earlier effective date changes portfolio lifecycle (timely sent stop, missing-notice flag and resolution, early termination); RENEW-007 evergreen anniversaries have owner-configured review lead time and no notice deadline (anniversary/review notification, termination); RENEW-007 calendar provider and reminder delivery follow the durable current term and remove ended events (Google fake deadline, both-term 60-day reminders, moved events and removal). `tests/browser/renewal-lifecycle.spec.ts` — Current renewal terms, optional and evergreen types, limits, termination and superseded history agree with every portfolio drilldown at 1440px/390px (all affected tiles, USD totals, exact drilldowns, queue, histories and correction countdowns)
+**Gap.** None
 
 ### Commercial systems
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `LINK-001` | Accounting links: Pantry, QuickBooks Online and NetSuite | A journey with a QuickBooks Online fake links a supplier agreement to its vendor, reads 8 bills totaling $84,000 against a $100,000 contract, shows 84% consumed, and a Pantry fake receives a proposed payment schedule that stays pending until accepted there. | partial | LOCAL PROVEN: `tests/api/notices.test.mjs` — LINK-001 eight QuickBooks bills become 84 percent contract consumption only after exact owner allocation, with shared-vendor cents fenced (vendor link, eight bills, exact $84,000 against $100,000 and cross-contract atomic refusal); LINK-001 confirmed payment obligation becomes one exact pending Pantry draft until accepted there (exact proposed bill, pending and matching acceptance, no duplicate send, restricted reads and archive); LINK-001 refuses unconfirmed, stale and unconsented schedules and never retries an unknown outbound outcome; LINK-001 provider reads retain exact bills, customer revenue and separate payments with fresh allocation and contract schedule comparisons (all three providers, both counterparty types, independent exact totals, payments separate, allocation and date comparisons, stale cached-result refusal after relinking, archive and authority fences); LINK-001 incomplete provider evidence preserves snapshots and finite recurring drafts need separate exact consent for every occurrence (incomplete and wrong-source refusals, month-end occurrences, bill and invoice drafts, separate consent, matching acceptance and no uncertain resend). `tests/browser/notices.spec.ts` — LINK-001 reviews exact contract allocation and pending Pantry payment at 1440px and 390px (84.00% consumption, exact payload consent, pending and accepted Pantry states, NetSuite customer invoices, separate payments, recurring reminders, schedule comparison, counterparty links and navigation tooltips). Both-width commercial journeys run in push Verify. The existing incomplete-read and recurring-draft journey compares the full retained snapshot and asserts independent quarterly and annual dates including leap-day clamping. The existing refusal journey invokes accountingCompletionRevocation for deferred session revocation, owner-role loss, changed source, changed field-policy revision and in-flight erasure of the retained payload; each asserts unchanged complete schedule, provider identity, health and command audit, and no revived send. The provider-read journey invokes accountingAmbiguousComparison for an independent USD 1000 unmatched allocation and two explicitly ambiguous same-day obligations. The pending-draft journey asserts retained decision payload, owner and exact decision time, outcome payload digest and attributed audit. The recurring-draft journey invokes accountingErasureAndHold for populated read content, proposed payload and citation minimization, with complete retained rows unchanged under legal hold. That journey also asserts Pantry and NetSuite successful reads, visible failure reasons and affected agreements, preserved prior synchronization, one generic owner alert per incident, recovery and unchanged retained snapshot content. Gap: The full LINK-001 target remains unproved for proposed scheduled bills and invoice reminders in QuickBooks Online and NetSuite; the current outbound door targets Pantry only. Prove destination changes and effective loss of field authority through the provider outcome write, beyond the asserted session, role, source and field-policy revision cases. Retain the proved three-provider reads, exact USD allocation, positive unmatched amounts and ambiguous due dates, monthly supplier and customer proposals, independently asserted quarterly and annual supplier preparation dates with clamping, unchanged retained snapshot content after failed reads, separate per-occurrence consent, pending acceptance, guarded attributed accounting consent and outcome history, populated accounting erasure and legal holds, and no uncertain resend. The complete original target and every inherited duty remain owed. |
-| `LINK-002` | Procurement links: Purse and Coupa | A journey with a Purse fake starts a request from a purchase request, executes it, sees the terms on the supplier record in the fake, and reads back two POs showing remaining contract value; the same runs against a Coupa fake. | missing | NOT PROVEN |
-| `LINK-003` | Proposal and billing handoffs: Platter and Nectar | A journey with a Platter fake converts an accepted proposal into a request with its line items, executes it, and a Nectar fake receives the proposed subscription with matching price, start date and renewal, pending activation. | partial | Partial proof: `tests/api/flows.test.mjs` — Accepted Platter and PandaDoc sources retain exact custody and become native requests with confirmed pending Nectar or Stripe handoffs (Platter and completed PandaDoc imports, native execution, optional items, discounts, fractional quantities, recorded GBP conversion, exact confirmed price and dates, pending Nectar receipt, draft Stripe quote with explicit existing prices and term and renewal instructions, separate owner consent, no duplicate or uncertain resend, unreadable and mismatch-accepted signed-source refusals, differing-term refusal); `tests/browser/proposal-pricing-journey.mjs` — accepted Platter and completed PandaDoc pricing documents and original-currency details at 1440 and 390 with focus and hover tooltips. Both-width commercial journeys run in push Verify. Gap: Successful Nectar handoff with separately preserved differing initial and renewal terms remains an original LINK-003 obligation, blocked by the receiving setup protocol and subsequent Locket integration and end-to-end evidence. Nectar must preserve and validate both terms in its pending setup proposal and expose matching destination readback before a billing person activates it. Until supported, Locket must refuse before sending without equalizing, omitting or inferring either term, silently changing destination, or treating refusal as success. Prove complete matching Nectar readback; exact displayed-payload consent; execution, signed-source digest, destination-account and connection-revision bindings; prepared-handoff staleness and withdrawn consent; current authority through outcome recording; uncertain Nectar no-resend behavior; attributed decision history, restricted custody, archives, erasure and legal holds; and connected proposal pricing through the validated Word line-item door. Record the billing review, consent and outcome screens at 1440 and 390. Retain gaps for PandaDoc quote-builder, ambiguous adjustments and multiple-choice sections; Stripe arrears, taxable prices and nonzero renewal uplifts; and applicable live-provider evidence. Preserve every previously approved provenance, consent, authority, staleness and uncertainty rule. This dependency transfers or waives no acceptance obligation. LINK-003 remains partial. |
+#### LINK-001 — Accounting links: Pantry, QuickBooks Online and NetSuite
+
+Core · target · **partial**
+
+**Requirement.** The owner connects Pantry, QuickBooks Online or NetSuite. Agreements link to the vendor or customer record; Locket reads bills, invoices and payments for linked counterparties to show spend or revenue to date against the contract value and payment schedule in USD, and offers confirmed payment obligations to the accounting system as scheduled bills or invoice reminders for a person to accept there.
+
+**Acceptance.**
+1. A journey with a QuickBooks Online fake links a supplier agreement to its vendor, reads 8 bills totaling $84,000 against a $100,000 contract, shows 84% consumed, and a Pantry fake receives a proposed payment schedule that stays pending until accepted there.
+
+**Evidence.** `tests/api/notices.test.mjs` — LINK-001 eight QuickBooks bills become 84 percent contract consumption only after exact owner allocation, with shared-vendor cents fenced (vendor link, eight bills, exact $84,000 against $100,000 and cross-contract atomic refusal); LINK-001 confirmed payment obligation becomes one exact pending Pantry draft until accepted there (exact proposed bill, pending and matching acceptance, no duplicate send, restricted reads and archive); LINK-001 refuses unconfirmed, stale and unconsented schedules and never retries an unknown outbound outcome; LINK-001 provider reads retain exact bills, customer revenue and separate payments with fresh allocation and contract schedule comparisons (all three providers, both counterparty types, independent exact totals, payments separate, allocation and date comparisons, stale cached-result refusal after relinking, archive and authority fences); LINK-001 incomplete provider evidence preserves snapshots and finite recurring drafts need separate exact consent for every occurrence (incomplete and wrong-source refusals, month-end occurrences, bill and invoice drafts, separate consent, matching acceptance and no uncertain resend). `tests/browser/notices.spec.ts` — LINK-001 reviews exact contract allocation and pending Pantry payment at 1440px and 390px (84.00% consumption, exact payload consent, pending and accepted Pantry states, NetSuite customer invoices, separate payments, recurring reminders, schedule comparison, counterparty links and navigation tooltips). Both-width commercial journeys run in push Verify. The existing incomplete-read and recurring-draft journey compares the full retained snapshot and asserts independent quarterly and annual dates including leap-day clamping. The existing refusal journey invokes accountingCompletionRevocation for deferred session revocation, owner-role loss, changed source, changed field-policy revision and in-flight erasure of the retained payload; each asserts unchanged complete schedule, provider identity, health and command audit, and no revived send. The provider-read journey invokes accountingAmbiguousComparison for an independent USD 1000 unmatched allocation and two explicitly ambiguous same-day obligations. The pending-draft journey asserts retained decision payload, owner and exact decision time, outcome payload digest and attributed audit. The recurring-draft journey invokes accountingErasureAndHold for populated read content, proposed payload and citation minimization, with complete retained rows unchanged under legal hold. That journey also asserts Pantry and NetSuite successful reads, visible failure reasons and affected agreements, preserved prior synchronization, one generic owner alert per incident, recovery and unchanged retained snapshot content.
+**Gap.** The full LINK-001 target remains unproved for proposed scheduled bills and invoice reminders in QuickBooks Online and NetSuite; the current outbound door targets Pantry only. Prove destination changes and effective loss of field authority through the provider outcome write, beyond the asserted session, role, source and field-policy revision cases. Retain the proved three-provider reads, exact USD allocation, positive unmatched amounts and ambiguous due dates, monthly supplier and customer proposals, independently asserted quarterly and annual supplier preparation dates with clamping, unchanged retained snapshot content after failed reads, separate per-occurrence consent, pending acceptance, guarded attributed accounting consent and outcome history, populated accounting erasure and legal holds, and no uncertain resend. The complete original target and every inherited duty remain owed.
+
+#### LINK-002 — Procurement links: Purse and Coupa
+
+Core · target · **missing**
+
+**Requirement.** A purchase request in Purse or Coupa that needs a contract opens a Locket request with supplier, amount and requester. On execution, Locket sends the supplier record the contract's key terms (value cap, dates, payment terms, renewal) so purchase orders draw down against it, and reads PO totals back to show remaining value.
+
+**Acceptance.**
+1. a journey with a Purse fake starts a request from a purchase request, executes it, sees the terms on the supplier record in the fake, and reads back two POs showing remaining contract value; the same runs against a Coupa fake.
+
+**Evidence.** None.
+**Gap.** No procurement connection exists
+
+#### LINK-003 — Proposal and billing handoffs: Platter and Nectar
+
+Core · target · **partial**
+
+**Requirement.** An accepted proposal in Platter (or PandaDoc) opens a customer contract request with the quoted products, prices and term. An executed customer agreement sends its confirmed pricing, start date, term and renewal terms to Nectar (or Stripe Billing) as a proposed subscription that a billing person activates there.
+
+**Acceptance.**
+1. a journey with a Platter fake converts an accepted proposal into a request with its line items, executes it, and a Nectar fake receives the proposed subscription with matching price, start date and renewal, pending activation.
+
+**Evidence.** `tests/api/flows.test.mjs` — Accepted Platter and PandaDoc sources retain exact custody and become native requests with confirmed pending Nectar or Stripe handoffs (Platter and completed PandaDoc imports, native execution, optional items, discounts, fractional quantities, recorded GBP conversion, exact confirmed price and dates, pending Nectar receipt, draft Stripe quote with explicit existing prices and term and renewal instructions, separate owner consent, no duplicate or uncertain resend, unreadable and mismatch-accepted signed-source refusals, differing-term refusal); `tests/browser/proposal-pricing-journey.mjs` — accepted Platter and completed PandaDoc pricing documents and original-currency details at 1440 and 390 with focus and hover tooltips. Both-width commercial journeys run in push Verify.
+**Gap.** Successful Nectar handoff with separately preserved differing initial and renewal terms remains an original LINK-003 obligation, blocked by the receiving setup protocol and subsequent Locket integration and end-to-end evidence. Nectar must preserve and validate both terms in its pending setup proposal and expose matching destination readback before a billing person activates it. Until supported, Locket must refuse before sending without equalizing, omitting or inferring either term, silently changing destination, or treating refusal as success. Prove complete matching Nectar readback; exact displayed-payload consent; execution, signed-source digest, destination-account and connection-revision bindings; prepared-handoff staleness and withdrawn consent; current authority through outcome recording; uncertain Nectar no-resend behavior; attributed decision history, restricted custody, archives, erasure and legal holds; and connected proposal pricing through the validated Word line-item door. Record the billing review, consent and outcome screens at 1440 and 390. Retain gaps for PandaDoc quote-builder, ambiguous adjustments and multiple-choice sections; Stripe arrears, taxable prices and nonzero renewal uplifts; and applicable live-provider evidence. Preserve every previously approved provenance, consent, authority, staleness and uncertainty rule. This dependency transfers or waives no acceptance obligation. LINK-003 remains partial.
 
 ### Connections and administration
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `INT-001` | Google Drive, OneDrive&#47;SharePoint and Chest | a journey with Drive and Graph fakes imports a folder of 30 agreements, executes a new agreement and finds it filed under the naming rule in both; editing the stored copy leaves Locket's original digest unchanged. Live runs against a Google Drive test folder and a SharePoint document library in a Microsoft 365 developer tenant are recorded before the clause is accepted. | missing |  Gap: No storage connection exists |
-| `INT-002` | Public API, webhooks, Zapier and Crank | A journey creates a scoped token, drives an agreement through the API to executed, and receives each webhook with a valid signature at a test endpoint; a failing endpoint is retried and logged; the Zapier and Crank apps' trigger tests pass against a running installation. | partial | `tests/api/browser-edits.test.mjs`: Scoped integration tokens permit only named native doors and end on explicit revocation or creator sign-out (native request creation, read scope, export refusal, mint refusal, expiry, revocation, session ending and no raw capability in archive). `src/locket/scoped-tokens.ts`; `API.md`. Gap: Signed outgoing webhooks, retries, delivery log, in-repository Zapier and Crank trigger tests and token settings UI remain unfinished at the cloud budget. Partner app publication requires owner accounts. Conservative default ADOPTED pending ct: only the signed-in owner creates explicitly scoped tokens; tokens expire within thirty days, inherit all native access checks, cease with the creator session and cannot mint more tokens. No automatic outbound action is enabled. |
-| `INT-003` | SSO and SCIM provisioning | A journey with an Okta fake signs in through SAML, provisions a user into the Counsel group by SCIM and sees the counsel role, then deactivates the user and sees their open session refused on the next command. | done | LOCAL PROVEN: `tests/api/security.test.mjs` — Workforce SAML admission and SCIM Counsel mapping revoke the open native session on deactivation (required signed Okta fake, role, department and next-command refusal); Workforce refuses forged, replayed, misdirected and unprovisioned SAML identities and protects local operators (owner-session consent, immutable mappings and identities, local and owner isolation, refused deletion and preservation); Workforce group updates, user changes and owner consent withdrawal remove stale authority (conflicting-role viewer fallback, managed-change revocation and no reactivation on renewed consent). `tests/browser/counterparties.spec.ts` — Workforce SAML sign-in, Counsel provisioning and immediate session refusal at 1440px and 390px (native sign-in, current role, revocation and tooltips). Policy approved by ct on 23 October 21:00Z. Recorded 1440 and 390 screen execution accompanies the landing report. |
-| `INT-004` | Connection health | A journey with fakes connects HubSpot and Docusign, forces an expired token on Docusign, and sees the connection marked failing with the reason, the affected agreements listed, an owner email sent, and recovery after reconnecting. | partial | LOCAL PROVEN explicit read-only probes, the required HubSpot fake, verified provider account identities, invalid-account refusal and one-use failure alerts: `tests/api/signature-packets.test.mjs` — Connection checks expose credential failure, one owner alert, current affected agreements and read-only recovery; `tests/browser/counterparties.spec.ts` — Connection health read-only failure and recovery at 1440px and 390px. The existing RENEW-005 accounting refusal journey and RENEW-007 calendar synchronization journey in `tests/api/notices.test.mjs` and `tests/api/portfolio.test.mjs` prove automatic read and sync outcomes, distinct timestamps, one failure alert and recovery. Existing signing packet success and uncertain-send journeys in `tests/api/signature-packets.test.mjs` also prove automatic signing health, distinct operation timestamps and one-use failure alerts. The connection-check journey proves owner-recorded expiry, early suppression, concurrent one-use warning, clearing and archive retention; the existing two-width browser journey proves expiry entry, warning and clearing. Automatic health now also records installation mail, separate Postmark exchange mail, approval chat sends, chat status sends, validated Uptime metrics and scoped Linen reads. Successful operations retain a distinct timestamp through later failures, recover on a new successful operation and claim one generic owner alert per incident; health notices bypass recording to prevent recursive mail alerts. Explicit read-only probes additionally cover Adobe Acrobat Sign, Dropbox Sign, Google and Outlook calendars, Resend verified sender domains and Postmark servers. Calendar probes verify both the selected resource and the provider principal. HubSpot OAuth metadata supplies identity-matched provider-discovered expiry; unavailable metadata leaves expiry unknown. Its seven-day warning shares the one-use claim, preserves its claim across repeated unchanged metadata and labels provider discovery separately from owner-recorded dates. Existing `tests/api/approval-mail.test.mjs` journeys prove automatic approval chat, mail failure alerts and status-chat recovery; `tests/api/browser-edits.test.mjs` proves separate exchange mail health; `tests/api/notices.test.mjs` proves validated Uptime and scoped Linen read health. Existing `tests/api/reports.test.mjs` and `tests/api/outcome-report.test.mjs` rejected-delivery journeys separately assert the exact business sends and the one-use generic owner alert. The connection-check journey proves additional provider principals, malformed-receipt refusal, provider-discovered expiry, repeated-metadata warning deduplication and archive custody. Both-width Connections proof includes the provider-discovered expiry label and warning. Gap: Verified acting identities and read-only probes for Nook, Inkwell, scoped Uptime and Linen, and mail transports other than Resend and Postmark remain unproved; Resend sender-domain verification does not establish its acting-account identity; automatic chat membership-read and callback health coverage and expiry discovery beyond HubSpot remain unproved. |
-| `NOTIFY-001` | Personal inbox, current-event email and own-zone daily digest | `tests/api/notifications.test.mjs` and `tests/browser/notifications.spec.ts`: all current events, read state, channels, next-day shared digest, access and pending-state revocation, explicit identities, one-use/uncertain mail and archive. `tests/api/deadline-reminders.test.mjs` keeps signed digest evidence and deadline batching. `tests/portable.mjs` names NOTIFY-001 and restores channels, read state and honest outcomes through rer export/import. 1440/390 comments, inbox, links and persisted preferences. `tests/api/notifications.test.mjs` asserts both-door self-only refusal, routing-only defaults and concurrent personal-choice preservation; `tests/browser/notifications-policy.spec.ts` asserts own-editable and other-person read-only zone/digest with editable routing at both widths. | done | LOCAL PROVEN |
-| `US-001` | US defaults | Clause-named `tests/api/us-defaults.test.mjs`: a fresh installation reads USD, America/New_York and no rolling; counsel's change, a non-US zone and a stale edit are refused; the owner chooses America/Los_Angeles and new requests and legacy imports inherit it (a request naming America/Denver keeps it). A supplier request requires a certificate of insurance and a Form W-9 (submit refused until both), a customer request a statement of work or order form, an amendment the signed parent and an NDA nothing. EINs are kept and a malformed EIN refused; a foreign tax ID is labeled foreign. A GBP value without a rate or with a zero rate is refused; at 1.2705 USD per GBP, 40,000 GBP is $50,820.00 with the recorder kept, 0.03 GBP at 1.5 rounds half up to 5 cents, and the repository value filter reads the USD equivalent. A deadline on Thanksgiving (Thursday November 26, 2026) re-dates to Wednesday November 25 at 23:59:59 Pacific when the option is switched on, returns when it is off, and weekend deadlines roll to Friday while Monday stays. Clause-named `tests/browser/us-defaults.spec.ts` at 1440 and 390 pixels sets Pacific and rolling in Installation defaults, sees USD and the Pacific zone on the request form and the W-9 on a supplier checklist, creates a GBP request at 1.27 showing £40,000.00 GBP and $50,800 USD with its rate and recorder, sees the Thanksgiving deadline as Wed Nov 25, 2026, 11:59 pm PT and the 51 governing-law choices. | done | LOCAL PROVEN |
-| `AUDIT-001` | Filterable activity audit trail | `tests/api/flows.test.mjs` and `tests/browser/audit.spec.ts` name AUDIT-001: approvals, restricted state/search/comparison reads and downloads carry actor, role, time, agreement and summary; owner/counsel filters intersect by person, agreement, action and inclusive UTC dates; CSV rows match the Activity screen at 1440/390; CSV export records audit.export after selecting rows; reading/filtering adds no event; denied roles and hidden files are refused; the complete archive retains every entry. Future INTAKE/REPO/DRAFT/PLAY/NEG/REVIEW/APPROVE/SIGN/EXEC/OBL/RENEW/LINK/INT/NOTIFY/ERASE/ENTITY/REPORT/MOBILE/MOVE/AGENT capabilities must assert their own inherited events before shipping. | done | LOCAL PROVEN |
-| `ERASE-001` | Personal-data erasure with legal hold | A journey erases a counterparty contact who appears on comments and a notice; their name and email are replaced in those records, the executed agreement and audit entries remain with the erasure recorded; a legal hold refuses deletion of a draft until released. | done | LOCAL PROVEN. `tests/api/counterparties.test.mjs`: original ERASE-001 verified contact erasure journey plus Scoped privacy delegates intersect current access, preserve owner authority and lose preview replay after revocation; Compressed PDF-only personal data appears in the exact erasure draft disposition; Historical erasures pause personal-data entry until owner-verified private address recovery. Existing re-entry, rotation, expiry and imported-original proofs retained. `tests/browser/counterparties.spec.ts`: ERASE-001 verified contact erasure, counsel hold and explicit retention preview at 1440px and 390px now includes owner scope assignment, delegated erasure and historical recovery. |
-| `ENTITY-001` | Our contracting entities | Clause-named `tests/api/entities.test.mjs` has the owner record a Delaware parent (EIN) and a UK subsidiary (GBP, Europe/London, two signatories). Counsel's attempt, a malformed EIN and a duplicate name are refused. A UK request without an entity, with the Delaware template or with the Delaware-only wording is refused; with the UK template it fills the UK legal name, notice address and signatory and takes London time. A Delaware-only playbook rule and library wording are refused on it. Its package routes to the chosen UK signatory for the UK entity, and a Delaware signatory is refused. The UK termination notice PDF carries the UK notice address and signatory. A DocuSign move-in batch must name an entity and its agreements take the UK entity. The register filters by entity for a viewer, counsel names an earlier agreement's entity (audited; a viewer is refused), and the portfolio groups and filters by entity. `tests/browser/entities.spec.ts` records the UK entity in the Library, sees intake offer only the UK template for UK (and only the US template for Delaware) and the agreement page name the entity at 1440/390 without horizontal scrolling. SIGN-005, REPORT-001/002, INTAKE-007, REPO-004, REPO-011 and MOVE-002 to MOVE-007 inherit the entity before they ship. | done | LOCAL PROVEN |
-| `OPS-001` | Self-hosted install, updates and security answers | A fresh `rer deploy` to a test Cloudflare account creates the Worker, database and storage in that account. Updating from the previous release takes an export, applies the migrations and keeps every record and file digest. The questionnaire lists every connector the build can enable as a subprocessor, which a check compares with the build's connectors. A release-history check reads the repository's release tags and published security advisories. It fails if any 31-day window since the first release has no release, or if any advisory's fixed release was published more than 7 days after its fix was merged. | partial | `tests/api/operations.test.mjs`: Hosted export keeps records and file bytes in a verified restorable archive and refuses a replaced deployment (public hosted export, file integrity, private calendar credential exclusion and refusal before update when prior source is unavailable); Release history refuses missing releases, every oversized cadence gap and security fixes without timely merged provenance; Security response coverage fails when a declared build connector is absent or a required domain is unanswered. `tests/portable.mjs` proves empty-destination restore and file equivalence. `scripts/security-questionnaire.mjs` checks source-derived connectors, every official CAIQ 4.1.0 identifier and all public historical 2019 SIG Lite identifiers; The completeness option refuses the current SIG gap. `scripts/release-history.mjs` passed against live repository releases and published advisories on 26 October 2026. `scripts/installer/update.mjs` and `OPERATIONS.md` implement and describe native pre-migration export, prior release and digest preservation; `tests/operations-live.mjs` is the committed live journey, NOT RUN. Gap: Fresh Cloudflare deployment and the exact previous-release update, migration, record preservation, private R2 backup and removal journey remain unproved. Live proof is blocked on a verified outbound mail sender and credential or an approved Auth SSO installation: none of the 66 RunEditRun account zones had an enabled Cloudflare Email Sending sender on 26 October 2026. The authoritative current 2026 SIG Lite workbook, revision and exact question identifiers and text require licensed access; the public historical 2019 mapping does not complete it. No certification is claimed. |
+#### INT-001 — Google Drive, OneDrive/SharePoint and Chest
+
+Core · target · **missing**
+
+**Requirement.** The owner connects Google Drive, OneDrive/SharePoint or Chest. Locket imports from chosen folders (`REPO-003`) and files executed agreements and certificates into a folder structure by naming rule (for example `Contracts/{counterparty}/{year}`), linking each stored copy back to the record. Locket remains the system of record; changes made to copies in storage do not alter Locket's originals.
+
+**Acceptance.**
+1. a journey with Drive and Graph fakes imports a folder of 30 agreements, executes a new agreement and finds it filed under the naming rule in both; editing the stored copy leaves Locket's original digest unchanged.
+2. Live runs against a Google Drive test folder and a SharePoint document library in a Microsoft 365 developer tenant are recorded before the clause is accepted.
+
+**Evidence.** None.
+**Gap.** No storage connection exists
+
+#### INT-002 — Public API, webhooks, Zapier and Crank
+
+Core · target · **partial**
+
+**Requirement.** A documented REST API covers every command and read the screens use, with scoped API tokens for integrations. Signed outgoing webhooks fire for request created, submitted, approved, sent for signature, executed, term confirmed, deadline approaching, renewal committed, agreement expired, agreement terminated and obligation overdue, with retries and a delivery log. Published Zapier and Crank apps expose the same triggers and actions.
+
+**Acceptance.**
+1. a journey creates a scoped token, drives an agreement through the API to executed, and receives each webhook with a valid signature at a test endpoint; a failing endpoint is retried and logged; the Zapier and Crank apps' trigger tests pass against a running installation.
+
+**Evidence.** `tests/api/browser-edits.test.mjs`: Scoped integration tokens permit only named native doors and end on explicit revocation or creator sign-out (native request creation, read scope, export refusal, mint refusal, expiry, revocation, session ending and no raw capability in archive). `src/locket/scoped-tokens.ts`; `API.md`.
+**Gap.** Signed outgoing webhooks, retries, delivery log, in-repository Zapier and Crank trigger tests and token settings UI remain unfinished at the cloud budget. Partner app publication requires owner accounts. Conservative default ADOPTED pending ct: only the signed-in owner creates explicitly scoped tokens; tokens expire within thirty days, inherit all native access checks, cease with the creator session and cannot mint more tokens. No automatic outbound action is enabled.
+
+#### INT-003 — SSO and SCIM provisioning
+
+Core · target · **done**
+
+**Requirement.** Operators sign in through SAML or OIDC with Okta, Microsoft Entra ID, Google Workspace or Auth, and SCIM provisioning creates, updates and deactivates operators and maps groups to Locket roles and departments (`REPO-009`). Deactivation revokes sessions immediately.
+
+**Acceptance.**
+1. a journey with an Okta fake signs in through SAML, provisions a user into the Counsel group by SCIM and sees the counsel role, then deactivates the user and sees their open session refused on the next command.
+
+**Evidence.** `tests/api/security.test.mjs` — Workforce SAML admission and SCIM Counsel mapping revoke the open native session on deactivation (required signed Okta fake, Counsel role and department, deactivation and next-command refusal); Workforce refuses forged, replayed, misdirected and unprovisioned SAML identities and protects local operators (signed-in owner consent, immutable mappings and identities, local and owner isolation, deletion refusal and preservation); Workforce group updates, user changes and owner consent withdrawal remove stale authority (conflict fallback, managed-change revocation, disablement and no automatic reactivation); `tests/browser/counterparties.spec.ts` — Workforce SAML sign-in, Counsel provisioning and immediate session refusal at 1440px and 390px (native sign-in, current session, revocation and navigation tooltips)
+**Gap.** Identity policy approved by ct on 23 October 21:00Z. Signed Okta network-edge fixture; other named providers use the native OIDC or configurable signed SAML door without a live-provider claim
+
+#### INT-004 — Connection health
+
+Core · target · **partial**
+
+**Requirement.** Every connection (CRM, signing, storage, calendar, chat, accounting, procurement, mail, model) shows its status, the account it acts as, last successful sync, and each failure with its reason and a retry, and the owner is emailed when a connection starts failing or its credentials near expiry.
+
+**Acceptance.**
+1. a journey with fakes connects HubSpot and Docusign, forces an expired token on Docusign, and sees the connection marked failing with the reason, the affected agreements listed, an owner email sent, and recovery after reconnecting.
+
+**Evidence.** `tests/api/signature-packets.test.mjs` — Connection checks expose credential failure, one owner alert, current affected agreements and read-only recovery (expired Docusign token, affected agreements, one generic alert, reconnect recovery, supported provider identities, malformed receipts, HubSpot expiry and archive); `tests/browser/counterparties.spec.ts` — Connection health read-only failure and recovery at 1440px and 390px (failure, recovery, provider expiry, warnings and tooltips); `tests/api/approval-mail.test.mjs` — APPROVE-003 / MOBILE-001 / SEC-002 emails a generic authenticated review link once, then records the exact version through the normal approval command (automatic mail and approval chat health); MOBILE-001 / NOTIFY-001 local suppression and uncertain provider outcomes never claim sending or resend on replay (one alert per failing mail or chat connection without recursion); Chat delivery claims preserve consent, uncertain outcomes, complete membership and current access across retries (chat status failure, retained success and recovery); `tests/api/browser-edits.test.mjs` — NEG-006 sends a clean external v2 through Postmark, accepts an exact v3 markup and audits scoped account-free use (exchange mail health); `tests/api/notices.test.mjs` — AGENT-002 refuses unconfirmed formulas and incomplete, wrong-policy or unavailable monitoring without inventing a zero or credit (Uptime health and recovery); AGENT-002 exact scoped Linen MCP evidence supports observed response time while business clocks, closure-derived resolution and delivery remain unknown (Linen health and recovery); `tests/api/reports.test.mjs` — REPORT-002 retains rejected and locally suppressed outcomes without claiming delivery or resending (one report attempt, one separately counted failure alert); `tests/api/outcome-report.test.mjs` — AGENT-009 consent, source and access changes remain scoped and rejected or uncertain monthly mail is never retried (two intended monthly recipients, one separately counted mail incident alert)
+**Gap.** Verified acting identities and read-only probes for Nook, Inkwell, scoped Uptime and Linen, and mail transports other than Resend and Postmark remain unproved; Resend sender-domain verification does not establish its acting-account identity; automatic chat membership-read and callback health coverage and expiry discovery beyond HubSpot remain unproved.
+
+#### NOTIFY-001 — Notifications and preferences
+
+Core · target · **done**
+
+**Requirement.** People receive personal in-app and email notifications for today's request responsible-person assignment and reassignment, confirmed obligation assignment, explicit comment mentions, pending commercial and exception approvals, manual signature handoff/void/completion and accepted execution, overdue obligations and renewal/obligation deadlines. Only explicit operator identities are mentions; typing a display name never selects a recipient. Automatic approval requests follow the current route and exclude a requester who cannot approve their own request. Signature events go to the requester's and responsible person's accounts. Every recipient must be an active human with current agreement access.
+
+Each person sets their own in-app/email switches, daily email digest and US time zone. Digest and zone are self-only through both `notification.preferences` and `preferences.set`; the owner may edit others' delegates and bounce alternates against an atomically guarded personal snapshot, without creating or overwriting personal delivery choices. Existing reminder delegates and bounce alternates are preserved. Channels default on, digest off; the personal reminder zone (else the installation zone) is used. The inbox lists generic event kinds with authenticated record links and personal read state, and rechecks current access each time. In-app events created while that channel was off are not backfilled. Disabling in-app delivery hides the inbox until re-enabled. Email contains only generic labels and authenticated links, never titles, counterparties, values or comment text.
+
+New business events are inserted in the same guarded batch as their command; command replay never creates a second event. The existing explicit approval email, approval reminders/escalations and deadline reminders/escalations use these same channel and digest choices, keeping their authority/version/deadline checks and signed delivery evidence. The first hourly tick at or after 9 a.m. in each recipient's zone claims at most one digest for that local date with all eligible waiting items; later items wait for the next day's digest. Current access, role, preferences and pending approval/deadline state are checked again inside the send claim. A provider-accepted outcome means acceptance only, never confirmed mailbox delivery. Interrupted or uncertain sends are visible and never automatically resent. Local/dev mail stays suppressed.
+
+This clause is done for every capability that exists today. `INTAKE-005` adds chat delivery; `INTAKE-006` adds team assignment and queue/SLA events; `SIGN-002` and `SIGN-003` add provider signing events. Each inherits this clause's personal preferences, generic-link privacy, current access, one-use claim, inbox and digest obligations before shipping. `OBL-001` adds the same assignment/overdue notifications for extracted obligation kinds. Whole-installation owner archives retain the notification records and delivery outcomes under PORT-001; ordinary workspace reads never expose another person's inbox or delivery address.
+
+**Acceptance.**
+1. clause-named API and browser journeys mention counsel, assign a request and complete a signature; counsel receives the in-app and email events under personal preferences.
+2. Switching to a daily digest batches the next day's notifications into one own-zone 9 a.m. email, including an explicit approval email and existing deadline reminders.
+3. Assertions cover each current event kind, duplicate/concurrent sends, read-state persistence, channel switches, explicit-identity mentions, agent/other-person refusal, current role/access revocation, pending approval/version changes, no restricted viewer disclosure, generic mail, uncertain outcomes without resend, signed deadline-digest evidence and whole-archive retention (`tests/portable.mjs` names NOTIFY-001 and restores channels, read state, records and delivery outcomes through rer export/import).
+4. Browser journeys at 1440/390 use the comment mention control, open the inbox and linked agreement, mark read, and save/reload channel, digest and zone preferences without horizontal scrolling.
+5. `tests/api/notifications.test.mjs` asserts cross-door owner refusal, routing-only defaults and concurrent personal-choice preservation; `tests/browser/notifications-policy.spec.ts` proves self-editable and other-person read-only zone/digest with editable routing at both widths.
+6. Future named clauses assert their inherited channels and event kinds before shipping.
+
+**Evidence.** `src/locket/notifications.ts`; `src/locket/notification-dispatch.ts`; `tests/api/notifications.test.mjs`; `tests/api/approval-mail.test.mjs`; `tests/api/approval-reminders.test.mjs`; `tests/api/deadline-reminders.test.mjs`; `tests/browser/notifications.spec.ts`; `tests/browser/notifications-policy.spec.ts`; `tests/portable.mjs`
+**Gap.** None.
+
+#### US-001 — US defaults
+
+Core · target · **done**
+
+**Requirement.** A new installation defaults to USD with values entered and shown as US dollars, an installation time zone chosen from US zones (Eastern, Central, Mountain, Arizona, Pacific, Alaska, Hawaii) that new agreements inherit and can change per agreement, US date format, governing law chosen from US states and the District of Columbia (with other jurisdictions available), counterparty EIN in place of ABN, and an option to roll notice deadlines that fall on a weekend or US federal holiday to the previous business day. Agreements in another currency keep their original amount and show the USD equivalent at a recorded rate. Default required attachments: supplier agreements need a certificate of insurance and a Form W-9; customer agreements need a statement of work or order form; amendments need the signed parent; NDAs none.
+
+Exactly: until the owner chooses, the installation zone is America/New_York and deadlines stay on their calendar date. Only the owner (acting for the administrator) changes the installation zone, which must be one of the seven US zones listed, and the business-day option. A new request or legacy import takes the zone it names, else its contracting entity's zone (`ENTITY-001`), else the installation's. A notice deadline (end date minus notice days) that falls on a Saturday, Sunday or observed US federal holiday (New Year's Day, Martin Luther King Jr. Day, Presidents' Day, Memorial Day, Juneteenth, Independence Day, Labor Day, Columbus Day, Veterans Day, Thanksgiving, Christmas; a Saturday holiday is observed the Friday before, a Sunday one the Monday after) moves to the closest earlier business day, still at 23:59:59 in the agreement's zone; obligation due dates are not moved. Switching the option re-dates every renewal deadline not yet decided, in the same write, and records how many moved; decided renewals keep theirs. Every amount is entered in hundredths. A USD value is stored as entered; a value in another currency (a three-letter ISO code) keeps its original amount beside the rate a person records as US dollars per one unit (a positive decimal with up to six places), who recorded it and when, and its USD equivalent is the amount times the rate rounded half up to the cent. Approval routing, totals, filters, saved views and exports read the USD equivalent. Locket fetches no exchange rate and never labels a recorded rate a market rate. A counterparty's tax ID is an EIN written 12-3456789 or a foreign tax ID recorded as given; a tax number recorded before this clause (an ABN) is kept as given and labeled foreign. Governing law is offered from the fifty states and the District of Columbia, and any other jurisdiction may be typed; Locket makes no claim about which law governs.
+
+**Acceptance.**
+1. a fresh installation's request form shows USD and the installation's America/Los_Angeles zone, a supplier request requires a certificate of insurance and W-9, a deadline falling on Thanksgiving rolls back to the Wednesday with the business-day option on, and a GBP agreement shows its USD equivalent and rate.
+
+**Evidence.** `src/locket/installation.ts`; `src/locket/us-defaults.ts`; `src/locket/business-days.ts`; `tests/api/us-defaults.test.mjs`; `tests/browser/us-defaults.spec.ts`
+**Gap.** None.
+
+#### AUDIT-001 — Filterable activity audit trail
+
+Core · target · **done**
+
+**Requirement.** Every successful current business command is recorded with actor, role, time, agreement (where applicable) and summary, together with views of restricted agreements and file downloads. Returning restricted agreements in workspace state, search results or a version comparison records a view; a successful file download records its artifact identity and digest. The owner and counsel filter the audit trail by person, agreement, action and date and export it as CSV; date bounds include the whole chosen UTC dates and supplied filters intersect. Reading or filtering the trail creates no entry. CSV export records an `audit.export` event after selecting its rows, so the exported snapshot matches the screen; filters can exclude `audit.export`. The complete archive (`PORT-001`) includes the trail. Every future capability inherits this obligation before it ships, including the remaining `INTAKE-*`, `REPO-*`, `DRAFT-*`, `PLAY-*`, `NEG-*`, `REVIEW-*`, `APPROVE-*`, `SIGN-*`, `EXEC-*`, `OBL-*`, `RENEW-*`, `LINK-*`, `INT-*`, `NOTIFY-001`, `ERASE-001`, `ENTITY-001`, `REPORT-*`, `MOBILE-*`, `MOVE-*` and `AGENT-*` clauses.
+
+**Acceptance.**
+1. the `AUDIT-001` API and browser journeys perform approvals, downloads and restricted views, verify attributed entries and permission refusals, filter by person, agreement, action and inclusive UTC date range, and export a CSV whose rows match the screen at 1440 and 390 pixels.
+2. The export records `audit.export`, while reading/filtering adds no entry; the complete archive retains the entries.
+3. Every future capability named above must assert its own inherited audit events before shipping.
+
+**Evidence.** `src/locket/audit.ts`; `src/locket/views.ts`; `tests/api/flows.test.mjs`; `tests/browser/audit.spec.ts`
+**Gap.** None.
+
+#### ERASE-001 — Personal-data erasure with legal hold
+
+Core · target · **done**
+
+**Requirement.** On a verified request (for example under the California Consumer Privacy Act), the owner erases a person's personal data from contacts, comments and notifications while keeping executed agreements, signatures and audit records that must be retained, with a recorded reason. Agreements under a legal hold (set by counsel) cannot be deleted or have files removed until the hold is released. Retention rules delete or anonymize expired, unexecuted drafts after a configured period.
+
+**Acceptance.**
+1. a journey erases a counterparty contact who appears on comments and a notice; their name and email are replaced in those records, the executed agreement and audit entries remain with the erasure recorded; a legal hold refuses deletion of a draft until released.
+2. Authority and retention (ct 22 Oct 2026).
+3. Today only the owner records a verified request (method, received date, reason) and erases; after access roles land, a scoped privacy role does the same.
+4. Erasure first shows an exact preview; the owner confirms it by fingerprint.
+5. Names and emails are replaced only as whole words, in current contacts, comments, notices and notification addressing.
+6. Records of an agreement under an active hold are kept unchanged, and the receipt lists each one with its authorizer and reason.
+7. Executed documents, signature evidence and audit entries are kept unchanged and listed as retained by law.
+8. Unexecuted draft files naming the person are listed, and each is either deleted or retained with a stated reason. Erasure records use a random token, never a hash of the email, and keep no personal data in free text. The owner or counsel sets a hold with a reason and review date; counsel (or the owner when there is no active counsel) releases it with a reason; a hold never releases automatically and an overdue review is shown. Expired drafts produce an owner-approved preview, and an unreviewed expiry reminds the owner; no timer destroys records. Verified methods and request reasons are enumerated, not personal-data-bearing free text. Exact record IDs, fields, draft file and version IDs and retained custody reasons are previewed; original personal field values are masked in the saved preview receipt. Re-entry checks keep an encrypted address sealed with a private random installation key independent of the sign-in secret in a private block list, never an email hash or a normal state field; import and contact and request doors refuse the erased address. Original operator sign-in identity remains unchanged and email notifications are disabled. Holds intersect current agreement and field access and fence agreement deletion and file removal in SQL. NEG-006 links inherit minimization and revocation; INT-002 and every later deletion or file-removal door inherit hold and access checks. The owner assigns the scoped privacy role to an active human for named counterparties. This is additive erasure authority on the person’s existing role, never new agreement or field visibility. Every affected agreement must remain visible and within the assigned counterparty scopes; hidden fields and records without an agreement scope require the owner. Scope revocation fences confirmation and cached preview reads. The owner retains the same erasure authority; delegates gain no hold-release, retention-rule or historical-recovery authority. Erasure replacement addresses written before random tokens existed are rewritten to random tokens in mutable, unheld records by the owner’s erasure.reseal command. Agreements imported as contracted keep their imported originals listed as retained by law, even after a later negotiation version. Unexecuted PDFs are inspected through their decoded text streams, including compressed PDFs; an unreadable draft PDF refuses confirmation until reviewed. A historical erasure without a private address block pauses every current contact, request and import entry door until the owner verifies the original address against the historical request and restores its encrypted block with `erasure.recover`. Original historical documents and audit remain unchanged. Existing session-bound encrypted entries still require `erasure.reseal` before rotating the original sign-in secret; an unrecoverable old secret refuses entry rather than silently accepting personal data.
+
+**Evidence.** `tests/api/counterparties.test.mjs` — ERASE-001 verified contact erasure preserves execution and audit, counsel holds fence every deletion door, owner approves expired draft retention; Scoped privacy delegates intersect current access, preserve owner authority and lose preview replay after revocation; Compressed PDF-only personal data appears in the exact erasure draft disposition; Historical erasures pause personal-data entry until owner-verified private address recovery; the existing re-entry, rotation, expiry and retained-original journeys. `tests/browser/counterparties.spec.ts` — ERASE-001 verified contact erasure, counsel hold and explicit retention preview at 1440px and 390px (owner assignment, delegate erasure, hold, receipts, retention and historical recovery)
+**Gap.** None.
+
+#### ENTITY-001 — Our contracting entities
+
+Core · target · **done**
+
+**Requirement.** The owner records each of the business's own legal entities: legal name, entity type, state or country of formation, EIN or foreign tax ID, registered and notice addresses, default currency and time zone, and authorized signatories. Every agreement names the entity that contracts. Templates, clause wordings, playbooks and signer rules (`SIGN-005`) can be limited to an entity. The entity's legal name, notice address and signatory fill templates and outgoing notices (`RENEW-006`). Search, saved views and reports filter and group by entity, and extraction proposes our entity from the document (`INTAKE-007`, `REPO-004`).
+
+Exactly: only the owner records or edits an entity, and everyone who reads agreements sees the recorded entities. Legal names are unique ignoring case; an EIN is nine digits written 12-3456789, and a foreign tax ID is recorded as given. Once any entity is recorded, every new request, single legacy import and move-in batch must name one; a batch names one entity for all its agreements. A new agreement takes its entity's time zone unless one is given. Agreement values stay in USD until `US-001` adds original currency, so an entity's default currency is recorded and shown but does not convert anything. Agreements recorded before the first entity show "Not recorded" (a register value and a portfolio tile) until the owner or counsel names the entity. That change is audited and refused while out for signature or after cancellation; before signature it makes earlier approvals stop counting. A template, a single clause wording or a playbook rule with no entity serves every entity. One limited to an entity is not offered to, and is refused for, any other entity's agreement. Templates fill `{{our_entity}}`, `{{our_notice_address}}` and `{{our_signatory}}` (the first recorded signatory, as "Name, Title") and are refused when the agreement names no entity. A signature package adds the chosen signatory of the agreement's entity (by default the first recorded) as our signer "for" the entity's legal name. It refuses anyone else presented as signing for that entity; Locket records the owner's list and never verifies signing authority. A notice letter is headed with the entity's legal name and notice address and closes with its first signatory "for and on behalf of" the entity. The register's "Our entity" field filters, sorts and exports by legal name. The portfolio dashboard shows a tile per entity and takes one entity as a filter.
+
+This clause is done for every capability that exists today. Each later clause that adds one of the following names our entity before it ships: `SIGN-005` signer rules limited to an entity, `REPORT-001` and `REPORT-002` reports grouped and filtered by entity, extraction proposing our entity under `INTAKE-007` and `REPO-004`, `REPO-011` bulk entity changes, and the `MOVE-002` to `MOVE-007` move-in kits.
+
+**Acceptance.**
+1. a journey adds a Delaware parent company and a UK subsidiary.
+2. An agreement for the UK entity offers only that entity's template and routes to its signatory.
+3. Its termination notice carries the UK entity's notice address, and the register filters agreements by entity.
+
+**Evidence.** `src/locket/entities.ts`; `tests/api/entities.test.mjs`; `tests/browser/entities.spec.ts`
+**Gap.** None.
+
+#### OPS-001 — Self-hosted install, updates and security answers
+
+Core · target · **partial**
+
+**Requirement.** Locket runs in the buyer's own Cloudflare account. `rer setup` and `rer deploy` create the Worker, D1 database and R2 storage there, so contract data stays in the buyer's account.
+
+- **Updates.** Releases ship with release notes and their migration list at least monthly. Security fixes ship within 7 days of a fix being available. The owner previews an update, then applies it with one `rer` command, which takes a complete export (`PORT-001`) before running forward-only migrations. Release notes call out any change to how data is handled.
+- **Security answers.** The repository ships a completed security questionnaire for a self-hosted install, in the SIG Lite and CAIQ question sets procurement teams send. It covers data flows, subprocessors (Cloudflare and each connector the owner enables), encryption in transit and at rest, access control, audit (`AUDIT-001`), backup and restore, incident response and vulnerability handling. It also sets out the split of responsibilities between the buyer and the software. Locket claims no SOC 2 report of its own for software the buyer runs; Cloudflare's SOC 2 Type II report covers the platform.
+
+**Acceptance.**
+1. a fresh `rer deploy` to a test Cloudflare account creates the Worker, database and storage in that account.
+2. Updating from the previous release takes an export, applies the migrations and keeps every record and file digest.
+3. The questionnaire lists every connector the build can enable as a subprocessor, which a check compares with the build's connectors.
+4. A release-history check reads the repository's release tags and published security advisories.
+5. It fails if any 31-day window since the first release has no release, or if any advisory's fixed release was published more than 7 days after its fix was merged.
+
+**Evidence.** `tests/api/operations.test.mjs`: Hosted export keeps records and file bytes in a verified restorable archive and refuses a replaced deployment (public hosted export, file integrity, private calendar credential exclusion and refusal before update when prior source is unavailable); Release history refuses missing releases, every oversized cadence gap and security fixes without timely merged provenance; Security response coverage fails when a declared build connector is absent or a required domain is unanswered. `tests/portable.mjs` proves empty-destination restore and file equivalence. `scripts/security-questionnaire.mjs` checks source-derived connectors, every official CAIQ 4.1.0 identifier and all public historical 2019 SIG Lite identifiers; The completeness option refuses the current SIG gap. `scripts/release-history.mjs` passed against live repository releases and published advisories on 26 October 2026. `scripts/installer/update.mjs` and `OPERATIONS.md` implement and describe native pre-migration export, prior release and digest preservation; `tests/operations-live.mjs` is the committed live journey, NOT RUN.
+**Gap.** Fresh Cloudflare deployment and the exact previous-release update, migration, record preservation, private R2 backup and removal journey remain unproved. Live proof is blocked on a verified outbound mail sender and credential or an approved Auth SSO installation: none of the 66 RunEditRun account zones had an enabled Cloudflare Email Sending sender on 26 October 2026. The authoritative current 2026 SIG Lite workbook, revision and exact question identifiers and text require licensed access; the public historical 2019 mapping does not complete it. No certification is claimed.
 
 ### Reporting
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `REPORT-001` | Cycle time, throughput and bottlenecks | A journey drives 20 fixture agreements through stages with a controlled clock and sees the stage medians, the slowest approver and the service-level breach count match the fixture’s known values. | done | `tests/api/analytics.test.mjs`: REPORT-001 measures twenty public request journeys, period throughput, repeat-stage timing and scoped waiting work — five stage medians/P90s, exact ordering of two approvers, four breaches, team/period/entity throughput, cancellation/reopening, current access, retries and archived histories. `tests/browser/analytics.spec.ts`: REPORT-001 measured workflow, entity/period filters and waiting-work links at 1440px/390px. |
-| `REPORT-002` | Custom and scheduled reports | REPORT-002 API/browser journeys build Renewals by month from a saved view, show matching grouped USD totals at 1440/390, download CSV/PDF, schedule and receive mail through the installation provider fake (Resend today). Narrower current recipient access yields fewer rows with no restricted names or values. Assert inherited ENTITY-001 grouping/filtering, weekly/monthly local-zone recurrence, DST gaps/repeats, month-end clamp, downtime coalescing, one-use sends, creator-only/stale stopping, agent refusals, guarded scheduler read audit, CSV/PDF export audit, public-session authentication, honest rejected/suppressed outcomes and complete archives. | done | `tests/api/reports.test.mjs`; `tests/browser/reports.spec.ts` |
-| `REPORT-003` | Portfolio dashboard | `tests/api/portfolio.test.mjs` and `tests/browser/portfolio.spec.ts` name REPORT-003: fixture tile counts and USD totals, every filtered-register drilldown at 1440/390, 2022 auto-renewal projected to term 5 with 74-day notice deadline, expired exclusion, type/lifecycle groups, 30/60/90-day term/notice windows, overdue obligations, current accepted exceptions, missing confirmed key terms/values, proposed dates ignored, corrections recomputed without rewriting originals, restricted scope/audit and signed-out refusal. Today's confirmed fixed/auto-renewing terms conform; RENEW-007 carries expanded dashboard parity. | done | LOCAL PROVEN |
+#### REPORT-001 — Cycle time, throughput and bottlenecks
+
+Core · target · **done**
+
+**Requirement.** Dashboards show requests opened and completed by type and team, median and 90th-percentile time in each stage (intake, drafting, negotiation, approval, signature), the longest-waiting approvals and counterparties, and service-level performance (`INTAKE-006`), plus requests canceled by reason and the stage they reached, filterable by period.
+
+**Acceptance.**
+1. a journey drives 20 fixture agreements through stages with a controlled clock and sees the stage medians, the slowest approver and the service-level breach count match the fixture's known values.
+2. Observed-workflow slice: the portfolio shows request throughput grouped by current agreement type and our entity, completed workflow-stage visits with elapsed-hour median and nearest-rank P90, and longest current approval and signature waits with links to their records.
+3. Recording starts with this capability: each observed status change is retained inside the same guarded business transaction and command retries add nothing.
+4. Existing stages without a recorded start remain unknown; no history is inferred from last-updated timestamps.
+5. Imported agreements are excluded.
+6. Repeat stage visits count separately; an open visit does not enter duration statistics.
+7. A request completes on its first observed execution.
+8. Period bounds are inclusive UTC calendar days: opened counts by creation, completed by execution, visits by exit, and current waits by approval-request or dispatch time; waiting duration continues to the current evaluation time. The median averages the two middle durations for an even sample, and P90 selects the nearest rank. All reads use current agreement visibility, including history, source links and entity filters, and restricted reads retain AUDIT-001 events. PORT-001 archives the observed transitions. The original status observations remain available as `observedStatuses`. Separate working-stage observations now follow recorded queue handoffs for intake, drafting and negotiation; submission enters approval, approval completion enters signature (including time awaiting dispatch), and each execution or cancellation closes the visit. A new counterparty version enters negotiation. Team throughput uses the request’s current recorded queue team. A service-level interval freezes the opening or reopening generation’s team and business-day deadline; closing stops its clock without erasing an earlier breach. Closed intervals are filtered by closure time and open intervals by evaluation time. Pending approvers are ranked by their longest current wait, with their agreement links. Roles with hidden fields cannot run these reports. Historical working-stage starts and service-level generations are not backfilled. *Acceptance for this slice:* `tests/api/analytics.test.mjs` drives twenty requests through public commands with a controlled clock, asserts known stage medians/P90s and period throughput, repeat visits, current waiting work, identical retries, refusals, access grants/revocation, restricted-read audit and archived transitions. `tests/browser/analytics.spec.ts` and `tests/browser/analytics-live.mjs` assert workflow figures, entity and period filters, empty/error states and pending-approval navigation at 1440/390. The existing archive-restore journey retains the new history table.
+
+**Evidence.** `tests/api/analytics.test.mjs`: REPORT-001 measures twenty public request journeys, period throughput, repeat-stage timing and scoped waiting work (known five-stage medians/P90s, type/entity/team and inclusive period throughput, exact slowest-approver ordering, four known SLA breaches, closed/reopened intervals, canceled-by-reason/stage groups, retries/refusals, access and archive); `tests/browser/analytics.spec.ts`: REPORT-001 measured workflow, entity/period filters and waiting-work links at 1440px/390px (figures, team/entity/period filters, empty/error states and source navigation)
+**Gap.** None for observed native request workflows; pre-existing stage/SLA starts remain explicitly unknown
+
+#### REPORT-002 — Custom and scheduled reports
+
+Core · target · **done**
+
+**Requirement.** A person builds a report from a saved view (`REPO-007`) with grouping and totals (value in USD by counterparty, renewals by month) and schedules it weekly or monthly by email as CSV or PDF to chosen active people, who receive only the rows they may see. Each human role manages its own reports; agents read but cannot create or stop schedules. The report freezes the saved-view definition when created; every preview, download and scheduled attachment executes that definition again with the current reader or recipient's agreement access. Grouping a date uses its calendar month and a USD amount uses formatted dollars; missing grouping values are explicitly unrecorded, and absent USD values are counted separately from the total. Reports also filter and group by our contracting entity (`ENTITY-001`) through the same saved-view executor. CSV contains grouped totals followed by the matching detailed rows, with `REPO-007`'s spreadsheet-safe quoting; PDF contains those same figures.
+
+The first occurrence is entered in the installation's `US-001` zone (America/New_York until set), and that zone is recorded on the schedule. Weekly recurrences keep its local weekday and time across daylight-saving changes. Monthly recurrences keep the original day and time, clamping to the month's last day and returning to the original day in longer months. Repeated local times use the earlier occurrence; a later recurrence falling in a clock-forward gap moves forward by that gap. A nonexistent first occurrence is refused. After downtime, one current report is prepared per recipient before resuming the future schedule, without backfilling missed reports. Each occurrence/recipient is claimed once. Stopping a schedule prevents subsequent sends. Local/demo mail is suppressed; provider acceptance means mailbox delivery is unconfirmed, and generation/send failures remain visible without an automatic resend of an uncertain attempt.
+
+**Acceptance.**
+1. REPORT-002 API and browser journeys build "Renewals by month" from a saved view, show matching grouped USD totals at 1440/390, download CSV and PDF, schedule it, advance the clock and receive an email through the installation mail-provider fake (Resend today) with a CSV whose totals match the screen.
+2. A recipient with narrower current access receives fewer rows, without restricted names or values.
+3. Named API assertions cover weekly and monthly schedules, daylight-saving and month-end recurrence, one-use occurrence claims, creator-only/stale stopping, agent write refusal, retained outcomes and archives.
+4. Scheduled access and restricted reads are audited under the authorized report's current recipient; each CSV/PDF download records a `report.export` event under `AUDIT-001`; public doors retain Base-session authentication.
+
+**Evidence.** `tests/api/reports.test.mjs`; `tests/browser/reports.spec.ts`; `src/locket/reports.ts`; `src/locket/report-output.ts`; `src/locket/report-dispatch.ts`; `src/locket/report-read-authority.ts`; `src/locket/report-schedule.ts`; `src/ui/reports.tsx`
+**Gap.** None.
+
+#### REPORT-003 — Portfolio dashboard
+
+Core · target · **done**
+
+**Requirement.** A home dashboard shows total contracted value in USD by type and by lifecycle status (`RENEW-007`), renewals and notice deadlines in the next 30, 60 and 90 days with their value (from each agreement's current term, with a days-to-deadline countdown), overdue obligations, agreements with accepted playbook exceptions, and agreements missing confirmed key terms. Today this applies to every recorded term and workflow: confirmed fixed/auto-renewing terms project the current term without rewriting the original end date; proposed terms never drive a tile. Contracted value includes executed/imported agreements, including expired ones, grouped by type and lifecycle; absent values are counted separately. Windows include today through the named calendar day in the agreement's zone, excluding passed instants. Overdue means a confirmed, unfinished obligation with a due date before today in that zone; the tile shows obligation count and distinct agreements, counting each agreement's value once. Accepted exceptions are current-version, non-invalidated approved exception decisions. Missing key terms means effective date, end date, auto-renewal, notice days, governing law or payment terms are unconfirmed, or an auto-renewal lacks its confirmed renewal months. A termination decision stops projection; a sent notice is recorded evidence, and a missed termination notice is flagged. `RENEW-007` must extend the dashboard to its optional/evergreen types, renewal limits, early termination and durable/superseded history before shipping; this clause is done for today's recorded capabilities.
+
+**Acceptance.**
+1. `REPORT-003` in `tests/api/portfolio.test.mjs` and `tests/browser/portfolio.spec.ts` asserts each tile's count and USD value against the same fixture records and opens every filtered register at 1440/390.
+2. The 2022 auto-renewing agreement is term 5 (1 March 2026–28 February 2027), with 30 December 2026 at 23:59:59 Eastern 74 calendar days away: the 90-day notice tile counts it and excludes the expired fixed-term agreement.
+3. Tests also assert type/lifecycle groups, 30/60/90-day term/notice windows, overdue obligations, accepted exceptions, missing terms/values, unchanged original end date, ignored proposed corrections, recomputation on confirmation, restricted scope, attributed restricted reads and signed-out refusal.
+4. `RENEW-007` asserts its inherited expanded dashboard parity when those terms ship.
+
+**Evidence.** `src/locket/portfolio.ts`; `src/locket/lifecycle.ts`; `tests/api/portfolio.test.mjs`; `tests/browser/portfolio.spec.ts`
+**Gap.** None.
 
 ### Mobile
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `MOBILE-001` | Phone-width web app | Clause-named `tests/browser/journey.spec.ts` proves request to renewal notice, search and deadlines at 390px. `tests/browser/mobile-approval.spec.ts` proves at 1440/390 the explicit approval-email form, captured generic provider email link followed by its named approver, stale-version refusal, current digest approval, signed PDF/certificate file upload and byte-identical download, with no horizontal scrolling. `tests/api/approval-mail.test.mjs` asserts current sender/recipient authority, restricted scope, generic email privacy, attributed audit, identical command acknowledgments on concurrent/serial retries, separate provider-outcome snapshots and single-send dispatch and honest local suppression. Provider acceptance is not mailbox delivery; phone files picker is supported, camera capture and scanning are carried by MOBILE-002, whose acceptance names MOBILE-001. | done | LOCAL PROVEN |
-| `MOBILE-002` | iOS and Android apps | Carries MOBILE-001 camera upload: device-farm journeys naming both MOBILE-001 and MOBILE-002 on a current iPhone and Pixel receive an approval push, approve the version with its digest recorded, search for an agreement and scan a two-page signed copy into its execution record. | missing | NOT PROVEN |
+#### MOBILE-001 — Phone-width web app
+
+Core · target · **done**
+
+**Requirement.** Every screen works at 390 pixels wide: a person can submit a request, read a review summary, approve or decline from a notification link, search, see deadlines and upload a signed copy from the phone's files picker, without horizontal scrolling. Camera capture is carried by MOBILE-002 below, including its acceptance naming MOBILE-001. The current approval notification is an explicit Email approval link action by owner, counsel, approver or requester on an in-review version. Its named recipient must be an active owner/approver able to read the agreement and make its commercial decision. The email contains only a generic request and a signed-in review link, never title, figures or digest; the recipient reviews the current version and uses the same authenticated approval command. A guarded outbox records requester, recipient, time and provider receipt with an audit entry; retries never send the same request twice. The command result is an immutable queued-request acknowledgment under SEC-002; a separate mailReceipt snapshot reports the current provider outcome without rewriting that first result. Provider acceptance is not mailbox delivery, local/demo suppression means no email was sent, and interrupted/failed outcomes never claim acceptance or retry automatically. `APPROVE-003` and `NOTIFY-001` retain broader channels, automatic requests and preferences; they must preserve the same phone layout, authority, version checks, generic-link privacy and honest delivery labels before shipping. Signed-copy upload uses the phone's files picker; camera capture from MOBILE-001 is carried by `MOBILE-002` and must meet the same phone-width checks before shipping.
+
+**Acceptance.**
+1. `MOBILE-001` in `tests/browser/journey.spec.ts` runs request to renewal notice and search/deadlines at 390 pixels; `tests/browser/mobile-approval.spec.ts` uses the actual product component and real Worker API at 1440/390, sends the explicit approval request through a mail-provider fake, follows its captured link as the named approver, refuses a replaced version, approves the current digest and uploads/downloads byte-identical signed PDF evidence from the files picker without horizontal scrolling.
+2. `tests/api/approval-mail.test.mjs` asserts generic email contents, current authority/access/recipient/version/self-approval refusals, attributed audit, concurrent and serial retry deduplication, and honest local suppression.
+3. The browser provider fake captures Resend acceptance; no live delivery or full APPROVE-003 is claimed.
+4. Future APPROVE-003/NOTIFY-001 channels must assert the inherited phone flow.
+
+**Evidence.** `tests/browser/journey.spec.ts`; `tests/browser/mobile-approval.spec.ts`; `tests/api/approval-mail.test.mjs`; `src/locket/approval-mail.ts`
+**Gap.** None.
+
+#### MOBILE-002 — iOS and Android apps
+
+Core · target · **missing**
+
+**Requirement.** This clause carries MOBILE-001's camera-upload requirement: capture a signed paper copy with the camera as a PDF and attach it to the execution record, keeping the same phone layout, current authority/version checks and byte-preserving file evidence. Native iOS and Android apps (App Store and Google Play) sign in with the installation, receive push notifications for approvals, mentions and deadlines, approve the exact version, search the repository and view documents, and capture a signed paper copy with the camera as a PDF.
+
+**Acceptance.**
+1. naming MOBILE-001 and MOBILE-002, device-farm journeys on a current iPhone and Pixel receive an approval push, approve the version with its digest recorded, search for an agreement and scan a two-page signed copy into its execution record.
+
+**Evidence.** None.
+**Gap.** No native apps exist
 
 ### Move-in from incumbents
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `MOVE-002` | Ironclad move-in | A journey uses a fixture built from Ironclad's documented export columns, Records API JSON and an attachments ZIP. It holds 50 records, including two parent MSAs with three child order forms and one amendment. The dry run shows the type and property mappings and lists three unmapped properties. After applying, the families are linked with their relations, documents download with matching digests, and each agreement is found by its Ironclad record ID. Proposed terms are confirmed on two, and an unused batch is undone. The same fixture imported through the API path (a Records API fake whose attachment job reports pending, then ready) gives the same result. An authorized real export and a live run against an Ironclad sandbox's API are recorded before the clause is accepted. | missing | NOT PROVEN |
-| `MOVE-003` | Icertis and Agiloft move-in | An Icertis journey uses a fixture built from the recorded ICI export columns and API JSON. It holds 30 agreements, including one MSA with two amendments and three custom attributes, and goes through both the Excel export with a documents folder and an ICI API fake. A matching Agiloft journey uses a fixture built from a Contracts table export and the `EWSelect`, `EWRead`, `EWAttachInfo` and `EWRetrieve` responses, with 30 records including two attachment fields. In each, the dry run shows the mappings and lists the unmapped fields, files without records and records without files. After applying, documents download with matching digests, families are linked, each agreement is found by its source ID, and an unused batch undoes cleanly. An authorized real export and a live run against each vendor's sandbox or test knowledge base are recorded before the clause is accepted. | missing | NOT PROVEN |
-| `MOVE-004` | SpotDraft and Juro move-in | A SpotDraft journey uses a fixture built from a SpotDraft report's documented columns (Contract Link, Your Signatory, Counterparty Signatory) and `key_pointers` and `download_link` JSON. It holds 30 contracts, imported first from the report alone (all 30 listed without files) and then with an API fake that supplies the files. A Juro journey runs a fixture of 30 contracts through a Juro API fake, and again as a folder of downloaded PDFs plus a table-view CSV, with one PDF that cannot be matched. In each, the dry run lists unmapped fields, files without records and records without files. After applying, signed files (with Juro's appended certificate) download with matching digests, each agreement is found by its source ID, and an unused batch undoes cleanly. An authorized real export and a live run against each vendor's API with a test workspace (Juro's API sandbox; a SpotDraft workspace's API credentials) are recorded before the clause is accepted. | missing | NOT PROVEN |
-| `MOVE-005` | PandaDoc and Adobe Acrobat Sign archives | A PandaDoc journey uses a fixture built from the documented list, details and protected-download responses: 25 completed documents and 3 in draft or sent, with one completed document missing its certificate. An Acrobat Sign journey uses a fixture built from the Reporting CSV columns and the v6 JSON and file responses, with 25 signed and 3 canceled agreements, run through both the API fake and the CSV-plus-folder path. In each, the dry run refuses the incomplete documents and lists the missing certificate. After applying, signed files and audit trails download with matching digests, each agreement is found by its PandaDoc document ID or Acrobat Sign agreement ID, and an unused batch undoes cleanly. A live run against a PandaDoc account with a production key and an Acrobat Sign developer account, plus an authorized real export from each, are recorded before the clause is accepted. | missing | NOT PROVEN |
-| `MOVE-006` | Ironclad workflows in progress at cutover | A journey with a Workflows API fake holds 5 active workflows: two in review, two in negotiation with counterparty markups, and one approved and out for signature. After the dry run and apply, five open agreements appear in the request queue (`INTAKE-006`) at their mapped stages. Their latest documents and counterparty files match the fake's digests, and each shows its Ironclad workflow ID. None carries an approval, and one is then approved under `APPROVE-001`. The workflow out for signature is listed for the owner's decision. A live run against an Ironclad sandbox's Workflows API is recorded before the clause is accepted. | missing | NOT PROVEN |
-| `MOVE-007` | Ironclad Clickwrap acceptance history | A journey with an Ironclad Clickwrap fixture built from the recorded activity export columns and API JSON, holding 200 acceptances over two terms versions, imports them through both the CSV and an API fake as labeled imported acceptances with their versions and digests. A user who accepted only version 1 is prompted to accept Locket's next published version under `SIGN-004`. The export lists imported and native acceptances distinctly, and an unused batch undoes cleanly. An authorized real export and a live run against an Ironclad Clickwrap test site's API are recorded before the clause is accepted. | missing | NOT PROVEN |
+#### MOVE-002 — Ironclad move-in
 
-## Push further
+Core · target · **missing**
 
-Agent clauses: each journey also proves the human control the clause names (nothing leaves Locket or changes another system without the named approval).
+**Requirement.** The kit reads Ironclad's three documented outputs, alone or together:
 
-| Clause | What a person can do | Acceptance evidence | Contract status | Status |
-| --- | --- | --- | --- | --- |
-| `AGENT-001` | Invoices reconciled against signed terms | `tests/api/notices.test.mjs` — AGENT-001 QuickBooks above-cap bills require counsel, finance and exact finding-owner approval; the installation mail door sends once and rejected evidence stays suppressed: signed 3 percent cap, 7 percent invoices, USD 4,000, clause/transaction citations, finance plus exact owner message approval, Postmark and rejected suppression. Adjacent AGENT-001 tests cover refusals and provider uncertainty. `tests/browser/reconciliation.spec.ts` — AGENT-001 reviews 3% versus 7%, confirms finance and approves one exact $4,000 credit request at 1440px/390px. Required Purse fake remains blocked by the separate Purse read-only PO-data token door required by ct on 22 October at 21:55Z. Broader pricing/discount/payment/credit comparisons remain; ct approved the authority/consent boundary on 22 October 21:45Z. | partial | QUICKBOOKS SLICE LOCAL PROVEN; PURSE DEPENDENCY |
-| `AGENT-002` | Service levels and supplier performance | `tests/api/notices.test.mjs` — “AGENT-002 confirms signed SLA, preserves exact Uptime evidence, records supplier breach and sends one owner-approved USD 1000 claim”: 99.2% versus signed 99.9%, 10% of USD 10000, immutable monitoring/clause citations, supplier breach/obligation/deadline and exact owner approval plus one installation-mail send. Adjacent Uptime journeys cover unavailable/zero/out-of-tier, source/role/deadline guards and uncertain-send/erasure/holds. “AGENT-002 native supplier response, resolution and delivery reports retain exact evidence and send one capped owner-approved credit per metric” proves three metrics, multiple tiers, eligible fee allocation/cap and original reports; adjacent refusal and exact-scoped Linen MCP journeys prove uncertainty, read scope and source/authority guards. `tests/browser/service-levels.spec.ts` — “AGENT-002 authorizes monitoring, confirms signed terms and approves one exact USD 1000 claim for 99.2% versus 99.9% at 1440px/390px”; `tests/browser/service-performance.spec.ts` — “Supplier response, resolution and delivery reports preserve unknowns and require exact owner approval before one credit send at 1440px/390px”: actual source/formula/evidence/claim-deadline/approval/send screens. | done | LOCAL PROVEN; CT APPROVED 22 OCTOBER 22:40Z AND 23 OCTOBER 00:35Z |
-| `AGENT-003` | Renewal decision to verified notice delivery | Clause-named `tests/api/notices.test.mjs`, `tests/browser/notice-agent.spec.ts` and `tests/browser/notice-agent-live.spec.ts`: person-selected exact executed passage + confirmed decision/deadline + recorded notice addresses; labelled prepared draft, frozen PDF/digest/recipient/method/local send approval with margin; one-use predeadline schedule, signed bounce, decision-maker alert, courier proposal requiring another approval, tracking and delivered evidence before local deadline, distinct acknowledgment, no uncertain resend, source/role/access guards and archive. Resend through RENEW-006; Postmark is configuration of the same door, never a separate integration. REPO-002 and INT-004 inherit future rendition/provider obligations; counsel decides adequacy. Real rer dev and 1440/390 journeys. | done | LOCAL PROVEN |
-| `AGENT-004` | Authorized renegotiation to an executed amendment | A journey mandates a 5% reduction with a 2-year term; the agent's first proposal is approved and sent, the counterparty fake counters at 3%, the agent proposes 4% within the mandate, a counter outside the mandate is escalated rather than answered, and the executed amendment updates the governing price on the family page. | missing | NOT PROVEN |
-| `AGENT-005` | Governing terms across a contract family | `tests/api/families.test.mjs` — AGENT-005 keeps prepared family sources and derived actions blocked until a passing live provider evaluation: training prohibition and exact-provider evaluation gate before network, prepared source custody and derived-action blocks. `tests/browser/family-conflicts.spec.ts` — AGENT-005 keeps local family review blocked until a live provider evaluation at 1440px/390px: source snapshot and three candidate deadlines. Evaluated conflict proposals and governing propagation require the owner-supplied REVIEW-006 labelled set and passing exact-provider/model/prompt live record. | partial | BLOCKED ON LIVE EVALUATION MATERIAL |
-| `AGENT-006` | Signed document matches the approved version | Required journey: a signed PDF with a changed liability cap is flagged, stays unsigned under EXEC-001, and counsel accepts with a recorded reason; a clean return executes automatically. Clause-named tests/api/execution-comparison.test.mjs and tests/browser/execution-comparison.spec.ts assert that text-PDF journey at 1440/390, whitespace-only matching, missing pages, unreadable/image-only text held for review, original/returned bytes, authority, stale writes, archived comparison, and extracted-term reconciliation: after an accepted changed return, term and obligation citations quoting approved wording absent from the signed PDF text are refused, signed-text quotes store the execution and page, and an unreadable signed PDF labels the citation unchecked. Text normalization collapses whitespace only; case, punctuation, numbers and page order remain significant. Required structured signature/initial fields are checked for presence: empty/missing fields, removed required flags, zero signature Contents, malformed ByteRange, duplicate names and XFA hold execution; present values are explicitly unverified. Public-door tests retain exact bytes, retries, restricted evidence, reasoned acceptance and archive checks. Product and real rer dev journeys at 1440/390 show matching text held for missing initials, persisted evidence after acceptance and a value-present return executing automatically. General visual/flattened or optional/unlabelled signature/initial detection and OCR still lack proof; the full clause stays partial. | partial | TEXT, TERM AND STRUCTURED-FIELD SLICES LOCAL PROVEN |
-| `AGENT-007` | Exceptions become measured playbook changes | `tests/api/flows.test.mjs` — AGENT-007 measures thirty recorded negotiations, preserves twenty-two exact accepted citations and lets counsel scope a new playbook without rewriting history: 30 real public fixture negotiations, 22 accepted citations, measured predicted saving scenario, issues/unknowns, counsel-approved scoped new version and earlier finding/file/approval preservation. `tests/browser/playbook-recommendations.spec.ts` — AGENT-007 counsel reviews thirty negotiations and twenty-two citations, then scopes a new playbook at 1440px/390px: actual Library review, scope approval and cited/historical/future review screens. No model egress. ct approved 22 October 21:45Z; exact-code outside-Verify cohort run 20261023T002510922409Z-heavy-slot-6c6ffa3c at 98efd6054f4112fa7462806143acefc710d4a357. | done | LOCAL PROVEN |
-| `AGENT-008` | Obligation remediation to verified evidence | A journey lets a supplier's certificate of insurance expire; the agent's approved request goes to the supplier contact, an uploaded certificate with $1M coverage against a $2M requirement is rejected with the reason, and a compliant certificate marks the obligation done with the evidence attached. | done | `tests/api/obligation-evidence.test.mjs` — exact supplier requests/finite schedules and compliant originals; uncertain once-only sends/withdrawal; unreadable fields and erased pending schedules; recipient replies/opt-outs and held records without mail. `tests/browser/remediation.spec.ts` — Obligation owner approves a supplier request, rejects $1M and confirms matching $2M evidence at 1440px/390px (maximum count/spacing, page-cited original review and explicit matching limits). ct 23 Oct 02:16Z approved with 02:36Z riders; all applied. |
-| `AGENT-009` | Missed obligations and avoidable spend report | A journey on a fixture year of activity produces the monthly report whose counts and dollar totals equal queries over the same data, with every figure linked to its records, delivered to two recipients with different access. | done | `tests/api/outcome-report.test.mjs` — AGENT-009 fixture-year source counts and exact USD totals match the retained records and each recipient’s current access; AGENT-009 consent, source and access changes remain scoped and rejected or uncertain monthly mail is never retried. `tests/browser/outcome-report.spec.ts` — AGENT-009 compares months, exposes source records and selects scoped report recipients at 1440px/390px. Exact native evidence; no recovery inferred, missing accounting unavailable, generic links under each reader’s current scope. |
+- **Repository metadata export:** CSV, JSON or XLSX, exported by an Ironclad admin from the Dashboard or the Imports tab.
+- **Attachments ZIP:** the bulk download of the selected records' documents as one ZIP.
+- **Public API:** the Records API (`GET /records`, with each record's type, properties, attachments and parent and child links), and attachment downloads, which Ironclad prepares as a background job that the kit polls until ready.
 
-## Boundaries
+A dry run maps each Ironclad record type to a Locket agreement type and each property to a Locket field or custom field (`REPO-005`). The mapping is shown and editable, and every unmapped property is listed for a person to create as a custom field or skip. Ironclad's parent and child linked records become agreement families (`REPO-008`) with their relation. Every document is matched to its record and kept byte-for-byte with its digest. Files without a record and records without a file are listed. Each imported item keeps its Ironclad record ID, and its workflow ID where it came from a workflow, and is searchable by them. Signed records import as executed agreements with imported execution records, and dates and values come in as proposed terms (`TERMS-001`). The Lifecycle preset's properties (agreement date, expiration date, auto-renewal type, renewal term length and number of renewals) map onto `RENEW-007`'s renewal terms, so an Ironclad record whose expiration date is past arrives at its current term once confirmed. Apply, undo and journal follow `MOVE-001`. Workflows still in progress move under `MOVE-006`, and clickwrap acceptances under `MOVE-007`.
 
-The DocuSign fixture is a documented-shape synthetic archive (`tests/fixtures/docusign-archive/README.md`), not a verified owner export; an authorized real archive is still needed before move-in is accepted for a real owner. Run site publication is distinct from hosted product acceptance. No live signing, email, CRM, storage, calendar, accounting, procurement or model-provider acceptance is claimed; the target clauses that need them name the fake and the live sandbox run each requires. Every built-in AI task (review, extraction, intake proposals, obligations, questions, summaries and playbook drafting) and OCR is accepted only on a recorded live provider run over the named labeled sets that meets the bars in `REVIEW-006`; a fake never counts towards them. Legal sufficiency of templates, notices and execution evidence remains the owner's and counsel's decision.
+**Acceptance.**
+1. a journey uses a fixture built from Ironclad's documented export columns, Records API JSON and an attachments ZIP.
+2. It holds 50 records, including two parent MSAs with three child order forms and one amendment.
+3. The dry run shows the type and property mappings and lists three unmapped properties.
+4. After applying, the families are linked with their relations, documents download with matching digests, and each agreement is found by its Ironclad record ID.
+5. Proposed terms are confirmed on two, and an unused batch is undone.
+6. The same fixture imported through the API path (a Records API fake whose attachment job reports pending, then ready) gives the same result.
+7. An authorized real export and a live run against an Ironclad sandbox's API are recorded before the clause is accepted.
 
-## EXEC-002 approved retrieval boundary
+**Evidence.** None.
+**Gap.** Only the DocuSign kit exists
 
-CT policy ruling dated 26 October 2026: APPROVE WITH RIDERS for the interim owner-only exact-package retrieval default. Explicit consent records the owner, decision time, authorizing session, connection identity and revision, agreement, exact sent package and manifest digests, provider account and envelope. It authorizes retrieval and EXEC-001 reconciliation only. Every attempt and result write checks current session, owner role, agreement access, connection revision and exact package identity. Session expiry or revocation, lost authority, connection revision or changed package ends or stales authorization; later login or reconnection does not revive it. Consent and outcome history are retained. Read failures may retry with visible bounded backoff only while authorization remains valid. Mismatches require separate reasoned owner or counsel acceptance under EXEC-001. No filing or CRM action is enabled by this consent. Gaps: extraction kickoff; Google Drive, OneDrive, SharePoint and Chest filing and naming rules; CRM writeback; other signing providers; exact-candidate one-minute proof; and applicable live-provider evidence. The complete target and every original acceptance point remain unchanged. Clause status remains partial; this ruling supplies no implementation or completion proof.
+#### MOVE-003 — Icertis and Agiloft move-in
 
-## LINK-001 inherited accounting controls
+Core · target · **missing**
 
-LINK-001 retains the inherited AGENT-001 and AGENT-002 accounting controls: current source and server authority through result recording, explicit exact consent, source-evidence custody, one claimed outbound attempt, visible uncertainty without automatic resend, attributed history, archive retention, erasure and legal holds. Those controls remain owed here; the agents’ wider reconciliation and service-performance jobs are not transferred into this clause.
+**Requirement.** Each kit follows `MOVE-002`'s pattern: named sources, a reviewed dry run with an editable mapping, apply, undo and journal as `MOVE-001`.
 
-<!-- contract-source:EXEC-002 -->
-#### EXEC-002 — Contract source
+- **Icertis Contract Intelligence (ICI).** Two sources, alone or together:
+  - **Agreement metadata export:** the Excel export of an agreement search in ICI's Agreement Management, run by an ICI administrator over the contract types being moved, with all attributes as columns. It includes the agreement code and system ID, contract type, name, status, first and second parties, effective and expiry dates, value and currency, and the tenant's custom attributes.
+  - **ICI REST APIs:** the agreement entity (by contract type, with its attributes and status), its associated documents (the Document List: the agreement document, executed copy and supporting files) and amendment and parent links, called with a service account's credentials. Icertis publishes its API reference to customers only, so before the fixture is built the kit records the endpoints and JSON shape from the buyer's tenant documentation in the fixture's README, with the ICI release they came from.
 
-*Acceptance:* a journey with a Docusign fake completes an envelope; within one minute the agreement is executed with the signed file and certificate digests matching the fake's, a copy is in the Drive fake's folder under the naming rule, and HubSpot's deal shows executed; a forced download failure leaves a visible retrying state and no executed status.
+  Contract types map to Locket agreement types and attributes to fields or custom fields (`REPO-005`). Amendments and child agreements become families (`REPO-008`). Every document keeps its bytes and digest, and each agreement keeps its ICI agreement code and system ID, searchable.
+- **Agiloft.** Two sources, alone or together:
+  - **Contracts table export:** the table's Export action, run by an Agiloft admin over a saved search of the Contracts table, as Excel or CSV with every field, including the record ID, contract type, status, company, dates, amount, auto-renewal fields and custom fields.
+  - **Agiloft REST API:** the knowledge base's REST interface with a user holding a Web Services license. `EWSelect` or `EWSearch` lists contract record IDs (by a saved search or a WHERE clause), `EWRead` reads each record's fields, `EWAttachInfo` lists each attachment field's files (position, name and size), and `EWRetrieve` downloads each file by table, record ID, field and position.
 
-*Status:* done under the CT 27 October 2026 ACCEPT ON LANDING judgment and wave 22 D5 ruling. Computed typography and hosted-shell acceptance remain carved out; neither is claimed. Existing Docusign, Acrobat Sign and Dropbox Sign network-edge retrieval doors and separately authorized execution follow-ups retain their evidence. The unchanged Docusign fake journey proves completion, exact signed PDF and certificate custody, clean execution, extraction kickoff through the model door, owner-named copies in Google Drive, OneDrive, SharePoint and Chest, HubSpot executed readback and the requester notice. Failed retrieval stays visible with bounded backoff and no executed status. Every read and result rechecks the current authorizing owner session, package and connection revision; ending authority never revives on later login. Distinct follow-up consent never follows from retrieval consent. Recipient groups require one evidenced signing member, ambiguous evidence is refused, and multiple signable documents remain held for reasoned EXEC-001 acceptance. Original target, acceptance and CT retrieval riders remain unchanged. This is network-edge proof only: provider-specific live receipts remain with SIGN-002, the future Inkwell door inherits the same duties under SIGN-003, live storage authorization remains INT-001, and live CRM interoperability remains INTAKE-004. No live-provider or legal sufficiency claim is made.
+  Agiloft's linked Contracts (parent contract and amendments) become families, its attachment fields map to versions and supporting files, and each agreement keeps its Agiloft record ID, searchable.
 
-CT policy ruling dated 26 October 2026: APPROVE WITH RIDERS for the interim owner-only exact-package retrieval default. Explicit consent records the owner, decision time, authorizing session, connection identity and revision, agreement, exact sent package and manifest digests, provider account and envelope. It authorizes retrieval and EXEC-001 reconciliation only. Every attempt and result write checks current session, owner role, agreement access, connection revision and exact package identity. Session expiry or revocation, lost authority, connection revision or changed package ends or stales authorization; later login or reconnection does not revive it. Consent and outcome history are retained. Read failures may retry with visible bounded backoff only while authorization remains valid. Mismatches require separate reasoned owner or counsel acceptance under EXEC-001. No filing or CRM action is enabled by this consent. Gaps: extraction kickoff; Google Drive, OneDrive, SharePoint and Chest filing and naming rules; CRM writeback; other signing providers; exact-candidate one-minute proof; and applicable live-provider evidence. The complete target and every original acceptance point remain unchanged. Clause status remains partial; this ruling supplies no implementation or completion proof.
-<!-- /contract-source:EXEC-002 -->
+For both, the dry run lists every unmapped attribute or field for a person to create as a custom field or skip, plus files without a record and records without a file. Signed agreements import as executed with imported execution records. Dates, values and renewal fields come in as proposed terms (`TERMS-001`, `RENEW-007`).
 
-<!-- contract-source:SIGN-002 -->
-#### SIGN-002 — Contract source
+**Acceptance.**
+1. an Icertis journey uses a fixture built from the recorded ICI export columns and API JSON.
+2. It holds 30 agreements, including one MSA with two amendments and three custom attributes, and goes through both the Excel export with a documents folder and an ICI API fake.
+3. A matching Agiloft journey uses a fixture built from a Contracts table export and the `EWSelect`, `EWRead`, `EWAttachInfo` and `EWRetrieve` responses, with 30 records including two attachment fields.
+4. In each, the dry run shows the mappings and lists the unmapped fields, files without records and records without files.
+5. After applying, documents download with matching digests, families are linked, each agreement is found by its source ID, and an unused batch undoes cleanly.
+6. An authorized real export and a live run against each vendor's sandbox or test knowledge base are recorded before the clause is accepted.
 
-*Acceptance:* a Workers journey with a Docusign API fake sends an approved two-document package with its `SIGN-005` signers and fields, receives signed callbacks for viewed, one signer completed and envelope completed, rejects a callback with a bad signature, and voids an envelope when a new version is added. A counterparty signer's mistyped email is corrected, and a second signer is reassigned to a delegate, both without voiding; the envelope keeps its ID, the manifest records both changes, and `EXEC-001` reconciles cleanly against the corrected signers. The same journey runs against Acrobat Sign and Dropbox Sign fakes. A live sandbox run against each provider's developer account is recorded before the clause is accepted.
+**Evidence.** None.
+**Gap.** No Icertis or Agiloft kit exists
 
-Provider doors added under this clause inherit EXEC-002 exact-byte retrieval, reconciliation, current owner consent and visible bounded retry duties. The live developer-account receipts required here remain obligations of SIGN-002; network-edge EXEC-002 proof makes no live interoperability claim.
-<!-- /contract-source:SIGN-002 -->
+#### MOVE-004 — SpotDraft and Juro move-in
 
-<!-- contract-source:SIGN-003 -->
-#### SIGN-003 — Contract source
+Core · target · **missing**
 
-*Acceptance:* a journey against an Inkwell installation fake sends a package, receives completion and retrieves the file and certificate, which `EXEC-001` reconciles cleanly.
+**Requirement.** Each kit follows `MOVE-002`'s pattern: named sources, a reviewed dry run with an editable mapping, apply, undo and journal as `MOVE-001`.
 
-The future Inkwell completion and retrieval door inherits EXEC-002 exact-byte custody, current exact-package owner authorization, reconciliation, visible bounded retries and separately authorized follow-ups. Its missing upstream machine door remains a SIGN-003 prerequisite; no live Inkwell completion is claimed by EXEC-002.
-<!-- /contract-source:SIGN-003 -->
+- **SpotDraft.** Two sources, used together:
+  - **Repository report:** a report generated from a saved repository View with "All columns", as Excel (XLSX) or CSV. SpotDraft adds a Contract Link column to every report and splits signatories into Your Signatory and Counterparty Signatory, and these map to the counterparty, our signer and `REPO-010` signatories. Every other metadata column (contract type, status, counterparty, dates, value and the workspace's own key fields) maps to a field or custom field.
+  - **SpotDraft public API (v2.1):** called with the workspace's client ID and secret against its regional base URL. For each row, the kit takes the contract's ID from the Contract Link, reads its extracted metadata from `GET /api/v2.1/public/contracts/{composite_id}/key_pointers`, and fetches the executed file through `POST /api/v2.1/public/contracts/{composite_id}/download_link`.
 
-<!-- contract-source:INT-001 -->
-#### INT-001 — Contract source
+  The report alone gives metadata without files. Those agreements are listed as records without a file until the API run or a person's upload supplies them.
+- **Juro.** Juro has no self-serve bulk document export: an admin can download repository contracts as PDFs only after Juro Support enables it for a limited time. The kit obtains files in one of two ways:
+  - **Juro API (v3):** the preferred route, called with the workspace's API key at `https://api.juro.com/v3`. It lists the workspace's contracts, reads each contract's fields (smartfields, parties, status and signing details), and downloads each signed PDF from `GET /contracts/{id}/pdf/binary`. Juro's signing certificate, which Juro appends to the signed PDF, stays inside that file byte-for-byte.
+  - **Support-enabled PDF download:** when the buyer's plan has no API access, the buyer asks Juro Support to enable the export, then downloads the PDFs during that window. The kit takes the folder of PDFs with the repository's table view exported as CSV, and matches each file to its row by contract name and ID. Any PDF it cannot match is listed for a person to match or skip.
 
-*Acceptance:* a journey with Drive and Graph fakes imports a folder of 30 agreements, executes a new agreement and finds it filed under the naming rule in both; editing the stored copy leaves Locket's original digest unchanged. Live runs against a Google Drive test folder and a SharePoint document library in a Microsoft 365 developer tenant are recorded before the clause is accepted.
+  Juro templates map to agreement types and smartfields to fields or custom fields. Each agreement keeps its Juro contract ID, searchable.
 
-Live storage authorization and interoperability retain the EXEC-002 exact-byte custody, explicit destination consent, owner naming rule and current connection-revision duties. Network-edge EXEC-002 evidence does not establish these live-provider obligations.
-<!-- /contract-source:INT-001 -->
+For both, the dry run lists unmapped columns or fields, files without a record and records without a file. Signed agreements import as executed with imported execution records. Dates, values and renewal fields come in as proposed terms (`TERMS-001`, `RENEW-007`).
 
-<!-- contract-source:INTAKE-004 -->
-#### INTAKE-004 — Contract source
+**Acceptance.**
+1. a SpotDraft journey uses a fixture built from a SpotDraft report's documented columns (Contract Link, Your Signatory, Counterparty Signatory) and `key_pointers` and `download_link` JSON.
+2. It holds 30 contracts, imported first from the report alone (all 30 listed without files) and then with an API fake that supplies the files.
+3. A Juro journey runs a fixture of 30 contracts through a Juro API fake, and again as a folder of downloaded PDFs plus a table-view CSV, with one PDF that cannot be matched.
+4. In each, the dry run lists unmapped fields, files without records and records without files.
+5. After applying, signed files (with Juro's appended certificate) download with matching digests, each agreement is found by its source ID, and an unused batch undoes cleanly.
+6. An authorized real export and a live run against each vendor's API with a test workspace (Juro's API sandbox; a SpotDraft workspace's API credentials) are recorded before the clause is accepted.
 
-*Acceptance:* a Workers journey with a HubSpot API fake and an Orbit fake starts a request from a deal, sees the mapped fields, drives the agreement to executed and reads the deal's status, link and end date written back; a forced 500 on writeback shows a retryable failure on both the agreement and the connection. A deal with three line items produces an order form whose pricing table lists them and totals the deal amount in USD. The same journey runs against a Salesforce fake. Live runs against a Salesforce Developer Edition org and a HubSpot developer test account are recorded before the clause is accepted. The deal's HubSpot company is linked to the counterparty and shown on its `REPO-010` page.
+**Evidence.** None.
+**Gap.** No SpotDraft or Juro kit exists
 
-Live CRM interoperability retains the EXEC-002 separately consented exact-deal write, current connection-revision checks, matching executed readback and visible uncertain outcomes. Network-edge EXEC-002 evidence does not establish these live-provider obligations.
-<!-- /contract-source:INTAKE-004 -->
+#### MOVE-005 — PandaDoc and Adobe Acrobat Sign archives
 
-<!-- contract-source:OBL-001 -->
-#### OBL-001 — Contract source
+Core · target · **missing**
 
-*Acceptance:* a journey with a model-provider fake extracts six obligations from a fixture supplier agreement, a person confirms five with owners and rejects one; the confirmed ones appear on each owner's list with their next due dates and recurrence. The clause is accepted only when a live run under `REVIEW-006` meets the obligations bar.
+**Requirement.** Completed PandaDoc documents and Adobe Acrobat Sign agreements, with their audit trails, import like `MOVE-001`: originals and certificates byte-for-byte, imported execution records and proposed terms. Each kit names its sources:
 
+- **PandaDoc public API:** called with a production API key, because PandaDoc refuses the protected download with a sandbox key. `GET /public/v1/documents` lists completed documents (status completed, filtered by `completed_from` and `completed_to`, template and folder). `GET /public/v1/documents/{id}/details` reads recipients, fields, tokens and pricing tables, and the pricing rows become line items. `GET /public/v1/documents/{id}/download-protected` fetches the signed, verifiable PDF. The certificate of completion is kept when the account's download includes it; otherwise the document is listed under missing evidence, as `MOVE-001` does for a missing `Summary.pdf`.
+- **Adobe Acrobat Sign:** two sources, alone or together:
+  - **Reporting data export:** the CSV data export from the account's Reports section, run by an account or group admin. It holds agreement ID, name, status, sender, participants and their dates.
+  - **REST API v6:** with an OAuth integration key. The kit lists agreements (`GET /agreements` or `POST /search`), reads each agreement's status and participants (`GET /agreements/{agreementId}`), downloads the signed PDF (`GET /agreements/{agreementId}/combinedDocument`), the audit report (`GET /agreements/{agreementId}/auditTrail`, the Final Audit Report a person can also download per agreement) and the field values (`GET /agreements/{agreementId}/formData`, which map to fields).
 
-<!-- /contract-source:OBL-001 -->
+  When only the CSV export and per-agreement downloads exist, the kit takes the CSV with a folder holding each agreement's PDF and Final Audit Report, named by agreement ID.
+
+For both, the dry run lists each row's outcome (import, not completed, missing audit trail, duplicate), unmapped fields, files without a record and records without a file. Agreements that are not completed (out for signature, canceled, expired) are refused.
+
+**Acceptance.**
+1. a PandaDoc journey uses a fixture built from the documented list, details and protected-download responses: 25 completed documents and 3 in draft or sent, with one completed document missing its certificate.
+2. An Acrobat Sign journey uses a fixture built from the Reporting CSV columns and the v6 JSON and file responses, with 25 signed and 3 canceled agreements, run through both the API fake and the CSV-plus-folder path.
+3. In each, the dry run refuses the incomplete documents and lists the missing certificate.
+4. After applying, signed files and audit trails download with matching digests, each agreement is found by its PandaDoc document ID or Acrobat Sign agreement ID, and an unused batch undoes cleanly.
+5. A live run against a PandaDoc account with a production key and an Acrobat Sign developer account, plus an authorized real export from each, are recorded before the clause is accepted.
+
+**Evidence.** None.
+**Gap.** Only the DocuSign kit exists
+
+#### MOVE-006 — Ironclad workflows in progress at cutover
+
+Core · target · **missing**
+
+**Requirement.** On the day the Ironclad license ends, a buyer still has active workflows mid-negotiation. The kit reads them from Ironclad's Workflows API: each workflow's ID, template or third-party paper, launch-form answers, current step, assignees, documents and counterparty. A dry run lists each one as an open Locket agreement at its matching stage. Workflows in create or review steps become drafts, and those in approval or signature steps become agreements in review. The latest document comes in as the current version and the counterparty's files as counterparty versions, byte-for-byte with their digests. Launch-form answers become request fields, and the Ironclad workflow ID is kept and searchable. Approvals and signatures given in Ironclad never carry over: each imported workflow is approved again under `APPROVE-001`. A workflow already out for signature in Ironclad is listed, so the owner can finish it there and import the signed copy under `MOVE-002`, or prepare a new signature package in Locket. Apply and undo follow `MOVE-001`.
+
+**Acceptance.**
+1. a journey with a Workflows API fake holds 5 active workflows: two in review, two in negotiation with counterparty markups, and one approved and out for signature.
+2. After the dry run and apply, five open agreements appear in the request queue (`INTAKE-006`) at their mapped stages.
+3. Their latest documents and counterparty files match the fake's digests, and each shows its Ironclad workflow ID.
+4. None carries an approval, and one is then approved under `APPROVE-001`.
+5. The workflow out for signature is listed for the owner's decision.
+6. A live run against an Ironclad sandbox's Workflows API is recorded before the clause is accepted.
+
+**Evidence.** None.
+**Gap.** No Ironclad workflow import exists
+
+#### MOVE-007 — Ironclad Clickwrap acceptance history
+
+Core · target · **missing**
+
+**Requirement.** A buyer moving clickwrap to `SIGN-004` keeps proof of who accepted what. The kit reads the acceptance activity from Ironclad Clickwrap through either of two sources: the activity CSV export a Clickwrap admin downloads from the dashboard, or the Clickwrap REST API (the former PactSafe API) for signers, activity and contract versions, called with an API access token. The endpoints and columns are recorded in the fixture's README from Ironclad's Clickwrap developer documentation before the fixture is built. It reads the signer's identifier and email, the contract and version accepted, acceptance time, IP address, and each version's document. It imports them as acceptance records labeled imported, linked to each terms version kept byte-for-byte. From then on, Locket's own versions and re-acceptance rules apply. Apply and undo follow `MOVE-001`.
+
+**Acceptance.**
+1. a journey with an Ironclad Clickwrap fixture built from the recorded activity export columns and API JSON, holding 200 acceptances over two terms versions, imports them through both the CSV and an API fake as labeled imported acceptances with their versions and digests.
+2. A user who accepted only version 1 is prompted to accept Locket's next published version under `SIGN-004`.
+3. The export lists imported and native acceptances distinctly, and an unused batch undoes cleanly.
+4. An authorized real export and a live run against an Ironclad Clickwrap test site's API are recorded before the clause is accepted.
+
+**Evidence.** None.
+**Gap.** No clickwrap import exists
+
+### Push further
+
+#### AGENT-001 — Invoices reconciled against signed terms
+
+Core · push-further · **partial**
+
+**Requirement.** *What the agent does:* joins each executed agreement's confirmed pricing, rate cards, price-increase caps, discounts, payment terms and amendments with the bills, invoices, credits and purchase orders linked through `LINK-001` and `LINK-002`, and flags overcharges, increases above the cap, missed volume discounts, early-payment terms not taken and unclaimed credits, each with the clause and transaction cited and the USD amount at stake. For an approved finding it drafts the dispute or credit request to the supplier.
+
+*Data:* confirmed terms and families (`TERMS-001`, `REPO-008`), bills and payments from Pantry, QuickBooks Online or NetSuite, POs from Purse or Coupa.
+
+*Human control:* counsel confirms the interpretation, finance confirms the accounting; nothing is sent to a supplier or posted to an accounting system until the finding's owner approves the exact message or entry. Rejected findings are kept with the reason and suppress identical future flags.
+
+**Acceptance.**
+1. a journey with QuickBooks and Purse fakes holds a supplier agreement capped at 3% annual increase and invoices showing 7%; the agent flags the overcharge with the clause, invoice and $4,000 at stake, finance approves, the drafted credit request is sent through the installation mail door fake only after approval, and a rejected finding on another invoice is not raised again.
+2. Current annual-cap boundary: the owner authorizes a read-only QuickBooks vendor link and names counsel, finance and the finding owner.
+3. Designated counsel confirms the cited signed clause, numeric cap and exact comparable annual basis.
+4. The agent compares a person-selected baseline bill with a later bill, preserving both transaction identities and the USD amount potentially above the cap.
+5. Finance explicitly confirms full contract allocation, comparable annual services and quantities, taxes, credits and adjustments; supplier-wide totals alone are never treated as a proven contract overcharge.
+6. The finding owner separately approves the exact recipient, subject and message digest, then explicitly requests one installation mail attempt.
+7. A durable claim prevents duplicate supplier contact; acceptance is not delivery or recovered credit.
+8. Reasoned rejection suppresses identical transaction evidence, including after a paid-balance change. Current family, source, person, accounting link and field-access checks apply to every action and cached result. Existing erasure and legal-hold handling includes retained copies. LINK-001, LINK-002 and AGENT-002 inherit these source, consent and outbound-action checks before adding their doors.
+
+**Evidence.** `tests/api/notices.test.mjs` — AGENT-001 QuickBooks above-cap bills require counsel, finance and exact finding-owner approval; the installation mail door sends once and rejected evidence stays suppressed: 3 percent versus 7 percent, USD 4,000, signed clause and bills, finance/owner approval, exact message and rejected suppression; adjacent AGENT-001 refusal/provider tests; `tests/browser/reconciliation.spec.ts` — AGENT-001 reviews 3% versus 7%, confirms finance and approves one exact $4,000 credit request at 1440px/390px: review and approval screens
+**Gap.** BLOCKED on Purse’s new read-only PO-data token door (ct 22 October 21:55Z; not yet shipped); no invented procurement evidence. Rate-card, discount, payment-term, existing-credit and other-provider comparison remain. Designated authority and exact supplier-message consent approved by ct on 22 October 21:45Z
+
+#### AGENT-002 — Service levels and supplier performance
+
+Core · push-further · **done**
+
+**Requirement.** *What the agent does:* reads service-level commitments (uptime, response and resolution times, delivery dates) from confirmed terms and compares them with performance evidence: monitoring results from Uptime, tickets from Linen or HappyToHelp, delivery records, or the supplier's own reports. It computes service credits owed under the agreement's formula, records misses as obligation breaches by the supplier, and drafts the credit claim before the claim window closes.
+
+*Data:* confirmed service-level terms, connected monitoring and ticket data, supplier reports uploaded to the agreement.
+
+*Human control:* the agreement's owner approves each claim and its amount; the agent never contacts the supplier directly without that approval and never changes the evidence it read.
+
+**Acceptance.**
+1. a journey with an Uptime fake shows 99.2% monthly availability against a 99.9% commitment with a 10% credit tier; the agent computes the credit in USD, cites the clause and the monitoring evidence, shows the claim deadline, and sends the claim only after the owner approves.
+2. Current monthly-Uptime boundary: the installation owner explicitly authorizes the exact server-configured Uptime origin and one monitor.
+3. Counsel confirms the executed SLA passage and amendment context, monthly service zone, observed-time denominator and unknown/paused/maintenance exclusions, one credit tier, exact USD monthly charge and end-of-month plus calendar-days claim formula.
+4. The read-only metrics key is server-only.
+5. A completed monthly read retains the original bounded response bytes, SHA-256 and exact inclusive/exclusive period; comparisons use healthy/observed integer durations rather than the provider’s floored display percentage.
+6. Missing, stale, malformed, wrong-monitor, wrong-period, changed-policy and zero-denominator responses remain unavailable, with a visible connection error; no amount is invented outside the confirmed tier.
+7. A measured miss records a supplier breach, a linked follow-up obligation and a proposed credit with its deadline.
+8. Only the agreement’s current owner approves the exact amount, recipient, subject and message, then separately requests one installation mail attempt strictly before the deadline. Current family, source, role, field-access and connection checks fence every action and cached read. Provider acceptance does not establish delivery, timely receipt or recovered credit. Monitoring response originals stay with the claim under the installation’s retention and erasure clauses. Response originals remain unchanged under erasure; mutable claim copies follow existing minimization and legal-hold custody. Current performance-report boundary: the assigned agreement owner holding owner or approver authority explicitly authorizes each uploaded CSV or exact configured Linen installation, queue and record selection. Counsel confirms a cited signed wall-clock response, resolution or delivery commitment, the worst-record monthly aggregation, ascending lateness tiers, allocated eligible USD fee, monthly cap, service zone and calendar-day claim window. Reported timestamps remain attributed evidence. Missing completion stays unknown; ticket closure never proves contractual resolution or delivery, and an unreconstructible business calendar is refused. The read-only Linen MCP door calls only work.get for the selected IDs, with no discovery, attachments or writes. All selected reads must succeed within bounded time and bytes; no partial cohort becomes a credit. Original report or lossless MCP responses and their digests stay source-scoped, downloadable and unchanged with the claim. A proven miss records its supplier breach and follow-up obligation. The existing exact owner amount/message approval, separate one-use installation-mail request, stale authority checks and retention/erasure rules also apply. LINK-001, LINK-002 and AGENT-009 inherit these evidence and consent checks when adding further sources or recovery claims.
+
+**Evidence.** `tests/api/notices.test.mjs` — AGENT-002 confirms signed SLA, preserves exact Uptime evidence, records supplier breach and sends one owner-approved USD 1000 claim: availability comparison, USD credit, clause/monitoring citations, breach/obligation/deadline and exact owner approval/send; adjacent AGENT-002 journeys prove unavailable evidence, current access, formula/consent/deadline, reports for response/resolution/delivery and exact Linen reads. `tests/browser/service-levels.spec.ts` — AGENT-002 authorizes monitoring, confirms signed terms and approves one exact USD 1000 claim for 99.2% versus 99.9% at 1440px/390px; `tests/browser/service-performance.spec.ts` — Supplier response, resolution and delivery reports preserve unknowns and require exact owner approval before one credit send at 1440px/390px
+**Gap.** ct approved 22 October 22:40Z and 23 October 00:35Z; immutable source evidence, unknowns, named approvals and installation mail enforced
+
+#### AGENT-003 — Renewal decision to verified notice delivery
+
+Core · push-further · **done**
+
+**Requirement.** *What the agent does:* a person selects an exact passage from the executed text rendition, with the confirmed deadline and recorded renewal decision (`RENEW-001`), and the counterparty's recorded email and courier notice address (`REPO-010`). The agent prepares a frozen PDF notice from those facts, labelled "prepared draft, not legal advice or proof of service". It does not infer legal wording or decide adequacy. `REPO-002` inherits selection from future OCR renditions. Sending uses `RENEW-006`'s installation mail door (Resend with signed Svix callbacks today); Postmark and any other provider are configurations of that same door, not separate integrations, and `INT-004` inherits its obligations.
+
+*Human control:* the owner or an approver reviews the exact PDF digest, recipient, proposed method and local send time in the agreement's time zone, with the lead margin shown, and approves strictly before the deadline. The time must be future with more than one hour of margin for the hourly scheduler. A nonexistent local clock time is refused; repeated times use their earlier occurrence. The scheduler claims an email once at its first run at or after that time, strictly before the deadline, rechecking the active approver and role, access, agreement revision, source version, recorded addresses, decision/deadline and frozen PDF. Changed authority or records cancel the send. An uncertain or interrupted send is never resent automatically. A scheduled courier method becomes due for a person to record actual sending and tracking; scheduling is never evidence of sending.
+
+*Delivery watch:* a signed failure triggers immediately; otherwise the watch runs one day after the approved send, or one hour before the deadline when sooner. Missing delivery evidence or recipient acknowledgment creates a persistent decision-maker alert on the notice and a notification through their existing preferences. Alert creation and actual mail outcomes are separate; suppressed or uncertain email is never called delivered. A failure or missing acknowledgment prepares a separate courier draft to the frozen recorded notice address when its source and authority remain current; it requires another human approval of PDF, recipient, method and time. It never reuses the first notice's dispatch. The watch continues on the alternate, preserving tracking and separately recorded acknowledgment. Provider delivery, manual delivery evidence and acknowledgment remain distinct; counsel judges whether they are adequate or legally effective notice.
+
+**Acceptance.**
+1. clause-named `tests/api/notices.test.mjs` and `tests/browser/notice-agent.spec.ts` decide to terminate 45 days before the confirmed deadline, select the executed notice passage, prepare the labelled draft, review the PDF/digest and margin, approve the exact schedule, and send its identical bytes through the installation-provider fake.
+2. The signed bounce creates the decision-maker alert and a courier proposal; no courier sending is possible until a new approval.
+3. Its tracking and manually recorded delivered evidence precede 23:59:59 local time.
+4. API assertions cover one-use concurrent schedules, no early sending, invalid passages, PDF mismatch, deadline bounds, agent refusal, missing acknowledgment alerts, uncertain-send nonretry, stale decision/authority cancellation, restricted evidence and complete archive retention.
+5. Browser journeys show each state at 1440/390, and real `rer dev` exercises selected-source preparation and frozen schedule approval at both widths.
+
+**Evidence.** `src/locket/notice-agent.ts`; `src/locket/notice-agent-runtime.ts`; `tests/api/notices.test.mjs`; `tests/browser/notice-agent.spec.ts`; `tests/browser/notice-agent-live.spec.ts`
+**Gap.** None.
+
+#### AGENT-004 — Authorized renegotiation to an executed amendment
+
+Core · push-further · **missing**
+
+**Requirement.** *What the agent does:* under a written mandate from the decision-maker (target price, acceptable term, walk-away and which playbook positions may be offered), it drafts the counterparty email and the amendment from the template and playbook, sends each round only after approval, reads the counterparty's replies and markups (`NEG-006`, `NEG-002`), proposes the next response within the mandate, and stops at execution: the amendment is approved under `APPROVE-001`, signed under `SIGN-002`, and the family's governing terms updated under `AGENT-005`.
+
+*Data:* the agreement family, renewal brief (`RENEW-005`), playbook, counterparty correspondence.
+
+*Human control:* every outgoing message and version needs approval; any position outside the mandate goes back to the decision-maker; the agent never signs or accepts terms.
+
+**Acceptance.**
+1. a journey mandates a 5% reduction with a 2-year term; the agent's first proposal is approved and sent, the counterparty fake counters at 3%, the agent proposes 4% within the mandate, a counter outside the mandate is escalated rather than answered, and the executed amendment updates the governing price on the family page.
+
+**Evidence.** None.
+**Gap.** No negotiation agent exists
+
+#### AGENT-005 — Governing terms across a contract family
+
+Core · push-further · **partial**
+
+**Requirement.** *What the agent does:* compares the parent agreement, order forms, statements of work and amendments; finds conflicting dates, prices, notice rights and precedence clauses; and proposes the currently governing value of each key term with the exact passages, propagating confirmed results to deadlines and obligations.
+
+*Data:* the family's executed texts and confirmed terms (`REPO-008`).
+
+*Human control:* counsel confirms precedence and effective terms; until resolved, derived obligations stay blocked and both candidate deadlines remain visible.
+
+**Acceptance.**
+1. a journey adds an amendment that changes the notice period from 60 to 90 days while an order form says 30; the agent flags the conflict with three citations, both candidate deadlines show, and counsel's choice updates the renewal deadline and clears the block.
+2. Implemented boundary: owner or counsel prepares an exact snapshot of the family's readable executed texts and confirmed terms; only the owner explicitly consents to sending that snapshot to the configured model.
+3. The model is off until the owner configures and enables it and attests that the provider contract prohibits training on these texts.
+4. Without the deployment attestation no request leaves Locket.
+5. Every returned candidate passage is located verbatim in its source text and page; invalid or unavailable analysis is never replaced with an invented result.
+6. The model compares recorded values and unrecorded date, price, notice-right and precedence passages and proposes a choice with reasons.
+7. Its output has no authority to determine legal precedence.
+8. Counsel alone confirms one exact candidate per conflict with a reason and the parent agreement as the operational scope. Canonical date, notice and payment terms update the parent renewal and withdraw a decision when its dates move. Counsel explicitly selects which open parent obligations derive a due date from those selected dates, with a recorded day offset; previously derived open obligations require review again. Price, notice-right and precedence interpretations remain cited governing choices rather than automatic financial postings. Original sources and earlier decisions remain retained. An unresolved analysis or changed source text, confirmed term, family membership or relation blocks derived renewal decisions, notice preparation/approval/sending, obligation completion, scheduled notice claims, reminder delivery and bulk reminder scheduling. Candidate notice deadlines stay visible in the parent's time zone and current projected term. AGENT-004, RENEW-007, REPO-002, REPO-004 and future family import doors inherit these exact-source, visibility and counsel propagation checks.
+
+**Evidence.** `tests/api/families.test.mjs` — AGENT-005 keeps prepared family sources and derived actions blocked until a passing live provider evaluation; `tests/browser/family-conflicts.spec.ts` — AGENT-005 keeps local family review blocked until a live provider evaluation at 1440px/390px: source review, three candidate notice dates and no unevaluated provider request
+**Gap.** BLOCKED on owner-supplied 100 counsel-labelled held-out agreements and a passing REVIEW-006 live record for the exact provider, model and prompt; evaluated proposals and governing propagation remain unproved
+
+#### AGENT-006 — Signed document matches the approved version
+
+Core · push-further · **partial**
+
+**Requirement.** *What the agent does:* compares the approved version, the provider envelope, the signed document and the extracted terms; identifies edits made after approval, missing pages, missing signatures or initials and signers who differ from the routing; and refreshes obligations only from a confirmed execution.
+
+*Data:* approved package and manifest (`SIGN-001`), signed file and certificate (`EXEC-001`, `EXEC-002`), OCR text (`REPO-002`).
+
+*Human control:* owner or counsel accepts any mismatch with a reason; the agent never signs, never invents a certificate and never treats a changed document as approved.
+
+**Acceptance.**
+1. a journey returns a signed PDF whose liability cap was changed after approval; the agent flags the passage, the agreement stays unsigned under `EXEC-001`, and counsel's acceptance with a reason is recorded; a clean return executes without intervention.
+2. The current text-comparison slice parses the exact approved package PDF and the returned PDF locally, comparing page order and each page's text after collapsing whitespace only.
+3. Case, punctuation and numbers remain significant.
+4. Changed or missing pages, unreadable PDFs and pages without readable text stay in execution review even if the recorder checks document confirmation.
+5. Each differing page retains both readings, with the changed span shown, beside the immutable file downloads.
+6. Owner/counsel acceptance records the reason and keeps the comparison.
+7. A text match is not signature, initials, visual-content or certificate validation; image-only content requires human review until OCR is available.
+8. Extracted-term reconciliation: once Locket has recorded an execution (`EXEC-001`, reconciled or accepted with a reason) and every page of that signed PDF has readable text, a term or obligation citation, whether entered by a person or applied from an agent or importer proposal, must quote words found in the signed PDF text, compared after collapsing whitespace only, on the cited page when one is given and otherwise on the first page that holds them; the stored citation names the execution and that page. Approved-version wording the signed document no longer contains is refused. When the signed PDF has a page without readable text, the citation is checked against the version text as before and is labelled as not checked against the signed PDF. Imported executions (`MOVE-001`) keep their own import evidence. Structured-field slice: Locket inspects required AcroForm signature fields and required text fields whose fully qualified name or tooltip contains the word “initials” (camel-case and dot/underscore/hyphen separators are treated as word boundaries). Requirements are the union of those in the approved and returned PDFs, matched by exact field name and kind: removing a field or clearing its required flag cannot remove an approved requirement. Empty, missing, malformed or unreadable fields hold execution for the existing owner/counsel reasoned acceptance. Duplicate field names, XFA forms and unreadable form structures also hold for review. The original files are never rewritten. The retained evidence names the field, kind, first widget page where recorded and presence outcome, survives acceptance and stays in the archive under the agreement’s access rules. Signature presence means a nonzero signature Contents string and a four-integer ByteRange starting at zero, with positive nonoverlapping spans inside the returned file; initials presence means nonblank text. These are structural presence checks, never cryptographic validity, signer identity or legal authority checks. A PDF with no recognized required fields explicitly reports that none were detected and retains the existing text/manual reconciliation path; this is not proof of visual signatures or initials. Optional/unlabelled fields and flattened or image-only marks still need human review; general visual signature/initial detection and OCR remain open. *Acceptance for this slice:* existing AGENT-006 public-door API tests additionally assert empty/missing signature and initials fields, removed fields/required flags, zero Contents, malformed ranges, newly added required fields, duplicate names and XFA review holds, value-present/optional-field outcomes, exact returned bytes, protected retries, restricted evidence, denied acceptance, no terms before resolution, reasoned acceptance and archive retention. The existing product and real rer dev browser journeys at 1440/390 show matching text held for empty initials, persistent field evidence after acceptance, and a value-present return executing without intervention. Synthetic field values prove presence only, never a real signing-provider or trust claim.
+
+**Evidence.** `src/locket/execution.ts`; `src/locket/execution-comparison.ts`; `src/locket/execution-fields.ts`; `src/locket/obligations.ts`; `tests/api/execution-comparison.test.mjs`; `tests/browser/execution-comparison.spec.ts`
+**Gap.** Text/page comparison, signed-text citations and required structured signature/initial-field presence ship; optional/unlabelled or visual/flattened signature and initial detection and OCR remain open
+
+#### AGENT-007 — Exceptions become measured playbook changes
+
+Core · push-further · **done**
+
+**Requirement.** *What the agent does:* compares approved exceptions, counterparty negotiation outcomes and later operational issues (disputes, missed obligations, credits from `AGENT-001` and `AGENT-002`), and recommends a revised clause position with examples, the expected effect on cycle time (`REPORT-001`) and the agreements that would have been affected.
+
+*Data:* findings, exception approvals, negotiation versions, outcomes.
+
+*Human control:* counsel approves a new playbook version and chooses where it applies; signed agreements and earlier approvals never change.
+
+**Acceptance.**
+1. a journey with 30 fixture negotiations where a liability fallback was accepted 22 times; the agent recommends making it a standard alternative with the 22 citations and a labelled cycle-time saving scenario, never a causal prediction, counsel approves a new playbook version, and earlier findings still cite the old version.
+2. Implemented measurement boundary: owner or counsel explicitly records the counterparty's accepted or rejected exact wording against its current version and an unwithdrawn exception approval.
+3. Internal approval, text resemblance and a signature alone never invent a negotiation outcome.
+4. Later dispute, credit, missed-obligation and explicitly reviewed no-issue observations remain attributed evidence, with absent observations labelled unknown.
+5. Counsel's analysis counts one latest recorded negotiation per agreement in the selected type/entity scope, groups exact accepted wording, and proposes the most frequent position outside the source playbook's standard positions.
+6. Every accepted example links to its exact version, quote, offsets, digest and exception approval, with the other recorded outcomes and later issues retained.
+7. Native AGENT-001 potential-overcharge findings and AGENT-002 proposed Uptime and supplier-performance service credits are included with exact signed versions, transaction or monitoring citations, review and mail outcomes, and current source checks.
+8. Their status stays potential, proposed, approved or provider-accepted as recorded; none is recovered credit. Changed source or approval data requires fresh analysis. Future recovered-credit inputs must retain verified recovery evidence. The predicted cycle-time saving is a labelled scenario: standard wording would remove the observed incremental exception-approval wait after commercial approval. The product reports the median measured wait, cohort size, missing measurements, observed approval intervals and affected-agreement scenario total. Missing or unclosed workflow intervals remain unknown; no causal saving is promised. This deterministic comparison makes no model request or external data disclosure. Counsel alone reviews detailed cohorts and approves an exact analyzed future type/entity scope with a reason. The new immutable playbook version applies only in that scope to future reviews and clause provenance; other scopes keep their prior applicable version. Existing signed bytes, findings and approvals retain their original versions. A new observation or changed source requires fresh analysis. PLAY-002 and AGENT-004 inherit the same exact-evidence, scope and historical-version checks before adding their recommendation doors.
+
+**Evidence.** `tests/api/flows.test.mjs` — AGENT-007 measures thirty recorded negotiations, preserves twenty-two exact accepted citations and lets counsel scope a new playbook without rewriting history: 30 negotiations, 22 citations, native invoice, Uptime and supplier-performance credit evidence, labelled cycle-time scenario, issues/unknowns, counsel version and scope, preserved files/findings/approvals, future scopes, stale refusal and archive; `tests/browser/playbook-recommendations.spec.ts` — AGENT-007 counsel reviews thirty negotiations and twenty-two citations, then scopes a new playbook at 1440px/390px: actual measured recommendation, approval and cited/historical/future screens  Outside-Verify exact-code cohort run 20261023T002510922409Z-heavy-slot-6c6ffa3c at 98efd6054f4112fa7462806143acefc710d4a357
+**Gap.** ct approved 22 October 21:45Z; proposal-only output, counsel future scope, unknown timing and pinned history enforced
+
+#### AGENT-008 — Obligation remediation to verified evidence
+
+Core · push-further · **done**
+
+**Requirement.** *What the agent does:* for an overdue or at-risk obligation (an expired certificate of insurance, a missing SOC 2 report, an unreturned data-destruction certificate, our own late deliverable), it identifies the responsible party, drafts the request to the supplier contact or the internal owner, chases on schedule, checks returned evidence against the requirement (coverage amount, dates, named insured) and marks the obligation fulfilled only when the evidence matches.
+
+*Data:* confirmed obligations (`OBL-001`, `OBL-002`), counterparty contacts, returned documents.
+
+*Human control:* the obligation's owner approves outbound requests and the chase schedule; a person confirms any evidence the agent cannot verify fully; the agent never waives an obligation.
+
+**Acceptance.**
+1. a journey lets a supplier's certificate of insurance expire; the agent's approved request goes to the supplier contact, an uploaded certificate with $1M coverage against a $2M requirement is rejected with the reason, and a compliant certificate marks the obligation done with the evidence attached.
+
+**Evidence.** `tests/api/obligation-evidence.test.mjs` — AGENT-008 owner approves exact requests and finite chases, rejects insufficient insurance and completes only with matching original evidence (expired COI, exact approved supplier requests/chases, USD 1M against USD 2M rejected with page/reason, compliant original plus human review completes and retains exact bytes/archive); AGENT-008 unreadable fields need human review and revoked contact approval cannot send (unknown-only confirmation, erasure and recipient invalidation); AGENT-008 uncertain installation mail is attempted once and the owner can withdraw future chases without waiving the obligation (agent draft/contact, explicit send/replay, uncertain no retry, withdrawal); `tests/browser/remediation.spec.ts` — Obligation owner approves a supplier request, rejects $1M and confirms matching $2M evidence at 1440px/390px; AGENT-008 recipient replies and opt-outs stop every future chase; legal hold retains erased schedules without authorizing mail (reply/opt-out, supplier-contact refusal, held erasure and no mail)
+**Gap.** None
+
+#### AGENT-009 — Missed obligations and avoidable spend report
+
+Core · push-further · **done**
+
+**Requirement.** *What the agent does:* each month it reports, in USD where measurable, deadlines missed or met late, auto-renewals that renewed without a recorded decision (the roll-forwards `RENEW-007` records with no decision, excluding those derived for periods before the agreement was in Locket), overdue obligations on both sides, overcharges and credits found and recovered (`AGENT-001`, `AGENT-002`) and spend on agreements past their end date, each figure linking to its evidence, and compares with prior months.
+
+*Data:* deadlines, decisions, obligations, reconciliation findings, accounting links.
+
+*Human control:* read-only; the owner chooses recipients, and the report shows only what each recipient may see.
+
+**Acceptance.**
+1. a journey on a fixture year of activity produces the monthly report whose counts and dollar totals equal queries over the same data, with every figure linked to its records, delivered to two recipients with different access.
+
+**Evidence.** `tests/api/outcome-report.test.mjs` — AGENT-009 fixture-year source counts and exact USD totals match the retained records and each recipient’s current access (year query parity, all metrics, source links, pre-import exclusion, both sides and scoped two-recipient delivery); AGENT-009 consent, source and access changes remain scoped and rejected or uncertain monthly mail is never retried (consent/current scope, unavailable accounting and once-only failures). `tests/browser/outcome-report.spec.ts` — AGENT-009 compares months, exposes source records and selects scoped report recipients at 1440px/390px (report/attribution/evidence/delivery)
+**Gap.** None for existing sources; recovered amounts remain explicitly unconfirmed and wider accounting sources belong to LINK-001.
+
+## Agent surface
+
+None.
+
+## Later
+
+None.
+
+## Field proof register
+
+No field proof is recorded yet.
