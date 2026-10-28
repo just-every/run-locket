@@ -119,6 +119,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     if(type==='execution.retrieval.authorize')await runExecutionRetrievals(env,c.now,(result as {id:string}).id)
     if(type==='execution.followup.authorize')await runExecutionFollowups(env,c.now,(result as {id:string}).id)
     if(type==='accounting.schedule.send')await dispatchAccountingSchedule(c,(result as {id:string}).id)
+    if(type.startsWith('accounting.destination.'))requireRole(c.actor,['owner'],'read accounting destination outcomes')
     if(type==='notification.chat.identity')requireRole(c.actor,['owner'],'read chat identity outcomes')
     if(type==='token.create')result=await scopedTokenResult(c,result)
     if(type.startsWith('package.')||type.startsWith('signature.'))await authorizeSignatureResult(c,type,payload)

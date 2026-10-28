@@ -1,3 +1,4 @@
+import { pantryDestination, pantryServerMatches } from './accounting-destinations'
 import type { Bindings } from '../auth.server'
 import { operatorMail } from '../mail.server.mjs'
 import { requireRole } from './access'
@@ -12,7 +13,8 @@ export async function connectionRegistry(env:Bindings){
  const db=env.DB,chat=channelEnv(env),rows:any[]=[]
  if((env as any).HUBSPOT_ACCESS_TOKEN)rows.push({id:'hubspot',kind:'crm',account:'Server-bound HubSpot account',probe:true})
  if(env.MAIL_PROVIDER)rows.push({id:'mail',kind:'mail',account:env.MAIL_FROM??'Sender not configured',probe:['resend','postmark'].includes(env.MAIL_PROVIDER)})
- if(env.PANTRY_ORIGIN&&env.PANTRY_TOKEN)rows.push({id:'pantry',kind:'accounting',account:env.PANTRY_ORIGIN,probe:false})
+ const destination=await pantryDestination(db)
+ if(destination||env.PANTRY_ORIGIN&&env.PANTRY_TOKEN)rows.push({id:'pantry',kind:'accounting',account:destination?.origin??env.PANTRY_ORIGIN,connectionVersion:destination?.revision??0,configuredAt:destination?.configured_at,destinationEnabled:!!destination?.enabled,serverMatches:!!destination&&pantryServerMatches(env,destination.origin),probe:false})
  if(env.NETSUITE_ACCOUNT_ID&&env.NETSUITE_ACCESS_TOKEN)rows.push({id:'netsuite',kind:'accounting',account:env.NETSUITE_ACCOUNT_ID,probe:false})
  if(env.QUICKBOOKS_REALM_ID)rows.push({id:'quickbooks',kind:'accounting',account:env.QUICKBOOKS_REALM_ID,probe:true})
  for(const id of ['slack','teams','nook'])if((chat as any)['APPROVAL_'+id.toUpperCase()+'_TOKEN'])rows.push({id,kind:'chat',account:id==='nook'?chat.APPROVAL_NOOK_ORIGIN??'Installation not configured':'Server-bound '+id+' account',probe:id!=='nook'})

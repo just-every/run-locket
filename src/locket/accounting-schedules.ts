@@ -1,5 +1,5 @@
 import { operationObservation } from './connection-observations'
-import { pantryOrigin } from './accounting-records'
+import { currentPantryDestination, destinationGuard } from './accounting-destinations'
 import { paymentOccurrences } from './accounting-occurrences'
 // Explicit owner handoff of a confirmed obligation as explicit unposted Pantry drafts.
 import type { Ctx, Handler } from './commands'
@@ -10,8 +10,7 @@ import { agreementGuards, visibleAgreement } from './records'
 import { citation } from './obligations'
 import { fullFieldsCheck, policyVersionCheck, repositoryPolicy, requireFullFields } from './repository-access'
 
-type Schedule = {id:string;agreement_id:string;obligation_id:string;agreement_version:number;origin:string;payload:string;citation:string;amount_cents:number;due_date:string;prepared_by:string;status:string;remote_id:string|null}
-const pantry=(c:Ctx)=>pantryOrigin(c.env)
+type Schedule = {id:string;agreement_id:string;obligation_id:string;agreement_version:number;origin:string;payload:string;citation:string;amount_cents:number;due_date:string;prepared_by:string;destination_revision:number;status:string;remote_id:string|null}
 const prepare:Handler=async(c,p)=>{
  requireRole(c.actor,may.manageRoles,'prepare a proposed payment schedule')
  const a=await visibleAgreement(c,p.agreementId)
@@ -23,19 +22,22 @@ const prepare:Handler=async(c,p)=>{
  if(obligation.description.length>500)fail('OBLIGATION','Pantry bill descriptions support at most 500 characters. Confirm a concise payment obligation before preparing this handoff.',409)
  const amount=money(p,'amount')
  if(amount===null||amount<=0)fail('INVALID','Enter a positive exact USD amount.')
- const origin=pantry(c),id=crypto.randomUUID(),dueDate=date({dueDate:obligation.due_date},'dueDate'),billDate=date(p,'billDate')
+ const destination=await currentPantryDestination(c),origin=destination.origin,id=crypto.randomUUID(),dueDate=date({dueDate:obligation.due_date},'dueDate'),billDate=date(p,'billDate')
  if(billDate>dueDate)fail('INVALID','The bill date cannot follow its due date.')
  const source=await citation(c,a,p.citation)
  if(p.confirmAllocation!==true)fail('CONSENT','Confirm that this exact USD amount belongs to the selected contractual obligation.')
  const occurrences=paymentOccurrences(p,obligation.recurrence,dueDate,billDate),counterpartyId=text(p,a.type==='customer'?'customerId':'vendorId',100),accountId=text(p,'accountId',100)
- const existing=(await c.db.prepare('SELECT due_date FROM lk_accounting_schedules WHERE obligation_id=?').bind(obligationId).all<{due_date:string}>()).results
- if(existing.some(row=>occurrences.some(o=>o.dueDate===row.due_date)))fail('DUPLICATE_SCHEDULE','An occurrence already has a retained schedule handoff. Inspect it before any further action.',409)
+ const existing=(await c.db.prepare("SELECT * FROM lk_accounting_schedules WHERE obligation_id=? AND status<>'cancelled'").bind(obligationId).all<Schedule>()).results.filter(row=>occurrences.some(o=>o.dueDate===row.due_date))
+ const replaceable=existing.filter(row=>row.status==='draft'&&(row.origin!==destination.origin||row.destination_revision!==destination.revision))
+ if(existing.length!==replaceable.length)fail('DUPLICATE_SCHEDULE','An occurrence already has a retained schedule handoff. Inspect it before any further action.',409)
+ const replacementChecks=replaceable.map(row=>sql("EXISTS(SELECT 1 FROM lk_accounting_schedules WHERE id=? AND status='draft' AND destination_revision=? AND origin=?)",row.id,row.destination_revision,row.origin))
+ const replacements=replaceable.map(row=>sql("UPDATE lk_accounting_schedules SET status='cancelled' WHERE id=?",row.id))
  const rows=occurrences.map((occurrence,index)=>{
   if(occurrence.billDate>occurrence.dueDate)fail('INVALID','An occurrence bill date cannot follow its due date.')
   const rowId=index===0?id:crypto.randomUUID(),amountText=(amount/100).toFixed(2),payload=a.type==='customer'?{customerId:counterpartyId,number:`${a.reference}-${rowId}`,issueDate:occurrence.billDate,dueDate:occurrence.dueDate,post:false,lines:[{description:obligation.description,accountId,quantity:'1',rate:amountText,taxCode:'exempt'}]}:{vendorId:counterpartyId,reference:`${a.reference}-${rowId}`,billDate:occurrence.billDate,dueDate:occurrence.dueDate,post:false,lines:[{description:obligation.description,accountId,amount:amountText}]}
   return {id:rowId,payload,...occurrence}
  })
- return {allowed:may.manageRoles,result:{id,ids:rows.map(row=>row.id)},checks:[...agreementGuards(c,a,p),sql("EXISTS(SELECT 1 FROM lk_obligations WHERE id=? AND status='confirmed' AND due_date=? AND description=? AND recurrence=?)",obligationId,dueDate,obligation.description,obligation.recurrence),...rows.map(row=>sql('NOT EXISTS(SELECT 1 FROM lk_accounting_schedules WHERE obligation_id=? AND due_date=?)',obligationId,row.dueDate))],writes:[...rows.map(row=>sql('INSERT INTO lk_accounting_schedules VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',row.id,a.id,obligationId,a.version,origin,json(row.payload),json({...source,recurrence:obligation.recurrence,firstDueDate:dueDate}),amount,row.dueDate,c.actor.id,c.now,'draft',null,null,null))],audit:[{action:'accounting.schedule.prepare',agreementId:a.id,summary:'Owner confirmed exact USD allocation and finite dated occurrences as unposted Pantry drafts. Each occurrence requires separate exact outbound consent.'}]}
+ return {allowed:may.manageRoles,result:{id,ids:rows.map(row=>row.id)},checks:[...agreementGuards(c,a,p),destinationGuard(destination),...replacementChecks,sql("EXISTS(SELECT 1 FROM lk_obligations WHERE id=? AND status='confirmed' AND due_date=? AND description=? AND recurrence=?)",obligationId,dueDate,obligation.description,obligation.recurrence),...rows.map(row=>sql("NOT EXISTS(SELECT 1 FROM lk_accounting_schedules WHERE obligation_id=? AND due_date=? AND status<>'cancelled' AND NOT(status='draft' AND (origin<>? OR destination_revision<>?)))",obligationId,row.dueDate,destination.origin,destination.revision))],writes:[...replacements,...rows.map(row=>sql('INSERT INTO lk_accounting_schedules VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',row.id,a.id,obligationId,a.version,origin,json(row.payload),json({...source,recurrence:obligation.recurrence,firstDueDate:dueDate}),amount,row.dueDate,c.actor.id,c.now,'draft',null,null,null,destination.revision))],audit:[{action:'accounting.schedule.prepare',agreementId:a.id,summary:'Owner confirmed exact USD allocation and finite dated occurrences as unposted Pantry drafts. Each occurrence requires separate exact outbound consent. Replaced unsent drafts remain retained as cancelled.'}]}
 
 }
 async function schedule(c:Ctx,p:Record<string,unknown>){
@@ -52,11 +54,13 @@ function obligationGuard(row:Schedule){
 const send:Handler=async(c,p)=>{
  const {row,a}=await schedule(c,p)
  if(row.status!=='draft')fail('STATUS','This proposal already has an outcome. An uncertain attempt is never resent.',409)
- if(a.version!==row.agreement_version||pantry(c)!==row.origin)fail('STALE','The source or destination changed. Do not send this old proposal.',409)
+ await currentPantryDestination(c,{origin:row.origin,revision:row.destination_revision})
+ if(a.version!==row.agreement_version)fail('STALE','The source or destination changed. Do not send this old proposal.',409)
  if(p.consent!==true||p.payload!==row.payload)fail('CONSENT','Review and explicitly authorize the exact retained accounting draft payload.')
- return {allowed:may.manageRoles,result:{id:row.id},checks:[...agreementGuards(c,a),sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='draft'",row.id),obligationGuard(row)],writes:[sql("UPDATE lk_accounting_schedules SET status='sending',sent_at=? WHERE id=?",c.now,row.id)],audit:[{action:'accounting.schedule.send',agreementId:a.id,summary:'Owner explicitly authorized one unposted Pantry draft. No payment or automatic posting is authorized.'}]}
+ return {allowed:may.manageRoles,result:{id:row.id},checks:[...agreementGuards(c,a),destinationGuard({origin:row.origin,revision:row.destination_revision}),sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='draft'",row.id),obligationGuard(row)],writes:[sql("UPDATE lk_accounting_schedules SET status='sending',sent_at=? WHERE id=?",c.now,row.id)],audit:[{action:'accounting.schedule.send',agreementId:a.id,summary:'Owner explicitly authorized one unposted Pantry draft. No payment or automatic posting is authorized.'}]}
 }
 async function remote(c:Ctx,row:Schedule,method:'GET'|'POST'){
+ await currentPantryDestination(c,{origin:row.origin,revision:row.destination_revision})
  const resource=JSON.parse(row.payload).customerId?'invoices':'bills'
  return fetch(`${row.origin}/api/pantry/integration/v1/${resource}${method==='GET'?'/'+encodeURIComponent(row.remote_id!):''}`,{method,redirect:'manual',signal:AbortSignal.timeout(10000),headers:{Authorization:`Bearer ${c.env.PANTRY_TOKEN}`,Accept:'application/json',...(method==='POST'?{'Content-Type':'application/json','Idempotency-Key':row.id}:{})},...(method==='POST'?{body:row.payload}:{})})
 }
@@ -82,8 +86,9 @@ export async function dispatchAccountingSchedule(c:Ctx,id:string){
  if(!row)return
  const a=await visibleAgreement(c,row.agreement_id)
  if(row.status!=='sending')return
- if(a.version!==row.agreement_version||pantry(c)!==row.origin)return
- const checks=[...agreementGuards(c,a),fullFieldsCheck(c.actor),policyVersionCheck((await repositoryPolicy(c.db)).version),obligationGuard(row),sql('EXISTS(SELECT 1 FROM lk_accounting_schedules WHERE id=? AND origin=? AND payload=? AND citation=? AND agreement_version=? AND amount_cents=? AND due_date=? AND prepared_by=?)',row.id,row.origin,row.payload,row.citation,row.agreement_version,row.amount_cents,row.due_date,row.prepared_by)]
+ await currentPantryDestination(c,{origin:row.origin,revision:row.destination_revision})
+ if(a.version!==row.agreement_version)return
+ const checks=[...agreementGuards(c,a),destinationGuard({origin:row.origin,revision:row.destination_revision}),fullFieldsCheck(c.actor),policyVersionCheck((await repositoryPolicy(c.db)).version),obligationGuard(row),sql('EXISTS(SELECT 1 FROM lk_accounting_schedules WHERE id=? AND origin=? AND payload=? AND citation=? AND agreement_version=? AND amount_cents=? AND due_date=? AND prepared_by=? AND destination_revision=?)',row.id,row.origin,row.payload,row.citation,row.agreement_version,row.amount_cents,row.due_date,row.prepared_by,row.destination_revision)]
  // An atomic claim precedes the network edge. A crash leaves uncertain, never resendable.
  await commit(c,may.manageRoles,[...checks,sql("(SELECT status FROM lk_accounting_schedules WHERE id=?)='sending'",id)],[sql("UPDATE lk_accounting_schedules SET status='uncertain' WHERE id=?",id)])
  const payloadDigest=await sha256(row.payload)
@@ -105,7 +110,7 @@ export async function dispatchAccountingSchedule(c:Ctx,id:string){
 const refresh:Handler=async(c,p)=>{
  const {row,a}=await schedule(c,p)
  if(!['pending','accepted'].includes(row.status)||!row.remote_id)fail('STATUS','Only a known Pantry draft can be checked.',409)
- if(pantry(c)!==row.origin)fail('STALE','The configured Pantry destination changed.',409)
+ await currentPantryDestination(c,{origin:row.origin,revision:row.destination_revision})
  let status:string
  try{
   const response=await remote(c,row,'GET')
@@ -114,6 +119,6 @@ const refresh:Handler=async(c,p)=>{
   if(!matchesBill(record,row)||record.id!==row.remote_id||!['draft',JSON.parse(row.payload).customerId?'issued':'posted'].includes(record.status))fail('PANTRY_DATA','The retained bill identity, amount or schedule no longer matches. Review it in Pantry.',502)
   status=record.status==='draft'?'pending':'accepted'
  }catch(error){if(error instanceof Error&&'code' in error)throw error;fail('PANTRY_UNAVAILABLE','Pantry could not be read; the prior outcome is preserved.',502)}
- return {allowed:may.manageRoles,result:{id:row.id},checks:[...agreementGuards(c,a),sql('(SELECT status FROM lk_accounting_schedules WHERE id=?)=?',row.id,row.status)],writes:[sql('UPDATE lk_accounting_schedules SET status=?,checked_at=? WHERE id=?',status,c.now,row.id)],audit:[{action:'accounting.schedule.check',agreementId:a.id,summary:status==='accepted'?'Pantry reports the exact scheduled draft accepted by its own authorized workflow. Payment remains unconfirmed.':'Pantry draft remains pending human acceptance; no payment is recorded.'}]}
+ return {allowed:may.manageRoles,result:{id:row.id},checks:[...agreementGuards(c,a),destinationGuard({origin:row.origin,revision:row.destination_revision}),sql('(SELECT status FROM lk_accounting_schedules WHERE id=?)=?',row.id,row.status)],writes:[sql('UPDATE lk_accounting_schedules SET status=?,checked_at=? WHERE id=?',status,c.now,row.id)],audit:[{action:'accounting.schedule.check',agreementId:a.id,summary:status==='accepted'?'Pantry reports the exact scheduled draft accepted by its own authorized workflow. Payment remains unconfirmed.':'Pantry draft remains pending human acceptance; no payment is recorded.'}]}
 }
 export const accountingScheduleHandlers={'accounting.schedule.prepare':prepare,'accounting.schedule.send':send,'accounting.schedule.check':refresh}
