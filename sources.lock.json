@@ -145,7 +145,7 @@
       "executable": false
     },
     "deploy.json": {
-      "sha256": "6dc6ababd1ac1b4afbb7fbb020c8a27598755275f62282b73b8e6d7fdde827b8",
+      "sha256": "22526826907292accd030d808f6997d4000d0ca8b7e8f949928d7e122f49ffc5",
       "executable": false
     },
     "docs/agents-and-the-api.md": {
@@ -4981,7 +4981,7 @@
       "executable": false
     },
     "wrangler.jsonc": {
-      "sha256": "ff1e47035f11fcf93dcd275b2a81caf2dc509ca96ff9bfbdc8cfeaa1352b9e5b",
+      "sha256": "6b4315acdba39d071b6adcee7c5092949b0a50385fc75920b6b6713f207525df",
       "executable": false
     }
   }

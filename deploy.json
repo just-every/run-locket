@@ -202,21 +202,6 @@
       "optional": true
     },
     {
-      "binding": "MAIL_PROVIDER",
-      "environment": "MAIL_PROVIDER",
-      "optional": true
-    },
-    {
-      "binding": "MAIL_FROM",
-      "environment": "MAIL_FROM",
-      "optional": true
-    },
-    {
-      "binding": "MAIL_ACCOUNT_ID",
-      "environment": "MAIL_ACCOUNT_ID",
-      "optional": true
-    },
-    {
       "binding": "SIGNATURE_DOCUSIGN_CONNECT_SECRET",
       "environment": "SIGNATURE_DOCUSIGN_CONNECT_SECRET",
       "optional": true
