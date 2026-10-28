@@ -1293,7 +1293,7 @@
       "executable": false
     },
     "src/locket/commands.ts": {
-      "sha256": "8322b8f5d9f3cfd26d7acaef65d75d01edf0530f6781112fbb8a7ed839754149",
+      "sha256": "a55d84db0561f94ef4cbb3b4c081ed9001df1026cccef5372e6ccdf910c70c4b",
       "executable": false
     },
     "src/locket/comment-threads.ts": {
@@ -1557,7 +1557,7 @@
       "executable": false
     },
     "src/locket/notice-events.ts": {
-      "sha256": "ef2c29aa56190121948edd790d7b047bc810d415ad7e5e7b2c6a91d9d7899e79",
+      "sha256": "c7b11a8c2a2366f13f7a2c36e211c6666d3c704da0179f39bef5052e7861130b",
       "executable": false
     },
     "src/locket/notice-letters.ts": {
@@ -1945,7 +1945,7 @@
       "executable": false
     },
     "src/locket/word-review-document.ts": {
-      "sha256": "3ac12f62586e81fb8349d39d7e37663579386bdc44759080f57aad7266cd113d",
+      "sha256": "dee8ffe5ef48f3b260e00947a265a21279e6ab248c62dd54aa17cd331b71e7f0",
       "executable": false
     },
     "src/locket/word-review-records.ts": {
@@ -4621,7 +4621,7 @@
       "executable": false
     },
     "tests/api/security.test.mjs": {
-      "sha256": "ba2b6ab2db333a164cd099f377217fe0b92bbfe9f5f8e54554bb8ad0f0e5dff7",
+      "sha256": "e576163acfa18ed0c59759e792dd00c9b0d2d903397e089cacfe2133fe97df5e",
       "executable": false
     },
     "tests/api/service-level-fixture.mjs": {
