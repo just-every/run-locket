@@ -77,7 +77,7 @@
       "executable": false
     },
     ".github/scripts/verify.mjs": {
-      "sha256": "40512ce1973c651ea339c0a1e8964d0dca6aad7a0c5e26a7fe295e0eb2b3440a",
+      "sha256": "b6540054d0bfeede146d063471712b334006a717f99a859e10053bffed236474",
       "executable": false
     },
     ".github/workflows/nightly-acceptance.yml": {
@@ -97,7 +97,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "ed254b9648859489d24715d1f6ad39880fb760002ac5e56a9088095b8dace46a",
+      "sha256": "2fd936cebeda78e84108385feedb6044acb987604e46714852763e5d892a4a85",
       "executable": false
     },
     ".gitignore": {

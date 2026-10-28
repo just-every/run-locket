@@ -18,7 +18,7 @@ jobs:
       matrix:
         # The API runner shards the complete existing file list. The portable
         # export/import proof gets its own runner; no checks move off push CI.
-        partition: [core, api-1, api-2, api-3, api-4, portable]
+        partition: [core, api-1, api-2, api-3, api-4, api-flows, portable]
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
