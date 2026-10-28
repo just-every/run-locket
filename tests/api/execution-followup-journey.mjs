@@ -97,7 +97,8 @@ export async function prepareFollowupFixture(h,edge,{restricted=false}={}) {
  return {tm,id,pkg,base,authorize,complete}
 }
 export async function executionFollowupJourney(t) {
- const edge=followupProvider(),h=await installation(edge);t.after(()=>h.close())
+ const edge=followupProvider(),h=await installation(edge)
+ try{
  const f=await prepareFollowupFixture(h,edge,{restricted:true})
  await f.tm.requester.command('execution.followup.authorize',{...f.base,kind:'extraction'},{error:'FORBIDDEN'})
  await f.tm.owner.command('execution.followup.authorize',{...f.base,kind:'extraction',consent:false},{error:'CONSENT'})
@@ -170,11 +171,13 @@ export async function executionFollowupJourney(t) {
  preview=await f.tm.owner.command('person.erase.preview',erasureRequest(subject))
  assert.ok(preview.patches.some(r=>r.table==='lk_execution_followups'&&r.id===google.id&&!r.after.destination.includes(subject)))
  return {elapsedMs,actions:rows.length,destinations:['google-drive','onedrive','sharepoint','chest'],digests:'matching',crm:'executed',requesterNotice:true}
+ }finally{await h.close()}
 }
 
 export async function executionFollowupRefusals(t) {
  for(const scenario of ['no-followup-consent','wrong-digest','wrong-crm','unsafe-redirect','changed-connection','changed-model','cancelled','inflight-authority','inflight-connection']){
-  const edge=followupProvider(),h=await installation(edge);t.after(()=>h.close())
+  const edge=followupProvider(),h=await installation(edge)
+  try{
   const f=await prepareFollowupFixture(h,edge)
   let decision
   if(scenario!=='no-followup-consent')decision=await f.authorize(['inflight-authority','inflight-connection','wrong-crm'].includes(scenario)?'hubspot':scenario==='unsafe-redirect'?'onedrive':scenario==='changed-model'?'extraction':'google-drive')
@@ -200,6 +203,7 @@ export async function executionFollowupRefusals(t) {
   const count=edge.writes.length
   await h.scheduled(Date.now()+120_000)
   assert.equal(edge.writes.length,count,'a later session or schedule cannot repeat uncertain or cancelled writes')
+  }finally{await h.close()}
  }
 }
 
@@ -247,7 +251,8 @@ export async function prepareAcrobatFixture(h,edge,{provider='adobe-acrobat-sign
 }
 export async function acrobatRetrievalJourney(t,scenarios) {
  for(const scenario of scenarios??['complete','recipient-group','reference-packet','signable-packet','wrong-envelope','wrong-signers','incomplete-signers','ambiguous-signers','bad-date','revoked-between-reads','unsupported-inkwell']){
-  const edge=acrobatProvider(),h=await installation(edge);t.after(()=>h.close())
+  const edge=acrobatProvider(),h=await installation(edge)
+  try{
   const f=await prepareAcrobatFixture(h,edge,{provider:scenario==='unsupported-inkwell'?'inkwell':'adobe-acrobat-sign',packetPurpose:scenario==='reference-packet'?'reference':scenario==='signable-packet'?'sign':undefined})
   if(scenario.startsWith('unsupported-')){await f.tm.owner.command('execution.retrieval.authorize',f.base,{error:'RETRIEVAL_UNSUPPORTED'});assert.equal(edge.reads.length,0);assert.equal((await f.tm.owner.state()).executionRetrievals.length,0);continue}
   await f.tm.requester.command('execution.retrieval.authorize',f.base,{error:'FORBIDDEN'})
@@ -308,6 +313,7 @@ export async function acrobatRetrievalJourney(t,scenarios) {
    const reads=edge.reads.length;await h.scheduled(row.next_attempt_at+3600001)
    assert.equal(edge.reads.length,reads,'completion and ended consent never reread provider files')
   }
+  }finally{await h.close()}
  }
 }
 
