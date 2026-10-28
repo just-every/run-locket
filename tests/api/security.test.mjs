@@ -10,6 +10,24 @@ import { file, find, library, pdf, submitted, team } from './setup.mjs'
 test('sessions, roles, idempotent commands and stale writes are enforced by the server', async t => {
   const h = await installation(); t.after(() => h.close())
   const tm = await team(h)
+  // Dispatch accepts registered commands only, never Object.prototype names.
+  // Keep response content out of assertion diagnostics, including on regressions.
+  const registered = await tm.requester.request('/api/locket/commands', { method: 'POST', body: { commandId: randomUUID(), type: 'party.save', payload: { name: 'Dispatch sanity party', kind: 'other' } } })
+  assert.equal(registered.status, 200, 'a registered command still works')
+  const registeredBody = await registered.json()
+  assert.equal(registeredBody.ok === true && typeof registeredBody.result?.id === 'string', true, 'registered command returns its outcome')
+  const names = ['unknown.command', 'constructor', '__proto__', 'hasOwnProperty', 'toString', 'valueOf']
+  const refusals = []
+  for (const type of names) {
+    const response = await tm.requester.request('/api/locket/commands', { method: 'POST', body: { commandId: randomUUID(), type, payload: {} } })
+    refusals.push({ type, status: response.status, body: await response.text() })
+  }
+  t.diagnostic('command dispatch statuses: ' + refusals.map(r => r.type + '=' + r.status).join(', '))
+  assert.deepEqual(refusals.map(r => r.status), names.map(() => 400), 'inherited names receive the unknown-command status')
+  for (const { type, body } of refusals) {
+    const expected = JSON.stringify({ ok: false, error: { code: 'UNKNOWN_COMMAND', message: `Unknown command ${type}.`, details: null } })
+    assert.equal(body === expected, true, 'unknown-command body contains only the expected refusal; no bindings or environment content')
+  }
   const viewer = await h.invite('viewer@example.test', 'viewer')
   const agent = await h.invite('agent@example.test', 'agent')
   const lib = await library(h, tm)

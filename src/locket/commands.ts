@@ -107,7 +107,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const input = object(body, 'request')
   const commandId = input.commandId, type = input.type
   if (typeof commandId !== 'string' || !uuid.test(commandId)) fail('INVALID', 'commandId must be a UUID.')
-  if (typeof type !== 'string' || !handlers[type]) fail('UNKNOWN_COMMAND', `Unknown command ${String(type)}.`)
+  if (typeof type !== 'string' || !Object.hasOwn(handlers, type)) fail('UNKNOWN_COMMAND', `Unknown command ${String(type)}.`)
   const payload = object(input.payload)
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const integrationChecks=await integrationCommandChecks(c,type)

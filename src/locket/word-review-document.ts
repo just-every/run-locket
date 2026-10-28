@@ -9,10 +9,10 @@ export interface WordReviewComment {id:string;author:string;date:string|null;bod
 interface Range {start:number;end:number}
 interface Segment extends Range {node:XmlNode;run?:XmlNode;paragraph:XmlNode;value:string}
 interface ReviewModel {tree:XmlNode;text:string;ranges:Map<XmlNode,Range>;segments:Segment[];paragraphs:Map<XmlNode,Range>;changes:WordReviewChange[];changeNodes:Map<string,XmlNode>;moveGroups:Map<string,string[]>;anchors:Map<string,Range>}
-const kinds:Record<string,WordReviewChange['kind']>={ins:'insertion',del:'deletion',moveFrom:'moveFrom',moveTo:'moveTo'}
+const kinds:Record<string,WordReviewChange['kind']>=Object.assign(Object.create(null),{ins:'insertion',del:'deletion',moveFrom:'moveFrom',moveTo:'moveTo'})
 const propertyChange=(node:XmlNode)=>isWord(node)&&/^(?:rPr|pPr|tblPr|tblGrid|trPr|tcPr|sectPr)Change$/.test(local(node.name))
 const hiddenRevision=(node:XmlNode)=>isWord(node,'del')||isWord(node,'moveFrom')
-const propertyNames:Record<string,string>={b:'Bold',i:'Italic',u:'Underline',strike:'Strikethrough',color:'Text color',sz:'Font size (half points)',rFonts:'Font',jc:'Alignment',pStyle:'Paragraph style',rStyle:'Character style',spacing:'Spacing',ind:'Indentation',numPr:'Numbering',keepNext:'Keep with next',keepLines:'Keep lines together',pageBreakBefore:'Page break before',highlight:'Highlight'}
+const propertyNames:Record<string,string>=Object.assign(Object.create(null),{b:'Bold',i:'Italic',u:'Underline',strike:'Strikethrough',color:'Text color',sz:'Font size (half points)',rFonts:'Font',jc:'Alignment',pStyle:'Paragraph style',rStyle:'Character style',spacing:'Spacing',ind:'Indentation',numPr:'Numbering',keepNext:'Keep with next',keepLines:'Keep lines together',pageBreakBefore:'Page break before',highlight:'Highlight'})
 function formatSummary(node:XmlNode):string {
  const values=elements(node).filter(child=>!propertyChange(child)).map(child=>{
   const name=local(child.name),value=wordAttr(child,'val'),details=Object.entries(child.attrs).filter(([key])=>!key.startsWith('xmlns')&&local(key)!=='val').map(([key,v])=>`${local(key)} ${v}`).join(', ')

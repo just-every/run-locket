@@ -17,7 +17,9 @@ export async function noticeEventResponse(request: Request, env: Bindings): Prom
   let parsed: unknown
   try { parsed = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(raw)) } catch { fail('INVALID', 'Invalid event JSON.') }
   const event = object(parsed), data = object(event.data)
-  const status = ({ 'email.delivered': 'delivered', 'email.bounced': 'bounced', 'email.delivery_delayed': 'deferred', 'email.failed': 'failed', 'email.complained': 'complained' } as Record<string, string>)[text(event, 'type', 60)]
+  const statuses: Record<string, string> = { 'email.delivered': 'delivered', 'email.bounced': 'bounced', 'email.delivery_delayed': 'deferred', 'email.failed': 'failed', 'email.complained': 'complained' }
+  const type = text(event, 'type', 60)
+  const status = Object.hasOwn(statuses, type) ? statuses[type] : undefined
   if (!status) fail('INVALID', 'Subscribe this endpoint to delivered, bounced, delayed, failed and complained events only.')
   const messageId = text(data, 'email_id', 200)
   const occurred = Date.parse(text(event, 'created_at', 60))
