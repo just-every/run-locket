@@ -1,3 +1,1 @@
-# Contract rulings
-
-The dated policy decisions are recorded in [RULINGS.md](../../RULINGS.md). Their outcomes appear in the governing contract clauses.
+The dated policy decisions are recorded in [RULINGS.md](https://github.com/just-every/run-locket/blob/cloud/ct-cleanup-rewrite-locket-cx-20261028-0400/RULINGS.md). Their outcomes appear in the governing contract clauses.

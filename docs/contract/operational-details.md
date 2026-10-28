@@ -1,5 +1,3 @@
-# Contract operational details
-
 The contract links these operational details. Historical implementation receipts belong in CHANGELOG.md. Agent approval/refusal scenarios describe the company-selected held policy for the computed classes in the Agent surface; the company’s policy determines agent decisions.
 
 ## REPO-001 — Import a legacy agreement
@@ -106,13 +104,13 @@ downloads compared byte for byte with their uploads (flow tests 01, 05 and 09).
 
 ## PROPOSE-001 — Agents prepare, people approve
 
-An agent is an invited operator with the `agent` role using the same HTTP API ([API.md](API.md)). It prepares proposals with evidence and assumptions: intake details, playbook findings, agreement-family links, extracted terms and renewal notice drafts. Approval runs the same checks as doing the work by hand, records who prepared and who decided, and links the result to the proposal. An agent never approves, signs, sends or confirms anything; nobody may decide a proposal they prepared unless they are the owner.
+An agent is an invited operator with the `agent` role using the same HTTP API ([API.md](https://github.com/just-every/run-locket/blob/cloud/ct-cleanup-rewrite-locket-cx-20261028-0400/API.md)). It prepares proposals with evidence and assumptions: intake details, playbook findings, agreement-family links, extracted terms and renewal notice drafts. Approval runs the same checks as doing the work by hand, records who prepared and who decided, and links the result to the proposal. An agent never approves, signs, sends or confirms anything; nobody may decide a proposal they prepared unless they are the owner.
 
 agent findings and terms applied only after a person's approval, and agent writes refused (flow tests 06 and 10, security test).
 
 ## MOVE-001 — DocuSign archive move-in
 
-The DocuSign kit takes an Envelope Report CSV and the downloaded completed envelopes (one folder per envelope ID with the signed PDFs and `Summary.pdf`, the Certificate of Completion). A dry run shows every row's outcome (import, not completed, missing evidence, duplicate), missing certificates and files not in the report, and writes nothing. Applying the exact reviewed dry run creates imported agreements with the signed file and certificate kept byte-for-byte, an imported execution record (never a new signature event), and end date and notice period as proposed terms. The journal keeps the report and every supplied file. An unused batch can be undone; once an imported agreement is used, undo is refused and the history stays. Shape and limits: [IMPORT.md](IMPORT.md).
+The DocuSign kit takes an Envelope Report CSV and the downloaded completed envelopes (one folder per envelope ID with the signed PDFs and `Summary.pdf`, the Certificate of Completion). A dry run shows every row's outcome (import, not completed, missing evidence, duplicate), missing certificates and files not in the report, and writes nothing. Applying the exact reviewed dry run creates imported agreements with the signed file and certificate kept byte-for-byte, an imported execution record (never a new signature event), and end date and notice period as proposed terms. The journal keeps the report and every supplied file. An unused batch can be undone; once an imported agreement is used, undo is refused and the history stays. Shape and limits: [IMPORT.md](https://github.com/just-every/run-locket/blob/cloud/ct-cleanup-rewrite-locket-cx-20261028-0400/IMPORT.md).
 
 dry run, apply with originals, repeated envelopes unchanged, undo, re-import and refused undo once used (move-in test).
 
