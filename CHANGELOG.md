@@ -1702,3 +1702,31 @@ Live CRM interoperability retains the EXEC-002 separately consented exact-deal w
 
 
 <!-- /contract-source:OBL-001 -->
+
+## 28 October 2026 — Pending-note classification correction
+
+The cleanup initially labelled three pending source notes as rulings. Those labels are withdrawn and reserved; no approval or status change is inferred. RL-102 supplies the adopted intake decision and RL-101 supplies the adopted delegated-token decision. The OBL-001 occurrence-waiver request still needs ct; its existing partial clause is carried without adding a waiver obligation.
+
+### RL-1 — Slack, Microsoft Teams and Nook intake and updates
+
+Date: 2026-10-28 · Ruled by: ct · Governs: `INTAKE-005`.
+
+Pending ct approval of owner-only exact identity mapping, complete human audience authorization, authenticated Slack bot exclusion, and withholding when membership or digest delivery is unavailable.
+
+Transferred from the old contract record; implementation and evidence remain independently judged.
+
+### RL-5 — Obligation extraction, owners and status
+
+Date: 2026-10-28 · Ruled by: ct · Governs: `OBL-001`.
+
+Conservative owner-only reasoned local occurrence waiver default awaits CT approval.
+
+Transferred from the old contract record; implementation and evidence remain independently judged.
+
+### RL-6 — Public API, webhooks, Zapier and Crank
+
+Date: 2026-10-28 · Ruled by: ct · Governs: `INT-002`.
+
+Conservative default ADOPTED pending ct: only the signed-in owner creates explicitly scoped tokens; tokens expire within thirty days, inherit all native access checks, cease with the creator session and cannot mint more tokens.
+
+Transferred from the old contract record; implementation and evidence remain independently judged.

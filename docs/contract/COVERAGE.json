@@ -446,6 +446,14 @@
       "to": "clause",
       "ids": [
         "PORT-001"
+      ],
+      "also": [
+        {
+          "to": "base",
+          "ids": [
+            "BASE-DATA-001"
+          ]
+        }
       ]
     },
     {
@@ -3726,14 +3734,6 @@
       "to": "gap",
       "ids": [
         "INTAKE-005"
-      ],
-      "also": [
-        {
-          "to": "rulings",
-          "ids": [
-            "RL-1"
-          ]
-        }
       ]
     },
     {
@@ -4011,14 +4011,6 @@
       "to": "gap",
       "ids": [
         "OBL-001"
-      ],
-      "also": [
-        {
-          "to": "rulings",
-          "ids": [
-            "RL-5"
-          ]
-        }
       ]
     },
     {
@@ -4091,14 +4083,6 @@
       "to": "gap",
       "ids": [
         "INT-002"
-      ],
-      "also": [
-        {
-          "to": "rulings",
-          "ids": [
-            "RL-6"
-          ]
-        }
       ]
     },
     {

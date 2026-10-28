@@ -1,14 +1,6 @@
 # Locket rulings
 
-Rulings preserve their recorded scope. Agent decisions are interpreted through company policy under the RER contract standard of 28 October 2026.
-
-### RL-1 — Slack, Microsoft Teams and Nook intake and updates
-
-Date: 2026-10-28 · Ruled by: ct · Governs: `INTAKE-005`.
-
-Pending ct approval of owner-only exact identity mapping, complete human audience authorization, authenticated Slack bot exclusion, and withholding when membership or digest delivery is unavailable.
-
-Transferred from the old contract record; implementation and evidence remain independently judged.
+Rulings preserve their recorded scope. RL-1, RL-5 and RL-6 are reserved withdrawn labels: the source notes were pending requests, not rulings. Their correction and original text are recorded in CHANGELOG.md; those labels will not be reused. Agent decisions are interpreted through company policy under the RER contract standard of 28 October 2026.
 
 ### RL-2 — Groups, departments and field-level access
 
@@ -31,22 +23,6 @@ Transferred from the old contract record; implementation and evidence remain ind
 Date: 2026-10-22 · Ruled by: ct · Governs: `NEG-006`.
 
 Authority and disclosure (ct 22 Oct 2026): only owner or counsel initiates sharing.
-
-Transferred from the old contract record; implementation and evidence remain independently judged.
-
-### RL-5 — Obligation extraction, owners and status
-
-Date: 2026-10-28 · Ruled by: ct · Governs: `OBL-001`.
-
-Conservative owner-only reasoned local occurrence waiver default awaits CT approval.
-
-Transferred from the old contract record; implementation and evidence remain independently judged.
-
-### RL-6 — Public API, webhooks, Zapier and Crank
-
-Date: 2026-10-28 · Ruled by: ct · Governs: `INT-002`.
-
-Conservative default ADOPTED pending ct: only the signed-in owner creates explicitly scoped tokens; tokens expire within thirty days, inherit all native access checks, cease with the creator session and cannot mint more tokens.
 
 Transferred from the old contract record; implementation and evidence remain independently judged.
 
