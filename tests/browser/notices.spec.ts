@@ -132,16 +132,28 @@ test('LINK-001 reviews exact contract allocation and pending Pantry payment at 1
  const {accountingReadFake,netsuiteBindings}=await import('../api/accounting-read-fixture.mjs')
  const {accountingBindings,accountingFake}=await import('../api/renewal-brief-fixture.mjs')
  for(const width of [1440,390]){
-  const calls:any[]=[];let mode='draft'
+  const calls:any[]=[];let mode='draft',pause:any=null,pending:any=null
   const pantry=pantryFake(calls,()=>mode),quickbooks=accountingFake([]),netsuite=accountingReadFake('netsuite',true,[])
-  const product=await productPage(page,{width,bindings:{...pantryBindings,...accountingBindings,...netsuiteBindings},outboundResponse:request=>new URL(request.url).origin===pantryBindings.PANTRY_ORIGIN?pantry(request):new URL(request.url).hostname.endsWith('.netsuite.com')?netsuite(request):quickbooks(request)})
+  const product=await productPage(page,{width,bindings:{...pantryBindings,...accountingBindings,...netsuiteBindings},outboundResponse:request=>new URL(request.url).origin===pantryBindings.PANTRY_ORIGIN?(async()=>{const response=await pantry(request);if(pause){pause.entered.resolve();await pause.release.promise}return response})():new URL(request.url).hostname.endsWith('.netsuite.com')?netsuite(request):quickbooks(request)})
   const shot=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-link-001-${name}.png`),fullPage:true})}}
   const click=async(scope:any,name:string)=>{const pending=page.waitForResponse(r=>r.url()===product.origin+'/api/locket/commands'&&r.request().method()==='POST');await scope.getByRole('button',{name,exact:true}).click();const body=await(await pending).json();expect(body.ok,JSON.stringify(body.error)).toBe(true);await expect(page.locator('main')).toHaveAttribute('aria-busy','false')}
   try{
+   const configure=async(origin:string)=>{
+    await page.goto(product.origin+'/app#settings')
+    const settings=page.getByRole('region',{name:'Accounting destination settings',exact:true})
+    await settings.getByLabel('Pantry destination origin').fill(origin)
+    await settings.getByLabel('I confirm this destination change invalidates earlier accounting consent.').check()
+    await click(settings,'Save accounting destination')
+    return settings
+   }
+   const settings=await configure(pantryBindings.PANTRY_ORIGIN)
+   await expect(settings).toContainText('destination revision 1')
+   await expect(settings).toContainText('Private server settings match this destination.')
+   await shot('destination-settings')
    const f=await scheduleFixture(product.h);await f.confirm()
    await product.command('accounting.link',{agreementId:f.source.id,version:(await f.current()).version,vendorId:'42',consent:true})
    await product.command('accounting.read',{agreementId:f.source.id,version:(await f.current()).version,since:'2026-01-01',through:'2026-10-26'})
-   await page.goto(product.origin+`/app#agreement/${f.source.id}/terms`)
+   await page.goto(product.origin+`/app#agreement/${f.source.id}/terms`);await page.reload()
    const accounting=page.getByRole('region',{name:'Contract accounting',exact:true})
    await expect(accounting).toContainText('84,000.00 USD · 8 bills')
    for(let i=1;i<=8;i++)await accounting.locator(`input[name="bill-${i}"]`).check()
@@ -226,6 +238,42 @@ test('LINK-001 reviews exact contract allocation and pending Pantry payment at 1
    mode='posted';await click(firstInvoice,'Check Pantry acceptance')
    await expect(firstInvoice).toContainText('Accepted in Pantry')
    await shot('invoice-accepted')
-  }finally{await product.close()}
+   const stale=await scheduleFixture(product.h);await stale.confirm()
+   const oldProposal=await stale.prepare(),oldRow=await stale.row(oldProposal.id)
+   await page.goto(product.origin+`/app#agreement/${stale.source.id}/terms`);await page.reload()
+   await expect(payment).toContainText('destination revision 1')
+   await expect(payment).toContainText(pantryBindings.PANTRY_ORIGIN)
+   const changedSettings=await configure('https://pantry-replacement.example.test')
+   await expect(changedSettings).toContainText('Sending is unavailable until private server settings match this destination.')
+   await shot('destination-replaced-settings')
+   await page.goto(product.origin+`/app#agreement/${stale.source.id}/terms`);await page.reload()
+   await expect(payment).toContainText('Destination consent is stale.')
+   await expect(payment.getByRole('button',{name:'Send proposed bill',exact:true})).toHaveCount(0)
+   await shot('stale-destination-consent')
+   await configure(pantryBindings.PANTRY_ORIGIN)
+   await product.command('accounting.schedule.send',{scheduleId:oldRow.id,payload:oldRow.payload,consent:true},{error:'STALE'})
+   const flight=await scheduleFixture(product.h);await flight.confirm()
+   const flightProposal=await flight.prepare(),flightRow=await flight.row(flightProposal.id)
+   await page.goto(product.origin+`/app#agreement/${flight.source.id}/terms`);await page.reload()
+   await expect(payment).toContainText('destination revision 3')
+   await payment.getByText('Exact proposed bill',{exact:true}).click()
+   await shot('current-destination-draft')
+   const commandId=crypto.randomUUID(),flightSend={scheduleId:flightRow.id,payload:flightRow.payload,consent:true}
+   pause={entered:Promise.withResolvers(),release:Promise.withResolvers()}
+   const attempts=calls.filter(c=>c.method==='POST').length
+   mode='draft';pending=product.command('accounting.schedule.send',flightSend,{commandId})
+   await pause.entered.promise
+   await configure('https://pantry-replacement.example.test')
+   await configure(pantryBindings.PANTRY_ORIGIN)
+   pause.release.resolve();await pending
+   await page.goto(product.origin+`/app#agreement/${flight.source.id}/terms`);await page.reload()
+   await expect(payment).toContainText('Outcome unknown — inspect Pantry before taking further action')
+   await expect(payment).toContainText('Destination consent is stale.')
+   await expect(payment.getByRole('button',{name:'Check Pantry acceptance',exact:true})).toHaveCount(0)
+   expect((await flight.row(flightRow.id)).remote_id).toBeNull()
+   await product.command('accounting.schedule.send',flightSend,{commandId})
+   expect(calls.filter(c=>c.method==='POST').length).toBe(attempts+1)
+   await shot('changed-destination-uncertain')
+  }finally{pause?.release.resolve();if(pending)await pending.catch(()=>{});await product.close()}
  }
 })

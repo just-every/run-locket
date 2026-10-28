@@ -706,6 +706,7 @@ test('LINK-001 refuses unconfirmed, stale and unconsented schedules and never re
  await h.owner.command('term.propose',{agreementId:other.source.id,key:'payment_terms',value:'Review changed payment terms',citation:{quote:other.quote}})
  await h.owner.command('accounting.schedule.send',{scheduleId:stale.id,payload:before.payload,consent:true},{error:'STALE'})
  assert.equal(calls.length,1)
+ await (await import('./accounting-schedule-fixture.mjs')).accountingDestinationChanges()
  await accountingCompletionRevocation()
 })
 

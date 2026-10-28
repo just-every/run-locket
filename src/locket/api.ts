@@ -27,6 +27,7 @@ import { serviceLevelHandlers } from './service-levels'
 import { familyAnalysisHandlers } from './family-analysis'
 import { wordTemplateHandlers } from './word-templates'
 import { accountingScheduleHandlers } from './accounting-schedules'
+import { accountingDestinationHandlers } from './accounting-destinations'
 import { accountingHandlers } from './accounting'
 import { renewalBriefHandlers } from './renewal-briefs'
 import { inboundExchangeResponse } from './exchange-inbound'
@@ -95,6 +96,7 @@ import { reviewHandlers } from './review'
 import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
+  ...accountingDestinationHandlers,
   ...modelHandlers, ...signatureHandlers(), ...redactedRenditionHandlers,
   ...chatHandlers, ...scopedTokenHandlers, ...workforceHandlers,
   ...wordReviewHandlers,

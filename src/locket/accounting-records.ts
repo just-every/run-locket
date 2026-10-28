@@ -19,11 +19,15 @@ export function cents(value:unknown,integer=false):number {
 }
 export function total(values:number[]){const out=values.reduce((n,v)=>n+v,0);if(!Number.isSafeInteger(out))fail('ACCOUNTING_DATA','The selection exceeds the exact supported USD range.',502);return out}
 export function identity(value:unknown):string {if(typeof value!=='string'||!value.length||value.length>100)fail('ACCOUNTING_DATA','The provider returned an invalid record identity.',502);return value}
-export function pantryOrigin(env:Bindings){
+export function publicPantryOrigin(value:string){
  let url:URL
- try{url=new URL(env.PANTRY_ORIGIN??'')}catch{fail('PANTRY_UNAVAILABLE','Configure the server-only Pantry origin and scoped token.',409)}
- if(url.protocol!=='https:'||url.port||url.username||url.password||url.pathname!=='/'||url.search||url.hash||!url.hostname.includes('.')||/^(localhost|.*\.localhost|.*\.local)$/.test(url.hostname)||/^\[|^\d+\./.test(url.hostname)||!env.PANTRY_TOKEN)fail('PANTRY_UNAVAILABLE','Pantry requires a public HTTPS origin and a server-only scoped token.',409)
+ try{url=new URL(value)}catch{fail('PANTRY_UNAVAILABLE','Configure the server-only Pantry origin and scoped token.',409)}
+ if(url.protocol!=='https:'||url.port||url.username||url.password||url.pathname!=='/'||url.search||url.hash||!url.hostname.includes('.')||/^(localhost|.*\.localhost|.*\.local)$/.test(url.hostname)||/^\[|^\d+\./.test(url.hostname))fail('PANTRY_UNAVAILABLE','Pantry requires a public HTTPS origin and a server-only scoped token.',409)
  return url.origin
+}
+export function pantryOrigin(env:Bindings){
+ if(!env.PANTRY_TOKEN)fail('PANTRY_UNAVAILABLE','Configure the server-only Pantry origin and scoped token.',409)
+ return publicPantryOrigin(env.PANTRY_ORIGIN??'')
 }
 export function accountingRealm(env:Bindings,provider:AccountingProvider){
  if(provider==='pantry')return 'pantry:'+pantryOrigin(env)
