@@ -1,0 +1,61 @@
+{
+  "push": [
+    {
+      "name": "core",
+      "browser": true,
+      "hosted": true,
+      "commands": [
+        "node .github/scripts/verify.mjs core-app"
+      ]
+    },
+    {
+      "name": "api-1",
+      "browser": false,
+      "hosted": false,
+      "commands": [
+        "node .github/scripts/verify.mjs api-1"
+      ]
+    },
+    {
+      "name": "api-2",
+      "browser": false,
+      "hosted": false,
+      "commands": [
+        "node .github/scripts/verify.mjs api-2"
+      ]
+    },
+    {
+      "name": "api-3",
+      "browser": false,
+      "hosted": false,
+      "commands": [
+        "node .github/scripts/verify.mjs api-3"
+      ]
+    },
+    {
+      "name": "api-4",
+      "browser": false,
+      "hosted": false,
+      "commands": [
+        "node .github/scripts/verify.mjs api-4"
+      ]
+    },
+    {
+      "name": "api-flows",
+      "browser": false,
+      "hosted": false,
+      "commands": [
+        "node .github/scripts/verify.mjs api-flows"
+      ]
+    },
+    {
+      "name": "portable",
+      "browser": false,
+      "hosted": false,
+      "commands": [
+        "node .github/scripts/verify.mjs portable"
+      ]
+    }
+  ],
+  "nightly": []
+}

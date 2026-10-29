@@ -1,24 +1,16 @@
 // Partition the existing verification wall without rewriting package.json or
 // replacing rer's hosted-output, hydration, or first-party lifecycle checks.
-// The internal lifecycle entry is tied to this checkout's locked rer package.
+// Base's verify-ci owns the full hosted lifecycle; this runner retains Locket's partitions.
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { readFile, readdir } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
 
 const packageJson = JSON.parse(await readFile('package.json', 'utf8'))
-const pipeline = packageJson.scripts['verify:app'].match(/^rer queue verify:app -- sh -c "([^"]+)"$/)?.[1]
-assert.ok(pipeline, 'Update CI partitioning for the new verify:app command format')
-const ownership = {
-  build: 'core', typecheck: 'core',
-  'test:runtime': 'core', 'test:email-link': 'core',
-  'test:api': 'api', 'test:portable': 'portable',
-}
-const commands = pipeline.split(/\s*&&\s*/).map(command => {
-  const script = command.match(/^pnpm run ([\w:-]+)$/)?.[1]
-  assert.ok(script && ownership[script], `Unpartitioned verify:app command: ${command}`)
-  return { command, script, phase: ownership[script] }
-})
+const commands = [
+  ...['build', 'typecheck', 'test:runtime', 'test:email-link'].map(script => ({ command: `pnpm run ${script}`, script, phase: 'core' })),
+  { command: 'pnpm run test:api', script: 'test:api', phase: 'api' },
+  { command: 'pnpm run test:portable', script: 'test:portable', phase: 'portable' },
+]
 const phase = process.argv[2]
 if (phase === '--list') {
   console.log(JSON.stringify(commands, null, 2))
@@ -27,21 +19,7 @@ if (phase === '--list') {
 } else {
   assert.equal(process.env.CI, 'true', 'CI verification partitions require CI=true')
   process.env.X_LOCAL_EXPLORER = 'false'
-  if (phase === 'core') {
-    const [{ resolveProject }, { runCommand }, { parse }, { output }] = await Promise.all([
-      import('@runeditrun/rer/internal/cli/project.mjs'),
-      import('@runeditrun/rer/internal/cli/lifecycle.mjs'),
-      import('@runeditrun/rer/internal/cli/parse.mjs'),
-      import('@runeditrun/rer/internal/cli/output.mjs'),
-    ])
-    const project = await resolveProject(process.cwd())
-    // Only this process's target changes. rer still owns setup validation,
-    // tools, checkout custody, hosted output, hydration and cleanup in full.
-    const adapter = { ...project.adapter, verify: [process.execPath, [fileURLToPath(import.meta.url), 'core-app']] }
-    const options = parse(['verify', '--no-queue'])
-    const out = output(options)
-    out.result(true, 0, await runCommand({ ...project, adapter }, options, out))
-  } else if (/^api-(?:[1-4]|flows)$/.test(phase)) {
+  if (/^api-(?:[1-4]|flows)$/.test(phase)) {
     assert.equal(commands.filter(command => command.phase === 'api').length, 1)
     const command = packageJson.scripts['test:api']
     assert.match(command, /^node --test /, 'Update CI API sharding for the new test runner')

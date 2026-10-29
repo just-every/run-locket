@@ -1,8 +1,10 @@
 name: Nightly acceptance
 
 on:
+  push:
+    tags: ['v*']
   schedule:
-    - cron: '43 18 * * *'
+    - cron: '43 18 * * 1,4'
   workflow_dispatch:
 
 permissions:
@@ -25,6 +27,8 @@ jobs:
       # them. Native-only specs still use the owned installation's private entry.
       LOCKET_CAMPAIGN_LIVE: ''
     steps:
+      - name: Set runner-owned browser cache
+        run: printf 'PLAYWRIGHT_BROWSERS_PATH=%s/ms-playwright\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -35,11 +39,12 @@ jobs:
           node-version: '22.20.0'
           package-manager-cache: false
       - run: corepack enable
+      - run: pnpm config set store-dir "$RUNNER_TEMP/pnpm-store"
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          path: ~/.cache/ms-playwright
+          path: ${{ runner.temp }}/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install chromium
       - name: Run every cited browser test in an owned local installation
@@ -87,6 +92,8 @@ jobs:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
     steps:
+      - name: Set runner-owned browser cache
+        run: printf 'PLAYWRIGHT_BROWSERS_PATH=%s/ms-playwright\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -97,6 +104,7 @@ jobs:
           node-version: '22.20.0'
           package-manager-cache: false
       - run: corepack enable
+      - run: pnpm config set store-dir "$RUNNER_TEMP/pnpm-store"
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
       - run: pnpm exec playwright install chromium
@@ -104,8 +112,9 @@ jobs:
       - name: Install the actual Word document reader
         if: matrix.journey == 'word-open'
         run: |
+          mkdir -p "$RUNNER_TEMP/rer-apt/archives"
           sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends libreoffice-writer
+          sudo apt-get -o "Dir::Cache::archives=$RUNNER_TEMP/rer-apt/archives" install --yes --no-install-recommends libreoffice-writer
       - name: Run the cited standalone journey
         env:
           LOCKET_BROWSER_OUTPUT: ${{ runner.temp }}/locket-acceptance
