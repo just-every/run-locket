@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { hostingPageHtml } from '../base/hosting-page'
 import { contractPageHtml } from '../base/contract-page'
 import { runPageHtml, siteNotFoundHtml, type SiteBuild, type SiteContext } from '../base/run-site'
 import { identity } from '../identity'
@@ -9,6 +10,7 @@ import { docsLead, docsPages } from './docs/pages'
 import { meta } from './landing/copy'
 import { Landing } from './landing/Landing'
 import { run } from './run'
+import { SiteHeader } from './shell/SiteHeader'
 import { bindTokens } from './text'
 
 /**
@@ -20,14 +22,14 @@ const SHARE_IMAGE = `${identity.runSite}/site/share.jpg`
 // Code cards get their Copy button only when script runs; without it the command is still there to select.
 const COPY = "document.querySelectorAll('.docs-copy').forEach(b=>{b.hidden=false;b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(b.closest('.docs-code').querySelector('code').textContent);b.textContent='Copied';setTimeout(()=>{b.textContent='Copy'},1600)}catch{}})})"
 
-/** Base's shared pages (Run, Contract, not found): Locket's site header, US spelling ("license") in Base's licence line,
- * and a piped command's last step kept on one line with what it pipes from (".../install.sh | sh", never "sh" alone). */
+/** Base's shared pages keep Locket's site header and page treatment. */
 const asLocket = (html: string) => bindTokens(html)
   .replace(/<\/head\s*>/i, '<link rel="stylesheet" href="/brand/run.css"></head>')
-  .replaceAll(`${run.licence} licence<`, `${run.licence} license<`)
-  .replace(/(<pre[^>]*><code>[^<]*?)(\S+ \| \S+)(<\/code>)/g, '$1<span class="cmd-pipe">$2</span>$3')
+  .replace('<main>', '<main id="main">')
 
-export function sitePages({ styles, contract }: SiteContext): SiteBuild {
+export function sitePages({ styles, contract, hosting }: SiteContext): SiteBuild {
+  const homepage = { html: renderToStaticMarkup(<SiteHeader />), styles }
+  const docsHeader = { html: renderToStaticMarkup(<SiteHeader current="docs" />), styles }
   const document = (title: string, description: string, body: ReactElement, script = '') => '<!doctype html>' + bindTokens(renderToStaticMarkup(
     <html lang="en">
       <head>
@@ -58,11 +60,12 @@ export function sitePages({ styles, contract }: SiteContext): SiteBuild {
   return {
     pages: [
       { path: '/', html: document(meta.title, meta.description, <Landing />) },
-      { path: '/run', html: asLocket(runPageHtml(identity, run, contract)) },
-      ...(contract ? [{ path: '/contract', html: asLocket(contractPageHtml(identity, run, contract)) }] : []),
+      { path: '/run', html: asLocket(runPageHtml(identity, run, contract, homepage)) },
+      ...(contract ? [{ path: '/contract', html: asLocket(contractPageHtml(identity, run, contract, homepage)) }] : []),
+      { path: '/docs/hosting', html: asLocket(hostingPageHtml(identity, run, hosting ?? null, contract, docsHeader)) },
       { path: '/docs', html: document('Docs · Locket', docsLead, <DocsIndex />) },
       ...docsPages.map(page => ({ path: `/docs/${page.slug}`, html: document(`${page.title} · Locket docs`, page.summary, <DocsArticle slug={page.slug} />, COPY) })),
-      { path: '/404', html: asLocket(siteNotFoundHtml(identity, run, contract)) },
+      { path: '/404', html: asLocket(siteNotFoundHtml(identity, run, contract, homepage)) },
     ],
     assets: ['rer-theme.css', 'fonts', 'brand', 'site', 'favicon.ico', 'favicon-32.svg', 'favicon-16.svg', 'apple-touch-icon.png'],
   }

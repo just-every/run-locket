@@ -4469,11 +4469,11 @@
       "executable": false
     },
     "src/site/docs/DocsIndex.tsx": {
-      "sha256": "3edc2e69c905fc1c203ef2d8edc25caa418ed263870e9b002632ff9a6fb5e1b7",
+      "sha256": "d04648ecc74c8e8e791d1d0aceba19d7c7b5c4fbe3fba582053a05ba8d0e083c",
       "executable": false
     },
     "src/site/docs/DocsNav.tsx": {
-      "sha256": "5a14e40ecb8189d379a94f82d5ae5a47019cd544b394e24a3747f8b4719f6067",
+      "sha256": "e366fd3df5d399767827e89ca40d249968cc8ce5f61c454a4df9f1b68e20dc8d",
       "executable": false
     },
     "src/site/docs/DocsToc.tsx": {
@@ -4561,7 +4561,7 @@
       "executable": false
     },
     "src/site/pages.tsx": {
-      "sha256": "1ec75f19711687904ddd27044c86224d447d770c4a29bb622bde6adb3c98408f",
+      "sha256": "8f02c677dd5f2ad44d950f9e339504c1d44d653bfb1e4367f39faf90fe65996a",
       "executable": false
     },
     "src/site/repository.ts": {

@@ -12,6 +12,7 @@ export function DocsIndex() {
         <p className="docs-crumbs">Locket</p>
         <h1 id="docs-title" className="docs-title">Docs</h1>
         <p className="docs-summary">{docsLead}</p>
+        <p className="docs-summary"><a href="/docs/hosting">Put Locket online</a> with the hosting guide.</p>
         {docsSections.map((section, index) => (
           <section className="docs-index-section" key={section.title} aria-labelledby={`docs-section-${index}`}>
             <h2 className="docs-section-label" id={`docs-section-${index}`}>{section.title}</h2>
