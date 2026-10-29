@@ -1,3 +1,4 @@
+import { applicablePlaybookGuard } from './playbook-recommendation-analysis'
 import { playbookDraftingPrompt } from './playbook-drafting-prompt'
 import { requestModel } from './model-provider'
 import { summaryContext, summaryDigest, summaryLines } from './agreement-summaries'
@@ -76,7 +77,7 @@ const run: Handler = async (c, p) => {
  const artifacts = (await c.db.prepare('SELECT sha256 FROM lk_artifacts WHERE version_id=? ORDER BY id').bind(v.id).all<{sha256: string}>()).results
  const inputDigests = { version: v.digest, text: await sha256(v.text), documents: artifacts.map(a => a.sha256), playbook: await sha256(playbook.rules), ...(task === 'summaries' ? { summaryContext: await summaryDigest(c.db, a.id) } : {}) }
  const id = crypto.randomUUID(), promptVersion = await sha256(modelPrompts[task])
- return { allowed: owner, result: { id }, checks: [...agreementGuards(c, a), settingsGuard(s.version), sql("EXISTS(SELECT 1 FROM lk_playbook_versions WHERE id=? AND status='active')", playbook.id)], writes: [sql('INSERT INTO lk_model_outputs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,NULL,?,NULL,NULL,?)', id, a.id, v.id, task, s.provider, s.model, promptVersion, playbook.id, json(inputDigests), s.version, simulated ? 1 : 0, 'queued', c.actor.id, c.now)], audit: [{ action: 'model.request', agreementId: a.id, summary: `${simulated ? 'Simulated' : 'Evaluated live'} ${task} requested with explicit owner consent.` }] }
+ return { allowed: owner, result: { id }, checks: [...agreementGuards(c, a), settingsGuard(s.version), applicablePlaybookGuard(a, playbook.id)], writes: [sql('INSERT INTO lk_model_outputs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,NULL,?,NULL,NULL,?)', id, a.id, v.id, task, s.provider, s.model, promptVersion, playbook.id, json(inputDigests), s.version, simulated ? 1 : 0, 'queued', c.actor.id, c.now)], audit: [{ action: 'model.request', agreementId: a.id, summary: `${simulated ? 'Simulated' : 'Evaluated live'} ${task} requested with explicit owner consent.` }] }
 }
 const accept: Handler = async (c, p) => {
  requireRole(c.actor, owner, 'accept a model proposal')
@@ -101,10 +102,10 @@ export async function completeModelCommand(c: Ctx, type: string, result: any) {
  const s = await modelSettings(c.db)
  await taskGate(c, s, row.task, a.type, row.simulated === 1)
  if (s.version !== row.settings_version || a.current_version_id !== row.version_id) fail('STALE', 'Settings or source changed before dispatch.', 409)
- const v = await currentVersion(c, a), playbook = await c.db.prepare("SELECT * FROM lk_playbook_versions WHERE id=? AND status='active'").bind(row.playbook_version).first<any>()
- if (!playbook) fail('STALE', 'The playbook changed before dispatch.', 409)
+ const v = await currentVersion(c, a), playbook = await applicableRecommendationPlaybook(c, a, await activePlaybook(c))
+ if (!playbook || playbook.id !== row.playbook_version) fail('STALE', 'The playbook changed before dispatch.', 409)
  const policy = await repositoryPolicy(c.db)
- const checks = [fullFieldsCheck(c.actor), policyVersionCheck(policy.version), ...agreementGuards(c, a), settingsGuard(s.version), sql("EXISTS(SELECT 1 FROM lk_playbook_versions WHERE id=? AND status='active')", playbook.id)]
+ const checks = [fullFieldsCheck(c.actor), policyVersionCheck(policy.version), ...agreementGuards(c, a), settingsGuard(s.version), applicablePlaybookGuard(a, playbook.id)]
  try { await commit(c, owner, [...checks, sql("EXISTS(SELECT 1 FROM lk_model_outputs WHERE id=? AND status='queued')", row.id)], [sql("UPDATE lk_model_outputs SET status='uncertain' WHERE id=?", row.id), sql('INSERT INTO lk_model_usage VALUES(?,?,?,?,NULL,NULL,NULL,?)', row.id, row.provider, row.model, row.simulated, row.created_at)]) }
  catch (error) { row = await c.db.prepare('SELECT * FROM lk_model_outputs WHERE id=?').bind(row.id).first<any>(); if (row.status !== 'queued') return { id: row.id, status: row.status }; throw error }
  // Simulations use these same fixed provider adapters with network-edge fakes.
