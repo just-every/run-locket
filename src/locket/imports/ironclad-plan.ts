@@ -6,7 +6,7 @@ import { customFieldChecks, customFields, fieldApplies, fieldRequired } from '..
 import { normalizedValue } from '../custom-values'
 import type { EntityRow } from '../entities'
 import { agreementReference, fail, json, parse, sql, type Sql } from '../model'
-import { IRONCLAD, mappedValue, mappingCatalogue, type IroncladInput } from './ironclad'
+import { IRONCLAD, mappedValue, mappingCatalogue, sourceValue, type IroncladInput } from './ironclad'
 
 const relations = ['amends', 'order_under', 'schedule_to', 'renews', 'statement_of_work_under', 'supersedes']
 
@@ -24,32 +24,42 @@ export async function planIronclad(c: Ctx, input: IroncladInput, p: Record<strin
   const rows: any[] = []
   for (const r of input.records) {
     const notes: string[] = [], type = catalogue.mapping.types[r.type]
-    const matched = input.files.filter(f => f.path.split('/')[0] === r.id || r.attachments.some(a => a === f.path || (a === f.path.split('/').pop() && input.files.filter(x => x.path.split('/').pop() === a).length === 1)))
+    const claims = (record: typeof r, path: string) => {
+      const folder = path.split('/')[0]
+      // A known record folder is authoritative; a foreign filename never steals it.
+      if (input.records.some(other => other.id === folder)) return folder === record.id
+      return record.attachments.some(a => a === path || (a === path.split('/').pop() && input.files.filter(x => x.path.split('/').pop() === a).length === 1))
+    }
+    const ambiguous = input.files.filter(f => claims(r,f.path) && input.records.filter(other => claims(other,f.path)).length !== 1)
+    const matched = input.files.filter(f => claims(r,f.path) && !ambiguous.includes(f))
     matched.forEach(f => usedFiles.add(f.path))
     const supported = matched.filter(f => isPdf(f) || (/\.docx$/i.test(f.path) && f.bytes[0] === 0x50 && f.bytes[1] === 0x4b))
     const document = supported[0]
     let outcome = 'import'
+    if (ambiguous.length) { outcome='missing'; notes.push('Attachment identity is claimed by multiple records; resolve the source assignment.') }
+    if (r.sourceType === 'clickwrap') { outcome='skip'; notes.push('Clickwrap history belongs to MOVE-007; no execution is invented.') }
     if (r.status && !['completed', 'executed', 'signed', 'active', 'expired', 'record', 'archived'].includes(r.status.toLowerCase())) { outcome = 'skip'; notes.push(`Workflow status ${r.status}; active workflows belong to MOVE-006.`) }
     if (!document && outcome === 'import') { outcome = 'missing'; notes.push('Record has no matching PDF or DOCX. Supply its attachments before import.') }
     const missingAttachments = r.attachments.filter(a => !matched.some(f => f.path === a || f.path.split('/').pop() === a))
     if (missingAttachments.length && outcome === 'import') { outcome = 'missing'; notes.push(`Missing or ambiguous documents: ${missingAttachments.join(', ')}.`) }
     if (matched.length !== supported.length) { outcome = 'missing'; notes.push('Unsupported or unreadable documents stay in the journal; supply PDF or DOCX originals.') }
-    if (document) {
-      const held = await c.db.prepare("SELECT 1 FROM lk_artifacts WHERE (source_system='ironclad' AND source_id=?) OR (sha256 IN (SELECT value FROM json_each(?)) AND role IN ('original','signed')) LIMIT 1").bind(r.id, json(supported.map(f => f.sha256))).first()
+    if (document && outcome === 'import') {
+      const held = await c.db.prepare("SELECT 1 FROM lk_artifacts WHERE (source_system='ironclad' AND source_id=?) OR (sha256 IN (SELECT value FROM json_each(?)) AND role IN ('original','signed','attachment')) LIMIT 1").bind(r.id, json(supported.map(f => f.sha256))).first()
       if (held || supported.some(f => seenDigests.has(f.sha256))) { outcome = 'duplicate'; notes.push('The record ID or a document digest is already held; no existing agreement is changed.') }
-      supported.forEach(f => seenDigests.add(f.sha256))
+      if(outcome==='import')supported.forEach(f => seenDigests.add(f.sha256))
     }
     const values = new Map<string, unknown>()
     for (const [property, target] of Object.entries(catalogue.mapping.properties)) if (!['skip', 'unmapped'].includes(target) && r.properties[property] !== undefined && r.properties[property] !== null && r.properties[property] !== '') values.set(target, r.properties[property])
-    const counterparty = String(values.get('counterparty') ?? 'Unknown counterparty').trim()
+    const counterparty = String(sourceValue(values.get('counterparty') ?? 'Unknown counterparty','counterparty')).trim()
     if (!counterparty || counterparty.length > 200) fail('IRONCLAD_VALUE', 'Map counterparty to a name of at most 200 characters.')
-    const subject = String(values.get('title') ?? r.name ?? r.id).trim() || r.id
+    const subject = String(sourceValue(values.get('title') ?? r.name ?? r.id,'title')).trim() || r.id
     if (subject.length > 300) fail('IRONCLAD_VALUE', 'Map the title to at most 300 characters.')
     const relation = r.parentId ? String((p.relations as any)?.[r.id] ?? (r.relation || (type === 'amendment' ? 'amends' : type === 'order_form' ? 'order_under' : 'schedule_to'))) : ''
     if (r.parentId && !relations.includes(relation)) fail('IRONCLAD_FAMILY', 'Choose a supported relation for every child record.')
     const row = { row: rows.length + 1, recordId: r.id, workflowId: r.workflowId, envelopeId: r.id, subject, status: r.status || 'record', type, counterparty, parentId: r.parentId, parentReference:'', relation, document: document ? { path: document.path, sha256: document.sha256, size: document.bytes.length } : null, schedules: supported.slice(1).map(f => ({ path: f.path, sha256: f.sha256, size: f.bytes.length })), certificate: null, completedOn: null, outcome, notes, proposedTerms:[] as {key:string;value:string}[] }
     rows.push(row)
     if (outcome !== 'import') continue
+    checks.push(sql("NOT EXISTS(SELECT 1 FROM lk_artifacts WHERE ((source_system='ironclad' AND source_id=?) OR (sha256 IN (SELECT value FROM json_each(?)) AND role IN ('original','signed','attachment'))) AND NOT (source_system IS 'ironclad' AND json_extract(provenance,'$.batch') IS ?))",r.id,json(supported.map(f=>f.sha256)),batchId))
     const agreementId = ids.get(r.id)!, versionId = crypto.randomUUID(), executionId = crypto.randomUUID(), effects: TargetEffect[] = []
     let partyId = parties.get(counterparty.toLowerCase())
     if (!partyId) {
@@ -65,8 +75,9 @@ export async function planIronclad(c: Ctx, input: IroncladInput, p: Record<strin
     for (const [key, raw] of values) if (key.startsWith('custom:')) {
       const field = fields.find(f => f.id === key.slice(7) && fieldApplies(f, type))
       if (!field || !parse<string[]>(field.edit_roles).includes(c.actor.role)) fail('IRONCLAD_MAPPING', 'Map only custom fields available for this record type and your role.')
-      const converted = ['number', 'money'].includes(field.kind) ? Number(raw) : field.kind === 'yes_no' ? String(raw).toLowerCase() === 'true' ? true : String(raw).toLowerCase() === 'false' ? false : raw : raw
-      const normalized=await normalizedValue(c, field, field.kind==='money'?String(raw):converted, checks)
+      const typed = sourceValue(raw,field.kind)
+      const converted = field.kind === 'number' ? (typeof typed === 'number' ? typed : typeof typed === 'string' && typed.trim() ? Number(typed) : NaN) : field.kind === 'yes_no' ? String(typed).toLowerCase() === 'true' ? true : String(typed).toLowerCase() === 'false' ? false : typed : typed
+      const normalized=await normalizedValue(c, field, converted, checks)
       if(['date','money'].includes(field.kind)) terms.push({ id:crypto.randomUUID(),agreement_id:agreementId,key:`custom:${field.id}`,value:json(normalized),citation:json({source:'import-manifest',kit:IRONCLAD,recordId:r.id,workflowId:r.workflowId,fieldId:field.id,fieldVersion:field.version,note:'Imported custom date or value; confirm against the original document.'}),status:'proposed',proposed_by:c.actor.id,proposal_id:null,confirmed_by:null,confirmed_at:null,supersedes_id:null,reason:'Imported proposal; confirm against the original document.',created_at:c.now })
       else customValues.push({ agreement_id: agreementId, field_id: field.id, value: json(normalized), updated_by: c.actor.id, updated_at: c.now })
     }
@@ -113,5 +124,5 @@ export async function planIronclad(c: Ctx, input: IroncladInput, p: Record<strin
   }
   const orphans = input.files.filter(f => !usedFiles.has(f.path)).map(f => f.path)
   const counts = { rows: rows.length, import: rows.filter(r => r.outcome === 'import').length, skip: rows.filter(r => r.outcome === 'skip').length, duplicate: rows.filter(r => r.outcome === 'duplicate').length, missing: rows.filter(r => r.outcome === 'missing').length, orphanFiles: orphans.length, withoutCertificate: 0 }
-  return { source, planned, checks, summary: { rows, counts, orphans, ...catalogue, manifest: { filename: input.manifest.path, sha256: input.manifest.sha256 }, entityId: entity?.id ?? null, entityVersion: entity?.version ?? null, fieldVersions: fields.map(f => ({ id: f.id, version: f.version })) } }
+  return { source, planned, checks, summary: { rows, counts, orphans, ...catalogue, manifest: { filename: input.manifest.path, sha256: input.manifest.sha256 }, reviewedGuards: checks, entityId: entity?.id ?? null, entityVersion: entity?.version ?? null, fieldVersions: fields.map(f => ({ id: f.id, version: f.version })) } }
 }

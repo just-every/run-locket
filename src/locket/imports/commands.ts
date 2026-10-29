@@ -35,7 +35,9 @@ export function importContext(c: Ctx, batchId: string, kit = KIT, checks: Sql[] 
           // Keep every source/definition guard while fitting D1's binding limit
           // when a large reviewed batch links many earlier parents.
           let index=0
-          const condition=predicates.map(s=>`(${s.sql.replace(/\?/g,()=>`json_extract(lk_import_authority.value,'$[${index++}]')`)})`).join(' AND ')
+          const conditions=predicates.map(s=>`(${s.sql.replace(/\?/g,()=>`json_extract(lk_import_authority.value,'$[${index++}]')`)})`)
+          const combine=(parts:string[]):string=>parts.length===1?parts[0]:`(${combine(parts.slice(0,Math.floor(parts.length/2)))} AND ${combine(parts.slice(Math.floor(parts.length/2)))})`
+          const condition=combine(conditions)
           const values=predicates.flatMap(s=>s.params)
           if(index!==values.length)fail('IMPORT_AUTHORITY','An import authority predicate has an invalid binding layout.')
           return {sql:`EXISTS(SELECT 1 FROM (SELECT ? AS value) AS lk_import_authority WHERE ${condition})`,params:[json(values)]}
@@ -173,6 +175,7 @@ async function previewIronclad(c: Ctx, p: Record<string, unknown>) {
 function reviewedChecks(batch: any): Sql[] {
   if (batch.kit !== IRONCLAD) return []
   const summary = parse<any>(batch.preview)
+  if (summary.reviewedGuards) return summary.reviewedGuards
   return [summary.entityId ? sql('(SELECT version FROM lk_entities WHERE id=?)=?', summary.entityId, summary.entityVersion) : sql('NOT EXISTS(SELECT 1 FROM lk_entities)'),
     sql('(SELECT count(*) FROM lk_custom_fields)=?', summary.fieldVersions.length),
     ...summary.fieldVersions.map((f: any)=>sql('(SELECT version FROM lk_custom_fields WHERE id=?)=?',f.id,f.version))]
@@ -212,7 +215,8 @@ const applyImport: Handler = async (c, p) => {
     result: { batchId: batch.id, status: 'applied', job: { state: job.state, checkpoint: job.checkpoint, total: job.total } },
     writes: [sql("UPDATE lk_import_batches SET status='applied', applied_by=?, applied_at=?, version=version+1 WHERE id=?", c.actor.id, c.now, batch.id)],
     checks: [...checks, sql("EXISTS(SELECT 1 FROM lk_import_batches WHERE id=? AND status='previewed' AND version=?)", batch.id,batch.version)],
-    audit: [{ action: 'import.apply', summary: `Applied ${batch.source_label}: ${plural(summary.counts.import, 'agreement')} imported with original files and certificates` }],
+    audit: [{ action: 'import.apply', summary: `Applied ${batch.source_label}: ${plural(summary.counts.import, 'agreement')} imported with original files and ${batch.kit===IRONCLAD?'labelled imported execution history':'certificates'}` },
+      ...(batch.kit===IRONCLAD?(await c.db.prepare("SELECT DISTINCT agreement_id FROM lk_artifacts WHERE source_system='ironclad' AND json_extract(provenance,'$.batch')=? AND agreement_id IS NOT NULL").bind(batch.id).all<{agreement_id:string}>()).results.map(row=>({action:'import.agreement',agreementId:row.agreement_id,summary:`Imported Ironclad agreement from reviewed batch ${batch.id}; originals retained, signature evidence requires human review.`})):[])],
   }
 }
 

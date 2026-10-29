@@ -705,7 +705,7 @@ Owner-only commands use the existing `/api/locket/commands` door:
 - `import.ironclad.poll`: `{id,version}`. Returns visible pending/error information or a ready source `input` for the same inspection/preview path. A changed connection, ended session or expired read requires fresh authorization.
 
 Owner state includes `ironcladReads` without credentials or authorizing session
-IDs. Source API metadata and downloaded ZIPs use native chunked original custody.
+IDs. Source API metadata and downloaded original documents use native chunked original custody.
 Those raw export files remain owner-only in workspace and download reads;
 imported agreement originals follow each agreement’s normal access.
 The archive removes session and private-connection bindings. Imported record and
@@ -716,5 +716,4 @@ workflow identifiers are searchable and available as repository columns.
 agreement value and invalidate earlier approval contexts. Custom dates and money
 also require the current field definition and its edit authority. Imported
 execution history stays labelled imported and requires signature-evidence review.
-The API adapter's live attachment protocol needs an owner sandbox receipt;
-network-edge tests establish no live interoperability.
+The API adapter follows the published per-record attachment URL job and authenticated keyed attachment routes. Failed/missing job outcomes and mismatched identities or hashes withhold the input. The owner archive includes validated `importJournal` originals after undo. A live owner sandbox receipt remains required; network-edge tests establish no live interoperability.
