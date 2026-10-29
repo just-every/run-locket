@@ -37,7 +37,9 @@ Library custom field, or **Skip explicitly**. Unmapped fields block apply.
 **Review revised mapping** creates a new reviewed fingerprint from the retained
 originals, including after reloading the page; the prior review stays journaled.
 Supporting files, certificates and additional source versions retain separate
-roles. Map attachment-field names or exact paths to `signed`, `version`,
+roles. Identify the executed copy explicitly as signed; no first-PDF or source-version
+fallback invents that role. The review also offers exact-path overrides within each
+attachment field. Map attachment-field names or exact paths to `signed`, `version`,
 `attachment` or `certificate`. No original is split or rewritten.
 
 `import.preview` accepts `kit:"icertis"|"agiloft"`, `label`, optional `entityId`
@@ -87,7 +89,10 @@ No upstream writes or automatic retries occur. `_api/` and `_source/` paths are
 reserved for retained source responses and combined-export evidence.
 
 An ICI profile additionally supplies its tenant-documented `documentsPath`
-containing `{id}`, `documentsKey`, `documentName` and `documentUrl` selectors.
+containing `{id}`, `documentsKey`, `documentName` and `documentUrl` dot selectors.
+`documentRole` selects each Document List role; optional `documentRoles` maps
+tenant role values to signed, version, attachment or certificate. Unrecognized
+roles refuse the read; the reviewed exact-path mapping can override them.
 Agiloft uses `listPath` selecting EWSelect or EWSearch, `readPath` (EWRead),
 `recordKey`, `documentsKey`, `knowledgeBase`, `table`, and explicit
 `attachmentFields`. EWAttachInfo requires name, zero-based position and size;
@@ -96,9 +101,18 @@ profile base path selects the tenant's REST service root. Its authentication
 and response envelope must be validated against that installed release.
 
 For API preview send `source:"api",consent:true` plus the ordinary review
-mapping. Optional export `manifest`/`files` combine with API metadata by the
+mapping. Optional export `manifest` and/or a documents folder `files` combine with API metadata by the
 profile identity column: conflicting nonempty metadata or same-path document
-bytes are refused. Exact provider JSON and originals join the journal.
+bytes are refused. Exact provider JSON and originals join the journal, including folders supplied
+without a metadata export. Credential-bearing JSON or binary responses are
+refused before retention. Apply repeats the reviewed counterparty revisions and
+merge relations along with entity and field-definition guards.
+
+The owner HTTP archive includes `importJournal`, with each batch's job identity
+and integrity-checked retained originals (name, SHA-256, size and original base64).
+Metadata exports, every supplied file including orphans, and API snapshots remain
+exportable before apply, after apply and after undo; native imported files remain
+in `files`.
 
 **Unproved provider evidence:** no ICI tenant documentation, authentic ICI API
 release/shape, authorized real export, licensed Agiloft knowledge base or live
