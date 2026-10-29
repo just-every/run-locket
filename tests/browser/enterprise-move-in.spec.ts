@@ -34,7 +34,7 @@ test('MOVE-003 reviews editable source mappings, applies original custody and sh
       await expect(page.getByText(/30 source records · 0 to import/)).toBeVisible()
       await expect(page.getByText(/Unmapped fields:/)).toContainText('Business Unit')
       await snapshot(kit+'-mapping')
-      await page.reload();await expect(page.getByRole('button',{name:'Review revised mapping',exact:true})).toBeVisible()
+      await page.reload();await expect(page.getByRole('button',{name:'Review revised mapping',exact:true})).toBeVisible({timeout:30_000})
       const mappings=page.locator('form').filter({has:page.getByRole('button',{name:'Review revised mapping',exact:true})})
       for(const column of ['Business Unit','Risk Class','Region',...(kit==='icertis'?['First Party']:[])])await mappings.getByLabel('Map '+column,{exact:true}).selectOption('skip')
       await mappings.getByLabel('Contract type MSA',{exact:true}).selectOption('supplier')

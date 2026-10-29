@@ -40,5 +40,5 @@ Apply stays disabled until all columns are reviewed. Review lists missing and
 unmatched files, original digests and family links. The source IDs remain
 searchable; signed records are imported history, and all dates/amounts stay
 proposed until confirmed against the original. The same unused-batch undo and
-original-preserving journal apply. Read [IMPORT.md](../IMPORT.md) for private
+original-preserving journal apply. Read [the import reference](https://github.com/just-every/run-locket/blob/main/IMPORT.md) for private
 read-only API configuration and the currently unproved vendor evidence.

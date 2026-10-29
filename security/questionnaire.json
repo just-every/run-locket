@@ -461,6 +461,30 @@
       "enabledByDefault": false,
       "configuration": "The owner configures private credentials and the exact destination account revision, then separately authorizes each exact package, folder and naming rule. Retrieval consent grants no filing authority. Unknown writes remain uncertain and are never automatically resent.",
       "responsibility": "The buyer selects and contracts with the operator, determines processing terms and locations, grants minimum credentials, and controls retention and access to filed copies."
+    },
+    {
+      "name": "Icertis Contract Intelligence",
+      "data": "Owner-authorized read-only contract metadata, source JSON and original documents are read into the buyer installation and retained in the import journal. No contract data is written back.",
+      "bindings": [
+        "ICERTIS_IMPORT_PROFILE",
+        "ICERTIS_IMPORT_TOKEN"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Optional private read credential and tenant-documented HTTPS API profile. The buyer validates its deployed release, authentication and selectors before use. No live vendor compatibility is claimed.",
+      "responsibility": "The buyer controls the source account, export authority, minimum read access, provider terms, data locations and credential revocation."
+    },
+    {
+      "name": "Agiloft",
+      "data": "Owner-authorized read-only contract metadata, source JSON and original documents are read into the buyer installation and retained in the import journal. No contract data is written back.",
+      "bindings": [
+        "AGILOFT_IMPORT_PROFILE",
+        "AGILOFT_IMPORT_TOKEN"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Optional private read credential and tenant-documented HTTPS API profile. The buyer validates its deployed release, authentication and selectors before use. No live vendor compatibility is claimed.",
+      "responsibility": "The buyer controls the source account, export authority, minimum read access, provider terms, data locations and credential revocation."
     }
   ],
   "assessedAt": "2026-10-27",

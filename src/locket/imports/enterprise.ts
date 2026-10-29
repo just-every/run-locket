@@ -35,7 +35,9 @@ export const previewEnterprise: Handler = async (c, p) => {
   if (!table.header.length || table.header.some(h => !h) || new Set(table.header).size !== table.header.length) fail('MANIFEST_COLUMNS', 'Use distinct nonempty column headings.')
   if(table.header.length>250 || table.rows.some(r=>Object.values(r).some(v=>v.length>4000)))fail('IMPORT_LIMIT','Use at most 250 columns and metadata values no longer than 4000 characters.',413)
   if (table.rows.length > 100) fail('IMPORT_LIMIT', 'Select at most 100 records per reviewed batch.', 413)
-  const fields = await customFields(c.db), checks = customFieldChecks(fields)
+  const fields = await customFields(c.db), checks = [...customFieldChecks(fields), entity
+    ? sql('EXISTS(SELECT 1 FROM lk_entities WHERE id=? AND version=?)', entity.id, entity.version)
+    : sql('NOT EXISTS(SELECT 1 FROM lk_entities)')]
   const supplied = p.mapping === undefined ? {} : object(p.mapping, 'mapping'), mapping: Record<string, string> = {}
   for (const column of table.header) {
     const target = supplied[column] ?? Object.entries(aliases).find(([, names]) => names.some(n => n.toLowerCase() === column.toLowerCase()))?.[0] ?? 'unmapped'
@@ -86,7 +88,7 @@ export const previewEnterprise: Handler = async (c, p) => {
         if (key.endsWith('_date')) {
           if (/^\d+(\.\d+)?$/.test(value)) value = new Date(Date.UTC(1899, 11, 30) + Number(value) * 86400000).toISOString().slice(0, 10)
           value = date({ value }, 'value')
-        } else if (['initial_term_months', 'renewal_term_months', 'renewals_allowed', 'notice_days'].includes(key)) value = String(integer({ value: Number(value) }, 'value', key.endsWith('months') ? 1 : 0, key === 'notice_days' ? 730 : 100000))
+        } else if (['initial_term_months', 'renewal_term_months', 'renewals_allowed', 'notice_days'].includes(key)) value = String(integer({ value: Number(value) }, 'value', key.endsWith('months') ? 1 : 0, key === 'notice_days' ? 730 : key === 'initial_term_months' ? 1200 : key === 'renewal_term_months' ? 120 : 100000))
         else if (key === 'auto_renew') { value = value.toLowerCase(); if (!['yes', 'no'].includes(value)) throw Error() }
         else if (key === 'renewal_type' && !['fixed', 'auto_renew', 'evergreen', 'optional'].includes(value)) throw Error()
         else if (key === 'value') money({ value }, 'value')
@@ -183,9 +185,14 @@ export const confirmImportValue: Handler = async (c, p) => {
     writes.push(sql('INSERT INTO lk_custom_values VALUES(?,?,?,?,?) ON CONFLICT(agreement_id,field_id) DO UPDATE SET value=excluded.value,updated_by=excluded.updated_by,updated_at=excluded.updated_at', a.id, field.id, term.value, c.actor.id, c.now))
     writes.push(sql("UPDATE lk_terms SET status='superseded' WHERE agreement_id=? AND key=? AND status='confirmed'", a.id, term.key))
   } else {
-    const currency = await c.db.prepare("SELECT value FROM lk_terms WHERE agreement_id=? AND key='import:currency' ORDER BY created_at DESC LIMIT 1").bind(a.id).first<{ value: string }>()
-    if (currency?.value && currency.value !== 'USD') fail('IMPORT_CURRENCY', 'Confirm a non-USD amount through the native value editor with an explicit USD conversion rate; the imported amount stays proposed.', 409)
-    writes.push(sql('UPDATE lk_agreements SET value_cents=? WHERE id=?', money({ value: term.value }, 'value'), a.id))
+    const currency = await c.db.prepare("SELECT * FROM lk_terms WHERE agreement_id=? AND key='import:currency' AND status='proposed' ORDER BY created_at DESC LIMIT 1").bind(a.id).first<any>()
+    const source = parse<any>(term.citation), currencySource = currency && parse<any>(currency.citation)
+    if (!currency || currency.value !== 'USD' || currencySource.kit !== source.kit || currencySource.sourceId !== source.sourceId || currencySource.row !== source.row) fail('IMPORT_CURRENCY', 'The matching source currency must still be proposed USD. Review a rejected or absent currency; confirm non-USD amounts through the native value editor with an explicit conversion rate.', 409)
+    checks.push(sql("EXISTS(SELECT 1 FROM lk_terms WHERE id=? AND agreement_id=? AND key='import:currency' AND value='USD' AND status='proposed' AND citation=?)", currency.id, a.id, currency.citation))
+    // A person may have entered a foreign-currency value since import. Replace
+    // the whole native amount context, so its old conversion cannot label USD.
+    writes.push(sql("UPDATE lk_agreements SET value_cents=?,currency='USD',original_cents=NULL,usd_rate=NULL,rate_recorded_by=NULL,rate_recorded_at=NULL WHERE id=?", money({ value: term.value }, 'value'), a.id))
+    writes.push(sql("UPDATE lk_terms SET status='confirmed',citation=?,confirmed_by=?,confirmed_at=? WHERE id=?", json({ ...cite, importedSource: currencySource }), c.actor.id, c.now, currency.id))
   }
   writes.push(sql("UPDATE lk_terms SET status='confirmed',citation=?,confirmed_by=?,confirmed_at=? WHERE id=?", json({ ...cite, importedSource: parse(term.citation) }), c.actor.id, c.now, term.id), bump(c, a))
   return { allowed, result: { id: term.id }, checks, writes, audit: [{ action: 'import.value.confirm', agreementId: a.id, summary: 'Person confirmed an imported value against its signed document.' }] }
