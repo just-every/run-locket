@@ -120,17 +120,6 @@
       "clauses": [
         "ACCESS-001"
       ]
-    },
-    {
-      "name": "locket.events.list",
-      "scope": "events:read",
-      "readOnly": true,
-      "classes": [
-        "standard"
-      ],
-      "clauses": [
-        "BASE-AGENT-010"
-      ]
     }
   ],
   "notTools": [
@@ -165,19 +154,7 @@
       "reason": "installation"
     }
   ],
-  "resources": [
-    "locket://agreements/{id}",
-    "locket://versions/{id}",
-    "locket://files/{id}",
-    "locket://counterparties/{id}",
-    "locket://templates/{id}",
-    "locket://playbooks/{id}",
-    "locket://findings/{id}",
-    "locket://obligations/{id}",
-    "locket://renewals/{id}",
-    "locket://notices/{id}",
-    "locket://reports/{id}"
-  ],
+  "resources": [],
   "journey": [
     {
       "id": "count",
@@ -643,21 +620,6 @@
           "facts": {
             "measure": 1,
             "direction": "narrows"
-          }
-        }
-      ]
-    },
-    {
-      "id": "events",
-      "tool": "locket.events.list",
-      "args": {
-        "limit": 10
-      },
-      "expect": [
-        {
-          "class": "standard",
-          "facts": {
-            "measure": 1
           }
         }
       ]

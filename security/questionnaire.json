@@ -461,6 +461,18 @@
       "enabledByDefault": false,
       "configuration": "The owner configures private credentials and the exact destination account revision, then separately authorizes each exact package, folder and naming rule. Retrieval consent grants no filing authority. Unknown writes remain uncertain and are never automatically resent.",
       "responsibility": "The buyer selects and contracts with the operator, determines processing terms and locations, grants minimum credentials, and controls retention and access to filed copies."
+    },
+    {
+      "name": "Owner-selected Business installation",
+      "data": "Signed business settings, stable owner and team identifiers, company agent policy, consent and revocation references. The installation validates incoming signed settings, policies and audience-bound agent tokens with its configured public trust ring; these bindings send no contract records to Business.",
+      "bindings": [
+        "RER_BUSINESS_TRUST",
+        "RER_OWNER_CLAIM_APP_ORIGIN"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "The installation owner pairs Business through the existing owner-claim trust. The canonical application origin binds incoming credentials to this installation. No provider execution is enabled by pairing.",
+      "responsibility": "The buyer controls its Business installation, team membership, agent consents, signed policy and trust configuration; native Locket roles and record grants still govern every call."
     }
   ],
   "assessedAt": "2026-10-27",
