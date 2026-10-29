@@ -609,7 +609,7 @@
       "executable": false
     },
     "public/brand/run.css": {
-      "sha256": "58e45970d834963da91d1ea63b3bad363a75e17b9d294b8d1063c5fc602da2b4",
+      "sha256": "90e0287b4c1b9acfc1992d6bcc347b2b67c1274f4105e84a22f0c3fe7069e3ca",
       "executable": false
     },
     "public/favicon-16.svg": {
@@ -4569,7 +4569,7 @@
       "executable": false
     },
     "src/site/run.ts": {
-      "sha256": "f9ddd315c39c93ebe7870b03e6ab60024b2e3a7e9985002f4dfcbe6b328bbc18",
+      "sha256": "421fe9489c2c41c9b44014eab0c04f141cdb4486551ad4446b29e5865adc8292",
       "executable": false
     },
     "src/site/shell/links.ts": {
