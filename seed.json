@@ -71,7 +71,9 @@
       "operator-auth",
       "owner-claim",
       "import-kit",
-      "demo"
+      "demo",
+      "agent-door",
+      "business-settings"
     ]
   },
   "replaces": [

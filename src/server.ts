@@ -51,7 +51,7 @@ export default withDemo({
       if (business) return business
     }
     if (path === '/mcp' || path === '/api/rer/agent-policy' || path === '/agents' || path.startsWith('/agents/') || ['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'].includes(path)) {
-      const agent = await locketAgentDoor(env).handle(request)
+      const agent = await (await locketAgentDoor(env)).handle(request)
       if (agent) return agent
     }
     const locket = await locketResponse(request, env)

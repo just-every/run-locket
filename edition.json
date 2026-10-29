@@ -61,7 +61,9 @@
           "agent-surface.json",
           "tests/agent-door",
           "src/server.ts",
-          "src/auth.server.ts"
+          "src/auth.server.ts",
+          "seed.json",
+          "rer-setup.json"
         ]
       }
     }

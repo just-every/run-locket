@@ -79,7 +79,8 @@
       "scope": "locket:access",
       "readOnly": false,
       "classes": [
-        "access"
+        "access",
+        "sensitive"
       ],
       "clauses": [
         "ACCESS-001"
@@ -427,7 +428,7 @@
       "tool": "locket.proposals.prepare",
       "args": {
         "payload": {
-          "title": "Supplier EIN 12-3456789",
+          "title": "Evidenced supplier intake",
           "type": "supplier",
           "party": {
             "name": "Proposal Supplier",
@@ -435,7 +436,7 @@
           }
         },
         "evidence": [
-          "Recorded request from the current sponsor."
+          "The source records supplier EIN 12-3456789."
         ]
       },
       "expect": [
@@ -542,6 +543,66 @@
           "facts": {
             "measure": 1,
             "direction": "narrows"
+          }
+        }
+      ]
+    },
+    {
+      "id": "before_sensitive_grant",
+      "tool": "locket.agreements.read",
+      "args": {
+        "agreementId": {
+          "$from": "create_sensitive",
+          "pointer": "/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "tax_identifier"
+          }
+        }
+      ]
+    },
+    {
+      "id": "grant_sensitive",
+      "tool": "locket.access.update",
+      "args": {
+        "agreementId": {
+          "$from": "create_sensitive",
+          "pointer": "/id"
+        },
+        "operatorId": {
+          "$from": "people",
+          "pointer": "/members/1/id"
+        },
+        "grant": "grant",
+        "version": {
+          "$from": "before_sensitive_grant",
+          "pointer": "/version"
+        }
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "narrows"
+          }
+        },
+        {
+          "class": "sensitive",
+          "facts": {
+            "measure": 1,
+            "kind": "tax_identifier"
           }
         }
       ]

@@ -5,7 +5,7 @@ import { proposalHandlers } from '../locket/proposals'
 import { peopleHandlers } from '../locket/people'
 import { may, requireRole, fullReaders, grantsFor, canSee } from '../locket/access'
 import { agentActor, command, nativeCall } from './native'
-import { classification, record, records } from './records'
+import { classification, disclosureClasses, nativeWitness, record, records } from './records'
 import { nativeActor } from './people'
 import catalogue from './catalogue.json'
 
@@ -61,7 +61,7 @@ export function tools(env: Bindings): ToolDefinition[] {
     },
   })
   const prepare = defineTool({ ...metadata('locket.proposals.prepare'),
-    classify: args => classification(args.payload),
+    classify: args => classification(args),
     summary: args => ({ target: { name: String((args.payload as { title: string }).title) }, items: ['Prepare intake proposal; no agreement created'] }),
     async run(args, ctx) {
       const result = await command(env, ctx, 'proposal.prepare', { ...args, kind: 'intake' }, proposalHandlers['proposal.prepare'])
@@ -82,7 +82,7 @@ export function tools(env: Bindings): ToolDefinition[] {
       const row = await agreement(args, ctx)
       const subject = await nativeActor(env, String(args.operatorId))
       const widens = args.grant === 'grant' && !canSee(subject, row as never, await grantsFor(env, subject))
-      return [{ class: 'access', facts: { measure: 1, direction: widens ? 'widens' : 'narrows' } }]
+      return [{ class: 'access', facts: { measure: 1, direction: widens ? 'widens' : 'narrows' } }, ...(await disclosureClasses(env, actor, String(row.id))).filter(item => item.class === 'sensitive')]
     }, target,
     summary: async (args, ctx) => ({ target: { id: id(args), name: String((await agreement(args, ctx)).title) }, recipients: [(await nativeActor(env, String(args.operatorId))).name + ' (' + String(args.operatorId) + ')'], items: [String(args.grant)] }),
     async run(args, ctx) {
@@ -112,7 +112,7 @@ export function tools(env: Bindings): ToolDefinition[] {
     },
   })
   const count = defineTool({ ...metadata('locket.records.count'), classify: () => classification(null),
-    async run(_args, ctx) { return { result: { count: (await records(env, await agentActor(env, ctx), 'agreements')).length } } },
+    async run(_args, ctx) { return { result: await nativeWitness(env, await agentActor(env, ctx)) } },
   })
   return [read, create, update, search, prepare, access, people, list, count]
 }

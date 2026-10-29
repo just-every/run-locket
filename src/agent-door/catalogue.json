@@ -393,7 +393,8 @@
     "scope": "locket:access",
     "readOnly": false,
     "classes": [
-      "access"
+      "access",
+      "sensitive"
     ],
     "clauses": [
       "ACCESS-001"
@@ -556,7 +557,7 @@
   {
     "name": "locket.records.count",
     "title": "Count the sponsor\u2019s visible agreements",
-    "description": "Count the sponsor\u2019s visible agreements through the current native sponsor and service.",
+    "description": "Count visible agreements and read their current native revisions, people, grants and proposal status without private content.",
     "scope": "locket:read",
     "readOnly": true,
     "classes": [
@@ -573,15 +574,99 @@
     },
     "outputSchema": {
       "type": "object",
+      "required": [
+        "count",
+        "agreements",
+        "people",
+        "grants",
+        "proposals"
+      ],
+      "additionalProperties": false,
       "properties": {
         "count": {
           "type": "integer"
+        },
+        "agreements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "version"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "people": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "role",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "grants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "agreementId": {
+                "type": "string"
+              },
+              "operatorId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "agreementId",
+              "operatorId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "proposals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "additionalProperties": false
+          }
         }
-      },
-      "required": [
-        "count"
-      ],
-      "additionalProperties": false
+      }
     },
     "untrusted": true
   }
