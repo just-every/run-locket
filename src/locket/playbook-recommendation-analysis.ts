@@ -94,6 +94,6 @@ export function selectScopedPlaybook(agreement: {type:string;entity_id:string|nu
  return null
 }
 export async function applicableRecommendationPlaybook(c: Pick<Ctx,'db'>,agreement:{type:string;entity_id:string|null},active:any) {
- const [versions,applications]=await Promise.all([c.db.prepare('SELECT * FROM lk_playbook_versions').all<any>(),c.db.prepare('SELECT id,source_playbook_id,scope FROM lk_playbook_applications').all<any>()])
+ const [versions,applications]=await Promise.all([c.db.prepare('SELECT * FROM lk_playbook_versions').all<any>(),c.db.prepare('SELECT id,source_playbook_id,scope FROM lk_playbook_applications UNION ALL SELECT id,source_playbook_id,scope FROM lk_playbook_draft_applications').all<any>()])
  return selectScopedPlaybook(agreement,active,versions.results,applications.results)
 }

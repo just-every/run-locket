@@ -45,7 +45,7 @@ const recommend: Handler = async (c, p) => {
   requireRole(c.actor, recommendationReviewers, 'prepare measured playbook recommendations')
   const source = await activeSource(c, text(p, 'sourcePlaybookId', 100)), clauseKey = text(p, 'clauseKey', 40)
   const scope = recommendationScope(p.scope)
-  const priorApplication = await c.db.prepare('SELECT scope FROM lk_playbook_applications WHERE id=?').bind(source.id).first<{scope:string}>()
+  const priorApplication = await c.db.prepare('SELECT scope FROM lk_playbook_applications WHERE id=? UNION ALL SELECT scope FROM lk_playbook_draft_applications WHERE id=?').bind(source.id,source.id).first<{scope:string}>()
   if (priorApplication && canonical(parse(priorApplication.scope)) !== canonical(scope)) fail('SCOPE', 'A measured successor must retain the existing scoped playbook applicability. Counsel can draft a separately reviewed playbook to change its scope.', 409)
   await requireEntitiesExist(c, scope.entityIds)
   const checks = await evidenceGuards(c, source.id, clauseKey)

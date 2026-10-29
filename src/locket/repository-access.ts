@@ -115,6 +115,7 @@ export function redactWorkspace<T extends Record<string,any>>(workspace:T,hidden
  if(workspace.signature)w.signature={...workspace.signature,packets:[],renditions:[],dispatches:[],canCoordinate:[]}
  if(workspace.chatNotifications)w.chatNotifications={...workspace.chatNotifications,deliveries:[]}
  if(workspace.approvalChannels)w.approvalChannels={...workspace.approvalChannels,requests:[],deliveries:[]}
+ w.playbookDrafting=null
  w.playbookRecommendations={outcomes:[],issues:[],recommendations:[],applications:[]};
  w.terms=[];w.routes={};w.reports=[];w.reportDeliveries=[];w.approvalInputs=[];w.ruleDecisions=[];w.rulePending=[];w.ruleReminders=[]
  w.requestQueue={...workspace.requestQueue,cancellations:workspace.requestQueue.cancellations.map((c:any)=>({...c,note:null,reopen_reason:c.reopen_reason?'Details withheld':null}))}

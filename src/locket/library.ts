@@ -95,7 +95,7 @@ const decideTemplate: Handler = async (c, p) => {
 }
 
 const authorities = ['counsel', 'approver'] as const
-function playbookRules(p: Record<string, unknown>) {
+export function playbookRules(p: Record<string, unknown>) {
   const rules = list(p, 'rules', 100).map((value, i) => {
     const r = object(value, `rules[${i}]`)
     const key = text(r, 'key', 40)
