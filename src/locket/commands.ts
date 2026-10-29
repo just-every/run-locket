@@ -112,6 +112,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const integrationChecks=await integrationCommandChecks(c,type)
   const completed = async (result: unknown) => {
+    if (type.startsWith('import.')) requireRole(c.actor, ['owner'], 'read move-in outcomes')
     result=await completeModelCommand(c,type,result)
     if(type==='accounting.compare')await authorizeAccountingComparison(c,payload)
     if(type==='proposal.import'||type.startsWith('billing.proposal.'))requireRole(c.actor,['owner'],'read proposal handoff outcomes')

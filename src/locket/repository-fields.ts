@@ -25,6 +25,8 @@ export const repositoryFields: RepositoryField[] = [
   { id: 'start_date', label: 'Intake start date', kind: 'date' },
   { id: 'timezone', label: 'Time zone', kind: 'text' },
   { id: 'origin', label: 'Origin', kind: 'text' },
+  { id: 'ironclad_record_id', label: 'Ironclad record ID', kind: 'text' },
+  { id: 'ironclad_workflow_id', label: 'Ironclad workflow ID', kind: 'text' },
   { id: 'created_at', label: 'Created date', kind: 'date' },
   { id: 'updated_at', label: 'Updated date', kind: 'date' },
   { id: 'effective_date', label: 'Confirmed effective date', kind: 'date' },

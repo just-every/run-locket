@@ -108,6 +108,7 @@ export interface LocketState extends importReconciliationWorkspace,ServiceLevelW
   noticeTracking: Row[]
   notices: Row[]
   proposals: Row[]
+  ironcladReads: Row[]
   imports: Row[]
   privilegedNotes: Row[]
   accessExceptions: Row[]

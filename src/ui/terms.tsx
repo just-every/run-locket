@@ -16,9 +16,9 @@ import { usJurisdictions } from '../locket/us-defaults'
 import { fileToPayload } from './api'
 import { RiskLabel } from './counterparty'
 
-const keys = ['effective_date', 'end_date', 'initial_term_months', 'auto_renew', 'renewal_type', 'renewal_term_months', 'renewals_allowed', 'notice_days', 'governing_law', 'payment_terms']
+const keys = ['effective_date', 'end_date', 'initial_term_months', 'auto_renew', 'renewal_type', 'renewal_term_months', 'renewals_allowed', 'notice_days', 'governing_law', 'payment_terms', 'value']
 const unread = (c: any) => (c.signedText === 'unreadable' ? ' (the signed PDF has no readable text; not checked against it)' : '')
-const cite = (c: any) => (c.source === 'family-governing' ? `Counsel-confirmed family source: “${c.quote}”${c.page ? ` (page ${c.page})` : ''}` : c.source === 'custom-field-passage' ? `Document v${c.versionNumber}: “${c.quote}” (characters ${c.start}–${c.end})` : c.source === 'import-manifest' ? `Import manifest row ${c.row} (not yet checked against the signed PDF)`
+const cite = (c: any) => (c.source === 'family-governing' ? `Counsel-confirmed family source: “${c.quote}”${c.page ? ` (page ${c.page})` : ''}` : c.source === 'custom-field-passage' ? `Document v${c.versionNumber}: “${c.quote}” (characters ${c.start}–${c.end})` : c.source === 'import-manifest' ? `Import ${c.recordId ? `Ironclad record ${c.recordId}` : `manifest row ${c.row}`} (not yet checked against the signed PDF)`
   : c.source === 'signed-pdf-text' ? `Signed PDF page ${c.page}: “${c.quote}” (found in the signed text)`
   : c.source === 'signed-pdf-page' ? `Signed PDF page ${c.page}: “${c.quote}”${unread(c)}` : `Executed text: “${c.quote}”${c.page ? ` (page ${c.page})` : ''}${unread(c)}`)
 
@@ -51,7 +51,7 @@ export function Terms({ state, a, locket }: { state: LocketState; a: Row; locket
                 <td data-label="Value">{metadataTermValue(state, t.key, t.value)}</td>
                 <td data-label="Evidence" className="lk-evidence">{cite(parse(t.citation))}<small>{t.confirmed_by ? <>{t.status === 'rejected' ? 'Rejected' : 'Confirmed'} by {personName(state, t.confirmed_by)} <When at={t.confirmed_at} /></> : `Proposed by ${personName(state, t.proposed_by)}`}</small></td>
                 <td data-label="Status"><Badge value={t.status} />{t.proposal_id && <small>agent proposal</small>}</td>
-                <td>{t.status === 'proposed' && confirmer && <span className="lk-row-actions"><button type="button" className="lk-small lk-primary" disabled={busy} onClick={() => void run('term.decide', { agreementId: a.id, termId: t.id, decision: 'confirm' })}>Confirm</button><button type="button" className="lk-small" disabled={busy} onClick={() => void run('term.decide', { agreementId: a.id, termId: t.id, decision: 'reject', reason: window.prompt('Why reject this value?') ?? undefined })}>Reject</button></span>}</td>
+                <td>{t.status === 'proposed' && confirmer && <span className="lk-row-actions">{parse<any>(t.citation).kit === 'ironclad-records' ? <details><summary>Confirm with citation</summary><Form busy={busy} submit="Confirm imported term" onSubmit={async data => {await run('term.decide', { agreementId:a.id,termId:t.id,decision:'confirm',citation:{quote:value(data,'quote'),page:Number(value(data,'page'))} })}}><Field label="Words from the original document"><textarea name="quote" required rows={2}/></Field><Field label="Original document page"><input name="page" type="number" min={1} required/></Field></Form></details> : <button type="button" className="lk-small lk-primary" disabled={busy} onClick={() => void run('term.decide', { agreementId: a.id, termId: t.id, decision: 'confirm' })}>Confirm</button>}<button type="button" className="lk-small" disabled={busy} onClick={() => void run('term.decide', { agreementId: a.id, termId: t.id, decision: 'reject', reason: window.prompt('Why reject this value?') ?? undefined })}>Reject</button></span>}</td>
               </tr>
             ))}
           </tbody>

@@ -13,6 +13,8 @@ import branding from './branding.json'
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
+ IRONCLAD_API_TOKEN?: string
+ IRONCLAD_REGION?: string
  LOCKET_MODEL_SIMULATION?: string
  AI_WORKERS_ACCOUNT_ID?: string
 

@@ -76,6 +76,7 @@ import { runCommand, type Handler } from './commands'
 import { executionHandlers } from './execution'
 import { signatureHandlers } from './signature-workspace'
 import { importHandlers } from './imports/commands'
+import { ironcladApiHandlers } from './imports/ironclad-api'
 import { libraryHandlers } from './library'
 import { emailNotice } from './notice-mail'
 import { prepareLetter } from './notice-letters'
@@ -135,6 +136,7 @@ export const handlers: Record<string, Handler> = {
   ...proposalHandlers,
   ...peopleHandlers,
   ...importHandlers,
+  ...ironcladApiHandlers,
 }
 
 const headers = { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }

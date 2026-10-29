@@ -691,3 +691,28 @@ Workspace `obligations` retain the proposal record status and add `lifecycle_sta
 Completing or waiving a dated recurring occurrence atomically retains it and creates one next confirmed occurrence, returned as `nextId`, with fresh evidence fields. `series_id`, `recurrence_anchor` and `occurrence_number` preserve the original monthly, quarterly or annual schedule with month-end clamping. `next_due_date` identifies the current open occurrence, without skipping missed dates. An undated manually confirmed recurrence stays unscheduled; no first due date is inferred. Replaying a command does not duplicate an occurrence or notification. A supplied `version` fences the displayed agreement revision; every write also repeats current server authority and source record guards. Proposed and rejected obligations never schedule reminders.
 
 The owner-only reasoned waiver is an interim conservative default pending CT review. It changes local tracking for one occurrence and grants no authority to amend or legally release a contract obligation. Built-in extraction remains unavailable; these manually cited flows invoke no model and establish no live REVIEW-006 result.
+
+
+## Ironclad repository move-in
+
+Owner-only commands use the existing `/api/locket/commands` door:
+
+- `import.inspect`: `{label, manifest?: {filename,base64}, archive?: {filename,base64}, files?: [{path,base64}]}`. Returns editable type/property mappings, initially unmapped properties, record/file counts and parent relations. No agreements are written.
+- `import.preview`: add `kit:"ironclad-records"`, `mapping:{types,properties}`, optional `relations:{recordId:relation}` and `entityId` once our entities exist. Native property destinations include title, counterparty, effective/end dates, renewal type/months/limit, notice days, governing law, payment terms and proposed USD `value`; use `custom:FIELD_ID` or `skip` for other properties. Every unmapped property must be decided.
+- `import.apply`: `{batchId,version,fingerprint}`. The exact reviewed plan returns `status:"applying"` with the next batch version and durable journal progress until `status:"applied"`. Resume with the same fingerprint and the current version. Existing DocuSign incomplete/resume responses are unchanged.
+- `import.undo`: `{batchId,version,reason}`. An unused Ironclad batch returns `status:"undoing"` and its next version until complete. The journal and exact source originals remain.
+- `import.ironclad.start`: `{label,consent:true}`. Reads the configured repository and requests its attachment job; returns a session-bound read ID.
+- `import.ironclad.poll`: `{id,version}`. Returns visible pending/error information or a ready source `input` for the same inspection/preview path. A changed connection, ended session or expired read requires fresh authorization.
+
+Owner state includes `ironcladReads` without credentials or authorizing session
+IDs. Source API metadata and downloaded ZIPs use native chunked original custody.
+The archive removes session and private-connection bindings. Imported record and
+workflow identifiers are searchable and available as repository columns.
+
+`term.decide` for an Ironclad proposal additionally requires
+`citation:{quote,page}` on confirmation. Confirmed USD values update the native
+agreement value and invalidate earlier approval contexts. Custom dates and money
+also require the current field definition and its edit authority. Imported
+execution history stays labelled imported and requires signature-evidence review.
+The API adapter's live attachment protocol needs an owner sandbox receipt;
+network-edge tests establish no live interoperability.

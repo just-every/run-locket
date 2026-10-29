@@ -53,6 +53,7 @@ export const providers: [string, string][] = [['docusign', 'DocuSign'], ['adobe-
 export const providerName = (id: string) => providers.find(p => p[0] === id)?.[1] ?? id
 
 export const termLabel: Record<string, string> = {
+  value: 'Contract value (USD)',
   effective_date: 'Effective date',
   end_date: 'End date',
   initial_term_months:'Initial term',
@@ -66,6 +67,7 @@ export const termLabel: Record<string, string> = {
 }
 /** A confirmed term's value with its unit. */
 export function termValue(key: string, value: string) {
+  if (key === 'value') return new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'}).format(Number(value))
   if (key.endsWith('_date')) return day(value)
   if (key === 'notice_days') return plural(Number(value), 'day')
   if (key === 'renewal_term_months'||key==='initial_term_months') return plural(Number(value), 'month')
