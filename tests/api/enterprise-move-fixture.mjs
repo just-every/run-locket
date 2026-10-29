@@ -17,13 +17,15 @@ export function enterpriseFixture(kit) {
     const id=sourceId(i+1)
     rows.push({[idColumn]:id,...(kit==='icertis'?{'Agreement Code':`ICI-CODE-${i+1}`,'First Party':'Synthetic Owner LLC'}:{}),'Contract Type':i===1||i===2?'Amendment':'MSA',[kit==='agiloft'?'Contract Title':'Name']:`${kit} agreement ${i+1}`,Status:'Executed',[kit==='agiloft'?'Company':'Second Party']:`Synthetic ${kit} Counterparty ${i+1}`,[kit==='agiloft'?'Start Date':'Effective Date']:'2022-03-01',[kit==='agiloft'?'End Date':'Expiry Date']:i===1?'2023-03-31':'2023-02-28',[kit==='agiloft'?'Amount':'Value']:'12000.50',Currency:'USD','Parent ID':i===1||i===2?sourceId(1):'',Relation:i===1||i===2?'amends':'','Auto Renewal':'yes','Renewal Type':'auto_renew','Renewal Months':'12','Notice Days':'60','Governing Law':'Delaware','Payment Terms':'Net 30','Business Unit':'Operations','Risk Class':'Low',Region:'US'})
     if(i!==29) {
+      if(i===0)files[`${id}/agreement_document/unsigned.pdf`]=pdf(`${kit} unsigned source agreement; this must never become execution evidence`)
       files[`${id}/signed_document/signed.pdf`]=pdf(`${kit} signed agreement ${i+1}. Effective date 2022-03-01. End date ${i===1?'2023-03-31':'2023-02-28'}. Auto renewal every 12 months. Notice 60 days. Amount USD 12000.50. Governing law Delaware. Payment terms Net 30. Business unit Operations.`)
       files[`${id}/supporting_files/schedule.txt`]=Buffer.from(`${kit} unchanged supporting evidence ${i+1}\n`)
     }
   }
+  files[`${sourceId(1)}/certificates/certificate.pdf`]=pdf(`${kit} unchanged imported provider certificate`)
   files[`${sourceId(5)}/supporting_files/earlier.pdf`]=pdf(`${kit} unchanged earlier source version 5`)
   files['unknown-record/orphan.pdf']=pdf('Synthetic orphan; no metadata row')
-  const profile={release:`synthetic-${kit}-profile/1`,documentation:'synthetic; tenant validation required',baseUrl:'https://synthetic-locket.invalid/',listPath:kit==='icertis'?'/ici/agreements?page=1':'EWSelect',recordsKey:kit==='icertis'?'agreements':'result',nextKey:kit==='icertis'?'next':undefined,idColumn,readPath:'EWRead',recordKey:'result',documentsPath:'/ici/agreements/{id}/documents',documentsKey:kit==='icertis'?'documents':'result',attachmentFields:['signed_document','supporting_files'],knowledgeBase:'SyntheticKB',table:'contract'}
+  const profile={release:`synthetic-${kit}-profile/1`,documentation:'synthetic; tenant validation required',baseUrl:'https://synthetic-locket.invalid/',listPath:kit==='icertis'?'/ici/agreements?page=1':'EWSelect',recordsKey:kit==='icertis'?'agreements':'result',nextKey:kit==='icertis'?'next':undefined,idColumn,readPath:'EWRead',recordKey:'result',documentsPath:'/ici/agreements/{id}/documents',documentsKey:kit==='icertis'?'documents':'result',documentRole:'kind',documentRoles:{executed:'signed',agreement:'version',supporting:'attachment',certificate:'certificate'},attachmentFields:['agreement_document','signed_document','supporting_files','certificates'],knowledgeBase:'SyntheticKB',table:'contract'}
   const calls=[]
   let failure=null
   async function outbound(request) {
@@ -33,17 +35,17 @@ export function enterpriseFixture(kit) {
     if(request.headers.get('authorization')!=='Bearer synthetic-read-only-token')return new Response('wrong credential',{status:401})
     if(u.pathname==='/ici/agreements')return Response.json({agreements:rows.slice(u.searchParams.get('page')==='1'?0:15,u.searchParams.get('page')==='1'?15:30),next:u.searchParams.get('page')==='1'?'/ici/agreements?page=2':null})
     const docs=u.pathname.match(/^\/ici\/agreements\/([^/]+)\/documents$/)
-    if(docs)return Response.json({documents:Object.keys(files).filter(p=>p.startsWith(docs[1]+'/')).map(path=>({name:path.slice(path.indexOf('/')+1),url:'/original/'+path}))})
-    if(u.pathname.startsWith('/original/'))return new Response(files[decodeURIComponent(u.pathname.slice(10))])
+    if(docs)return Response.json({documents:Object.keys(files).filter(p=>p.startsWith(docs[1]+'/')).map(path=>({name:path.slice(path.indexOf('/')+1),url:'/original/'+path,kind:path.includes('/signed_document/')?'executed':path.includes('/agreement_document/')||path.endsWith('/earlier.pdf')?'agreement':path.includes('/certificates/')?'certificate':'supporting'}))})
+    if(u.pathname.startsWith('/original/'))return new Response(failure==='credential'?Buffer.concat([Buffer.from('%PDF-1.4\nsynthetic-read-only-token\n'),files[decodeURIComponent(u.pathname.slice(10))]]):files[decodeURIComponent(u.pathname.slice(10))])
     const operation=u.pathname.slice(1),id=u.searchParams.get('$id'),field=u.searchParams.get('$field')
     if(operation==='EWSelect')return Response.json({result:rows.map(r=>Number(r[idColumn]))})
     if(operation==='EWRead')return Response.json({result:rows.find(r=>r[idColumn]===id)})
     const paths=Object.keys(files).filter(p=>p.startsWith(`${id}/${field}/`)),path=paths[Number(u.searchParams.get('$position')??0)]
-    if(operation==='EWAttachInfo')return Response.json({result:paths.map((path,position)=>({name:path.split('/').pop(),position,size:files[path].length}))})
-    if(operation==='EWRetrieve')return new Response(files[path])
+    if(operation==='EWAttachInfo')return Response.json({result:paths.map((path,position)=>({name:path.split('/').pop(),position,size:files[path].length+(failure==='credential'?Buffer.byteLength('%PDF-1.4\nsynthetic-read-only-token\n'):0)}))})
+    if(operation==='EWRetrieve')return new Response(failure==='credential'?Buffer.concat([Buffer.from('%PDF-1.4\nsynthetic-read-only-token\n'),files[path]]):files[path])
     return new Response('Unknown fake endpoint',{status:404})
   }
   const csv=[Object.keys(rows[0]),...rows.map(r=>Object.values(r))].map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n')
-  const payload={kit,label:`${kit} thirty agreements`,dateFormat:'iso',manifest:file(`${kit}.xlsx`,xlsx(rows)),files:Object.entries(files).map(([path,bytes])=>({path,base64:bytes.toString('base64')})),mapping:kit==='icertis'?{'First Party':'skip'}:{},typeMapping:{MSA:'supplier',Amendment:'amendment'},fileRoles:{signed_document:'signed',supporting_files:'attachment',[`${sourceId(5)}/supporting_files/earlier.pdf`]:'version'}}
+  const payload={kit,label:`${kit} thirty agreements`,dateFormat:'iso',manifest:file(`${kit}.xlsx`,xlsx(rows)),files:Object.entries(files).map(([path,bytes])=>({path,base64:bytes.toString('base64')})),mapping:kit==='icertis'?{'First Party':'skip'}:{},typeMapping:{MSA:'supplier',Amendment:'amendment'},fileRoles:{agreement_document:'version',certificates:'certificate',signed_document:'signed',supporting_files:'attachment',[`${sourceId(5)}/supporting_files/earlier.pdf`]:'version'}}
   return {kit,rows,files,payload,csv,profile,calls,outbound,setFailure(value){failure=value},bindings:{[kit.toUpperCase()+'_IMPORT_PROFILE']:JSON.stringify(profile),[kit.toUpperCase()+'_IMPORT_TOKEN']:'synthetic-read-only-token'}}
 }

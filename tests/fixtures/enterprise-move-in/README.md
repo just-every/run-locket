@@ -4,7 +4,7 @@ All agreements, files, identities and credentials are synthetic. The generator i
 `tests/api/enterprise-move-fixture.mjs`. Each source contains 30 records: one MSA,
 two amendments, three custom attributes, one record without files and (in the
 folder export) one file without a record. Agiloft uses two attachment fields,
-`signed_document` and `supporting_files`, with explicit role mapping. Its record IDs are numeric; the table uses Record ID, Contract Title, Company, Start Date, End Date and Amount columns. One supporting-field PDF is mapped as an additional original version; the remaining supporting files keep their attachment role.
+`signed_document` and `supporting_files`, with explicit role mapping. Its record IDs are numeric; the table uses Record ID, Contract Title, Company, Start Date, End Date and Amount columns. One supporting-field PDF is mapped as an additional original version; the remaining supporting files keep their attachment role. The first agreement also has an unsigned agreement document listed before its executed copy, and an original provider certificate. The fixture explicitly maps their roles rather than promoting the first PDF.
 
 ICI export columns follow CONTRACT.md's named Agreement Management output:
 System ID, Agreement Code, Contract Type, Name, Status, First Party, Second Party,
@@ -15,7 +15,7 @@ The XLSX is a real deflated OOXML workbook, not CSV renamed as Excel.
 or authentic tenant response in this fixture. The deliberately synthetic profile
 has release `synthetic-ici-profile/1`, documentation `synthetic; tenant validation
 required`, `GET /ici/agreements?page=N` -> `{agreements:[column-keyed objects],
-next:string|null}`, `GET /ici/agreements/{id}/documents` -> `{documents:[{name,url}]}`,
+next:string|null}`, `GET /ici/agreements/{id}/documents` -> `{documents:[{name,url,kind}]}` (`kind` maps agreement/executed/supporting/certificate to version/signed/attachment/certificate),
 and same-origin original downloads. These are a configurable reader test, not an
 assertion that ICI publishes those endpoints. Before acceptance, replace the
 profile with the buyer's documented release, endpoints and response selectors,

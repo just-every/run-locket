@@ -36,6 +36,7 @@ export function EnterpriseImport({ state, locket, selected }: { state: LocketSta
 }
 export function EnterprisePreview({ state, locket, batch, preview, selected }: { state:LocketState;locket:Locket;batch:any;preview:any;selected:(id:string)=>void }) {
   const fileFields=[...new Set<string>(preview.rows.flatMap((r:any)=>r.documents.map((d:any)=>d.path.split('/')[1])))]
+  const filePaths=[...new Set<string>(preview.rows.flatMap((r:any)=>r.documents.map((d:any)=>d.path)))]
   return <>
     <p>{preview.counts.rows} source records · {preview.counts.import} to import · {preview.counts.missing} missing evidence · {preview.counts.duplicate} duplicates · {preview.counts.skip} unsigned or skipped</p>
     {preview.missingMappings?.length>0&&<p className="lk-warning">Choose required source mappings: {preview.missingMappings.join(', ')}.</p>}
@@ -44,14 +45,16 @@ export function EnterprisePreview({ state, locket, batch, preview, selected }: {
       <Form busy={locket.busy} submit="Review revised mapping" onSubmit={async data=>{
         const mapping=Object.fromEntries(preview.manifest.columns.map((c:string)=>[c,value(data,'column:'+c)]))
         const typeMapping=Object.fromEntries(Object.keys(preview.typeMapping).map(c=>[c,value(data,'type:'+c)]))
-        const fileRoles=Object.fromEntries(fileFields.map(field=>[field,value(data,'role:'+field)]))
+        const fileRoles=Object.fromEntries([...fileFields.map(field=>[field,value(data,'role:'+field)]),...filePaths.map(path=>[path,value(data,'file:'+path)]).filter(([,role])=>role)])
         const result=await locket.run('import.remap',{batchId:batch.id,version:batch.version,mapping,typeMapping,fileRoles,signedStatuses:value(data,'signedStatuses').split(',').map(s=>s.trim()).filter(Boolean)})
         if(result)selected(result.batchId)
       }}>
         {preview.manifest.columns.map((column:string)=><Field key={column} label={'Map '+column}><select name={'column:'+column} defaultValue={preview.mapping[column]}><option value="unmapped">Unmapped — review required</option><option value="skip">Skip explicitly</option>{targets.map(t=><option key={t} value={t}>{label(t)}</option>)}{state.customFields.map(f=><option key={f.id} value={'custom:'+f.id}>{f.name} (custom)</option>)}</select></Field>)}
         {Object.entries(preview.typeMapping).map(([source,target])=><Field key={source} label={'Contract type '+source}><select name={'type:'+source} defaultValue={String(target)}><option value="">Choose type</option>{types.map(t=><option key={t} value={t}>{label(t)}</option>)}</select></Field>)}
         <Field label="Source statuses explicitly marked signed" hint="Only these comma-separated statuses create imported execution history. Other statuses are skipped."><input name="signedStatuses" required defaultValue={preview.signedStatuses.join(', ')}/></Field>
+        <p className="lk-muted">Choose the signed copy explicitly. A source version is never treated as signed just because it is the first PDF.</p>
         {fileFields.map(field=><Field key={field} label={'Documents in '+field}><select name={'role:'+field} defaultValue={preview.fileRoles[field]??'version'}><option value="signed">Signed agreement</option><option value="version">Source version</option><option value="attachment">Supporting file</option><option value="certificate">Provider certificate</option></select></Field>)}
+        <details className="lk-disclosure"><summary>Override individual file roles</summary>{filePaths.map(path=><Field key={path} label={'File role '+path}><select name={'file:'+path} defaultValue={preview.fileRoles[path]??''}><option value="">Use folder mapping</option><option value="signed">Signed agreement</option><option value="version">Source version</option><option value="attachment">Supporting file</option><option value="certificate">Provider certificate</option></select></Field>)}</details>
       </Form>
     </details>}
     {preview.orphans.length>0&&<p className="lk-warning">Files without records: {preview.orphans.join(', ')}</p>}
