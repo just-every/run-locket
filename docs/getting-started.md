@@ -5,10 +5,10 @@ Locket runs on your own computer: macOS, Linux or Windows with WSL2.
 Copy this line into a terminal and press Enter:
 
 ```sh
-curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-locket
+{{run.start}}
 ```
 
-Git is required; rer brings Node and pnpm. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-locket` does the same.
+{{run.requirements}} Already have Node 22 or later? `{{run.node}}` does the same.
 
 The line installs `rer`, the Run Edit Run command, for you alone, then gets Locket into `run-locket`, installs everything, makes you the owner and prints a link that opens Locket signed in. Treat that link like a password: it signs you in as the owner. If the installer prints a line that puts `rer` on your PATH, run that line too. To start it again later, run the same line from the same folder, or `cd run-locket && rer dev`.
 

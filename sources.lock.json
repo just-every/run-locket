@@ -165,7 +165,7 @@
       "executable": false
     },
     "docs/getting-started.md": {
-      "sha256": "adb8f53002c9665053247a6521707c9165253a0aa8823a9ab313bd305db4c8b9",
+      "sha256": "d0bfac4d1351b082b37d66dd91b35df3aabae6e0aef7a6bccfd96db41ba56a5d",
       "executable": false
     },
     "docs/move-in.md": {
@@ -4453,7 +4453,7 @@
       "executable": false
     },
     "src/site/docs/build/site.ts": {
-      "sha256": "c8036a0bc48dc9dbcaf58eeb14cb4f2cbd291f7ac69266fc4edb0e39347d4ac9",
+      "sha256": "893aa1af1a2b24c608b425b20e5b0868c1bf043d0f5b206d7a732b379aac56cf",
       "executable": false
     },
     "src/site/docs/build/slug.ts": {
