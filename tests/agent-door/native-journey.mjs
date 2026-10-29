@@ -9,7 +9,7 @@ export default async function ({ request, origin, cookie, tool }) {
   }
   const args = { title: 'Native boundary review', type: 'supplier', party: { name: 'Boundary Supplier', kind: 'supplier' }, idempotency_key: randomUUID() }
   const created = await tool('locket.requests.create', args)
-  assert.equal(created.result?.isError, undefined)
+  assert.equal(created.result?.isError, false)
   const result = created.result.structuredContent
   const before = (await human('/api/locket/state')).agreements
   const replayed = await tool('locket.requests.create', args)

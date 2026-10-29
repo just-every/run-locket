@@ -5,8 +5,8 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 45 | 20 | 30 | 95 |
-| All | 64 | 20 | 30 | 114 |
+| Target and push further | 45 | 33 | 17 | 95 |
+| All | 64 | 33 | 17 | 114 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -111,16 +111,16 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | `AGENT-007` | Exceptions become measured playbook changes | push-further | done | [Source evidence](CONTRACT.md#status) | ct approved 22 October 21:45Z; proposal-only output, counsel future scope, unknown timing and pinned history enforced |
 | `AGENT-008` | Obligation remediation to verified evidence | push-further | done | [Source evidence](CONTRACT.md#status) | None |
 | `AGENT-009` | Missed obligations and avoidable spend report | push-further | done | [Source evidence](CONTRACT.md#status) | None for existing sources; recovered amounts remain explicitly unconfirmed and wider accounting sources belong to LINK-001. |
-| `BASE-AGENT-001` | One MCP door per seed | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-002` | The seed's jobs are tools, through the UI's own actions | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-003` | Records are resources | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-004` | Business identity and short-lived, audience-bound tokens | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-005` | An agent acts as a person in a role, never more | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-006` | Every action declares its risk class | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-007` | The company's policy decides, at one chokepoint | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-008` | Truthful attribution | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-009` | Every agent action is audited with its class and decision | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-010` | Agents can follow changes | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-011` | Limits are policy, and Pause stops everything | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-012` | Writes are idempotent and conflict-safe | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
-| `BASE-AGENT-013` | Manifest, docs and the conformance journey | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-001` | One MCP door per seed | target | partial | [Source evidence](CONTRACT.md#status) | Normal hosted verification is blocked by the pinned CLI ingress returning HTTP 500 before owner claim. Direct production transport passes; a subset re-pin remains owed. |
+| `BASE-AGENT-002` | The seed's jobs are tools, through the UI's own actions | target | partial | [Source evidence](CONTRACT.md#status) | The declared core registry has nine native tools plus Base events.list. The remaining native verbs and the wider unpublished ct tool table are not exposed or claimed complete. |
+| `BASE-AGENT-003` | Records are resources | target | partial | [Source evidence](CONTRACT.md#status) | Resource refresh and byte-budget enforcement are undeclared families. Eleven record templates use native visibility and an explicit safe projection; complete two-role and file-byte parity remains owed. |
+| `BASE-AGENT-004` | Business identity and short-lived, audience-bound tokens | target | partial | [Source evidence](CONTRACT.md#status) | Multiple sponsors are an undeclared family. The declared owner lifecycle and scoped, audience, expiry and consent refusals pass; unknown&#47;inactive&#47;allow-list and email-change fixture coverage remains owed. |
+| `BASE-AGENT-005` | An agent acts as a person in a role, never more | target | partial | [Source evidence](CONTRACT.md#status) | The current access tools cannot widen an admitted owner&#47;counsel sponsor and declare sponsorEscalation false. Broader subject&#47;field&#47;grant authority and their specialist escalation journeys remain owed. |
+| `BASE-AGENT-006` | Every action declares its risk class | target | partial | [Source evidence](CONTRACT.md#status) | Pinned Base held-policy conformance compares post-execution replay facts with pre-execution grant&#47;role widening facts. The native classifiers correctly recompute the now-narrowing effect; both points need a Base harness ruling&#47;fix. |
+| `BASE-AGENT-007` | The company's policy decides, at one chokepoint | target | partial | [Source evidence](CONTRACT.md#status) | Direct production policy&#47;adoption, unset, blocked, held, pause and consent phases pass. Normal rer verify must reach the same journey after the Base hosted-ingress repair. |
+| `BASE-AGENT-008` | Truthful attribution | target | partial | [Source evidence](CONTRACT.md#status) | Native command provenance and agent-for-person activity pass the declared journey. The undeclared outbound, legal&#47;commercial approval and native Undo families are not claimed. |
+| `BASE-AGENT-009` | Every agent action is audited with its class and decision | target | partial | [Source evidence](CONTRACT.md#status) | The direct declared-core audit matches every tracked call and reports differs_from_policy zero. Normal hosted verification remains blocked at Base ingress. |
+| `BASE-AGENT-010` | Agents can follow changes | target | partial | [Source evidence](CONTRACT.md#status) | Events and subscriptions are undeclared optional families. This pin unconditionally installs events.list and requires it in conformance; specialist event delivery and subscription journeys remain owed. |
+| `BASE-AGENT-011` | Limits are policy, and Pause stops everything | target | partial | [Source evidence](CONTRACT.md#status) | Spend reservations, mail jobs and byte budgets are undeclared families; spend none is declared and no provider cost is registered. Broader capacity&#47;reservation acceptance remains owed. |
+| `BASE-AGENT-012` | Writes are idempotent and conflict-safe | target | partial | [Source evidence](CONTRACT.md#status) | The declared native journey proves one-effect replay, changed-argument conflict, stale native version refusal, Pause and consent revocation. Undeclared queued provider continuation and uncertain-outcome journeys remain owed. |
+| `BASE-AGENT-013` | Manifest, docs and the conformance journey | target | partial | [Source evidence](CONTRACT.md#status) | The core surface, scopes, schemas, resources, injection variants and native journey are declared. A full stranger contract week, remaining ct jobs and green normal hosted conformance remain owed. |

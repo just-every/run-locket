@@ -1,4 +1,8 @@
-Agents prepare, people approve. An agent is someone you invite with the agent role, signing in like anyone else and working through the same HTTP API the screens use.
+Company agents enter through Locket's shared `/mcp` door. Their signed Business subject resolves to a current native operator; their sponsor's Locket role, record visibility and field permissions remain authoritative. A company's signed policy decides whether a declared action runs, waits for review, needs a named person's approval or is blocked. People inspect decisions and Pause at `/agents`.
+
+The core declaration supports draft requests and title edits, evidenced intake proposals, agreement reads and title/reference search, counts and people listings, native role assignments and agreement reader grants. It does not claim a complete contract week, signing, provider sends, execution, erasure or the remaining specialist jobs. `agent-surface.json` lists the exact tools, classes, scopes and journey; [API.md](../API.md#company-agent-door) explains the limits.
+
+An invited operator with Locket's legacy `agent` role remains a proposal preparer using the native HTTP API. Its narrow role is distinct from a company agent acting for a named sponsor.
 
 ## What an agent can prepare
 

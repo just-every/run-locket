@@ -20,7 +20,7 @@ export async function records(env: Bindings, actor: Actor, kind: RecordKind): Pr
   const fields: Record<RecordKind, string[]> = {
     agreements: ['id','reference','title','type','party_id','value_cents','currency','owner_id','requester_id','status','restricted','needed_by','start_date','timezone','parent_id','relation','current_version_id','entity_id','created_at','updated_at','version'],
     versions: ['id','agreement_id','number','kind','label','template_version_id','text','text_source','digest','created_by','created_at'],
-    files: ['id','agreement_id','version_id','role','filename','media_type','size','sha256','source_system','source_id','imported','uploaded_by','uploaded_at'],
+    files: ['id','agreement_id','version_id','role','filename','media_type','size','sha256','source_system','imported','uploaded_by','uploaded_at'],
     counterparties: ['id','name','kind','entity_type','formation','registered_address','notice_address','notice_method','tax_id','tax_id_kind','email','version'],
     templates: ['id','name','type','entity_id','created_by','created_at'],
     playbooks: ['id','number','status','rules','created_by','created_at','activated_by','activated_at'],

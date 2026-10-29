@@ -1,6 +1,6 @@
 # Locket API
 
-The screens and any agent use the same HTTP API. Authenticate with a Base native session (sign in through `/signin`; an agent is an invited operator the owner gave the `agent` role). Commands are same-origin JSON: send `Origin` equal to the installation's origin and `content-type: application/json`.
+The screens and invited legacy agent operators use the native HTTP API. Company agents use the shared `/mcp` door described below. Authenticate with a Base native session (sign in through `/signin`; an agent is an invited operator the owner gave the `agent` role). Commands are same-origin JSON: send `Origin` equal to the installation's origin and `content-type: application/json`.
 
 ## Reads
 
@@ -35,7 +35,7 @@ The screens and any agent use the same HTTP API. Authenticate with a Base native
 | `comment.add` | same | `{agreementId, versionId, body, quote?}` |
 | `legacy.import` | same | `{title, type, partyId? or party, sourceSystem, sourceId, file, signed?, text?, ownerId?, value?, restricted?}` |
 | `family.link` | owner, counsel | `{agreementId, version, parentId, relation:"amends"|"order_under"|"schedule_to"|"renews"}` |
-| `access.set` | owner, counsel | `{agreementId, operatorId, grant:"grant"|"revoke"}` |
+| `access.set` | owner, counsel | `{agreementId, operatorId, grant:"grant"|"revoke", version?}` |
 | `template.create` / `template.revise` | owner, counsel | `{name, type, body, fields:[{name,label,required}], clauses:[{key,title,notes?,ruleKey?,variants:[{id,label,text,notes?}]}]}` / `{templateId, body, fields, clauses}`. Body uses `{{field}}`, `{{counterparty}}`, `{{title}}` and `[[clause:key]]`. |
 | `template.decide` | owner, counsel | `{versionId, decision:"approve"|"retire"}` |
 | `playbook.draft` / `playbook.activate` | owner, counsel | `{rules:[{key,title,preferred,alternatives:[],authority:"counsel"|"approver",guidance?}]}` / `{id}` |
@@ -691,3 +691,13 @@ Workspace `obligations` retain the proposal record status and add `lifecycle_sta
 Completing or waiving a dated recurring occurrence atomically retains it and creates one next confirmed occurrence, returned as `nextId`, with fresh evidence fields. `series_id`, `recurrence_anchor` and `occurrence_number` preserve the original monthly, quarterly or annual schedule with month-end clamping. `next_due_date` identifies the current open occurrence, without skipping missed dates. An undated manually confirmed recurrence stays unscheduled; no first due date is inferred. Replaying a command does not duplicate an occurrence or notification. A supplied `version` fences the displayed agreement revision; every write also repeats current server authority and source record guards. Proposed and rejected obligations never schedule reminders.
 
 The owner-only reasoned waiver is an interim conservative default pending CT review. It changes local tracking for one occurrence and grants no authority to amend or legally release a contract obligation. Built-in extraction remains unavailable; these manually cited flows invoke no model and establish no live REVIEW-006 result.
+
+## Company agent door
+
+Company agents present short-lived, audience-bound Business credentials with a stable sponsor subject, consent and explicit scopes to `/mcp`. The signed Business settings owner/team IDs bind that subject to an existing native operator. Email is descriptive and never selects the sponsor. Signed policy arrives at `/api/rer/agent-policy`; people use `/agents` for policy state, Pause, approvals, reviews and audit. MCP supports 2026-07-28 and 2025-11-25.
+
+The declared core registry is in `agent-surface.json`; its native schemas and scopes are in `src/agent-door/catalogue.json`. It currently supports draft request creation, title edits with the native version, evidenced intake preparation, visible agreement reads, title/reference search, counts, native people lists, role assignment and agreement reader grants. Title edits and agreement reader grants require the current native agreement version over MCP. The built-in events listing is delivered by Base. Each write uses the same native command runner as the interface, with a door admission in place of a browser session and the sponsor's current native role, visibility and field guards. Native audit labels name the agent and sponsoring person; `lk_agent_commands` retains the operation, consent and named Business approvers in the same transaction.
+
+This declaration does not expose all native commands. Signing, approval of legal/commercial evidence, execution, provider operations, notices, extraction, erasure and the remaining specialist jobs are not claimed as company-agent jobs by this core adoption. The broader unpublished ct surface remains owed. Standalone agent credentials, subscription delivery, resource refresh, multiple sponsors and spend reservations are undeclared. Device/Word, interactive signing, connector configuration, move-in and installation doors keep their own credentials and purposes.
+
+Reads and resources retain native visibility; missing and inaccessible resources both return `resource_unavailable`. Document and imported text is untrusted evidence. The resource projection excludes provider/queue state, raw file provenance and credentials. No provider cost or spend enforcement is registered. Read the clause gaps before treating a supported primitive as a completed specialist journey.

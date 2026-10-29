@@ -388,7 +388,7 @@ const grantAccess: Handler = async (c, p) => {
   await operatorExists(c, operatorId)
   const grant = oneOf(p, 'grant', ['grant', 'revoke'] as const)
   const write = grant === 'grant' ? sql('INSERT OR REPLACE INTO lk_access VALUES(?,?,?,?)', a.id, operatorId, c.actor.id, c.now) : sql('DELETE FROM lk_access WHERE agreement_id=? AND operator_id=?', a.id, operatorId)
-  return { allowed: may.grantAccess, result: { agreementId: a.id }, writes: [write, bump(c, a)], checks: agreementGuards(c, a), audit: [{ action: `access.${grant}`, agreementId: a.id, summary: `${grant === 'grant' ? 'Granted' : 'Revoked'} access for an operator` }] }
+  return { allowed: may.grantAccess, result: { agreementId: a.id }, writes: [write, bump(c, a)], checks: agreementGuards(c, a, p.version === undefined ? undefined : p), audit: [{ action: `access.${grant}`, agreementId: a.id, summary: `${grant === 'grant' ? 'Granted' : 'Revoked'} access for an operator` }] }
 }
 
 /** Clause 1: a legacy PDF/DOCX keeps its bytes, source identity and provenance. */

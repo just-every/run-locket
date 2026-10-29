@@ -73,7 +73,27 @@
       ]
     },
     "outputSchema": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "versionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "reference",
+        "versionId"
+      ],
+      "additionalProperties": false
     },
     "untrusted": true
   },
@@ -114,7 +134,16 @@
       ]
     },
     "outputSchema": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
     },
     "untrusted": true
   },
@@ -144,7 +173,36 @@
       ]
     },
     "outputSchema": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "reference",
+        "title",
+        "type",
+        "status",
+        "version"
+      ],
+      "additionalProperties": true
     },
     "untrusted": true
   },
@@ -172,7 +230,44 @@
       "required": []
     },
     "outputSchema": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "records": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "reference": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "reference",
+              "title",
+              "status",
+              "version"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "records"
+      ],
+      "additionalProperties": false
     },
     "untrusted": true
   },
@@ -271,7 +366,23 @@
       ]
     },
     "outputSchema": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "status"
+      ],
+      "additionalProperties": false
     },
     "untrusted": true
   },
@@ -303,16 +414,30 @@
             "grant",
             "revoke"
           ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
         }
       },
       "required": [
         "agreementId",
         "operatorId",
-        "grant"
+        "grant",
+        "version"
       ]
     },
     "outputSchema": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "agreementId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "agreementId"
+      ],
+      "additionalProperties": false
     },
     "untrusted": true
   },
@@ -352,7 +477,20 @@
       ]
     },
     "outputSchema": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "operatorId": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "operatorId",
+        "role"
+      ],
+      "additionalProperties": false
     },
     "untrusted": true
   },
@@ -375,7 +513,43 @@
       "required": []
     },
     "outputSchema": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "role",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "members"
+      ],
+      "additionalProperties": false
     },
     "untrusted": true
   },
@@ -398,7 +572,16 @@
       "required": []
     },
     "outputSchema": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "count"
+      ],
+      "additionalProperties": false
     },
     "untrusted": true
   }
