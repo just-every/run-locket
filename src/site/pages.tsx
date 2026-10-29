@@ -61,11 +61,11 @@ export function sitePages({ styles, contract, hosting }: SiteContext): SiteBuild
     pages: [
       { path: '/', html: document(meta.title, meta.description, <Landing />) },
       { path: '/run', html: asLocket(runPageHtml(identity, run, contract, homepage)) },
-      ...(contract ? [{ path: '/contract', html: asLocket(contractPageHtml(identity, run, contract, homepage)) }] : []),
+      ...(contract ? [{ path: '/contract', html: asLocket(contractPageHtml(identity, run, contract)) }] : []),
       { path: '/docs/hosting', html: asLocket(hostingPageHtml(identity, run, hosting ?? null, contract, docsHeader)) },
       { path: '/docs', html: document('Docs · Locket', docsLead, <DocsIndex />) },
       ...docsPages.map(page => ({ path: `/docs/${page.slug}`, html: document(`${page.title} · Locket docs`, page.summary, <DocsArticle slug={page.slug} />, COPY) })),
-      { path: '/404', html: asLocket(siteNotFoundHtml(identity, run, contract, homepage)) },
+      { path: '/404', html: asLocket(siteNotFoundHtml(identity, run, contract)) },
     ],
     assets: ['rer-theme.css', 'fonts', 'brand', 'site', 'favicon.ico', 'favicon-32.svg', 'favicon-16.svg', 'apple-touch-icon.png'],
   }

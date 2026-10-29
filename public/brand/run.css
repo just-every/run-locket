@@ -14,7 +14,7 @@ main section h2 { word-spacing: .08em; }
 .intro h1::after, .hero h1::after { content: ''; display: block; width: 96px; height: 6px; margin: 22px auto 0; border-radius: 3px; background: var(--heading-gradient); }
 .btn { border-radius: 16px; background: var(--ink); box-shadow: 0 10px 24px -14px rgb(17 17 17 / .7); }
 .code { border-radius: 12px; }
-.facts a, .go a { color: var(--claret); }
+.facts a { color: var(--claret); }
 @media (max-width: 760px) {
   body { background-size: 32px 32px; }
   body > .bar { width: calc(100% - 32px); padding: 16px 0 0; }
@@ -23,3 +23,6 @@ main section h2 { word-spacing: .08em; }
   body > .bar nav { gap: 18px; font-size: 15px; }
   .intro h1::after, .hero h1::after { width: 72px; height: 5px; margin-top: 16px; }
 }
+
+/* The alternative terminal commands also wrap in a narrow chooser. */
+.chooser .self .other-ways pre code { white-space: pre-wrap; overflow-wrap: anywhere; }

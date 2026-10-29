@@ -609,7 +609,7 @@
       "executable": false
     },
     "public/brand/run.css": {
-      "sha256": "90e0287b4c1b9acfc1992d6bcc347b2b67c1274f4105e84a22f0c3fe7069e3ca",
+      "sha256": "53fddc7645bc7f981841f7e066adc54434559f064f1b31f524114e0d17ff0da3",
       "executable": false
     },
     "public/favicon-16.svg": {
@@ -4561,7 +4561,7 @@
       "executable": false
     },
     "src/site/pages.tsx": {
-      "sha256": "8f02c677dd5f2ad44d950f9e339504c1d44d653bfb1e4367f39faf90fe65996a",
+      "sha256": "5211d711e6a4a56b1b9344d24f8ed0ebb81e9fdc91bcc5bc924f499efae9453d",
       "executable": false
     },
     "src/site/repository.ts": {
@@ -4585,7 +4585,7 @@
       "executable": false
     },
     "src/site/styles/docs.css": {
-      "sha256": "0d4c219786b35876a76fc0920fe7c0e52d912f7242f4c58c6cd0c87682ff5230",
+      "sha256": "be9256bf00bc1f76d139ecec37d0aab6813f0e9ac17ddfd06d7867491693e56b",
       "executable": false
     },
     "src/site/styles/parts.css": {
