@@ -1377,7 +1377,7 @@ test('REPO-002 stored embedded PDF text becomes a source-bound rendition and hum
  const latest=(await h.owner.state()).agreements.find(a=>a.id===created.id)
  await h.owner.command('version.upload',{agreementId:created.id,version:latest.version,kind:'counterparty',file:file('replacement.docx',docx([pdfClause]))})
  await h.owner.command('term.propose',{agreementId:created.id,key:'governing_law',value:'New York',citation},{error:'NOT_EXECUTED'})
- const replacement=await h.owner.command('legacy.import',{title:'synthetic-locket-word',type:'other',party:{name:'synthetic-locket-word',kind:'supplier'},sourceSystem:'synthetic-locket',sourceId:'synthetic-locket-word',file:file('replacement.docx',docx([pdfClause]))})
+ const replacement=await h.owner.command('legacy.import',{title:'synthetic-locket-word',type:'other',party:{name:'synthetic-locket-word',kind:'supplier'},sourceSystem:'synthetic-locket',sourceId:'synthetic-locket-word',file:file('replacement.docx',docx(['synthetic-locket-word',pdfClause]))})
  await h.owner.command('term.propose',{agreementId:replacement.id,key:'governing_law',value:'New York',citation},{error:'STALE'})
  const current=await h.owner.command('term.propose',{agreementId:replacement.id,key:'governing_law',value:'New York',citation:{quote:pdfClause}})
  assert.equal(JSON.parse((await h.owner.state()).terms.find(t=>t.id===current.id).citation).source,'version-text','Word text cannot silently absorb an unrelated PDF source binding')
