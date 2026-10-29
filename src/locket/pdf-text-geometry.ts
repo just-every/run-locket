@@ -23,7 +23,7 @@ const near=(a:number,b:number)=>Math.abs(a-b)<.0001
 
 /** Replay only text positioning. Glyph widths and TJ adjustments come from the PDF,
  * never from browser fonts or a proportional share of a combined text item. */
-async function textRuns(page:PdfPage,viewport:Matrix):Promise<Run[]> {
+async function textRuns(page:PdfPage,viewport:Matrix,readWordGaps=false):Promise<Run[]> {
  const {OPS,AnnotationMode}=await getResolvedPDFJS()
  const operators=await page.getOperatorList({annotationMode:AnnotationMode.DISABLE})
  let state:TextState={ctm:identity(),matrix:identity(),x:0,y:0,lineX:0,lineY:0,font:null,size:0,scale:1,charSpacing:0,wordSpacing:0,rise:0,leading:0}
@@ -83,8 +83,10 @@ async function textRuns(page:PdfPage,viewport:Matrix):Promise<Run[]> {
     if(!run||!near(run.cursor[0],cursor[0])||!near(run.cursor[1],cursor[1])||!near(run.top,top)||!near(run.height,height)){
      run={text:'',glyphs:[],cursor,top,height};runs.push(run)
     }
+    let gap=0
     for(const glyph of args[0]){
      if(typeof glyph==='number'){
+      gap-=glyph
       if(font.vertical)state.y-=glyph*fontSize/1000
       else state.x-=glyph*fontSize*scale*direction/1000
       continue
@@ -93,7 +95,13 @@ async function textRuns(page:PdfPage,viewport:Matrix):Promise<Run[]> {
      const unit=fontSize*(font.fontMatrix?.[0]??.001),advance=glyph.width*unit*scale*direction
      const origin=point(matrix,state.x,state.y+state.rise),end=point(matrix,state.x+advance,state.y+state.rise)
      const upper=point(matrix,state.x,state.y+state.rise+size),upperEnd=point(matrix,state.x+advance,state.y+state.rise+size)
-     const start=run.text.length,unicode=glyph.unicode??''
+     const unicode=glyph.unicode??''
+     // PDF.js treats a forward gap above 0.102 em as word spacing. Recover it
+     // from TJ positioning itself, including text outside the page crop; smaller
+     // adjustments stay kerning. Geometry still comes only from actual glyphs.
+     if(readWordGaps&&gap>102&&run.text&&!/\s$/u.test(run.text)&&unicode&&!/^\s/u.test(unicode))run.text+=' '
+     gap=0
+     const start=run.text.length
      run.text+=unicode
      if(unicode)run.glyphs.push({start,end:run.text.length,x:Math.min(origin[0],end[0],upper[0],upperEnd[0]),y:Math.min(origin[1],end[1],upper[1],upperEnd[1]),right:Math.max(origin[0],end[0],upper[0],upperEnd[0]),bottom:Math.max(origin[1],end[1],upper[1],upperEnd[1]),unsupported:reason??(!Number.isFinite(advance)||glyph.width<0?'invalid glyph advance':undefined)})
      const spacing=state.charSpacing+(glyph.isSpace?state.wordSpacing:0)
@@ -141,25 +149,13 @@ export interface PdfTextPage {
 }
 /** Reuse actual glyph advances for page positions; unsupported geometry is withheld. */
 export async function pdfTextPage(page:PdfPage,number:number):Promise<PdfTextPage> {
- const viewport=page.getViewport({scale:1}),runs=await textRuns(page,viewport.transform)
+ const viewport=page.getViewport({scale:1}),runs=await textRuns(page,viewport.transform,true)
  const result:PdfTextPage={page:number,width:viewport.width,height:viewport.height,start:0,end:0,text:'',anchors:[],status:'available'}
  if(runs.some(run=>run.glyphs.some(g=>g.unsupported)))return {...result,status:'unavailable',reason:'This page has unsupported text positioning. No text or coordinates are inferred.'}
- // PDF.js reconstructs word boundaries from TJ spacing as well as space glyphs.
- // Match that reading to the replayed glyphs, retaining their actual geometry;
- // disagreement with the positioned text withholds the page rather than guessing.
- const content=await page.getTextContent({disableNormalization:true})
- const reading=content.items.map(item=>'str' in item?item.str:'').join('')
- const letters=reading.replace(/\s/g,''),positions=[...reading.matchAll(/\S/g)].map(match=>match.index!)
- const unavailable=():PdfTextPage=>({...result,text:'',anchors:[],status:'unavailable',reason:'This page has no reliable text coordinates.'})
- let cursor=0
  for(const run of runs){
   if(!run.text.trim())continue
-  const runLetters=run.text.replace(/\s/g,'')
-  if(letters.slice(cursor,cursor+runLetters.length)!==runLetters)return unavailable()
-  const text=reading.slice(positions[cursor],positions[cursor+runLetters.length-1]+1).replace(/\s+/g,' ')
-  cursor+=runLetters.length
   if(result.text)result.text+='\n'
-  const start=result.text.length;result.text+=text
+  const start=result.text.length;result.text+=run.text
   const glyphs=run.glyphs
   if(!glyphs.length)continue
   const x=Math.min(...glyphs.map(g=>g.x)),y=Math.min(...glyphs.map(g=>g.y))
@@ -167,7 +163,6 @@ export async function pdfTextPage(page:PdfPage,number:number):Promise<PdfTextPag
   if(![x,y,width,height].every(Number.isFinite)||width<=0||height<=0)return {...result,text:'',anchors:[],status:'unavailable',reason:'This page has no reliable text coordinates.'}
   result.anchors.push({start,end:result.text.length,x,y,width,height})
  }
- if(cursor!==letters.length)return unavailable()
  if(!result.text.trim())return {...result,status:'unavailable',reason:'No embedded text is available. OCR is unavailable.'}
  return {...result,end:result.text.length}
 }
