@@ -56,7 +56,9 @@ test('Hosted export keeps records and file bytes in a verified restorable archiv
   assert.equal(calendar.length,1,'Calendar configuration record is retained')
   assert.equal(calendar[0].row.token,undefined,'Provider credentials stay outside the recovery archive')
   const queries=edge.queries
-  await assert.rejects(runCommand(project,parse(['deploy','--dry-run','--non-interactive','--no-queue'],directory),out),/update-previous-release-unavailable/)
+  // Dry run renders the declarative plan without invoking update hooks; the real
+  // deploy must still refuse unavailable history before exporting or migrating.
+  await assert.rejects(runCommand(project,parse(['deploy','--non-interactive','--no-queue'],directory),out),/update-previous-release-unavailable/)
   assert.equal(edge.queries,queries,'An unavailable previous release prevents exporting or migrating')
   edge.replace()
   await assert.rejects(runCommand(project,parse(['export','--target','remote','--output',join(directory,'exports/refused.rer'),'--no-queue'],directory),out),/update-owned-worker-replaced/)

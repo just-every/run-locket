@@ -5217,7 +5217,7 @@
       "executable": false
     },
     "tests/api/operations.test.mjs": {
-      "sha256": "d71bde46c30e4ef7a68eefe26d4e0c0ffde2430b454115aace4ac119fbfbe67c",
+      "sha256": "fa1be2564be782e278b15e36ebb84c2af695e684a03a6aa74f8111f8721b67ef",
       "executable": false
     },
     "tests/api/outcome-report.test.mjs": {
