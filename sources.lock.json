@@ -121,7 +121,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "697f3740331e7e7cd7e60bda60f1dd6908a1c1a6910839f61ed50104ff002bd9",
+      "sha256": "e365b525f70e7aece14fe50752e8c7710363ef704ce58cdbd03dac16f9742ed6",
       "executable": false
     },
     "base-copies.json": {
@@ -2177,7 +2177,7 @@
       "executable": false
     },
     "src/locket/obligations.ts": {
-      "sha256": "5293344db7b8c3ea796911fb3a55386e8ccbc99412e2d38bf7dafcc12bc254a9",
+      "sha256": "e2d29c9e41e22a857cf2ee6e88d08fbfa9c7a6dc4d3016be3f3a5d92b70d80d8",
       "executable": false
     },
     "src/locket/outcome-report-data.ts": {
@@ -5181,7 +5181,7 @@
       "executable": false
     },
     "tests/api/flows.test.mjs": {
-      "sha256": "ecab96326c32f17793e7f8942d6624ab02bdc86acedf6da713e8468bd440f2cd",
+      "sha256": "d5b99346e26a7d0c3129656131e858e702d450251571bdb12abe272037eb2c1d",
       "executable": false
     },
     "tests/api/harness.mjs": {

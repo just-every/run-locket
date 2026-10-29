@@ -58,7 +58,7 @@ export async function citation(c: Ctx, a: AgreementRow, value: unknown) {
   const version = a.current_version_id ? await c.db.prepare('SELECT number, text FROM lk_versions WHERE id=?').bind(a.current_version_id).first<{ number: number; text: string | null }>() : null
   if(!signed){
     const rendition=(await pdfRenditions(c.db,new Set([a.id]))).find(r=>r.version_id===a.current_version_id)
-    if(rendition&&(usablePdfText(rendition)||!version?.text||cite.renditionId!==undefined)){
+    if(rendition&&(usablePdfText(rendition)||cite.source==='pdf-text-rendition'||['renditionId','artifactId','sourceSha256','versionDigest'].some(key=>cite[key]!==undefined))){
       if(!usablePdfText(rendition))fail('CITATION','The PDF text rendition is unavailable. Review its processing status.',409)
       for(const [key,expected] of Object.entries({renditionId:rendition.id,artifactId:rendition.artifact_id,sourceSha256:rendition.source_sha256,versionDigest:rendition.version_digest,versionId:rendition.version_id}))
         if(cite[key]!==undefined&&cite[key]!==expected)fail('STALE','The cited PDF source changed. Reload and select its passage again.',409)

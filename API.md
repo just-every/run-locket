@@ -717,6 +717,8 @@ continue to refer to the approval-pinned text.
 A manually proposed term may cite the rendition using `quote`, `page` and those
 source bindings. Wrong-page quotes and stale bindings are refused. Terms stay
 proposed until human confirmation, which rechecks the retained rendition.
+Existing human page-only citations remain explicitly labelled as page evidence
+while native reading is pending or unavailable; they gain no machine coordinates.
 Readable signed execution evidence continues to take precedence over draft text.
 Scanned-page OCR, correction history and the named-provider live REVIEW-006
 proof remain required by REPO-002 and are not offered by this native reader.
