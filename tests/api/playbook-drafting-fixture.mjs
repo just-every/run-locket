@@ -47,7 +47,7 @@ export function draftingFake(calls, mode = () => 'ok', during = async () => {}) 
   assert.equal(body.model, 'synthetic-locket-1')
   assert.equal(provider === 'anthropic' ? request.headers.get('x-api-key') : request.headers.get('authorization'), provider === 'anthropic' ? modelBindings.AI_API_KEY : `Bearer ${modelBindings.AI_API_KEY}`)
   const prompt = body.system ?? body.messages[0].content
-  assert.match(prompt, /^locket-playbook-drafting-v1:/)
+  assert.match(prompt, /^locket-playbook-drafting-v2:/)
   const input = JSON.parse(body.messages.at(-1).content)
   calls.push({ provider, input, prompt })
   await during()

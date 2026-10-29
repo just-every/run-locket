@@ -21,11 +21,11 @@ export function PlaybookDrafting({ state, locket }: { state: LocketState; locket
     </fieldset>
     <fieldset className="lk-fieldset"><legend>Executed agreement sources (up to 40)</legend>
      {state.agreements.filter(a => a.status === 'executed').map(a => <label className="lk-check" key={a.id}><input type="checkbox" name="agreementIds" value={a.id} /> {a.title}</label>)}
-     <small>Only the retained signed pages of the current exact executed version are sent. Unreadable pages require a readable signed original.</small>
+     <small>The current exact signed pages, recorded negotiation outcomes and operational observations are sent. Native credit records supply identities, statuses and digests. Unreadable pages require a readable signed original.</small>
     </fieldset>
     <fieldset className="lk-fieldset"><legend>Agreement types for future playbook use</legend>{Object.entries(typeLabel).map(([key, label]) => <label className="lk-check" key={key}><input type="checkbox" name="draftAgreementTypes" value={key} /> {label}</label>)}</fieldset>
     <Field label="Entities for future playbook use" hint="Explicitly choose every entity, or select named entities. Sources must belong to this scope."><select name="draftEntityIds" multiple defaultValue={['']}><option value="">Every entity</option>{state.entities.map(e => <option key={e.id} value={e.id}>{e.legal_name}</option>)}</select></Field>
-    <label className="lk-check"><input type="checkbox" name="consent" required /> I approve sending these selected templates and signed pages to the displayed model for this request.</label>
+    <label className="lk-check"><input type="checkbox" name="consent" required /> I approve sending the selected templates, signed pages and recorded source observations to the displayed model for this request.</label>
     {!workspace.evaluated && <p>Live drafting is unavailable until this exact provider, model and prompt pass REVIEW-006. {workspace.simulationAvailable ? 'This installation permits labelled network-edge simulations for local proof.' : 'Ask the owner to configure an evaluated model in Settings.'}</p>}
     {(!workspace.enabled || !workspace.evaluated && !workspace.simulationAvailable) && <p role="note">Drafting is unavailable under the current model settings.</p>}
    </Form>

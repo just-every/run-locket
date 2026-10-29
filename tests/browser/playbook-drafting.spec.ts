@@ -33,7 +33,7 @@ test('PLAY-002 counsel drafts from two templates and twenty executed agreements,
   for (const t of f.templates) await form.locator(`input[value="${t.versionId}"]`).check()
   for (const a of f.agreements) await form.locator(`input[value="${a.id}"]`).check()
   await form.getByRole('checkbox', { name: 'Supplier', exact: true }).check()
-  await form.getByRole('checkbox', { name: 'I approve sending these selected templates and signed pages to the displayed model for this request.', exact: true }).check()
+  await form.getByRole('checkbox', { name: 'I approve sending the selected templates, signed pages and recorded source observations to the displayed model for this request.', exact: true }).check()
   await expect(panel).toContainText('Playbook drafting: not evaluated')
   await shot('sources', form)
   await form.getByRole('button', { name: 'Draft simulated playbook rules', exact: true }).click()

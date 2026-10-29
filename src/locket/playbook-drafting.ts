@@ -41,7 +41,7 @@ const generate: Handler = async (c, p) => {
  const scope = recommendationScope(p.scope), s = await modelSettings(c.db), simulated = bool(p, 'simulated')
  await gate(c, s, scope, simulated)
  await requireEntitiesExist(c, scope.entityIds)
- if (!bool(p, 'consent')) fail('CONSENT', 'Approve sending exactly these approved templates and signed pages to the selected model for this request.', 409)
+ if (!bool(p, 'consent')) fail('CONSENT', 'Approve sending exactly these approved templates, signed pages and recorded source observations to the selected model for this request.', 409)
  const source = await draftingSources(c, ids(p, 'templateVersionIds', 10), ids(p, 'agreementIds', 40), scope)
  const base = await c.db.prepare("SELECT id FROM lk_playbook_versions WHERE status='active'").first<{ id: string }>()
  const id = crypto.randomUUID(), prompt = await sha256(playbookDraftingPrompt)

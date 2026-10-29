@@ -121,7 +121,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "60c31343c32645dc9abbde438631d2c50dadf7cd893bf5240f4e4713e8a48cdf",
+      "sha256": "8af89a43998f77a043d2ba058726acf4e650598726927625e515f846a1f835e8",
       "executable": false
     },
     "base-copies.json": {
@@ -1649,7 +1649,7 @@
       "executable": false
     },
     "src/locket/playbook-drafting-prompt.ts": {
-      "sha256": "55658757d1ee783ba64fc928e36cc86885094a6bf6f912ba3bc6b6f4c2b402c9",
+      "sha256": "646733609947153daf4c618f853e4e54f530847c99fc1393eeda14049845a44d",
       "executable": false
     },
     "src/locket/playbook-drafting-rules.ts": {
@@ -1661,7 +1661,7 @@
       "executable": false
     },
     "src/locket/playbook-drafting.ts": {
-      "sha256": "c4f2eaec1369b0898143b10c529a517da4336cdafc44b7f7a1aa0e1ba9e415a8",
+      "sha256": "c5981c362007481418e26a182055adf74a9dc31d520c42811ed33ba661619518",
       "executable": false
     },
     "src/locket/playbook-recommendation-analysis.ts": {
@@ -4209,7 +4209,7 @@
       "executable": false
     },
     "src/ui/playbook-drafting.tsx": {
-      "sha256": "3db55e9a0dbab0be3db85cce1a15236a59400b4883e3efb800bcbce804116b7e",
+      "sha256": "ae66a1b96572e8143878d91537a262f1f51db085f18e2fa699ee38ea5bb4913d",
       "executable": false
     },
     "src/ui/playbook-recommendations.tsx": {
@@ -4601,7 +4601,7 @@
       "executable": false
     },
     "tests/api/playbook-drafting-fixture.mjs": {
-      "sha256": "7aa4c5711a4b45e0ea1089d1e5c17ade0f441b1c20f7ff64b623a37fe796b2d4",
+      "sha256": "aeb419f6b4a3b319f0016a7266491f07c176346545d06e07a02a2e8ae8e20891",
       "executable": false
     },
     "tests/api/playbook-drafting.test.mjs": {
@@ -4873,7 +4873,7 @@
       "executable": false
     },
     "tests/browser/playbook-drafting.spec.ts": {
-      "sha256": "21d237bef8eedeb5a712f7a6724249640d4378ec386d23f543c2877cdb2a93c3",
+      "sha256": "30a06464c4e8b65e05f17472c3210f07133ca103cf1f3b86e2f49954fedb2fd4",
       "executable": false
     },
     "tests/browser/playbook-recommendations.spec.ts": {
