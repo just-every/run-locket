@@ -34,17 +34,22 @@ export async function sourceControls(h,{entityId,apply,undo}) {
  await h.owner.command('entity.save',{...entity,id:entityId,version:es.version,noticeAddress:'2 Updated Example Street, Wilmington, DE'})
  await h.owner.command('import.apply',await applyArgs(entityReview.batchId),{error:'STALE'})
  assert.deepEqual(native(await h.owner.state()),before)
- const delegate=await h.invite('move-controls-owner@example.test','owner')
+ const member=await h.invite('move-controls-owner@example.test','viewer')
+ assert.equal((await h.owner.request('/auth/step-up',{method:'POST',body:{action:'owner:transfer'}})).status,202)
+ const stepLink=new URL(h.mails.at(-1).text.match(/https?:\/\/[^\s]+/)[0])
+ assert.equal((await h.owner.request('/auth/confirm',{method:'POST',body:{token:stepLink.searchParams.get('token')}})).status,303)
+ assert.equal((await h.owner.request('/auth/operator/role',{method:'POST',body:{operatorId:member.id,role:'owner'}})).status,200)
+ const delegate=await h.signIn('move-controls-owner@example.test')
  const roleReview=await delegate.command('import.preview',{...input,entityId,mapping})
- await h.owner.command('role.set',{operatorId:delegate.id,role:'viewer'})
- await delegate.command('import.apply',await applyArgs(roleReview.batchId),{error:'FORBIDDEN'})
+ assert.equal((await h.owner.request('/auth/operator/role',{method:'POST',body:{operatorId:member.id,role:'member'}})).status,200)
+ const demoted=await h.signIn('move-controls-owner@example.test')
+ await demoted.command('import.apply',await applyArgs(roleReview.batchId),{error:'FORBIDDEN'})
  for(const type of ['import.inspect','import.preview','import.apply','import.undo','import.ironclad.start','import.ironclad.poll']){
   assert.equal((await h.request('/api/locket/commands',{method:'POST',body:{commandId:randomUUID(),type,payload:input}})).status,401)
  }
- await h.owner.command('role.set',{operatorId:delegate.id,role:'owner'})
- await delegate.request('/auth/signout',{method:'POST',body:{}})
  assert.equal((await delegate.request('/api/locket/commands',{method:'POST',body:{commandId:randomUUID(),type:'import.apply',payload:await applyArgs(roleReview.batchId)}})).status,401)
- assert.equal((await delegate.request('/api/locket/export')).status,401)
+ await demoted.request('/auth/signout',{method:'POST',body:{}})
+ assert.equal((await demoted.request('/api/locket/export')).status,401)
  // Typed native/custom values use the same parser; dates and USD remain proposals.
  const typed=structuredClone(records.slice(0,1));typed[0].childIds=[]
  typed[0].properties['Auto-Renewal Type']={type:'string',value:'Optional Extension'}
