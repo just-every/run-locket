@@ -5,8 +5,8 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 45 | 20 | 17 | 82 |
-| All | 64 | 20 | 17 | 101 |
+| Target and push further | 45 | 20 | 30 | 95 |
+| All | 64 | 20 | 30 | 114 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -111,3 +111,16 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | `AGENT-007` | Exceptions become measured playbook changes | push-further | done | [Source evidence](CONTRACT.md#status) | ct approved 22 October 21:45Z; proposal-only output, counsel future scope, unknown timing and pinned history enforced |
 | `AGENT-008` | Obligation remediation to verified evidence | push-further | done | [Source evidence](CONTRACT.md#status) | None |
 | `AGENT-009` | Missed obligations and avoidable spend report | push-further | done | [Source evidence](CONTRACT.md#status) | None for existing sources; recovered amounts remain explicitly unconfirmed and wider accounting sources belong to LINK-001. |
+| `BASE-AGENT-001` | One MCP door per seed | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-002` | The seed's jobs are tools, through the UI's own actions | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-003` | Records are resources | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-004` | Business identity and short-lived, audience-bound tokens | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-005` | An agent acts as a person in a role, never more | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-006` | Every action declares its risk class | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-007` | The company's policy decides, at one chokepoint | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-008` | Truthful attribution | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-009` | Every agent action is audited with its class and decision | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-010` | Agents can follow changes | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-011` | Limits are policy, and Pause stops everything | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-012` | Writes are idempotent and conflict-safe | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |
+| `BASE-AGENT-013` | Manifest, docs and the conformance journey | target | missing | [Source evidence](CONTRACT.md#status) | Not yet judged through this seed's own doors. |

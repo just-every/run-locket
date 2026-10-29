@@ -10,6 +10,10 @@ export interface Actor {
   role: Role
   sessionId: string
   operatorVersion: number
+  agentAdmission?: {
+    agent: { id: string; name: string }; consent: string | null; operationId: string
+    envelope: string | null; localRevision: number; approvers: { id: string; name: string }[]
+  }
 }
 
 export interface Sql {

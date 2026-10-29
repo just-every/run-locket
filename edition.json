@@ -56,7 +56,12 @@
         "kind": "local",
         "paths": [
           "src/locket",
-          "package.json"
+          "package.json",
+          "src/agent-door",
+          "agent-surface.json",
+          "tests/agent-door",
+          "src/server.ts",
+          "src/auth.server.ts"
         ]
       }
     }

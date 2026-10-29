@@ -5,7 +5,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises'
 const [mode, ...ids] = process.argv.slice(2)
 assert.ok(['write', 'check'].includes(mode) && ids.length, 'Usage: node scripts/contract-docs.mjs write|check CLAUSE...')
 const source = await readFile('CONTRACT.md', 'utf8')
-const rows = source.split('\n').filter(line => /^\| `[A-Z]+-\d+` \|/.test(line)).map(line => {
+const rows = source.split('\n').filter(line => /^\| `[A-Z]+(?:-[A-Z]+)*-\d+` \|/.test(line)).map(line => {
   const cells = line.slice(1, -1).split(/(?<!\\)\|/).map(cell => cell.trim())
   assert.equal(cells.length, 6, 'Contract status rows have six cells')
   return { id: cells[0].replaceAll('`', ''), title: cells[1], kind: cells[2], status: cells[3], evidence: cells[4], gap: cells[5], line }
@@ -23,12 +23,19 @@ for (const id of ids) {
   assert.ok(start >= 0, `Missing target clause ${id}`)
   const next = source.slice(start).search(/\n(?=#### |### |## )/)
   const section = source.slice(start, next < 0 ? undefined : start + next).trim()
-  const acceptancePoint = section.match(/\*Acceptance:\* ([\s\S]*?)(?:\n\n|$)/)?.[1]
+  const acceptancePoint = section.match(/\*Acceptance:\* ([\s\S]*?)(?:\n\n|$)/)?.[1] ?? section.match(/\*\*Acceptance\.\*\*\n([\s\S]*)/)?.[1]
   assert.ok(acceptancePoint, `Missing acceptance for ${id}`)
   const line = `| \`${id}\` | ${row.title.replaceAll('/', '&#47;')} | ${acceptancePoint.replaceAll('\n', ' ')} | ${row.status} | ${row.evidence}${row.gap ? ' Gap: ' + row.gap.replaceAll('/', '&#47;') : ''} |`
   const pattern = new RegExp('^\\| `' + id + '` \\|.*$', 'm')
-  assert.ok(pattern.test(acceptance), `Missing acceptance row ${id}`)
-  acceptance = acceptance.replace(pattern, () => line)
+  if (pattern.test(acceptance)) acceptance = acceptance.replace(pattern, () => line)
+  else {
+    assert.ok(id.startsWith('BASE-AGENT-'), `Missing acceptance row ${id}`)
+    const table = acceptance.indexOf('\n| ---')
+    assert.ok(table >= 0, 'Missing acceptance table')
+    let end = acceptance.indexOf('\n', table + 1)
+    while (acceptance.slice(end + 1).startsWith('|')) end = acceptance.indexOf('\n', end + 1)
+    acceptance = acceptance.slice(0, end) + '\n' + line + acceptance.slice(end)
+  }
   const begin = `<!-- contract-source:${id} -->`, end = `<!-- /contract-source:${id} -->`
   const duties = section.split('\n\n').filter(paragraph => /^(CT policy ruling|Provider doors added|The future Inkwell|Live storage authorization|Live CRM interoperability)/.test(paragraph))
   const status = id === 'EXEC-002' ? section.split('\n\n').find(paragraph => paragraph.startsWith('*Status:*')) : null

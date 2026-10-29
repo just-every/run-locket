@@ -1,0 +1,405 @@
+[
+  {
+    "name": "locket.requests.create",
+    "title": "Create a draft request",
+    "description": "Create a draft request through the current native sponsor and service.",
+    "scope": "locket:write",
+    "readOnly": false,
+    "classes": [
+      "standard",
+      "sensitive"
+    ],
+    "clauses": [
+      "INTAKE-001",
+      "SEC-001",
+      "SEC-002"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "supplier",
+            "customer",
+            "nda",
+            "other"
+          ]
+        },
+        "party": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "supplier",
+                "customer",
+                "partner",
+                "other"
+              ]
+            },
+            "taxId": {
+              "type": "string"
+            },
+            "taxIdKind": {
+              "type": "string",
+              "enum": [
+                "ein",
+                "foreign"
+              ]
+            }
+          },
+          "required": [
+            "name",
+            "kind"
+          ]
+        },
+        "restricted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "title",
+        "type",
+        "party"
+      ]
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "untrusted": true
+  },
+  {
+    "name": "locket.requests.update",
+    "title": "Edit a request title",
+    "description": "Edit a request title through the current native sponsor and service.",
+    "scope": "locket:write",
+    "readOnly": false,
+    "classes": [
+      "standard",
+      "sensitive"
+    ],
+    "clauses": [
+      "INTAKE-001",
+      "SEC-001",
+      "SEC-002"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agreementId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "agreementId",
+        "title",
+        "version"
+      ]
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "untrusted": true
+  },
+  {
+    "name": "locket.agreements.read",
+    "title": "Read a visible agreement",
+    "description": "Read a visible agreement through the current native sponsor and service.",
+    "scope": "locket:read",
+    "readOnly": true,
+    "classes": [
+      "standard",
+      "sensitive"
+    ],
+    "clauses": [
+      "ACCESS-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agreementId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "agreementId"
+      ]
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "untrusted": true
+  },
+  {
+    "name": "locket.repo.search_and_structured_filters",
+    "title": "Search visible agreement titles and references",
+    "description": "Search visible agreement titles and references through the current native sponsor and service.",
+    "scope": "locket:read",
+    "readOnly": true,
+    "classes": [
+      "standard",
+      "sensitive"
+    ],
+    "clauses": [
+      "REPO-006"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "string"
+        }
+      },
+      "required": []
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "untrusted": true
+  },
+  {
+    "name": "locket.proposals.prepare",
+    "title": "Prepare an evidenced intake proposal",
+    "description": "Prepare an evidenced intake proposal through the current native sponsor and service.",
+    "scope": "locket:write",
+    "readOnly": false,
+    "classes": [
+      "standard",
+      "sensitive"
+    ],
+    "clauses": [
+      "PROPOSE-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "supplier",
+                "customer",
+                "nda",
+                "other"
+              ]
+            },
+            "party": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "supplier",
+                    "customer",
+                    "partner",
+                    "other"
+                  ]
+                },
+                "taxId": {
+                  "type": "string"
+                },
+                "taxIdKind": {
+                  "type": "string",
+                  "enum": [
+                    "ein",
+                    "foreign"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "kind"
+              ]
+            },
+            "restricted": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "title",
+            "type",
+            "party"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "payload",
+        "evidence"
+      ]
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "untrusted": true
+  },
+  {
+    "name": "locket.access.update",
+    "title": "Grant or revoke an agreement reader",
+    "description": "Grant or revoke an agreement reader through the current native sponsor and service.",
+    "scope": "locket:access",
+    "readOnly": false,
+    "classes": [
+      "access"
+    ],
+    "clauses": [
+      "ACCESS-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agreementId": {
+          "type": "string"
+        },
+        "operatorId": {
+          "type": "string"
+        },
+        "grant": {
+          "type": "string",
+          "enum": [
+            "grant",
+            "revoke"
+          ]
+        }
+      },
+      "required": [
+        "agreementId",
+        "operatorId",
+        "grant"
+      ]
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "untrusted": true
+  },
+  {
+    "name": "locket.people.update",
+    "title": "Assign a native Locket role",
+    "description": "Assign a native Locket role through the current native sponsor and service.",
+    "scope": "locket:people",
+    "readOnly": false,
+    "classes": [
+      "access"
+    ],
+    "clauses": [
+      "ROLE-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operatorId": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "counsel",
+            "approver",
+            "requester",
+            "viewer",
+            "agent"
+          ]
+        }
+      },
+      "required": [
+        "operatorId",
+        "role"
+      ]
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "untrusted": true
+  },
+  {
+    "name": "locket.people.list",
+    "title": "List native people available to the sponsor",
+    "description": "List native people available to the sponsor through the current native sponsor and service.",
+    "scope": "locket:read",
+    "readOnly": true,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "ROLE-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "untrusted": true
+  },
+  {
+    "name": "locket.records.count",
+    "title": "Count the sponsor\u2019s visible agreements",
+    "description": "Count the sponsor\u2019s visible agreements through the current native sponsor and service.",
+    "scope": "locket:read",
+    "readOnly": true,
+    "classes": [
+      "standard"
+    ],
+    "clauses": [
+      "ACCESS-001"
+    ],
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {},
+      "required": []
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "untrusted": true
+  }
+]

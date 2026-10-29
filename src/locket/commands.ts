@@ -66,7 +66,7 @@ export type Handler = (c: Ctx, payload: Record<string, unknown>) => Promise<Outc
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export const auditSql = (c: Ctx, entry: AuditEntry, principalRole: string = c.actor.role): Sql =>
-  sql('INSERT INTO lk_audit VALUES(?,?,?,?,?,?,?,?,?)', crypto.randomUUID(), c.now, c.actor.id, c.actor.name, principalRole, entry.action, entry.agreementId ?? null, entry.summary, c.commandId)
+  sql('INSERT INTO lk_audit VALUES(?,?,?,?,?,?,?,?,?)', crypto.randomUUID(), c.now, c.actor.id, c.actor.agentAdmission ? `${c.actor.agentAdmission.agent.name} for ${c.actor.name}` : c.actor.name, principalRole, entry.action, entry.agreementId ?? null, entry.summary, c.commandId)
 
 export function guardSql(id: string, conditions: Sql[]): Sql {
   // Keep all predicates while avoiding SQLite's expression-depth limit as
@@ -172,6 +172,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   try {
     await commit(c, out.allowed, out.checks ?? [], [
       ...out.writes,
+      ...(actor.agentAdmission ? [sql('INSERT INTO lk_agent_commands(command_id,operation_id,agent_id,agent_name,sponsor_id,sponsor_name,consent,approvers) VALUES(?,?,?,?,?,?,?,?)', commandId, actor.agentAdmission.operationId, actor.agentAdmission.agent.id, actor.agentAdmission.agent.name, actor.id, actor.name, actor.agentAdmission.consent, json(actor.agentAdmission.approvers))] : []),
       ...workflow,
       ...notifications,
       sql('INSERT INTO lk_commands VALUES(?,?,?,?,?,?)', commandId, type, actor.id, digest, json(out.result), c.now),

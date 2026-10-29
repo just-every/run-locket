@@ -1,3 +1,5 @@
+import { locketAgentDoor } from './agent-door/index.server'
+import { businessSettings } from './agent-door/business'
 import { runExecutionRetrievals } from './locket/execution-retrieval'
 import { runConnectionExpiry } from './locket/connection-expiry'
 import { withDemo } from './modules/demo/index.mjs'
@@ -43,6 +45,15 @@ export default withDemo({
   async fetch(request, env, execution) {
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
+    const path = new URL(request.url).pathname
+    if (['/api/rer/business-settings', '/rer-business-logo', '/rer-business.css'].includes(path)) {
+      const business = await businessSettings(runtimeBindings(env)).handle(request)
+      if (business) return business
+    }
+    if (path === '/mcp' || path === '/api/rer/agent-policy' || path === '/agents' || path.startsWith('/agents/') || ['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'].includes(path)) {
+      const agent = await locketAgentDoor(env).handle(request)
+      if (agent) return agent
+    }
     const locket = await locketResponse(request, env)
     if (locket) return locket
     const auth = await authResponse(request, env)

@@ -23,6 +23,18 @@ export const roleSql = `(SELECT CASE WHEN o.role='owner' THEN 'owner' ELSE COALE
 
 /** Scalar SQL: the actor's session is still current and their current role is allowed. */
 export function authority(actor: Actor, allowed: readonly Role[]): Sql {
+  if (actor.agentAdmission) {
+    const admission = actor.agentAdmission
+    return sql(`EXISTS(SELECT 1 FROM oa_operators o WHERE o.id=? AND o.status='active' AND o.version=?
+      AND (o.role='owner' OR NOT EXISTS(SELECT 1 FROM lk_workforce_users WHERE id=o.id) OR EXISTS(SELECT 1 FROM lk_workforce_settings w JOIN oa_operators owner ON owner.id=w.approved_by WHERE w.enabled=1 AND owner.status='active' AND owner.role='owner' AND owner.version=w.owner_version)))
+      AND ${roleSql} IN (${allowed.map(() => '?').join(',')})
+      AND EXISTS(SELECT 1 FROM agent_door_state WHERE id=1 AND local_paused=0 AND envelope IS ? AND local_revision=?
+        AND (envelope IS NULL OR (json_extract(envelope,'$.paused')=0 AND json_extract(envelope,'$.exp')*1000>?
+          AND NOT EXISTS(SELECT 1 FROM json_each(envelope,'$.revoked.consents') WHERE value=?)
+          AND NOT EXISTS(SELECT 1 FROM json_each(envelope,'$.revoked.agents') WHERE value=?))))
+      AND EXISTS(SELECT 1 FROM agent_door_agents WHERE id=? AND sponsor=? AND revoked=0)`,
+      actor.id, actor.operatorVersion, actor.id, ...allowed, admission.envelope, admission.localRevision, Date.now(), admission.consent, admission.agent.id, admission.agent.id, actor.id)
+  }
   return sql(
     `EXISTS(SELECT 1 FROM oa_sessions s JOIN oa_operators o ON o.id=s.operator_id WHERE s.id=? AND o.id=? AND o.status='active' AND s.operator_version=o.version AND s.revoked_at IS NULL AND s.expires_at>? AND (o.role='owner' OR NOT EXISTS(SELECT 1 FROM lk_workforce_users WHERE id=o.id) OR EXISTS(SELECT 1 FROM lk_workforce_settings w JOIN oa_operators owner ON owner.id=w.approved_by WHERE w.enabled=1 AND owner.status='active' AND owner.role='owner' AND owner.version=w.owner_version))) AND ${roleSql} IN (${allowed.map(() => '?').join(',')})`,
     actor.sessionId,

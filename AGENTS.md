@@ -98,6 +98,8 @@ flags, private state, deployment inputs and remote limitations.
 
 ## Work on Locket
 
+Lander-Regenerate: node scripts/contract-docs.mjs write EXEC-002 SIGN-002 SIGN-003 INT-001 INTAKE-004 BASE-AGENT-001 BASE-AGENT-002 BASE-AGENT-003 BASE-AGENT-004 BASE-AGENT-005 BASE-AGENT-006 BASE-AGENT-007 BASE-AGENT-008 BASE-AGENT-009 BASE-AGENT-010 BASE-AGENT-011 BASE-AGENT-012 BASE-AGENT-013
+
 Lander-Regenerate for touched target clauses: `node scripts/contract-docs.mjs write CLAUSE...`,
 then `node scripts/contract-docs.mjs check CLAUSE...`, using the same clause IDs.
 This preserves untouched legacy acceptance records, copies touched acceptance sentences and policy paragraphs verbatim and regenerates `docs/CLAIMS.md` and the source summary counts.
