@@ -486,6 +486,36 @@
       "name": "0084_model_settings.sql",
       "sha256": "63198f35deb89b897f4c3f03faf534a21004925c376155f9f0b95514acb97064",
       "sql": "CREATE TABLE lk_model_settings (\n id TEXT PRIMARY KEY CHECK(id='installation'),\n configuration TEXT NOT NULL,\n version INTEGER NOT NULL,\n updated_by TEXT NOT NULL,\n updated_at INTEGER NOT NULL\n);\nCREATE TABLE lk_model_outputs (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL REFERENCES lk_agreements(id) ON DELETE CASCADE,\n version_id TEXT NOT NULL REFERENCES lk_versions(id),\n task TEXT NOT NULL,\n provider TEXT NOT NULL,\n model TEXT NOT NULL,\n prompt_version TEXT NOT NULL,\n playbook_version TEXT NOT NULL,\n input_digests TEXT NOT NULL,\n settings_version INTEGER NOT NULL,\n simulated INTEGER NOT NULL,\n status TEXT NOT NULL,\n content TEXT,\n input_tokens INTEGER,\n output_tokens INTEGER,\n estimated_usd_micros INTEGER,\n requested_by TEXT NOT NULL,\n accepted_by TEXT,\n accepted_at INTEGER,\n created_at INTEGER NOT NULL\n);\nCREATE TABLE lk_model_usage (\n id TEXT PRIMARY KEY,\n provider TEXT NOT NULL,\n model TEXT NOT NULL,\n simulated INTEGER NOT NULL,\n input_tokens INTEGER,\n output_tokens INTEGER,\n estimated_usd_micros INTEGER,\n created_at INTEGER NOT NULL\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0085_retrieval_consent.sql",
+      "sha256": "28f29a0106a0aa9fc573fe90f180541cfd66f112b4ed9986fee1ef77b60031a7",
+      "sql": "-- Renewed consent creates a new retained decision; earlier decisions never revive.\nCREATE TABLE lk_execution_retrievals_next (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL REFERENCES lk_agreements(id) ON DELETE CASCADE,\n package_id TEXT NOT NULL REFERENCES lk_packages(id) ON DELETE CASCADE,\n actor TEXT NOT NULL,\n connection_version INTEGER NOT NULL,\n status TEXT NOT NULL,\n attempts INTEGER NOT NULL DEFAULT 0,\n next_attempt_at INTEGER NOT NULL,\n lease_until INTEGER,\n last_error TEXT,\n execution_id TEXT REFERENCES lk_executions(id),\n created_at INTEGER NOT NULL,\n updated_at INTEGER NOT NULL,\n binding TEXT,\n outcomes TEXT NOT NULL DEFAULT '[]'\n);\nINSERT INTO lk_execution_retrievals_next\n (id,agreement_id,package_id,actor,connection_version,status,attempts,next_attempt_at,lease_until,last_error,execution_id,created_at,updated_at)\n SELECT id,agreement_id,package_id,actor,connection_version,status,attempts,next_attempt_at,lease_until,last_error,execution_id,created_at,updated_at FROM lk_execution_retrievals;\nDROP TABLE lk_execution_retrievals;\nALTER TABLE lk_execution_retrievals_next RENAME TO lk_execution_retrievals;\nCREATE UNIQUE INDEX lk_retrieval_active_package ON lk_execution_retrievals(package_id)\n WHERE status IN ('waiting','retrying','retrieving');\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0086_execution_followups.sql",
+      "sha256": "79629612e92390dad0b30b95f6c1e0ef9ff1d7412fc6407187d93b656c506979",
+      "sql": "-- Separate decisions for extraction, exact filing destinations and CRM writes.\nCREATE TABLE lk_execution_followups (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL REFERENCES lk_agreements(id) ON DELETE CASCADE,\n package_id TEXT NOT NULL REFERENCES lk_packages(id) ON DELETE CASCADE,\n actor TEXT NOT NULL,\n binding TEXT NOT NULL,\n kind TEXT NOT NULL,\n destination TEXT NOT NULL,\n status TEXT NOT NULL,\n outcome TEXT,\n created_at INTEGER NOT NULL,\n updated_at INTEGER NOT NULL\n);\nCREATE UNIQUE INDEX lk_execution_followup_once ON lk_execution_followups(package_id,kind,destination)\n WHERE status IN ('waiting','uncertain','completed');\n\nCREATE TABLE lk_execution_destinations (\n kind TEXT PRIMARY KEY,\n account_id TEXT NOT NULL,\n revision INTEGER NOT NULL,\n configured_by TEXT NOT NULL,\n configured_at INTEGER NOT NULL\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0087_obligation_occurrences.sql",
+      "sha256": "532fdd393833f6e63d27c798c15d5c9895c9c8cc4a8338b1fe01c828d87681a6",
+      "sql": "-- Each recurrence is a retained obligation with its own evidence and reminder claims.\nALTER TABLE lk_obligations ADD COLUMN series_id TEXT;\nALTER TABLE lk_obligations ADD COLUMN recurrence_anchor TEXT;\nALTER TABLE lk_obligations ADD COLUMN occurrence_number INTEGER NOT NULL DEFAULT 0;\nALTER TABLE lk_obligations ADD COLUMN resolution TEXT CHECK(resolution IS NULL OR resolution IN ('done','waived'));\nALTER TABLE lk_obligations ADD COLUMN waiver_reason TEXT;\nCREATE UNIQUE INDEX lk_obligation_occurrence ON lk_obligations(series_id, occurrence_number) WHERE series_id IS NOT NULL;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0088_accounting_destinations.sql",
+      "sha256": "c48ea57952059771c4708105878976d5905f8cf1d6d3c0ddcb8a287757d2a685",
+      "sql": "CREATE TABLE lk_accounting_destinations (\n provider TEXT PRIMARY KEY CHECK(provider='pantry'),\n origin TEXT NOT NULL, revision INTEGER NOT NULL CHECK(revision>0),\n enabled INTEGER NOT NULL CHECK(enabled IN (0,1)),\n configured_by TEXT NOT NULL, configured_at INTEGER NOT NULL\n);\n-- Legacy proposals have no destination consent revision and cannot be sent.\nALTER TABLE lk_accounting_schedules ADD COLUMN destination_revision INTEGER NOT NULL DEFAULT 0;\n\n-- Retain stale unsent drafts as cancelled when the owner prepares fresh consent.\nCREATE TABLE lk_accounting_revised_schedules (\n id TEXT PRIMARY KEY, agreement_id TEXT NOT NULL REFERENCES lk_agreements(id),\n obligation_id TEXT NOT NULL REFERENCES lk_obligations(id),\n agreement_version INTEGER NOT NULL, origin TEXT NOT NULL, payload TEXT NOT NULL,\n citation TEXT NOT NULL, amount_cents INTEGER NOT NULL, due_date TEXT NOT NULL,\n prepared_by TEXT NOT NULL, prepared_at INTEGER NOT NULL,\n status TEXT NOT NULL CHECK(status IN ('draft','sending','pending','accepted','uncertain','refused','cancelled')),\n remote_id TEXT, sent_at INTEGER, checked_at INTEGER,\n destination_revision INTEGER NOT NULL DEFAULT 0\n);\nINSERT INTO lk_accounting_revised_schedules SELECT * FROM lk_accounting_schedules;\nDROP TABLE lk_accounting_schedules;\nALTER TABLE lk_accounting_revised_schedules RENAME TO lk_accounting_schedules;\nCREATE UNIQUE INDEX lk_accounting_active_occurrence ON lk_accounting_schedules(obligation_id,due_date) WHERE status<>'cancelled';\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0089_enterprise_imports.sql",
+      "sha256": "629237c80bc1ce03f06b82a42da8b921101904f153e9634d4564fecae9d6c3cc",
+      "sql": "-- Keep imported amounts and currencies proposed until a person checks the signed source.\nPRAGMA defer_foreign_keys = ON;\nCREATE TABLE lk_terms_enterprise (\n id TEXT PRIMARY KEY, agreement_id TEXT NOT NULL REFERENCES lk_agreements(id),\n key TEXT NOT NULL CHECK(key IN ('effective_date','end_date','auto_renew','renewal_term_months','notice_days','governing_law','payment_terms','renewal_type','renewals_allowed','initial_term_months','import:value','import:currency') OR key LIKE 'custom:%'),\n value TEXT NOT NULL, citation TEXT NOT NULL,\n status TEXT NOT NULL CHECK(status IN ('proposed','confirmed','rejected','superseded')),\n proposed_by TEXT NOT NULL, proposal_id TEXT, confirmed_by TEXT, confirmed_at INTEGER,\n supersedes_id TEXT, reason TEXT, created_at INTEGER NOT NULL\n);\nINSERT INTO lk_terms_enterprise SELECT * FROM lk_terms;\nDROP TABLE lk_terms;\nALTER TABLE lk_terms_enterprise RENAME TO lk_terms;\nPRAGMA defer_foreign_keys = OFF;\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
@@ -500,8 +530,7 @@
     "MAIL_PROVIDER": "",
     "MAIL_FROM": "",
     "MAIL_RELAY_URL": "",
-    "MAIL_ACCOUNT_ID": "",
-    "OWNER_EMAIL": ""
+    "MAIL_ACCOUNT_ID": ""
   },
   "secretNames": [
     "SESSION_SECRET",
@@ -540,7 +569,11 @@
     "WORKFORCE_SAML_ISSUER",
     "WORKFORCE_SAML_SSO_URL",
     "WORKFORCE_SAML_CERT",
-    "HUBSPOT_ACCESS_TOKEN"
+    "HUBSPOT_ACCESS_TOKEN",
+    "ICERTIS_IMPORT_PROFILE",
+    "ICERTIS_IMPORT_TOKEN",
+    "AGILOFT_IMPORT_PROFILE",
+    "AGILOFT_IMPORT_TOKEN"
   ],
   "schedules": [
     "0 * * * *",

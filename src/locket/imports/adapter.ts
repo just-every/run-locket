@@ -33,6 +33,7 @@ export interface AgreementValue {
   version: Row
   execution: Row
   terms: Row[]
+  versions?: Row[]
 }
 
 async function first<T>(db: D1Database, sql: string, ...params: unknown[]) {
@@ -41,7 +42,7 @@ async function first<T>(db: D1Database, sql: string, ...params: unknown[]) {
 
 const applied = (kind: string, id: string, revision: string) => q('(SELECT revision FROM lk_import_targets WHERE kind=? AND id=?)=?', kind, id, revision)
 
-export function locketTargets(): D1TargetAdapter {
+export function locketTargets(kit = 'docusign-archive'): D1TargetAdapter {
   const adapter: D1TargetAdapter = {
     async read(db, destination, kind, id) {
       const d = db as unknown as D1Database
@@ -68,7 +69,9 @@ export function locketTargets(): D1TargetAdapter {
       const execution = await first<{ v: string }>(d, `SELECT ${objectSql('lk_executions')} AS v FROM lk_executions WHERE agreement_id=? ORDER BY recorded_at LIMIT 1`, id)
       const terms = (await d.prepare(`SELECT ${objectSql('lk_terms')} AS v FROM lk_terms WHERE agreement_id=? ORDER BY id`).bind(id).all<{ v: string }>()).results.map(t => JSON.parse(t.v))
       const parsed = JSON.parse(agreement.v)
-      return { destination, targetKind: kind, targetId: id, revision, value: { agreement: parsed, version: version ? JSON.parse(version.v) : null, execution: execution ? JSON.parse(execution.v) : null, terms } }
+      const enterprise = version && JSON.parse(version.v).fields && JSON.parse(JSON.parse(version.v).fields).enterpriseImport
+      const versions = enterprise ? (await d.prepare(`SELECT ${objectSql('lk_versions')} AS v FROM lk_versions WHERE agreement_id=? AND number>1 ORDER BY number`).bind(id).all<{v:string}>()).results.map(r=>JSON.parse(r.v)) : undefined
+      return { destination, targetKind: kind, targetId: id, revision, value: { agreement: parsed, version: version ? JSON.parse(version.v) : null, execution: execution ? JSON.parse(execution.v) : null, terms, ...(versions ? {versions} : {}) } }
     },
     matches(row, destination, kind, id) {
       const parts = adapter.matchesParts!(row, destination, kind, id)
@@ -91,12 +94,13 @@ export function locketTargets(): D1TargetAdapter {
         applied(kind, id, row.revision),
         exact('lk_versions', v.version),
         exact('lk_executions', v.execution),
-        q(`(SELECT COUNT(*) FROM lk_versions WHERE agreement_id=?)=1`, id),
+        q(`(SELECT COUNT(*) FROM lk_versions WHERE agreement_id=?)=?`, id, 1+(v.versions?.length??0)),
+        ...(v.versions??[]).map(version=>exact('lk_versions',version)),
         q(`(SELECT COUNT(*) FROM lk_executions WHERE agreement_id=?)=1`, id),
         q(`(SELECT json_group_array(json(t)) FROM (SELECT ${objectSql('lk_terms')} AS t FROM lk_terms WHERE agreement_id=? ORDER BY id))=?`, id, JSON.stringify(v.terms.map(t => JSON.parse(ordered('lk_terms', t))))),
         // Files added in Locket after import (imported=0) mean the agreement is in use.
         q('NOT EXISTS(SELECT 1 FROM lk_artifacts WHERE agreement_id=? AND imported=0)', id),
-        q('NOT EXISTS(SELECT 1 FROM lk_agreements WHERE parent_id=?)', id),
+        q("NOT EXISTS(SELECT 1 FROM lk_agreements a WHERE parent_id=? AND NOT EXISTS(SELECT 1 FROM lk_artifacts f WHERE f.agreement_id=a.id AND json_extract(f.provenance,'$.batch')=json_extract(?,'$.enterpriseImport.batch')))", id, v.version.fields??'{}'),
         q('NOT EXISTS(SELECT 1 FROM lk_proposals WHERE agreement_id=?)', id),
         ...downstream.map(t => q(`NOT EXISTS(SELECT 1 FROM ${t} WHERE agreement_id=?)`, id)),
       ]
@@ -106,12 +110,16 @@ export function locketTargets(): D1TargetAdapter {
       if (row.targetKind === 'party') return [insert('lk_parties', row.value as Row), mark]
       if (row.targetKind === 'artifact') {
         const bytes = decodeBase64(row.attachment!.base64)
-        const out = [insert('lk_artifacts', row.value as Row), mark]
+        const value = row.value as Row
+        const insertion = ['icertis','agiloft'].includes(String(value.source_system)) && value.role==='signed'
+          ? q(`INSERT INTO lk_artifacts (${columns.lk_artifacts.join(',')}) SELECT ${columns.lk_artifacts.map(()=>'?').join(',')} WHERE NOT EXISTS(SELECT 1 FROM lk_artifacts WHERE sha256=? AND role IN ('original','signed'))`, ...columns.lk_artifacts.map(c=>value[c]??null),value.sha256)
+          : insert('lk_artifacts', value)
+        const out = [insertion, mark]
         for (let i = 0, n = 0; i < bytes.length; i += CHUNK, n++) out.push(q('INSERT INTO lk_artifact_chunks VALUES(?,?,?)', row.targetId, n, bytes.slice(i, i + CHUNK)))
         return out
       }
       const v = row.value as unknown as AgreementValue
-      return [insert('lk_agreements', v.agreement), insert('lk_versions', v.version), insert('lk_executions', v.execution), ...v.terms.map(t => insert('lk_terms', t)), mark]
+      return [insert('lk_agreements', v.agreement), insert('lk_versions', v.version), ...(v.versions??[]).map(version=>insert('lk_versions',version)), insert('lk_executions', v.execution), ...v.terms.map(t => insert('lk_terms', t)), mark]
     },
     remove(_destination, kind, id) {
       const unmark = q('DELETE FROM lk_import_targets WHERE kind=? AND id=?', kind, id)
@@ -121,7 +129,7 @@ export function locketTargets(): D1TargetAdapter {
     },
     async list(db, destination) {
       const d = db as unknown as D1Database
-      const ids = (await d.prepare("SELECT id FROM lk_agreements WHERE origin='docusign-archive'").all<{ id: string }>()).results
+      const ids = (await d.prepare("SELECT DISTINCT a.id FROM lk_agreements a JOIN lk_artifacts f ON f.agreement_id=a.id WHERE f.source_system=? AND f.imported=1").bind(kit === 'docusign-archive' ? 'docusign' : kit).all<{ id: string }>()).results
       const rows: TargetRow[] = []
       for (const { id } of ids) {
         const row = await adapter.read(db, destination, 'agreement', id)
@@ -130,7 +138,7 @@ export function locketTargets(): D1TargetAdapter {
       return rows
     },
     matchesCount(count) {
-      return q("(SELECT COUNT(*) FROM lk_agreements WHERE origin='docusign-archive')=?", count)
+      return q("(SELECT COUNT(DISTINCT agreement_id) FROM lk_artifacts WHERE source_system=? AND imported=1)=?", kit === 'docusign-archive' ? 'docusign' : kit, count)
     },
   }
   return adapter
