@@ -1,3 +1,4 @@
+import { RepositoryQuestions } from './repository-questions'
 import { AccountingDestinationSettings } from './accounting-schedules'
 import { ModelSettings } from './model-settings'
 import { Connections } from './connections'
@@ -65,6 +66,7 @@ export function LocketApp() {
             {route.view === 'approval-request' && <ApprovalChannelReview id={route.id} locket={locket}/>}
             {route.view === 'approval-word' && <ApprovalChannelInbox state={state}/>}
             {route.view === 'outcome-report' && <OutcomeReports state={state} locket={locket} month={route.id} />}
+            {route.view === 'questions' && <RepositoryQuestions state={state} locket={locket} id={route.id}/>}
             {route.view === 'settings' && <><ModelSettings state={state} locket={locket}/><AccountingDestinationSettings state={state} locket={locket}/></>}
             {route.view === 'connections' && <Connections state={state} locket={locket}/>}
             {route.view === 'queue' && <RequestQueue state={state} locket={locket} />}

@@ -174,3 +174,7 @@
 .lk-obligation-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 2px 0; }
 .lk-obligation-facts dt { font-size: 12px; color: var(--lk-ink-2); }
 .lk-obligation-facts dd { margin: 0; font-size: 14px; }
+
+/* Repository questions retain the workspace layout at phone widths. */
+.lk-questions .lk-form-actions button { min-width: 0; max-width: 100%; white-space: normal; height: auto; text-align: left; }
+.lk-questions pre { max-width: 100%; overflow-wrap: anywhere; }
