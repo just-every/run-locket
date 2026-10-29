@@ -6,7 +6,7 @@ import { fail, money, type Actor } from './model'
 import { repositoryFieldsFor, type CustomRepositoryDefinition, type RepositoryField } from './repository-fields'
 import { defaultViewDefinition, parseViewDefinition, savedViews, type ViewDefinition } from './saved-views'
 import { state } from './views'
-import { searchPassages, type SearchPassage } from './search-passages'
+import { pdfSearchPassages, searchPassages, type SearchPassage } from './search-passages'
 
 export interface RepositoryRow { id: string; matches?: SearchPassage[]; values: Record<string, string | number | null> }
 export interface RepositoryResult { definition: ViewDefinition; columns: RepositoryField[]; rows: RepositoryRow[]; evaluatedAt: number; name?: string }
@@ -48,7 +48,9 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
   for (const a of s.agreements) {
     const current = lifecycle(a, s.terms, s.renewals, s.notices, evaluatedAt, s.settings.rollNoticeDeadlines)
     const terms = Object.fromEntries(s.terms.filter(t => t.agreement_id === a.id && t.status === 'confirmed').map(t => [t.key, t.value]))
-    const matches = searchPassages(s.versions.filter(v => v.agreement_id === a.id), definition.query)
+    const renditions=s.pdfRenditions.filter(r=>r.agreement_id===a.id)
+    const versions=s.versions.filter(v=>v.agreement_id===a.id)
+    const matches = [...searchPassages(versions.filter(v=>!renditions.some(r=>r.version_id===v.id&&['ready','partial'].includes(r.status))),definition.query),...pdfSearchPassages(renditions,versions,definition.query)]
     const deviations = s.deviations.filter(d => d.version_id === a.current_version_id && d.result !== 'met')
     const values: RepositoryRow['values'] = {
       reference: a.reference, title: a.title, type: a.type, status: a.status,

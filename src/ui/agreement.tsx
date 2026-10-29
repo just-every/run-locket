@@ -22,7 +22,7 @@ import { Execution, Signature } from './signature'
 import { liveApprovals } from './summary'
 import { Family } from './family'
 import { Terms } from './terms'
-import { AddVersion, Attachments, Comments, VersionChips } from './versions'
+import { PdfTextStatus, AddVersion, Attachments, Comments, VersionChips } from './versions'
 
 const tabs = [
   { id: 'versions', title: 'Document' },
@@ -36,7 +36,7 @@ const tabs = [
 ]
 const fileLabel: Record<string, string> = { redacted: 'Approved rendition', original: 'Original', rendition: 'Signing PDF', signed: 'Signed PDF', package: 'Signature-ready PDF', manifest: 'Routing manifest' }
 
-export function AgreementPage({ state, id, tab, shown: shownNumber, passage, locket }: { state: LocketState; id: string; tab: string; shown: string; passage: { start: string; end: string }; locket: Locket }) {
+export function AgreementPage({ state, id, tab, shown: shownNumber, passage, locket }: { state: LocketState; id: string; tab: string; shown: string; passage: { start: string; end: string; renditionId?:string }; locket: Locket }) {
   const a = state.agreements.find(x => x.id === id)
   const versions = a ? versionsOf(state, a.id) : []
   const current = a ? currentVersion(state, a) : null
@@ -93,6 +93,7 @@ export function AgreementPage({ state, id, tab, shown: shownNumber, passage, loc
           {shown && <RedactedRenditions state={state} a={a} shown={shown} locket={locket}/>}
           {shown && <ClauseProvenance version={shown} />}
           {shown && <WordReview state={state} a={a} shown={shown} locket={locket}/>}
+          {shown && <PdfTextStatus state={state} shown={shown} locket={locket}/>}
           {shown ? <DocumentPage state={state} a={a} base={base} shown={shown} passage={passage} locket={locket} /> : <Empty>Add a version to see its text.</Empty>}
           {shown && <Comments state={state} a={a} shown={shown} locket={locket} />}
           {a.status !== 'draft' && !state.requirements.some(r => r.agreement_id === a.id && !r.artifact_id && !r.waived_reason) && state.requirements.some(r => r.agreement_id === a.id) && <Attachments state={state} a={a} locket={locket} />}

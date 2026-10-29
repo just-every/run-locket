@@ -1,3 +1,4 @@
+import { pdfRenditions, usablePdfText } from './pdf-renditions'
 import { reconcileRenewalWrites } from './renewal-lifecycle'
 import { remediationCompletionCheck } from './remediation-records'
 import { requireFamilyClear } from './family-analysis-guard'
@@ -47,14 +48,33 @@ export async function citation(c: Ctx, a: AgreementRow, value: unknown) {
   const cite = object(value, 'citation')
   const quote = text(cite, 'quote', 4000)
   const page = cite.page === undefined || cite.page === null ? null : integer(cite, 'page', 1, 5000)
+  const nativeBinding=cite.source==='pdf-text-rendition'||['renditionId','artifactId','sourceSha256','versionDigest'].some(key=>cite[key]!==undefined)
   const signed = await signedDocument(c, a)
+  if(signed&&nativeBinding)fail('STALE','Signed execution evidence now takes precedence. Select a signed-document citation.',409)
   if (signed?.pages) {
     const found = quotedPage(signed.pages, quote, page)
     if (found === null) fail('CITATION', page === null ? 'The quoted words are not in the signed PDF text.' : `The quoted words are not on page ${page} of the signed PDF.`, 400)
     return { source: 'signed-pdf-text', executionId: signed.executionId, versionId: a.current_version_id, quote, page: found }
   }
-  const unread = signed ? { signedText: 'unreadable', executionId: signed.executionId } : {}
   const version = a.current_version_id ? await c.db.prepare('SELECT number, text FROM lk_versions WHERE id=?').bind(a.current_version_id).first<{ number: number; text: string | null }>() : null
+  if(!signed){
+    const rendition=(await pdfRenditions(c.db,new Set([a.id]))).find(r=>r.version_id===a.current_version_id)
+    if(nativeBinding&&!rendition)fail('STALE','The cited PDF rendition is not the current version source. Select its current passage.',409)
+    if(rendition&&(usablePdfText(rendition)||nativeBinding)){
+      if(nativeBinding&&rendition.status==='stale')fail('STALE','The cited PDF source changed. Reload and select its passage again.',409)
+      if(!usablePdfText(rendition))fail('CITATION','The PDF text rendition is unavailable. Review its processing status.',409)
+      for(const [key,expected] of Object.entries({renditionId:rendition.id,artifactId:rendition.artifact_id,sourceSha256:rendition.source_sha256,versionDigest:rendition.version_digest,versionId:rendition.version_id}))
+        if(cite[key]!==undefined&&cite[key]!==expected)fail('STALE','The cited PDF source changed. Reload and select its passage again.',409)
+      const found=rendition.pages.find(p=>p.status==='available'&&(page===null||p.page===page)&&p.text.includes(quote))
+      if(!found)fail('CITATION','The quoted words are not on the cited readable PDF page.',400)
+      const start=found.start+found.text.indexOf(quote),end=start+quote.length
+      const anchors=found.anchors.filter(anchor=>anchor.start<end&&anchor.end>start)
+      c.renditionChecks??=[]
+      c.renditionChecks.push(sql("EXISTS(SELECT 1 FROM lk_pdf_renditions r JOIN lk_artifacts f ON f.id=r.artifact_id JOIN lk_versions v ON v.id=r.version_id WHERE r.id=? AND r.revision=? AND r.status IN ('ready','partial') AND f.sha256=r.source_sha256 AND v.digest=r.version_digest)",rendition.id,rendition.revision))
+      return {source:'pdf-text-rendition',versionId:rendition.version_id,renditionId:rendition.id,artifactId:rendition.artifact_id,sourceSha256:rendition.source_sha256,versionDigest:rendition.version_digest,quote,page:found.page,start,end,anchors}
+    }
+  }
+  const unread = signed ? { signedText: 'unreadable', executionId: signed.executionId } : {}
   if (version?.text) {
     if (!version.text.includes(quote)) fail('CITATION', `The quoted words are not in the executed text of version ${version.number}.`, 400)
     return { source: 'version-text', versionId: a.current_version_id, quote, page, ...unread }
@@ -100,10 +120,11 @@ async function confirmedTerms(c: Ctx, agreementId: string): Promise<Map<string, 
 }
 
 /** Confirming terms supersedes earlier confirmed values of the same keys and keeps them in history. */
-export async function confirmTermsWrites(c: Ctx, a: AgreementRow, terms: { id: string; key: string; value: string }[]) {
+export async function confirmTermsWrites(c: Ctx, a: AgreementRow, terms: { id: string; key: string; value: string; citation?:string }[]) {
   const confirmed = await confirmedTerms(c, a.id)
   const writes: Sql[] = [], checks: Sql[] = [], superseded: string[] = []
   for (const term of terms) {
+    if(term.citation){const cite=JSON.parse(term.citation);if(cite.source==='pdf-text-rendition')await citation(c,a,cite)}
     const previous = await c.db.prepare("SELECT id FROM lk_terms WHERE agreement_id=? AND key=? AND status='confirmed'").bind(a.id, term.key).first<{ id: string }>()
     confirmed.set(term.key, term.value)
     if (previous) {

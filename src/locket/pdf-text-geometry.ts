@@ -133,3 +133,41 @@ export async function pdfAnchorPages(bytes:Uint8Array,anchors:string[]):Promise<
   }finally{await pdf.loadingTask.destroy()}
  }catch{fail('PDF_FIELDS','This PDF cannot be read for field placement. Attach a readable reviewed PDF.',409)}
 }
+
+export interface PdfTextAnchor {start:number;end:number;x:number;y:number;width:number;height:number}
+export interface PdfTextPage {
+ page:number;width:number|null;height:number|null;start:number;end:number;text:string;anchors:PdfTextAnchor[]
+ status:'available'|'unavailable';reason?:string
+}
+/** Reuse actual glyph advances for page positions; unsupported geometry is withheld. */
+export async function pdfTextPage(page:PdfPage,number:number):Promise<PdfTextPage> {
+ const viewport=page.getViewport({scale:1}),runs=await textRuns(page,viewport.transform)
+ const result:PdfTextPage={page:number,width:viewport.width,height:viewport.height,start:0,end:0,text:'',anchors:[],status:'available'}
+ if(runs.some(run=>run.glyphs.some(g=>g.unsupported)))return {...result,status:'unavailable',reason:'This page has unsupported text positioning. No text or coordinates are inferred.'}
+ // PDF.js reconstructs word boundaries from TJ spacing as well as space glyphs.
+ // Match that reading to the replayed glyphs, retaining their actual geometry;
+ // disagreement with the positioned text withholds the page rather than guessing.
+ const content=await page.getTextContent({disableNormalization:true})
+ const reading=content.items.map(item=>'str' in item?item.str:'').join('')
+ const letters=reading.replace(/\s/g,''),positions=[...reading.matchAll(/\S/g)].map(match=>match.index!)
+ const unavailable=():PdfTextPage=>({...result,text:'',anchors:[],status:'unavailable',reason:'This page has no reliable text coordinates.'})
+ let cursor=0
+ for(const run of runs){
+  if(!run.text.trim())continue
+  const runLetters=run.text.replace(/\s/g,'')
+  if(letters.slice(cursor,cursor+runLetters.length)!==runLetters)return unavailable()
+  const text=reading.slice(positions[cursor],positions[cursor+runLetters.length-1]+1).replace(/\s+/g,' ')
+  cursor+=runLetters.length
+  if(result.text)result.text+='\n'
+  const start=result.text.length;result.text+=text
+  const glyphs=run.glyphs
+  if(!glyphs.length)continue
+  const x=Math.min(...glyphs.map(g=>g.x)),y=Math.min(...glyphs.map(g=>g.y))
+  const width=Math.max(...glyphs.map(g=>g.right))-x,height=Math.max(...glyphs.map(g=>g.bottom))-y
+  if(![x,y,width,height].every(Number.isFinite)||width<=0||height<=0)return {...result,text:'',anchors:[],status:'unavailable',reason:'This page has no reliable text coordinates.'}
+  result.anchors.push({start,end:result.text.length,x,y,width,height})
+ }
+ if(cursor!==letters.length)return unavailable()
+ if(!result.text.trim())return {...result,status:'unavailable',reason:'No embedded text is available. OCR is unavailable.'}
+ return {...result,end:result.text.length}
+}

@@ -92,3 +92,60 @@ test(`REPO-006 structured current-term search and exact current and older passag
 
   }
 })
+
+test('REPO-002 background PDF status and page-14 passage navigation', async ({page})=>{
+ page.on('pageerror',error=>console.error('PDF browser error:',error.message))
+ test.setTimeout(180_000)
+ const {embeddedPdf,nativePdfImport}=await import('../api/pdf-rendition-fixture.mjs')
+ const p=await productPage(page,{width:1440})
+ const shot=async(name:string)=>{
+  if(!process.env.LOCKET_SCREENSHOTS)return
+  await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true})
+  for(const width of [1440,390]){
+   await page.setViewportSize({width,height:1000})
+   await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-REPO-002-${name}.png`),fullPage:true})
+  }
+  await page.setViewportSize({width:1440,height:1000})
+ }
+ try{
+  const created=await p.owner.command('legacy.import',nativePdfImport(await embeddedPdf('synthetic-locket-browser')))
+  await page.goto(p.origin+'/app#agreement/'+created.id+'/versions/1')
+  const status=page.getByLabel('PDF text processing')
+  await expect(status.getByRole('status')).toContainText('queued for background processing')
+  await shot('queued')
+  await p.h.scheduled(Date.now())
+  await page.reload()
+  await expect(status.getByRole('status')).toHaveText('Embedded PDF text ready: 20 pages.')
+  await expect(status.getByRole('progressbar')).toHaveAttribute('value','20')
+  await shot('ready')
+  await page.goto(p.origin+'/app#agreements')
+  const searched=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/locket/search')
+  await page.getByRole('searchbox',{name:'Search agreements you can access'}).fill('Aurora escrow')
+  await searched
+  const link=page.locator(`[data-agreement-id="${created.id}"]`).getByRole('link',{name:/v1.*page 14.*Aurora escrow/})
+  await expect(link).toBeVisible()
+  await link.click()
+  await expect(page.locator('mark[data-search-hit]')).toHaveText('Aurora escrow')
+  await expect(page.locator('mark[data-search-hit]')).toHaveAttribute('data-pdf-page','14')
+  await expect(page.locator('mark[data-search-hit]')).toBeInViewport()
+  await expect(page.getByRole('link',{name:'Open original page 14'})).toHaveAttribute('href',/\/api\/locket\/files\/[^#]+#page=14&zoom=150,50,80$/)
+  await shot('page-14-passage')
+  const transcribed=await p.owner.command('request.create',{title:'synthetic-locket-transcription',type:'other',party:{name:'synthetic-locket-transcription',kind:'supplier'},file:file('transcribed.pdf',await embeddedPdf('synthetic-locket-transcription')),text:'Person supplied review text stays pinned.'})
+  await page.goto(p.origin+'/app#agreements')
+  await page.reload()
+  const oldSearch=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/locket/search')
+  await page.getByRole('searchbox',{name:'Search agreements you can access'}).fill('Person supplied review')
+  await oldSearch
+  const transcriptionLink=page.locator(`[data-agreement-id="${transcribed.id}"]`).getByRole('link',{name:/Person supplied review/})
+  const transcriptionHref=await transcriptionLink.getAttribute('href')
+  expect(transcriptionHref).toMatch(/versions\/1\/0\/22$/)
+  await p.h.scheduled(Date.now())
+  await page.goto(p.origin+'/app'+transcriptionHref)
+  await page.reload()
+  await expect(page.locator('mark[data-search-hit]')).toHaveText('Person supplied review')
+  await expect(page.locator('mark[data-search-hit]')).not.toHaveAttribute('data-pdf-page')
+  await page.goto(p.origin+'/app#agreement/'+created.id+'/versions/1/0/10/unavailable-rendition')
+  await expect(page.locator('.lk-paper-empty')).toContainText('This PDF passage is unavailable')
+  await expect(page.locator('mark[data-search-hit]')).toHaveCount(0)
+ }finally{await p.close()}
+})

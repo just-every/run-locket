@@ -1,3 +1,4 @@
+import { runPdfRenditions } from '../../src/locket/pdf-renditions'
 import { runExecutionRetrievals } from '../../src/locket/execution-retrieval'
 import { runConnectionExpiry } from '../../src/locket/connection-expiry'
 import { runApprovalChannels } from '../../src/locket/approval-channel-automatic'
@@ -25,6 +26,7 @@ export default {
   },
   async scheduled(controller: ScheduledController, env: any) {
     Date.now = env.TEST_NOW ? () => Number(env.TEST_NOW) : systemNow
+    await runPdfRenditions(env,controller.scheduledTime)
     await runExecutionRetrievals(env,controller.scheduledTime)
     await runConnectionExpiry(env,controller.scheduledTime)
     await runRenewalLifecycle(env,controller.scheduledTime)

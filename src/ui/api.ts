@@ -62,6 +62,7 @@ export interface LocketState extends importReconciliationWorkspace,ServiceLevelW
   versionAudiences: Row[]
   commentAudiences: Row[]
   versions: Row[]
+  pdfRenditions: import('../locket/pdf-renditions').PdfRendition[]
   redactedRenditions: Row[]
   artifacts: Row[]
   comments: Row[]
