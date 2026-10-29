@@ -47,7 +47,8 @@ const erase:Handler=async(c,p)=>{
  let changedRecords=0
  for(const patch of plan.patches){
   if(patch.agreementId&&deleted.has(patch.agreementId))continue
-  const entries=Object.entries(patch.after),sets=entries.map(([k])=>`${k}=?`)
+  const entries=Object.entries(patch.table==='lk_pdf_renditions'?{...patch.after,text:'',pages:'[]'}:patch.after),sets=entries.map(([k])=>`${k}=?`)
+  if(patch.table==='lk_pdf_renditions')sets.push("status='erased'",'revision=revision+1')
   if(patch.table==='lk_redacted_renditions')sets.push('approved_by=NULL','approved_at=NULL','policy_version=NULL','revision=revision+1')
   if(patch.table==='lk_parties')sets.push('version=version+1')
   if(patch.table==='lk_comments'){
@@ -63,6 +64,7 @@ const erase:Handler=async(c,p)=>{
   if(patch.table==='lk_notice_dispatches')sets.push("status=CASE WHEN status='pending' THEN 'cancelled' ELSE status END")
   writes.push(sql(`UPDATE ${patch.table} SET ${sets.join(',')} WHERE id=?`,...entries.map(([,v])=>v),patch.id));changedRecords++
  }
+ for(const agreementId of plan.related)writes.push(sql("UPDATE lk_pdf_renditions SET status='erased',text='',pages='[]',revision=revision+1 WHERE agreement_id=? AND NOT EXISTS(SELECT 1 FROM lk_legal_holds WHERE agreement_id=? AND active=1)",agreementId,agreementId))
  for(const id of deleted){const a=await visibleAgreement(c,id),out=await draftDeletion(c,a);writes.push(...out.writes);checks.push(...out.checks)}
  const operators=(await c.db.prepare('SELECT id FROM oa_operators WHERE lower(email)=?').bind(email).all<{id:string}>()).results
  for(const person of operators)writes.push(sql("INSERT INTO lk_person_preferences(operator_id,timezone,digest,email,updated_by,updated_at) VALUES(?,'America/New_York',0,0,?,?) ON CONFLICT(operator_id) DO UPDATE SET email=0",person.id,c.actor.id,c.now),sql("UPDATE lk_notifications SET email_status='cancelled',code='personal_data_erased' WHERE recipient_id=? AND email_status IN ('pending','immediate','digest') AND NOT EXISTS(SELECT 1 FROM lk_legal_holds h WHERE h.agreement_id=lk_notifications.agreement_id AND h.active=1)",person.id))

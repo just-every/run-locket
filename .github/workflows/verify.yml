@@ -150,6 +150,15 @@ jobs:
         run: |
           LOCKET_SCREENSHOTS="${RUNNER_TEMP}/locket-commercial" node tests/browser/proposal-pricing-journey.mjs
           LOCKET_SCREENSHOTS="${RUNNER_TEMP}/locket-commercial" pnpm exec playwright test --config tests/browser/playwright.config.ts notices.spec.ts --grep 'LINK-001' --workers=1
+      - name: Prove embedded PDF processing and passage navigation
+        if: matrix.name == 'core'
+        run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-pdf-text" pnpm exec playwright test --config tests/browser/playwright.config.ts search.spec.ts --grep 'REPO-002' --workers=1
+      - name: Keep embedded PDF screens
+        if: matrix.name == 'core'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: embedded-pdf-screens
+          path: ${{ runner.temp }}/locket-pdf-text
       - name: Prove native obligation lifecycle and owner lists
         if: matrix.name == 'core'
         run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-obligations" pnpm exec playwright test --config tests/browser/playwright.config.ts obligation-evidence.spec.ts --workers=1

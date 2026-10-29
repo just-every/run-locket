@@ -1,5 +1,6 @@
 import { locketAgentDoor } from './agent-door/index.server'
 import { businessSettings } from './agent-door/business'
+import { runPdfRenditions } from './locket/pdf-renditions'
 import { runExecutionRetrievals } from './locket/execution-retrieval'
 import { runConnectionExpiry } from './locket/connection-expiry'
 import { withDemo } from './modules/demo/index.mjs'
@@ -68,6 +69,7 @@ export default withDemo({
   },
   // APPROVE-004 approval and RENEW-002 deadline reminders, hourly (triggers.crons in wrangler.jsonc, crons in deploy.json).
   async scheduled(controller, env) {
+    await runPdfRenditions(runtimeBindings(env),controller.scheduledTime)
     await runExecutionRetrievals(runtimeBindings(env),controller.scheduledTime)
     if(controller.cron==='* * * * *')return
     await runConnectionExpiry(runtimeBindings(env),controller.scheduledTime)

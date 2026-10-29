@@ -1,5 +1,7 @@
+import type { PdfRendition } from './pdf-renditions'
+import type { PdfTextAnchor } from './pdf-text-geometry'
 // Literal, case-insensitive matches keep offsets in the original immutable text.
-export interface SearchPassage { versionId: string; version: number; start: number; end: number; quote: string; excerpt: string }
+export interface SearchPassage { versionId: string; version: number; start: number; end: number; quote: string; excerpt: string; renditionId?:string; artifactId?:string; sourceSha256?:string; versionDigest?:string; page?:number; position?:PdfTextAnchor }
 export function searchPassages(versions: { id: string; number: number; text: string | null }[], query: string): SearchPassage[] {
   if (!query) return []
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -18,4 +20,17 @@ export function searchPassages(versions: { id: string; number: number; text: str
     }
   }
   return results
+}
+
+/** A rendition has its own offsets; the version's approval-pinned text stays intact. */
+export function pdfSearchPassages(renditions:PdfRendition[],versions:{id:string;number:number}[],query:string):SearchPassage[] {
+ return renditions.filter(r=>['ready','partial'].includes(r.status)).flatMap(r=>{
+  const version=versions.find(v=>v.id===r.version_id)
+  if(!version)return []
+  return searchPassages([{...version,text:r.text}],query).flatMap(hit=>{
+   const page=r.pages.find(p=>p.status==='available'&&hit.start>=p.start&&hit.end<=p.end)
+   const position=page?.anchors.find(a=>a.start<=hit.start&&a.end>=hit.end)
+   return page&&position?[{...hit,renditionId:r.id,artifactId:r.artifact_id,sourceSha256:r.source_sha256,versionDigest:r.version_digest,page:page.page,position}]:[]
+  })
+ })
 }

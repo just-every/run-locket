@@ -40,10 +40,14 @@ export function notesFor(state: LocketState, a: Row, shown: Row, swapped: (start
   return notes
 }
 
-export function DocumentPage({ state, a, base, shown, passage, locket }: { state: LocketState; a: Row; base: Row | null; shown: Row; passage: { start: string; end: string }; locket: Locket }) {
-  const marked = useRedline(base, shown)
+export function DocumentPage({ state, a, base, shown: sourceShown, passage, locket }: { state: LocketState; a: Row; base: Row | null; shown: Row; passage: { start: string; end: string; renditionId?:string }; locket: Locket }) {
+  const rendition=state.pdfRenditions.find(r=>r.version_id===sourceShown.id&&['ready','partial'].includes(r.status)&&(!passage.start||r.id===passage.renditionId))
+  const shown=useMemo(()=>rendition?{...sourceShown,text:rendition.text}:passage.renditionId?{...sourceShown,text:null}:sourceShown,[sourceShown,rendition,passage.renditionId])
+  const marked = useRedline(rendition?null:base, shown)
   const start = /^\d+$/.test(passage.start) ? Number(passage.start) : -1
   const end = /^\d+$/.test(passage.end) ? Number(passage.end) : -1
+  const pdfPage=rendition?.pages.find(p=>start>=p.start&&end<=p.end)
+  const pdfPosition=pdfPage?.anchors.find(p=>p.start<=start&&p.end>=end)
   const hit = start >= 0 && end > start && end <= (shown.text?.length ?? 0) ? { start, end } : null
   useEffect(() => {
     if (hit) paper.current?.querySelector('[data-search-hit]')?.scrollIntoView({ block: 'center' })
@@ -59,10 +63,10 @@ export function DocumentPage({ state, a, base, shown, passage, locket }: { state
   }, [])
   const paragraphs = marked?.sections.flatMap(s => s.paragraphs) ?? []
   const within = (p: Paragraph, start: number) => p.segments.length > 0 && p.start <= start && start <= p.end && p.segments.some(s => s.op !== 'del')
-  const notes = useMemo(() => notesFor(state, a, shown, start => paragraphs.some(p => within(p, start) && p.segments.some(s => s.op === 'del') && p.segments.some(s => s.op === 'add'))), [state, a, shown, marked])
+  const notes = useMemo(() => rendition?[]:notesFor(state, a, shown, start => paragraphs.some(p => within(p, start) && p.segments.some(s => s.op === 'del') && p.segments.some(s => s.op === 'add'))), [state, a, shown, marked, rendition])
   const inPara = (p: Paragraph) => notes.filter(n => within(p, n.start)).sort((x, y) => order[x.tone] - order[y.tone])
   // Rules met on the other changed clauses read as a tick beside the clause.
-  const ticks = (p: Paragraph) => (p.changed ? state.deviations.filter(d => d.version_id === shown.id && d.result === 'met' && within(p, d.start_offset) && !notes.some(n => n.row.id === d.id)) : [])
+  const ticks = (p: Paragraph) => (!rendition && p.changed ? state.deviations.filter(d => d.version_id === shown.id && d.result === 'met' && within(p, d.start_offset) && !notes.some(n => n.row.id === d.id)) : [])
 
   // Margin notes beside their clauses, stacked so none overlap, with a dotted connector from the cited words.
   useLayoutEffect(() => {
@@ -115,7 +119,7 @@ export function DocumentPage({ state, a, base, shown, passage, locket }: { state
     return () => { watch.disconnect(); window.removeEventListener('resize', place); page.removeEventListener('toggle', place, true) }
   }, [notes, opened, marked, wide])
 
-  if (!marked) return <div className="lk-paper lk-paper-empty"><p className="lk-empty">This version has no text. Supply text or a DOCX to compare and cite passages.</p></div>
+  if (!marked) return <div className="lk-paper lk-paper-empty"><p className="lk-empty">{passage.renditionId?'This PDF passage is unavailable because its source changed or processing is incomplete.':'This version has no readable text yet. Check PDF processing, or supply text or a DOCX to compare and cite passages.'}</p></div>
   const folding = !!base && marked.changes > 0
   // Below 1100 px the sections before the open decision's, with nothing open in them, fold like unchanged ones.
   const openAt = wide ? -1 : marked.sections.findIndex(s => s.paragraphs.some(p => inPara(p).some(n => n.tone === 'open')))
@@ -134,7 +138,7 @@ export function DocumentPage({ state, a, base, shown, passage, locket }: { state
     const text = cut(p.segments, marks).map((s, i) => {
       const ids = s.op === 'del' ? '' : here.filter(n => n.start < s.start + s.text.length && n.end > s.start).map(n => n.id).join(' ')
       const notes = ids || undefined
-      const content = hit && s.op !== 'del' && s.start >= hit.start && s.start < hit.end ? <mark data-search-hit>{s.text}</mark> : s.text
+      const content = hit && s.op !== 'del' && s.start >= hit.start && s.start < hit.end ? <mark data-search-hit data-pdf-page={rendition?.pages.find(p=>s.start>=p.start&&s.start<p.end)?.page}>{s.text}</mark> : s.text
       return s.op === 'add' ? <ins key={i} data-notes={notes}>{content}</ins> : s.op === 'del' ? <del key={i}>{s.text}</del> : <span key={i} data-notes={notes}>{content}</span>
     })
     const ghost = here.find(n => n.kind === 'finding' && n.tone === 'open' && n.row.proposed_wording)
@@ -175,6 +179,7 @@ export function DocumentPage({ state, a, base, shown, passage, locket }: { state
   }
   return (
     <div className="lk-paper" ref={paper}>
+      {pdfPage&&pdfPosition&&<p className="lk-note" aria-label="PDF passage location">Page {pdfPage.page} · <a href={`/api/locket/files/${rendition!.artifact_id}#page=${pdfPage.page}&zoom=150,${pdfPosition.x},${pdfPosition.y}`} target="_blank" rel="noreferrer">Open original page {pdfPage.page}</a></p>}
       <svg className="lk-links" aria-hidden="true">
         <defs><marker id="lk-note-endpoint" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="4" markerHeight="4"><circle cx="3" cy="3" r="2" fill="context-stroke" /></marker></defs>
         {links.map((l, i) => <path key={i} d={l.d} stroke={color[l.tone]} markerStart="url(#lk-note-endpoint)" markerEnd="url(#lk-note-endpoint)" />)}

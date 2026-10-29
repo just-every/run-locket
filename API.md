@@ -701,3 +701,34 @@ The declared core registry is in `agent-surface.json`; its native schemas and sc
 This declaration does not expose all native commands. Signing, approval of legal/commercial evidence, execution, provider operations, notices, extraction, erasure and the remaining specialist jobs are not claimed as company-agent jobs by this core adoption. The broader unpublished ct surface remains owed. Standalone agent credentials, resource refresh, multiple sponsors and spend reservations are not implemented by this adoption. Device/Word, interactive signing, connector configuration, move-in and installation doors keep their own credentials and purposes.
 
 Read tools retain native visibility. Native resource adapters remain internal and are not advertised or returned as MCP links; public resource reads return `capability_not_declared`. Document and imported text is untrusted evidence. Read projections exclude provider/queue state and credentials. No provider cost or spend enforcement is registered. Read the clause gaps before treating a supported primitive as a completed specialist journey.
+
+## Native embedded PDF text
+
+`legacy.import`, `request.create` and `version.upload` automatically queue PDFs
+for native embedded-text reading. The minute trigger processes actual stored
+bytes and saves page progress durably. No provider request or model task runs.
+Unreadable files fail explicitly; image-only pages and unsupported text geometry
+remain unavailable. This is not OCR and establishes no live evaluation result.
+
+Workspace `pdfRenditions` reports each accessible source artifact, source SHA-256,
+version identity and digest, processing status, processed and total pages, error,
+derived text and page anchors in PDF points measured from the page's top left.
+Original bytes and the version's approval-pinned text and digest never change.
+Source changes withhold the rendition; erasure cancels affected mutable work.
+Current agreement permissions and hidden-field policy also apply to this text.
+
+PDF search passages add `renditionId`, `artifactId`, `sourceSha256`,
+`versionDigest`, `page` and `position` to the normal immutable text offsets.
+`position` bounds the actual text run containing the literal match. The document
+view highlights that passage and links to the original page and position. Passage
+links pin the rendition identity, version and offsets; older transcription links
+continue to refer to the approval-pinned text.
+
+A manually proposed term may cite the rendition using `quote`, `page` and those
+source bindings. Wrong-page quotes and stale bindings are refused. Terms stay
+proposed until human confirmation, which rechecks the retained rendition.
+Existing human page-only citations remain explicitly labelled as page evidence
+while native reading is pending or unavailable; they gain no machine coordinates.
+Readable signed execution evidence continues to take precedence over draft text.
+Scanned-page OCR, correction history and the named-provider live REVIEW-006
+proof remain required by REPO-002 and are not offered by this native reader.

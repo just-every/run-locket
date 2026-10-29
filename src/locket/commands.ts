@@ -47,6 +47,7 @@ export interface Ctx {
   now: number
   commandId: string
   request?: Request
+  renditionChecks?: Sql[]
   erasureChecks?: Sql[]
 }
 export interface AuditEntry {
@@ -166,7 +167,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   c.erasureChecks=await refuseErasedAddress(c,type,payload)
   const familyChecks = await familyCommandChecks(c, type, payload)
   const out = await handlers[type](c, payload)
-  out.checks=[...(type!=='agreement.hidden-value'&&!/^(view\.|notification\.|preferences\.)/.test(type)?[fullFieldsCheck(actor)]:[]),...integrationChecks,...familyChecks,...(out.checks??[]),...(c.erasureChecks??[]),policyVersionCheck(policy.version)]
+  out.checks=[...(type!=='agreement.hidden-value'&&!/^(view\.|notification\.|preferences\.)/.test(type)?[fullFieldsCheck(actor)]:[]),...integrationChecks,...familyChecks,...(c.renditionChecks??[]),...(out.checks??[]),...(c.erasureChecks??[]),policyVersionCheck(policy.version)]
   const notifications = await commandNotifications(c, type, payload, out)
   const workflow = await workflowWrites(c, out.audit)
   try {
