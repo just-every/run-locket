@@ -5,7 +5,7 @@ import { CommentThread } from './comment-threads'
 // in the top bar, adding the next version (upload, template or signing PDF),
 // the required attachments and submitting for review, and the comment box.
 import { ClauseLibrary } from './clause-library'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { fileToPayload, type LocketState, type Row } from './api'
 import type { Locket } from './app'
 import { Field, Form, Icon, value } from './controls'
@@ -65,7 +65,7 @@ export function AddVersion({ state, a, locket, onDone }: { state: LocketState; a
           <Field label="Document (PDF or DOCX)"><input type="file" name="file" accept=".pdf,.docx" required /></Field>
           <Field label="Whose version"><select name="kind"><option value="upload">Our revision</option><option value="counterparty">Counterparty markup</option></select></Field>
           <Field label="Label"><input name="label" placeholder="e.g. Theirs, with Alicia's markup" /></Field>
-          <Field label="Text (optional for PDF)" hint="DOCX text is read automatically. For a PDF, paste its text to allow comparison and cited review."><textarea name="text" rows={3} /></Field>
+          <Field label="Text (optional for PDF)" hint="DOCX text is read automatically. Embedded PDF text is processed in the background. Pasted text stays separate from that rendition."><textarea name="text" rows={3} /></Field>
         </Form>
         <div className="lk-stack">
           {state.templateVersions.some(t => t.status === 'approved') && (
@@ -195,4 +195,18 @@ export function TemplateVersionForm({ state, busy, onSubmit }: { state: LocketSt
       {word?.pricing&&<PricingLines items={lineItems} onChange={setLineItems}/>}
     </Form>
   )
+}
+
+/** Processing is observable without rewriting approval-pinned text. */
+export function PdfTextStatus({state,shown,locket}:{state:LocketState;shown:Row;locket:Locket}){
+ const r=state.pdfRenditions.find(r=>r.version_id===shown.id)
+ const pending=r&&['queued','processing'].includes(r.status)
+ useEffect(()=>{if(!pending)return;const timer=window.setInterval(()=>void locket.refresh(),3000);return()=>window.clearInterval(timer)},[pending,locket.refresh])
+ if(!r)return null
+ return <section className="lk-panel" aria-label="PDF text processing" style={{fontSize:14}}>
+ <p role="status">{r.status==='queued'?'PDF text queued for background processing.':r.status==='processing'?`Reading embedded PDF text: ${r.processed_pages} of ${r.total_pages??'unknown'} pages.`:r.status==='ready'?`Embedded PDF text ready: ${r.processed_pages} pages.`:r.status==='partial'?'Embedded PDF text processed; some pages are unavailable.':r.error??'PDF text is unavailable.'}</p>
+ {r.total_pages!==null&&<progress aria-label="PDF pages processed" max={r.total_pages} value={r.processed_pages}/>}
+ {r.pages.filter(p=>p.status==='unavailable').map(p=><p key={p.page}>Page {p.page}: {p.reason}</p>)}
+ {['ready','partial'].includes(r.status)&&<p>Derived from the original PDF. Approval text and original bytes are unchanged. OCR is unavailable.</p>}
+ </section>
 }

@@ -133,3 +133,28 @@ export async function pdfAnchorPages(bytes:Uint8Array,anchors:string[]):Promise<
   }finally{await pdf.loadingTask.destroy()}
  }catch{fail('PDF_FIELDS','This PDF cannot be read for field placement. Attach a readable reviewed PDF.',409)}
 }
+
+export interface PdfTextAnchor {start:number;end:number;x:number;y:number;width:number;height:number}
+export interface PdfTextPage {
+ page:number;width:number|null;height:number|null;start:number;end:number;text:string;anchors:PdfTextAnchor[]
+ status:'available'|'unavailable';reason?:string
+}
+/** Reuse actual glyph advances for page positions; unsupported geometry is withheld. */
+export async function pdfTextPage(page:PdfPage,number:number):Promise<PdfTextPage> {
+ const viewport=page.getViewport({scale:1}),runs=await textRuns(page,viewport.transform)
+ const result:PdfTextPage={page:number,width:viewport.width,height:viewport.height,start:0,end:0,text:'',anchors:[],status:'available'}
+ if(runs.some(run=>run.glyphs.some(g=>g.unsupported)))return {...result,status:'unavailable',reason:'This page has unsupported text positioning. No text or coordinates are inferred.'}
+ for(const run of runs){
+  if(!run.text.trim())continue
+  if(result.text)result.text+='\n'
+  const start=result.text.length;result.text+=run.text
+  const glyphs=run.glyphs
+  if(!glyphs.length)continue
+  const x=Math.min(...glyphs.map(g=>g.x)),y=Math.min(...glyphs.map(g=>g.y))
+  const width=Math.max(...glyphs.map(g=>g.right))-x,height=Math.max(...glyphs.map(g=>g.bottom))-y
+  if(![x,y,width,height].every(Number.isFinite)||width<=0||height<=0)return {...result,text:'',anchors:[],status:'unavailable',reason:'This page has no reliable text coordinates.'}
+  result.anchors.push({start,end:result.text.length,x,y,width,height})
+ }
+ if(!result.text.trim())return {...result,status:'unavailable',reason:'No embedded text is available. OCR is unavailable.'}
+ return {...result,end:result.text.length}
+}

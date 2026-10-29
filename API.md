@@ -691,3 +691,32 @@ Workspace `obligations` retain the proposal record status and add `lifecycle_sta
 Completing or waiving a dated recurring occurrence atomically retains it and creates one next confirmed occurrence, returned as `nextId`, with fresh evidence fields. `series_id`, `recurrence_anchor` and `occurrence_number` preserve the original monthly, quarterly or annual schedule with month-end clamping. `next_due_date` identifies the current open occurrence, without skipping missed dates. An undated manually confirmed recurrence stays unscheduled; no first due date is inferred. Replaying a command does not duplicate an occurrence or notification. A supplied `version` fences the displayed agreement revision; every write also repeats current server authority and source record guards. Proposed and rejected obligations never schedule reminders.
 
 The owner-only reasoned waiver is an interim conservative default pending CT review. It changes local tracking for one occurrence and grants no authority to amend or legally release a contract obligation. Built-in extraction remains unavailable; these manually cited flows invoke no model and establish no live REVIEW-006 result.
+
+## Native embedded PDF text
+
+`legacy.import`, `request.create` and `version.upload` automatically queue PDFs
+for native embedded-text reading. The minute trigger processes actual stored
+bytes and saves page progress durably. No provider request or model task runs.
+Unreadable files fail explicitly; image-only pages and unsupported text geometry
+remain unavailable. This is not OCR and establishes no live evaluation result.
+
+Workspace `pdfRenditions` reports each accessible source artifact, source SHA-256,
+version identity and digest, processing status, processed and total pages, error,
+derived text and page anchors in PDF points measured from the page's top left.
+Original bytes and the version's approval-pinned text and digest never change.
+Source changes withhold the rendition; erasure cancels affected mutable work.
+Current agreement permissions and hidden-field policy also apply to this text.
+
+PDF search passages add `renditionId`, `artifactId`, `sourceSha256`,
+`versionDigest`, `page` and `position` to the normal immutable text offsets.
+`position` bounds the actual text run containing the literal match. The document
+view highlights that passage and links to the original page and position. Passage
+links pin the rendition identity, version and offsets; older transcription links
+continue to refer to the approval-pinned text.
+
+A manually proposed term may cite the rendition using `quote`, `page` and those
+source bindings. Wrong-page quotes and stale bindings are refused. Terms stay
+proposed until human confirmation, which rechecks the retained rendition.
+Readable signed execution evidence continues to take precedence over draft text.
+Scanned-page OCR, correction history and the named-provider live REVIEW-006
+proof remain required by REPO-002 and are not offered by this native reader.

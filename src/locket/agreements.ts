@@ -1,3 +1,4 @@
+import { queuePdfRendition } from './pdf-renditions'
 import { chatLaunch } from './chat-intake'
 import { captureSignatureRuleSet } from './signature-rules'
 import { applicableRecommendationPlaybook } from './playbook-recommendations'
@@ -133,7 +134,7 @@ async function uploadedVersion(c: Ctx, agreementId: string, number: number, kind
     id,
     number,
     digest,
-    writes: [...artifact.writes, sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, kind, label, null, fields ? json(fields) : null, body, source, digest, c.actor.id, c.now),...(word?.writes??[])],
+    writes: [...artifact.writes, sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, agreementId, number, kind, label, null, fields ? json(fields) : null, body, source, digest, c.actor.id, c.now),...(word?.writes??[]),...(isPdf(file)?[queuePdfRendition(agreementId,id,artifact.id,artifact.sha256,digest,c.now)]:[])],
   }
 }
 async function templateVersion(c: Ctx, agreementId: string, number: number, p: Record<string, unknown>, extra: Record<string, string>, entity: EntityRow | null, agreementType:string, priorFields: string | null = null): Promise<NewVersion> {
@@ -425,6 +426,7 @@ const importLegacy: Handler = async (c, p) => {
       sql(agreementInsert, id, reference, title, type, party.id, value.valueCents, value.currency, ownerId, c.actor.id, status, bool(p, 'restricted') ? 1 : 0, null, optionalDate(p, 'startDate'), await zoneFor(c, p, entity), null, null, 'legacy', versionId, c.now, c.now, entity?.id ?? null, value.originalCents, value.rate, value.rateBy, value.rateAt),
       ...artifact.writes,
       sql('INSERT INTO lk_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', versionId, id, 1, 'legacy', `Imported from ${sourceSystem}`, null, null, body, source, vdigest, c.actor.id, c.now),
+      ...(isPdf(file)?[queuePdfRendition(id,versionId,artifact.id,artifact.sha256,vdigest,c.now)]:[]),
       ...custom.writes,
     ],
     checks: [...party.checks, ...custom.checks, sql('NOT EXISTS(SELECT 1 FROM lk_artifacts WHERE sha256=? AND role IN (\'original\',\'signed\'))', digest), entity ? sql('EXISTS(SELECT 1 FROM lk_entities WHERE id=?)', entity.id) : sql('NOT EXISTS(SELECT 1 FROM lk_entities)')],

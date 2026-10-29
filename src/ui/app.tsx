@@ -29,14 +29,14 @@ const pageTitle: Record<string, string> = { new: 'New request', 'import-signed':
 
 /** #view/id/tab/version: a section, or one agreement with its tab and the version shown. */
 function readHash() {
-  const [view = 'portfolio', id = '', tab = '', shown = '', start = '', end = ''] = window.location.hash.slice(1).split('/')
-  return { view: view || 'portfolio', id, tab, shown, start, end }
+  const [view = 'portfolio', id = '', tab = '', shown = '', start = '', end = '', renditionId = ''] = window.location.hash.slice(1).split('/')
+  return { view: view || 'portfolio', id, tab, shown, start, end, renditionId }
 }
 
 export function LocketApp() {
   const locket = useLocket()
   const { state, error, setError, notice, setNotice, busy } = locket
-  const [route, setRoute] = useState({ view: 'agreements', id: '', tab: '', shown: '', start: '', end: '' })
+  const [route, setRoute] = useState({ view: 'agreements', id: '', tab: '', shown: '', start: '', end: '', renditionId: '' })
   const [query, setQuery] = useState('')
   useEffect(() => {
     const update = () => { setRoute(readHash()); setError(''); setNotice(''); window.scrollTo(0, 0) }
@@ -70,7 +70,7 @@ export function LocketApp() {
             {route.view === 'queue' && <RequestQueue state={state} locket={locket} />}
             {route.view === 'portfolio' && <Portfolio state={state} />}
             {route.view === 'agreements' && <Register state={state} locket={locket} query={query} portfolioFilter={route.id === 'portfolio' ? route.tab : ''} />}
-            {route.view === 'agreement' && <AgreementPage key={route.id} state={state} id={route.id} tab={route.tab} shown={route.shown} passage={{ start: route.start, end: route.end }} locket={locket} />}
+            {route.view === 'agreement' && <AgreementPage key={route.id} state={state} id={route.id} tab={route.tab} shown={route.shown} passage={{ start: route.start, end: route.end, renditionId:route.renditionId }} locket={locket} />}
             {route.view === 'counterparty' && <Counterparty key={route.id} state={state} id={route.id} locket={locket} />}
             {route.view === 'new' && <Intake state={state} locket={locket} chatLaunch={route.id==='slack'?route.tab:undefined} />}
             {route.view === 'import-signed' && <LegacyImport state={state} locket={locket} />}
