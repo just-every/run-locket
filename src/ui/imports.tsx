@@ -1,3 +1,4 @@
+import { EnterpriseImport, EnterprisePreview, runImportOperation } from './enterprise-imports'
 import { useState } from 'react'
 import { fileToPayload, type LocketState } from './api'
 import type { Locket } from './app'
@@ -20,7 +21,7 @@ export function Imports({ state, locket }: { state: LocketState; locket: Locket 
   const preview = batch ? parse(batch.preview) : null
   return (
     <div className="lk-imports">
-      <div className="lk-titlebar"><div><h1>Imports</h1><p className="lk-muted">Move a DocuSign archive in: dry run first, then apply exactly what you reviewed. Originals, certificates and the journal are kept; an unused batch can be undone.</p></div></div>
+      <div className="lk-titlebar"><div><h1>Imports</h1><p className="lk-muted">Move an archive in: dry run first, then apply exactly what you reviewed. Originals, certificates and the journal are kept; an unused batch can be undone.</p></div></div>
         <div className="lk-columns lk-import-start">
           <section className="lk-panel">
             <div className="lk-panel-head"><h2>New DocuSign archive dry run</h2></div>
@@ -46,9 +47,11 @@ export function Imports({ state, locket }: { state: LocketState; locket: Locket 
             )}
           </section>
         </div>
+        <EnterpriseImport state={state} locket={locket} selected={setSelected}/>
         {batch && preview && (
           <section className="lk-panel lk-wide-panel">
             <div className="lk-panel-head"><h2 title={`Report ${preview.manifest.filename}, sha256 ${preview.manifest.sha256}; dry-run fingerprint ${batch.fingerprint}; journal ${preview.jobId}`}>{batch.source_label}</h2><Badge value={batch.status} /></div>
+            {batch.kit!=='docusign-archive' ? <EnterprisePreview state={state} locket={locket} batch={batch} preview={preview} selected={setSelected}/> : <>
             <div className="lk-dry-run">
               <div className="lk-stats">
                 <div><strong>{preview.counts.rows}</strong><span>Envelopes in report</span></div>
@@ -76,7 +79,8 @@ export function Imports({ state, locket }: { state: LocketState; locket: Locket 
               </table>
             </div>
             {batch.status === 'previewed' && <button type="button" className="lk-primary" disabled={busy || preview.counts.import === 0} onClick={() => void run('import.apply', { batchId: batch.id, version: batch.version, fingerprint: batch.fingerprint })}>Apply this dry run ({plural(preview.counts.import, 'agreement')})</button>}
-            {batch.status === 'applied' && <p>Applied {when(batch.applied_at)} by {personName(state, batch.applied_by)}. <button type="button" disabled={busy} onClick={() => { const reason = window.prompt('Why undo this move-in? Agreements used since import keep it from being undone.'); if (reason) void run('import.undo', { batchId: batch.id, version: batch.version, reason }) }}>Undo batch</button></p>}
+            </>}
+            {batch.status === 'applied' && <p>Applied {when(batch.applied_at)} by {personName(state, batch.applied_by)}. <button type="button" disabled={busy} onClick={() => { const reason = window.prompt('Why undo this move-in? Agreements used since import keep it from being undone.'); if (reason) { if(batch.kit==='docusign-archive')void run('import.undo', { batchId: batch.id, version: batch.version, reason });else void runImportOperation(locket,'import.undo',batch,{reason}) } }}>Undo batch</button></p>}
             {batch.status === 'undone' && <p>Undone {when(batch.undone_at)} by {personName(state, batch.undone_by)}: {batch.undo_reason}. The journal and original files remain.</p>}
           </section>
         )}

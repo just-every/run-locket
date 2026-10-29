@@ -79,7 +79,11 @@
         "WORKFORCE_SAML_ISSUER",
         "WORKFORCE_SAML_SSO_URL",
         "WORKFORCE_SAML_CERT",
-        "HUBSPOT_ACCESS_TOKEN"
+        "HUBSPOT_ACCESS_TOKEN",
+        "ICERTIS_IMPORT_PROFILE",
+        "ICERTIS_IMPORT_TOKEN",
+        "AGILOFT_IMPORT_PROFILE",
+        "AGILOFT_IMPORT_TOKEN"
       ],
       "migrationPrefix": "",
       "healthPath": "/health",
