@@ -14,7 +14,7 @@ export async function draftingFixture(h) {
  const source = await counsel.command('playbook.draft', { rules: topics.map((title, i) => ({ key: `topic${i}`, title, preferred: preferred[i], alternatives: [], authority: 'counsel' })) })
  await counsel.command('playbook.activate', { id: source.id })
  const templates = []
- const msa = await counsel.command('template.create', { name: 'Approved MSA', type: 'supplier', body: 'Approved MSA\n' + preferred.join('\n'), fields: [], clauses: [] })
+ const msa = await counsel.command('template.create', { name: 'Approved MSA', type: 'supplier', body: 'Approved MSA\n' + preferred.join('\n'), fields: [], clauses: [{ key: 'topic0', title: topics[0], ruleKey: 'topic0', variants: [{ id: 'standard', label: 'Standard', text: preferred[0] }] }] })
  await counsel.command('template.decide', { versionId: msa.versionId, decision: 'approve' })
  templates.push(msa)
  const word = await counsel.command('template.word.upload', { name: 'Approved supplier agreement', type: 'supplier', file: file('supplier.docx', docx(['Company', ...preferred])) })
@@ -30,7 +30,9 @@ export async function draftingFixture(h) {
   const a = await h.owner.command('request.create', { title: `Executed supplier ${i + 1}`, type: 'supplier', party: { name: `Synthetic supplier ${i + 1}`, kind: 'supplier' }, restricted: i === 0, file: file('supplier.pdf', Buffer.from(await doc.save())), text: contents })
   for (const r of (await h.owner.state()).requirements.filter(r => r.agreement_id === a.id)) await h.owner.command('requirement.attach', { agreementId: a.id, requirementId: r.id, file: file('attachment.pdf', pdf(r.label)) })
   if (i === 0) a.finding = await counsel.command('deviation.add', { agreementId: a.id, versionId: a.versionId, clauseKey: 'topic0', result: 'met', start: contents.indexOf(fallback[0]), end: contents.indexOf(fallback[0]) + fallback[0].length, quote: fallback[0], explanation: 'Historical reviewer judgment remains pinned to the earlier playbook.', questions: [] })
+  if (i === 1 || i === 2) a.exception = await counsel.command('deviation.add', { agreementId: a.id, versionId: a.versionId, clauseKey: 'topic0', result: 'breached', start: contents.indexOf(fallback[0]), end: contents.indexOf(fallback[0]) + fallback[0].length, quote: fallback[0], explanation: 'Explicit negotiation exception; execution alone never records counterparty acceptance.', questions: [] })
   await submit(h.owner, a.id); a.approval = await approve(h.owner, a.id)
+  if (a.exception) a.exceptionApproval = await counsel.command('approval.decide', { agreementId: a.id, version: (await find(counsel, a.id)).version, versionId: a.versionId, kind: 'exception', deviationId: a.exception.id, decision: 'approved', reason: 'Approve this exact exception; a counterparty outcome needs separately recorded evidence.' })
   a.package = await dispatch(h.owner, a.id)
   assert.equal((await finish(h.owner, a.id, a.package)).status, 'reconciled')
   agreements.push(a)

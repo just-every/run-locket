@@ -33,7 +33,7 @@ async function load(c: Ctx, p: Record<string, unknown>) {
 async function currentSources(c: Ctx, r: any) {
  const sources = parse<DraftingSource[]>(r.sources), chosen = draftingSourceIds(sources)
  const current = await draftingSources(c, chosen.templateVersionIds, chosen.agreementIds, recommendationScope(parse(r.scope)))
- if (current.digest !== r.source_digest) fail('STALE', 'A source or its execution evidence changed. Generate and review a fresh draft.', 409)
+ if (current.digest !== r.source_digest) fail('STALE', 'A source, its execution evidence or recorded observations changed. Generate and review a fresh draft.', 409)
  return current
 }
 const generate: Handler = async (c, p) => {

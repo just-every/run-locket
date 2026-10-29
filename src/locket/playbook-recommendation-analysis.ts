@@ -1,5 +1,5 @@
 import type { Ctx } from './commands'
-import { fail, list, object, oneOf, parse } from './model'
+import { fail, list, object, oneOf, parse, sql } from './model'
 import { agreementTypes } from './agreements'
 import { recommendationCredits } from './playbook-recommendation-credits'
 
@@ -96,4 +96,20 @@ export function selectScopedPlaybook(agreement: {type:string;entity_id:string|nu
 export async function applicableRecommendationPlaybook(c: Pick<Ctx,'db'>,agreement:{type:string;entity_id:string|null},active:any) {
  const [versions,applications]=await Promise.all([c.db.prepare('SELECT * FROM lk_playbook_versions').all<any>(),c.db.prepare('SELECT id,source_playbook_id,scope FROM lk_playbook_applications UNION ALL SELECT id,source_playbook_id,scope FROM lk_playbook_draft_applications').all<any>()])
  return selectScopedPlaybook(agreement,active,versions.results,applications.results)
+}
+
+/** Fence the currently applicable version, including superseded scope fallbacks.
+ * Re-evaluate the entire application chain inside every guarded write batch. */
+export function applicablePlaybookGuard(agreement: { type: string; entity_id: string | null }, id: string) {
+ const inScope = `(EXISTS(SELECT 1 FROM json_each(a.scope,'$.agreementTypes') WHERE value=?) AND
+  (json_array_length(a.scope,'$.entityIds')=0 OR EXISTS(SELECT 1 FROM json_each(a.scope,'$.entityIds') WHERE value=?)))`
+ return sql(`(WITH RECURSIVE applications AS (
+  SELECT id,source_playbook_id,scope FROM lk_playbook_applications UNION ALL
+  SELECT id,source_playbook_id,scope FROM lk_playbook_draft_applications
+ ), chain(id) AS (
+  SELECT id FROM lk_playbook_versions WHERE status='active'
+  UNION SELECT v.id FROM chain c JOIN applications a ON a.id=c.id
+   JOIN lk_playbook_versions v ON v.id=a.source_playbook_id WHERE NOT ${inScope}
+ ) SELECT c.id FROM chain c LEFT JOIN applications a ON a.id=c.id
+  WHERE a.id IS NULL OR ${inScope}) IS ?`, agreement.type, agreement.entity_id, agreement.type, agreement.entity_id, id)
 }

@@ -28,9 +28,18 @@ function snapshotQuery(table: string) {
   const columns = tables[table]
   return `SELECT json_group_array(json_object(${columns.map(k => `'${k}',r.${k}`).join(',')})) AS value FROM (SELECT * FROM ${table} WHERE agreement_id IN (SELECT value FROM json_each(?)) ORDER BY rowid) r`
 }
+export async function creditTableSnapshots(c: Pick<Ctx, 'db'>, agreementIds: string[]) {
+ return Promise.all(Object.keys(tables).map(async table => {
+  const result = await c.db.prepare(snapshotQuery(table)).bind(json(agreementIds)).first<{value:string}>()
+  return { table, value: result!.value }
+ }))
+}
+export const creditTableGuards = (agreementIds: string[], snapshots: {table:string;value:string}[]): Sql[] =>
+ snapshots.map(entry => sql(`(${snapshotQuery(entry.table)}) IS ?`, json(agreementIds), entry.value))
+
 export function creditSnapshotGuards(input: any): Sql[] {
   if (!input) return []
-  return [...input.tables.map((entry: any) => sql(`(${snapshotQuery(entry.table)}) IS ?`, json(input.agreementIds), entry.value)),
+  return [...creditTableGuards(input.agreementIds, input.tables),
     ...input.families.map((entry:any)=>sql(`(${familyQuery}) IS ?`,entry.agreementId,entry.value)),
     ...(input.authorityChecks ?? []), ...(input.authoritySnapshot ? [sql(`(${authorityQuery}) IS ?`, json(input.authorityIds), input.authoritySnapshot)] : [])]
 }
@@ -39,10 +48,7 @@ export function creditSnapshotGuards(input: any): Sql[] {
  * from message acceptance. Snapshots retain source identities and decision changes. */
 export async function recommendationCredits(c: Ctx, outcomes: any[]) {
   const agreementIds = [...new Set(outcomes.map(o => o.agreement_id))].sort()
-  const snapshots = await Promise.all(Object.keys(tables).map(async table => {
-    const result = await c.db.prepare(snapshotQuery(table)).bind(json(agreementIds)).first<{value:string}>()
-    return { table, value: result!.value }
-  }))
+  const snapshots = await creditTableSnapshots(c, agreementIds)
   const rows = (table: string): any[] => parse(snapshots.find(s => s.table === table)!.value)
   const authorityChecks:Sql[]=[], authorityIds=new Set<string>(), connections:any[]=[]
   const evidence: any[] = [], families: {agreementId:string;value:string}[] = []
