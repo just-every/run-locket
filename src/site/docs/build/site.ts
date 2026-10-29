@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { runRequirements, startLine } from '../../../base/run-site';
+import { run } from '../../run';
 import type { DocsBody, DocsSection } from '../types.ts';
 import { docsDirectory, manifestPath, readManifest } from './manifest.ts';
 import { renderMarkdown } from './render.ts';
@@ -19,7 +21,11 @@ export function buildDocs(root: string): DocsSite {
   const rendered = new Map(pages.map(page => {
     const file = join(root, docsDirectory, page.file);
     files.push(file);
-    return [page.slug, renderMarkdown(readFileSync(file, 'utf8'))] as const;
+    const markdown = readFileSync(file, 'utf8')
+      .replaceAll('{{run.start}}', startLine(run))
+      .replaceAll('{{run.node}}', run.clone)
+      .replaceAll('{{run.requirements}}', runRequirements);
+    return [page.slug, renderMarkdown(markdown)] as const;
   }));
   const problems: string[] = [];
   for (const page of pages) {

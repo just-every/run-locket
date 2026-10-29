@@ -1,5 +1,5 @@
 /* Locket's look on Base's shared Run, Contract and not-found pages (linked after their own style by src/site/pages.tsx):
-   the homepage's grid page, header lockup, heavy headings, white hairline step cards and ink step numbers. Tokens come
+   the homepage's grid page, header lockup, heavy headings and dark command cards. Tokens come
    from /rer-theme.css and /fonts/fonts.css. */
 .nw { white-space: nowrap; }
 body { background-color: var(--rer-page); background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px), linear-gradient(to bottom, var(--grid) 1px, transparent 1px); background-size: 40px 40px; }
@@ -12,20 +12,9 @@ body > .bar nav a:hover { text-decoration-thickness: 2px; text-underline-offset:
 main > h1 { word-spacing: .12em; }
 main section h2 { word-spacing: .08em; }
 .intro h1::after, .hero h1::after { content: ''; display: block; width: 96px; height: 6px; margin: 22px auto 0; border-radius: 3px; background: var(--heading-gradient); }
-.step { border: 1px solid var(--line); border-radius: 18px; background: #fff; box-shadow: var(--card-shadow); backdrop-filter: none; }
-.step h2 { font-weight: 800; letter-spacing: -.03em; word-spacing: .11em; }
-.num { font-weight: 800; }
 .btn { border-radius: 16px; background: var(--ink); box-shadow: 0 10px 24px -14px rgb(17 17 17 / .7); }
 .code { border-radius: 12px; }
-.cmd-pipe { white-space: nowrap; }
-/* In the narrowest command card (Base's 480 px container step, 14 px side padding) the mono type shrinks just enough for
-   "https://runeditrun.com/install.sh | sh" (38 characters, 22.8 em) to fit its line, never under 11 px. */
-@container (max-width: 480px) { .code pre { font-size: max(11px, min(13px, calc((100cqi - 30px) / 22.8))); } }
-.facts a, .go a { color: var(--claret); }
-@media (max-width: 900px) {
-  .code pre { padding: 46px 14px 14px; white-space: pre-wrap; overflow-wrap: normal; }
-  .copy { top: 8px; right: 8px; transform: none; min-height: 32px; padding: 0 12px; font-size: 13px; }
-}
+.facts a { color: var(--claret); }
 @media (max-width: 760px) {
   body { background-size: 32px 32px; }
   body > .bar { width: calc(100% - 32px); padding: 16px 0 0; }
@@ -34,3 +23,6 @@ main section h2 { word-spacing: .08em; }
   body > .bar nav { gap: 18px; font-size: 15px; }
   .intro h1::after, .hero h1::after { width: 72px; height: 5px; margin-top: 16px; }
 }
+
+/* The alternative terminal commands also wrap in a narrow chooser. */
+.chooser .self .other-ways pre code { white-space: pre-wrap; overflow-wrap: anywhere; }

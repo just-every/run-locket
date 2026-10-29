@@ -36,7 +36,7 @@
 .docs-code-lang { color: #9CA3AF; font-size: 14px; letter-spacing: .08em; }
 .docs-copy { border: 1px solid #4B4F58; background: transparent; color: #F3F4F6; border-radius: 8px; font: inherit; font-size: 14px; padding: 3px 12px; cursor: pointer; }
 .docs-copy:hover { background: #2A2C31; }
-.docs-code pre { margin: 0; padding: 12px 20px 18px; overflow-x: auto; }
+.docs-code pre { margin: 0; padding: 12px 20px 18px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .docs-code code { font: 500 15.5px/1.7 var(--rer-font-mono); }
 .docs-table { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: var(--card-shadow); }
 .docs-table table { width: 100%; border-collapse: collapse; font-size: 16px; }

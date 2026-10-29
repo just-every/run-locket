@@ -4,6 +4,7 @@ import { docsSections } from './pages'
 function DocsNavList({ current, idPrefix }: { current?: string; idPrefix: string }) {
   return (
     <>
+      <div className="docs-nav-group"><a href="/docs/hosting">Hosting</a></div>
       {docsSections.map((section, index) => (
         <div className="docs-nav-group" key={section.title}>
           <p className="docs-nav-section" id={`${idPrefix}-${index}`}>{section.title}</p>

@@ -2,94 +2,253 @@ name: Verify
 
 on:
   push:
+    branches: ['**']
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      tier:
+        type: string
+        default: push
+      timeout:
+        type: number
+        default: 12
 
 permissions:
   contents: read
 
+concurrency:
+  group: seed-verify-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
-  verify:
-    name: Verify (${{ matrix.partition }})
+  plan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 1
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      skip: ${{ steps.plan.outputs.skip }}
+      coverage: ${{ steps.plan.outputs.coverage }}
+      tier: ${{ steps.plan.outputs.tier }}
+      readers: ${{ steps.plan.outputs.readers }}
+      has_shards: ${{ steps.plan.outputs.has_shards }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Check reusable workflow permissions
+        run: node scripts/verify-ci.mjs --check-workflows
+      - name: Look up complete nightly marker
+        id: nightly
+        if: ${{ github.event_name == 'schedule' || inputs.tier == 'nightly' }}
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: ${{ runner.temp }}/nightly-green
+          key: nightly-green-${{ github.sha }}
+          lookup-only: true
+      - id: plan
+        env:
+          TIER: ${{ inputs.tier || 'push' }}
+          GITHUB_TOKEN: ${{ github.token }}
+          NIGHTLY_CACHE_HIT: ${{ steps.nightly.outputs.cache-hit }}
+        run: node scripts/verify-ci.mjs --plan
+
+  shards:
+    name: shards (${{ matrix.name }})
+    needs: plan
+    if: ${{ needs.plan.outputs.has_shards == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ inputs.timeout || 15 }}
     strategy:
       fail-fast: false
-      matrix:
-        # The API runner shards the complete existing file list. The portable
-        # export/import proof gets its own runner; no checks move off push CI.
-        partition: [core, api-1, api-2, api-3, api-4, api-flows, portable]
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
+      PLAYWRIGHT_SKIP_BROWSER_GC: '1'
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1; action runtime Node 24
+      # Job env is evaluated before the runner context is available.
+      - name: Set runner-owned browser cache
+        run: printf 'PLAYWRIGHT_BROWSERS_PATH=%s/ms-playwright\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - name: Reclaim unused hosted runner toolchain space
-        if: runner.environment == 'github-hosted' && runner.os == 'Linux'
-        shell: bash
-        run: |
-          # rer dev (the export/import proof) requires 15 GiB free. This JavaScript
-          # job does not use Android, .NET or Haskell; Node, browsers and caches stay.
-          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
-          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /usr/local/.ghcup
-          df -h "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0; action runtime Node 24
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.20.0'
           package-manager-cache: false
+      - name: Check edition source lock freshness
+        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
+        run: node scripts/edition-authoring/cli.mjs check
       - run: npm install --global pnpm@10.12.4
+      - name: Set runner-owned pnpm store
+        run: pnpm config set store-dir "$RUNNER_TEMP/pnpm-store"
+      - name: Prepare runner-owned browser and apt caches
+        if: matrix.browser
+        run: |
+          set -euo pipefail
+          id
+          printf 'Runner HOME=%s\n' "$HOME"
+          if [ -e "$HOME/.cache" ]; then
+            stat -c 'Home cache: %n uid=%u gid=%g mode=%a' "$HOME/.cache"
+          else
+            printf 'Home cache: absent\n'
+          fi
+          mkdir -p "$PLAYWRIGHT_BROWSERS_PATH" "$RUNNER_TEMP/rer-apt/archives"
+      # Save completed packages; apt keeps partial downloads private to _apt.
+      - name: Cache frozen dependencies and Chromium
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: |
+            ${{ runner.temp }}/pnpm-store
+            ${{ runner.temp }}/ms-playwright
+            ${{ runner.temp }}/rer-apt/archives/*.deb
+          # Old snapshots contain absolute HOME paths; do not restore them here.
+          key: seed-ubuntu24-temp-store-${{ runner.arch }}-browser-${{ matrix.browser }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deps
-      # Ubuntu 24.04's hosted image includes Chrome's system libraries. Cache
-      # only the exact browser build selected by the locked Playwright package;
-      # hydration still launches that browser in the core verification job.
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        if: matrix.partition == 'core'
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
-      - run: pnpm exec playwright install chromium
-        if: matrix.partition == 'core'
-      - run: pnpm exec rer check --profile first-party
+      - name: Install and probe Chromium before system dependencies
+        if: matrix.browser
+        run: |
+          set -euo pipefail
+          stat -c 'Before browser: %n uid=%u gid=%g mode=%a' "$PLAYWRIGHT_BROWSERS_PATH" "$RUNNER_TEMP/rer-apt/archives"
+          pnpm exec playwright install chromium
+          probe() { node --input-type=module -e "import { chromium } from '@playwright/test'; try { const browser = await chromium.launch({headless: true}); await browser.close(); } catch (error) { console.error(error); process.exit(/EACCES|permission denied/i.test(String(error)) ? 77 : 1); }"; }
+          if probe; then
+            :
+          else
+            status=$?
+            if [ "$status" -eq 77 ]; then exit "$status"; fi
+            sudo env "PATH=$PATH" "APT_ARCHIVES=$RUNNER_TEMP/rer-apt/archives" python3 scripts/install-chromium-deps.py
+            stat -c 'After apt: %n uid=%u gid=%g mode=%a' "$PLAYWRIGHT_BROWSERS_PATH" "$RUNNER_TEMP/rer-apt/archives"
+            probe
+          fi
+      - name: Reserve disk for native runtime journeys
+        if: matrix.browser
+        run: |
+          free_kib() { df -Pk "$GITHUB_WORKSPACE" | awk 'END { print $4 }'; }
+          for unused_tools in /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL; do
+            if [ "$(free_kib)" -ge "$((20 * 1024 * 1024))" ]; then break; fi
+            sudo rm -rf -- "$unused_tools"
+          done
       - name: Check generated execution contract documents
-        if: matrix.partition == 'core'
+        if: matrix.name == 'core'
         run: node scripts/contract-docs.mjs check EXEC-002 SIGN-002 SIGN-003 INT-001 INTAKE-004
-      - name: Check edition source lock freshness
-        if: matrix.partition == 'core'
-        run: node scripts/edition-authoring/cli.mjs check > /dev/null
-      - name: Run full verification partition
-        run: node .github/scripts/verify.mjs "${{ matrix.partition }}"
+      - run: pnpm exec rer check --profile first-party
+      - name: Run this shard
+        env:
+          SHARD: ${{ matrix.name }}
+        run: node scripts/verify-ci.mjs "$SHARD"
+
       - name: Prove commercial handoffs at both widths
-        if: matrix.partition == 'core'
+        if: matrix.name == 'core'
         run: |
           LOCKET_SCREENSHOTS="${RUNNER_TEMP}/locket-commercial" node tests/browser/proposal-pricing-journey.mjs
           LOCKET_SCREENSHOTS="${RUNNER_TEMP}/locket-commercial" pnpm exec playwright test --config tests/browser/playwright.config.ts notices.spec.ts --grep 'LINK-001' --workers=1
       - name: Prove native obligation lifecycle and owner lists
-        if: matrix.partition == 'core'
+        if: matrix.name == 'core'
         run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-obligations" pnpm exec playwright test --config tests/browser/playwright.config.ts obligation-evidence.spec.ts --workers=1
       - name: Keep native obligation screens
-        if: matrix.partition == 'core'
+        if: matrix.name == 'core'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: native-obligation-screens
           path: ${{ runner.temp }}/locket-obligations
       - name: Prove model settings and records at both widths
-        if: matrix.partition == 'core'
+        if: matrix.name == 'core'
         run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-models" node tests/browser/model-settings-journey.mjs
       - name: Prove execution retrieval at both widths
-        if: matrix.partition == 'core'
+        if: matrix.name == 'core'
         run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-execution" pnpm exec playwright test --config tests/browser/playwright.config.ts execution-comparison.spec.ts --grep 'AGENT-006 changed signed liability' --workers=1
       - name: Keep execution retrieval screens
-        if: matrix.partition == 'core'
+        if: matrix.name == 'core'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: execution-retrieval-screens
           path: ${{ runner.temp }}/locket-execution
       - name: Keep model and summary screens
-        if: matrix.partition == 'core'
+        if: matrix.name == 'core'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: model-and-summary-screens
           path: ${{ runner.temp }}/locket-models
+
+  light:
+    needs: plan
+    if: ${{ needs.plan.outputs.coverage == 'light' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm config set store-dir "$RUNNER_TEMP/pnpm-store"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run deps
+      - name: Run the changed files' reviewed readers and build the run site
+        env:
+          LIGHT_READERS: ${{ needs.plan.outputs.readers }}
+        run: node scripts/verify-ci.mjs --light
+
+  full-push-proof:
+    needs: [plan, shards]
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/') && needs.plan.outputs.tier == 'push' && needs.plan.outputs.coverage == 'full' && needs.shards.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - run: test '${{ needs.shards.result }}' = success
+
+  nightly-proof:
+    needs: [plan, shards]
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (needs.plan.outputs.tier == 'nightly' || needs.plan.outputs.tier == 'all') && needs.plan.outputs.coverage == 'full' && needs.shards.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Mark successful complete nightly coverage
+        run: mkdir -p "$RUNNER_TEMP/nightly-green" && printf '%s\n' '${{ github.sha }}' > "$RUNNER_TEMP/nightly-green/sha"
+      - uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: ${{ runner.temp }}/nightly-green
+          key: nightly-green-${{ github.sha }}
+
+  verify:
+    needs: [plan, shards, light, full-push-proof, nightly-proof]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Require the selected coverage and its proof
+        env:
+          PLAN: ${{ needs.plan.result }}
+          SHARDS: ${{ needs.shards.result }}
+          LIGHT: ${{ needs.light.result }}
+          PUSH_PROOF: ${{ needs.full-push-proof.result }}
+          NIGHTLY_PROOF: ${{ needs.nightly-proof.result }}
+          COVERAGE: ${{ needs.plan.outputs.coverage }}
+          HAS_SHARDS: ${{ needs.plan.outputs.has_shards }}
+          SKIP: ${{ needs.plan.outputs.skip }}
+        run: |
+          set -euo pipefail
+          test "$PLAN" = success
+          case "$PUSH_PROOF:$NIGHTLY_PROOF" in
+            *failure*|*cancelled*) exit 1 ;;
+          esac
+          case "$COVERAGE" in
+            reuse) test "$SKIP" = true && test "$SHARDS" = skipped && test "$LIGHT" = skipped ;;
+            light) test "$SKIP" = false && test "$LIGHT" = success && test "$SHARDS" = skipped ;;
+            full) test "$LIGHT" = skipped && { test "$SHARDS" = success || { test "$HAS_SHARDS" = false && test "$SHARDS" = skipped; }; } ;;
+            *) exit 1 ;;
+          esac

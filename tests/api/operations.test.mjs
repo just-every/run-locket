@@ -37,9 +37,6 @@ test('Hosted export keeps records and file bytes in a verified restorable archiv
   await h.owner.command('calendar.connect',{provider:'google',calendarId:'synthetic-locket-1',accessToken:'synthetic-locket-2',scope:'all_accessible',consent:true})
   const edge=providerEdge(h.db)
   globalThis.fetch=edge.fetch
-  // The copied checkout owns a separate lifecycle operation. A token inherited
-  // from rer verify belongs to the source checkout and cannot authorize it.
-  delete process.env.RER_LOCAL_OPERATION
   Object.assign(process.env,{CI:'true',CLOUDFLARE_ACCOUNT_ID:edge.accountId,CLOUDFLARE_API_TOKEN:'synthetic-locket-1'})
   await mkdir(join(directory,'.rer/deploy'),{recursive:true})
   await writeFile(join(directory,'.rer/deploy/production.json'),JSON.stringify(edge.state))
@@ -59,10 +56,10 @@ test('Hosted export keeps records and file bytes in a verified restorable archiv
   assert.equal(calendar.length,1,'Calendar configuration record is retained')
   assert.equal(calendar[0].row.token,undefined,'Provider credentials stay outside the recovery archive')
   const queries=edge.queries
-  const planned=await runCommand(project,parse(['deploy','--dry-run','--non-interactive','--no-queue'],directory),out)
-  assert.equal(planned.dryRun,true)
-  assert.equal(planned.deployed,false)
-  assert.equal(edge.queries,queries,'The local deployment plan does not export or migrate hosted data')
+  // Dry run renders the declarative plan without invoking update hooks; the real
+  // deploy must still refuse unavailable history before exporting or migrating.
+  await assert.rejects(runCommand(project,parse(['deploy','--non-interactive','--no-queue'],directory),out),/update-previous-release-unavailable/)
+  assert.equal(edge.queries,queries,'An unavailable previous release prevents exporting or migrating')
   edge.replace()
   await assert.rejects(runCommand(project,parse(['export','--target','remote','--output',join(directory,'exports/refused.rer'),'--no-queue'],directory),out),/update-owned-worker-replaced/)
   await assert.rejects(runCommand(project,parse(['import','--target','remote','--input',before,'--yes','--no-queue'],directory),out),/Hosted restore is unsupported/)
