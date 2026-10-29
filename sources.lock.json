@@ -5581,7 +5581,7 @@
       "executable": false
     },
     "tests/browser/search.spec.ts": {
-      "sha256": "7c34ed830b91c043aa7d692560ba4fc4a283f86a49595563aa9903f86b5dc7f3",
+      "sha256": "d54b32279df252605666ee8f677dc63243b2cd730c7efc320169e4a29eae52ea",
       "executable": false
     },
     "tests/browser/service-levels.spec.ts": {
