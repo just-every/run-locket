@@ -635,7 +635,13 @@
   },
   "verification": {
     "owner": {
-      "initializer": "tests/agent-door/owner.mjs"
+      "initializer": "tests/agent-door/owner.mjs",
+      "bindings": {
+        "MAIL_FROM": "email",
+        "MAIL_PROVIDER": {
+          "module": "tests/agent-door/mail-provider.mjs"
+        }
+      }
     },
     "reviewers": [
       {
