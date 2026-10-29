@@ -145,7 +145,7 @@
       "executable": false
     },
     "deploy.json": {
-      "sha256": "22526826907292accd030d808f6997d4000d0ca8b7e8f949928d7e122f49ffc5",
+      "sha256": "5e47bbb7a7c96fc713fba2a03c091d0e82e3974c97bbed4beab344929a42b5a3",
       "executable": false
     },
     "docs/agents-and-the-api.md": {
@@ -209,7 +209,7 @@
       "executable": false
     },
     "IMPORT.md": {
-      "sha256": "b8e1686ea4ab4f1619d8a1475329a3faeaf287edb573a2de1e03c07f63093648",
+      "sha256": "8a7a3d65b800ce582ef7b4d3bea56f9cc0c472a81d49706f43a4bcaf9f679eab",
       "executable": false
     },
     "LICENSE": {
@@ -217,7 +217,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "6353cb39fc804ca8cd15cbd1c6d0f51423d02f5751b098562f324b8f065610cf",
+      "sha256": "fb13988311b3955c5ecc4fb0dc10958d5843b7f235535f3cbcbaad255b54e5f5",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -1505,7 +1505,7 @@
       "executable": false
     },
     "security/questionnaire.json": {
-      "sha256": "941f08dc1372d2319c5a2a114db9d69d682417f254aa854ed32f4a79fdfd65ed",
+      "sha256": "34f725528c05fe3e54d8bb037517f8174f0fdab0fa063af4ed93b04c49583d56",
       "executable": false
     },
     "security/QUESTIONNAIRES.md": {
@@ -2065,11 +2065,11 @@
       "executable": false
     },
     "src/locket/imports/adapter.ts": {
-      "sha256": "95fbea51b69cbbad57f62943982c26e215c727656670714a3afffe648c989ead",
+      "sha256": "ba5f7d1344dfc9b5f233d6a90bf10d140cd6c7a424ccec1eb64531295675f8f4",
       "executable": false
     },
     "src/locket/imports/commands.ts": {
-      "sha256": "2f13ba10c6b2049a00fe9957d52b5b532876d3a6ddd5d2f92ff3d8e78b704c9f",
+      "sha256": "9697a440ff9a9c127696c3b3e072c2142dadea095a9bf8248ed6bb898c3d16b4",
       "executable": false
     },
     "src/locket/imports/csv.ts": {
@@ -2085,7 +2085,7 @@
       "executable": false
     },
     "src/locket/imports/ironclad-plan.ts": {
-      "sha256": "bd9a18ef9ea8a6a64be33bae88f194774e3231a93ce9b372339f619352c8b8f0",
+      "sha256": "98e9bd011739d97fbc39f188995ff23570f51da72c647d2e64ab99982ee85ff0",
       "executable": false
     },
     "src/locket/imports/ironclad.ts": {
@@ -4801,7 +4801,7 @@
       "executable": false
     },
     "src/ui/imports.tsx": {
-      "sha256": "64e1f655f51df4d1060624b41abb7dc703d631c0c260748d102799eb85839577",
+      "sha256": "62fdd21c87b23ca7a8d3fb3d271bf10fae03c19b0a38d5f4075ee821379ec3b8",
       "executable": false
     },
     "src/ui/installation.tsx": {
@@ -5213,7 +5213,7 @@
       "executable": false
     },
     "tests/api/ironclad-move-in.test.mjs": {
-      "sha256": "84d82dc04dcec21edc894f4a0ad3d761d8527280c62768176bcbd67d3ca316ae",
+      "sha256": "fd067788a5c118c85456f12430038faba72033e4204afc7e62966e7fa494dd40",
       "executable": false
     },
     "tests/api/model-settings-fixture.mjs": {

@@ -50,7 +50,7 @@ export function locketTargets(): D1TargetAdapter {
       const revision = (await first<{ revision: string }>(d, 'SELECT revision FROM lk_import_targets WHERE kind=? AND id=?', kind, id))?.revision ?? 'native'
       if (kind === 'ironclad-family') {
         if (revision === 'native') return undefined
-        const value = await first<Row>(d, 'SELECT id,parent_id,relation FROM lk_agreements WHERE id=?', id)
+        const value = await first<Row>(d, 'SELECT a.id,a.parent_id,p.version AS parent_version,a.relation FROM lk_agreements a JOIN lk_agreements p ON p.id=a.parent_id WHERE a.id=?', id)
         return value ? { destination, targetKind: kind, targetId: id, revision, value } : undefined
       }
       if (kind === 'party') {
@@ -87,7 +87,7 @@ export function locketTargets(): D1TargetAdapter {
       if (kind === 'ironclad-family') {
         if (!row) return [q('NOT EXISTS(SELECT 1 FROM lk_import_targets WHERE kind=? AND id=?)', kind, id), q('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND parent_id IS NULL AND relation IS NULL AND version=1)', id)]
         const v = row.value as Row
-        return [applied(kind, id, row.revision), q('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND parent_id=? AND relation=? AND version=1)', id, v.parent_id, v.relation), q('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND version=1)', v.parent_id)]
+        return [applied(kind, id, row.revision), q('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND parent_id=? AND relation=? AND version=1)', id, v.parent_id, v.relation), q('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND version=?)', v.parent_id,v.parent_version??1)]
       }
       if (kind === 'party') {
         if (!row) return [q('NOT EXISTS(SELECT 1 FROM lk_parties WHERE id=?)', id)]
@@ -120,7 +120,8 @@ export function locketTargets(): D1TargetAdapter {
       const mark = q('INSERT OR REPLACE INTO lk_import_targets VALUES(?,?,?)', row.targetKind, row.targetId, row.revision)
       if (row.targetKind === 'ironclad-family') {
         const v = row.value as Row
-        return [q('UPDATE lk_agreements SET parent_id=?,relation=? WHERE id=?', v.parent_id, v.relation, v.id), mark]
+        const guard=crypto.randomUUID()
+        return [q('INSERT INTO lk_guard VALUES(?,CASE WHEN EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND version=?) THEN 1 ELSE 0 END)',guard,v.parent_id,v.parent_version??1),q('UPDATE lk_agreements SET parent_id=?,relation=? WHERE id=?', v.parent_id, v.relation, v.id), mark,q('DELETE FROM lk_guard WHERE id=?',guard)]
       }
       if (row.targetKind === 'party') return [insert('lk_parties', row.value as Row), mark]
       if (row.targetKind === 'artifact') {

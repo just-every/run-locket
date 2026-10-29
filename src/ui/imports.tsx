@@ -70,7 +70,7 @@ export function Imports({ state, locket }: { state: LocketState; locket: Locket 
                 <thead><tr><th>{batch.kit==='ironclad-records'?'Source record':'Envelope'}</th><th>Subject</th><th>Counterparty</th><th>Completed</th><th>Files</th><th>Outcome</th></tr></thead>
                 <tbody>{preview.rows.map((r: any) => (
                   <tr key={r.row}>
-                    <td data-label="Source record">{r.envelopeId ? <EnvelopeId id={r.envelopeId} /> : `Row ${r.row}`}{r.workflowId&&<small>Workflow {r.workflowId}</small>}{r.parentId&&<small>{r.relation} {r.parentId}</small>}</td>
+                    <td data-label="Source record">{r.envelopeId ? <EnvelopeId id={r.envelopeId} /> : `Row ${r.row}`}{r.workflowId&&<small>Workflow {r.workflowId}</small>}{r.parentId&&<small>{r.relation} {r.parentId}{r.parentReference&&` (existing ${r.parentReference})`}</small>}</td>
                     <td data-label="Subject">{r.subject}{r.proposedTerms?.length>0&&<details><summary>Proposed terms ({r.proposedTerms.length})</summary><dl>{r.proposedTerms.map((t:any)=><div key={t.key}><dt>{t.key.startsWith('custom:')?state.customFields.find(f=>f.id===t.key.slice(7))?.name??'Custom field':t.key.replaceAll('_',' ')}</dt><dd>{t.value||'Unlimited'}</dd></div>)}</dl></details>}</td>
                     <td data-label="Counterparty">{r.counterparty}{r.counterpartyInferred && <small>inferred</small>}</td>
                     <td data-label="Completed">{day(r.completedOn)}</td>

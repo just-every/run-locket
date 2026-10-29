@@ -31,6 +31,15 @@ export function importContext(c: Ctx, batchId: string, kit = KIT, checks: Sql[] 
       predicate: () => {
         const a = authority(c.actor as Actor, may.imports)
         const predicates=[a,fullFieldsCheck(c.actor),...checks,...(c.erasureChecks??[])]
+        if(kit===IRONCLAD){
+          // Keep every source/definition guard while fitting D1's binding limit
+          // when a large reviewed batch links many earlier parents.
+          let index=0
+          const condition=predicates.map(s=>`(${s.sql.replace(/\?/g,()=>`json_extract(lk_import_authority.value,'$[${index++}]')`)})`).join(' AND ')
+          const values=predicates.flatMap(s=>s.params)
+          if(index!==values.length)fail('IMPORT_AUTHORITY','An import authority predicate has an invalid binding layout.')
+          return {sql:`EXISTS(SELECT 1 FROM (SELECT ? AS value) AS lk_import_authority WHERE ${condition})`,params:[json(values)]}
+        }
         return {sql:predicates.map(s=>`(${s.sql})`).join(' AND '),params:predicates.flatMap(s=>s.params)}
       },
     },

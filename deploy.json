@@ -230,6 +230,16 @@
       "binding": "AI_WORKERS_ACCOUNT_ID",
       "environment": "AI_WORKERS_ACCOUNT_ID",
       "optional": true
+    },
+    {
+      "binding": "IRONCLAD_API_TOKEN",
+      "environment": "IRONCLAD_API_TOKEN",
+      "optional": true
+    },
+    {
+      "binding": "IRONCLAD_REGION",
+      "environment": "IRONCLAD_REGION",
+      "optional": true
     }
   ],
   "crons": [
