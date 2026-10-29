@@ -4,7 +4,7 @@ on:
   push:
     tags: ['v*']
   schedule:
-    - cron: '43 18 * * 1,4'
+    - cron: '56 2 * * 1,4'
   workflow_dispatch:
 
 permissions:

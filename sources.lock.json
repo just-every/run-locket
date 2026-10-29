@@ -77,11 +77,11 @@
       "executable": false
     },
     ".github/scripts/verify.mjs": {
-      "sha256": "5eb9584ee532a79310f5f3c77f8e41beda4af77129c38c6d5a4eaf6f7c71c01a",
+      "sha256": "021f187eddd3f0754aff04d8e3cbffc145c40a6710c608297ffd7f0ec6cd9821",
       "executable": false
     },
     ".github/workflows/nightly-acceptance.yml": {
-      "sha256": "2c06d82b38a59dfda71dc9afd90cbbf2b1e9c8e522053903740ae7fb0851209a",
+      "sha256": "6a2359bc2328b550b973b8d277c8ed03658398c70f13b3231c9a4aa2e8dac448",
       "executable": false
     },
     ".github/workflows/rer-managed.yml": {

@@ -1,5 +1,4 @@
-// Partition the existing verification wall without rewriting package.json or
-// replacing rer's hosted-output, hydration, or first-party lifecycle checks.
+// Keep Locket's existing verification partitions under Base's shared lifecycle.
 // Base's verify-ci owns the full hosted lifecycle; this runner retains Locket's partitions.
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
@@ -17,7 +16,6 @@ if (phase === '--list') {
 } else if (phase === '--list-api') {
   console.log(JSON.stringify(await apiPartitions(), null, 2))
 } else {
-  assert.equal(process.env.CI, 'true', 'CI verification partitions require CI=true')
   process.env.X_LOCAL_EXPLORER = 'false'
   if (/^api-(?:[1-4]|flows)$/.test(phase)) {
     assert.equal(commands.filter(command => command.phase === 'api').length, 1)
