@@ -47,7 +47,9 @@ Every property must map to a supported native field, an applicable custom field,
 or an explicit skip. The owner can create a custom text field from the mapping
 screen. Required custom fields must be supplied; imported custom dates and money
 remain cited proposals. Unmapped or invalid values stop preview. Family cycles,
-multiple parents and missing/non-importable parents are refused. An out-of-batch
+multiple parents and missing/non-importable parents are refused. An earlier
+Ironclad parent may be linked by its unique source ID and reviewed current
+revision, so large families can span batches. An out-of-batch
 child link is retained in the source metadata; include its record to import it.
 
 The reviewed dry run lists every record, source identifiers, main document and

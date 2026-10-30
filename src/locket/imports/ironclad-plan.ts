@@ -18,6 +18,8 @@ export async function planIronclad(c: Ctx, input: IroncladInput, p: Record<strin
   else checks.push(sql('NOT EXISTS(SELECT 1 FROM lk_entities)'))
   const parties = new Map((await c.db.prepare('SELECT id, lower(name) AS name FROM lk_parties WHERE merged_into IS NULL').all<{ id: string; name: string }>()).results.map(r => [r.name, r.id]))
   const existingParties = new Set(parties.values())
+  const storedParents=(await c.db.prepare("SELECT DISTINCT f.source_id,a.id,a.version,a.reference FROM lk_artifacts f JOIN lk_agreements a ON a.id=f.agreement_id WHERE f.source_system='ironclad' AND a.status='imported'").all<{source_id:string;id:string;version:number;reference:string}>()).results
+  const parentVersions=new Map<string,number>()
   const usedFiles = new Set<string>(), seenDigests = new Set<string>(), planned = new Map<string, TargetEffect[]>(), ids = new Map(input.records.map(r => [r.id, crypto.randomUUID()]))
   const rows: any[] = []
   for (const r of input.records) {
@@ -45,7 +47,7 @@ export async function planIronclad(c: Ctx, input: IroncladInput, p: Record<strin
     if (subject.length > 300) fail('IRONCLAD_VALUE', 'Map the title to at most 300 characters.')
     const relation = r.parentId ? String((p.relations as any)?.[r.id] ?? (r.relation || (type === 'amendment' ? 'amends' : type === 'order_form' ? 'order_under' : 'schedule_to'))) : ''
     if (r.parentId && !relations.includes(relation)) fail('IRONCLAD_FAMILY', 'Choose a supported relation for every child record.')
-    const row = { row: rows.length + 1, recordId: r.id, workflowId: r.workflowId, envelopeId: r.id, subject, status: r.status || 'record', type, counterparty, parentId: r.parentId, relation, document: document ? { path: document.path, sha256: document.sha256, size: document.bytes.length } : null, schedules: supported.slice(1).map(f => ({ path: f.path, sha256: f.sha256, size: f.bytes.length })), certificate: null, completedOn: null, outcome, notes, proposedTerms:[] as {key:string;value:string}[] }
+    const row = { row: rows.length + 1, recordId: r.id, workflowId: r.workflowId, envelopeId: r.id, subject, status: r.status || 'record', type, counterparty, parentId: r.parentId, parentReference:'', relation, document: document ? { path: document.path, sha256: document.sha256, size: document.bytes.length } : null, schedules: supported.slice(1).map(f => ({ path: f.path, sha256: f.sha256, size: f.bytes.length })), certificate: null, completedOn: null, outcome, notes, proposedTerms:[] as {key:string;value:string}[] }
     rows.push(row)
     if (outcome !== 'import') continue
     const agreementId = ids.get(r.id)!, versionId = crypto.randomUUID(), executionId = crypto.randomUUID(), effects: TargetEffect[] = []
@@ -82,10 +84,17 @@ export async function planIronclad(c: Ctx, input: IroncladInput, p: Record<strin
     } as any }, ...artifacts.map(a => a.effect))
     planned.set(r.id, effects)
   }
-  // Link only the reviewed batch. A missing/duplicate parent never causes an inferred link to another agreement.
+  // Bind earlier imported parents by their exact Ironclad source identity and
+  // current revision. This lets a large family span reviewed bounded batches.
   for (const row of rows) if (row.outcome === 'import' && row.parentId) {
     const parent = rows.find(r => r.recordId === row.parentId)
-    if (!parent || parent.outcome !== 'import') fail('IRONCLAD_FAMILY', `Include importable parent ${row.parentId} with child ${row.recordId}, or correct the export.`)
+    if (!parent || parent.outcome !== 'import') {
+      const existing=storedParents.filter(p=>p.source_id===row.parentId)
+      if(existing.length!==1)fail('IRONCLAD_FAMILY', `Include importable parent ${row.parentId} with child ${row.recordId}, or select its uniquely identified earlier Ironclad import.`)
+      ids.set(row.parentId,existing[0].id as ReturnType<typeof crypto.randomUUID>)
+      parentVersions.set(row.parentId,existing[0].version);row.parentReference=existing[0].reference
+      checks.push(sql("EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND version=? AND status='imported')",existing[0].id,existing[0].version))
+    }
     const visited = new Set([row.recordId]); let cursor = parent
     while (cursor) {
       if (visited.has(cursor.recordId)) fail('IRONCLAD_FAMILY', 'The source family contains a cycle.')
@@ -98,7 +107,7 @@ export async function planIronclad(c: Ctx, input: IroncladInput, p: Record<strin
     source.records.push({ namespace: IRONCLAD, kind: 'record', sourceId: row.outcome === 'import' ? row.recordId : `${row.recordId}#${batchId}`, payload, payloadHash: kitSha256(canonicalJson(payload)), artifactHash: input.manifest.sha256, location: { artifact: input.manifest.path, row: row.row } })
   }
   for (const row of rows) if (row.outcome === 'import' && row.parentId) {
-    const sourceId = `family:${row.recordId}`, payload = { id: ids.get(row.recordId)!, parent_id: ids.get(row.parentId)!, relation: row.relation }
+    const sourceId = `family:${row.recordId}`, payload = { id: ids.get(row.recordId)!, parent_id: ids.get(row.parentId)!, parent_version:parentVersions.get(row.parentId)??1, relation: row.relation }
     source.records.push({ namespace: IRONCLAD, kind: 'family', sourceId, payload, payloadHash: kitSha256(canonicalJson(payload)), artifactHash: input.manifest.sha256, location: {artifact:input.manifest.path,row:row.row} })
     planned.set(sourceId, [{ targetKind: 'ironclad-family', targetId: payload.id, value: payload }])
   }

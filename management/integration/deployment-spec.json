@@ -519,6 +519,12 @@
     },
     {
       "binding": "DB",
+      "name": "0089_pdf_text_renditions.sql",
+      "sha256": "7023d75de9e6efccd51658ec9f82e1cb1ea946b65e2c6eccef6aa24c7208eb9b",
+      "sql": "-- Embedded PDF text is derived custody, never an edit to an approved version.\nCREATE TABLE lk_pdf_renditions (\n id TEXT PRIMARY KEY,\n agreement_id TEXT NOT NULL REFERENCES lk_agreements(id) ON DELETE CASCADE,\n version_id TEXT NOT NULL REFERENCES lk_versions(id) ON DELETE CASCADE,\n artifact_id TEXT NOT NULL UNIQUE REFERENCES lk_artifacts(id) ON DELETE CASCADE,\n source_sha256 TEXT NOT NULL,\n version_digest TEXT NOT NULL,\n status TEXT NOT NULL DEFAULT 'queued',\n processed_pages INTEGER NOT NULL DEFAULT 0,\n total_pages INTEGER,\n text TEXT NOT NULL DEFAULT '',\n pages TEXT NOT NULL DEFAULT '[]',\n error TEXT,\n revision INTEGER NOT NULL DEFAULT 1,\n created_at INTEGER NOT NULL,\n updated_at INTEGER NOT NULL\n);\nCREATE INDEX lk_pdf_renditions_pending ON lk_pdf_renditions(status,created_at);\n"
+    },
+    {
+      "binding": "DB",
       "name": "0090_business_settings.sql",
       "sha256": "a16f736a781aa3fe02a2e090c993f8c360c904f9fb6d86126acdab6e1f24e773",
       "sql": "CREATE TABLE bs_settings (\n  singleton INTEGER PRIMARY KEY CHECK(singleton=1),\n  rev INTEGER NOT NULL DEFAULT 0,\n  document TEXT,\n  applied_at TEXT,\n  stopped INTEGER NOT NULL DEFAULT 0 CHECK(stopped IN(0,1)),\n  token TEXT NOT NULL DEFAULT ''\n);\nCREATE TABLE bs_overrides (\n  field TEXT PRIMARY KEY CHECK(field IN('display_name','owner_name','brand_color','logo','timezone')),\n  value TEXT NOT NULL,\n  actor TEXT NOT NULL,\n  changed_at TEXT NOT NULL\n);\nCREATE TABLE bs_logo (\n  singleton INTEGER PRIMARY KEY CHECK(singleton=1),\n  sha256 TEXT NOT NULL,\n  type TEXT NOT NULL,\n  bytes BLOB NOT NULL\n);\nCREATE TABLE bs_team (\n  email TEXT PRIMARY KEY,\n  operator_id TEXT,\n  invite INTEGER NOT NULL,\n  state TEXT NOT NULL CHECK(state IN('invited','active','inactive','conflict'))\n);\nCREATE TABLE bs_audit (\n  id INTEGER PRIMARY KEY,\n  actor TEXT NOT NULL,\n  action TEXT NOT NULL,\n  field TEXT,\n  changed_at TEXT NOT NULL\n);\n-- An INSERT of NULL fails the transaction if a concurrent write invalidated its fence.\nCREATE TABLE bs_assert (value INTEGER NOT NULL);\n"
@@ -534,6 +540,12 @@
       "name": "0092_agent_attribution.sql",
       "sha256": "bc0ced99405cdafdb259c9853e6cc2b99a240c0f1d25c0ed5ee18450dc246179",
       "sql": "-- Native provenance belongs to the command transaction and survives key expiry.\nCREATE TABLE lk_agent_commands (\n command_id TEXT PRIMARY KEY REFERENCES lk_commands(id) DEFERRABLE INITIALLY DEFERRED,\n operation_id TEXT NOT NULL, agent_id TEXT NOT NULL, agent_name TEXT NOT NULL,\n sponsor_id TEXT NOT NULL, sponsor_name TEXT NOT NULL, consent TEXT,\n approvers TEXT NOT NULL\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0093_ironclad_move_in.sql",
+      "sha256": "08373f77575728861ff6ff92e84de81f93bd93ea3fbc2fc7df01af59609d1d58",
+      "sql": "-- Session-bound read jobs retain the source and visible pending/failure state.\n-- Private API tokens are never stored, returned or archived.\nCREATE TABLE lk_ironclad_reads (\n id TEXT PRIMARY KEY, actor_id TEXT NOT NULL, session_id TEXT NOT NULL,\n label TEXT NOT NULL, origin TEXT NOT NULL, connection_digest TEXT NOT NULL,\n metadata TEXT NOT NULL, job_id TEXT, archive TEXT,\n status TEXT NOT NULL CHECK(status IN ('pending','ready','failed')),\n message TEXT, created_at INTEGER NOT NULL, checked_at INTEGER,\n version INTEGER NOT NULL DEFAULT 1\n);\n\n-- Imported USD values use the same cited proposal/confirmation history as dates.\nPRAGMA defer_foreign_keys = ON;\nCREATE TABLE lk_terms_move_in (\n id TEXT PRIMARY KEY, agreement_id TEXT NOT NULL REFERENCES lk_agreements(id),\n key TEXT NOT NULL CHECK(key IN ('effective_date','end_date','auto_renew','renewal_term_months','notice_days','governing_law','payment_terms','renewal_type','renewals_allowed','initial_term_months','value') OR key LIKE 'custom:%'),\n value TEXT NOT NULL, citation TEXT NOT NULL,\n status TEXT NOT NULL CHECK(status IN ('proposed','confirmed','rejected','superseded')),\n proposed_by TEXT NOT NULL, proposal_id TEXT, confirmed_by TEXT, confirmed_at INTEGER,\n supersedes_id TEXT, reason TEXT, created_at INTEGER NOT NULL\n);\nINSERT INTO lk_terms_move_in SELECT * FROM lk_terms;\nDROP TABLE lk_terms;\nALTER TABLE lk_terms_move_in RENAME TO lk_terms;\nCREATE TABLE lk_move_in_migration_guard (ok INTEGER NOT NULL CHECK(ok=1));\nINSERT INTO lk_move_in_migration_guard SELECT CASE WHEN EXISTS(SELECT 1 FROM pragma_foreign_key_check) THEN 0 ELSE 1 END;\nDROP TABLE lk_move_in_migration_guard;\nPRAGMA defer_foreign_keys = OFF;\n"
     }
   ],
   "compatibilityDate": "2026-09-08",

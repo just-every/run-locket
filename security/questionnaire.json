@@ -473,6 +473,18 @@
       "enabledByDefault": false,
       "configuration": "The installation owner pairs Business through the existing owner-claim trust. The canonical application origin binds incoming credentials to this installation. No provider execution is enabled by pairing.",
       "responsibility": "The buyer controls its Business installation, team membership, agent consents, signed policy and trust configuration; native Locket roles and record grants still govern every call."
+      },
+      {
+      "name": "Ironclad repository API",
+      "data": "Explicitly authorized repository metadata, source record identifiers and original attachment downloads into the buyer installation. Ironclad receives the record selection and attachment-job request; Locket sends no agreement edits, approvals, signatures or notices through this read door.",
+      "bindings": [
+        "IRONCLAD_REGION",
+        "IRONCLAD_API_TOKEN"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "The owner supplies a private minimum read credential and the fixed Ironclad region, explicitly authorizes each repository read and separately reviews its native import plan. Attachment jobs are bound to the current owner session and connection, expire after thirty minutes and require explicit retry after visible read failure. Original object-storage downloads receive no API bearer credential. The network-edge adapter still requires an authorized real export and sandbox interoperability receipt before live acceptance.",
+      "responsibility": "The buyer selects and contracts with the operator, authorizes source access, verifies export completeness and live API compatibility, grants minimum credentials and determines processing locations, retention and data-subject handling."
     }
   ],
   "assessedAt": "2026-10-27",

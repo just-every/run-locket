@@ -115,8 +115,15 @@ test('MOVE-002 moves fifty Ironclad records through exports and the pending/read
   const retained=await(await a.owner.request('/api/locket/export')).json()
   assert.equal(retained.records.lk_ironclad_reads.length,1);assert.ok(!('session_id' in retained.records.lk_ironclad_reads[0]))
   assert.equal(apiEdge.calls.filter(r=>r.path.endsWith('/records')).length,2)
-  const reimport=await a.owner.command('import.preview',{...fixture.payload,mapping:apiMapping});assert.equal(reimport.counts.import,50)
-  await apply(a.owner,reimport.batchId);await undo(a.owner,reimport.batchId)
+  const rootsOnly=fixture.records.filter(r=>r.recordType==='Master Services Agreement')
+  const parents=await a.owner.command('import.preview',{...fixture.payload,manifest:file('records.json',Buffer.from(JSON.stringify(rootsOnly))),mapping:apiMapping})
+  assert.equal(parents.counts.import,2);await apply(a.owner,parents.batchId)
+  const children=await a.owner.command('import.preview',{...fixture.payload,manifest:file('records.json',Buffer.from(JSON.stringify(fixture.records.filter(r=>!rootsOnly.includes(r))))),mapping:apiMapping})
+  assert.equal(children.counts.import,48);await apply(a.owner,children.batchId)
+  assert.equal((await a.owner.state()).agreements.filter(r=>r.parent_id).length,8)
+  await undo(a.owner,parents.batchId,{error:'IMPORT_DEPENDENCY'})
+  await undo(a.owner,children.batchId);await undo(a.owner,parents.batchId)
+  assert.equal((await a.owner.state()).agreements.length,0)
 
   // Read failures stay visible, current consent cannot cross owner sessions, and
   // malformed source graphs never produce native agreements.
