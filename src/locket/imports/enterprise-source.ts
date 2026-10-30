@@ -2,7 +2,6 @@ import { commit, auditSql, type Ctx } from '../commands'
 import { operationObservation } from '../connection-observations'
 import { alertConnectionFailure } from '../connection-health'
 import { authority, may } from '../access'
-import { decodeBase64 } from '../artifacts'
 import { fail, object, sha256, text } from '../model'
 import { readKitInput, type KitInput } from './docusign'
 import { readTable } from './spreadsheet'
@@ -13,14 +12,14 @@ export interface ApiProfile {
   release: string; documentation: string; baseUrl: string
   listPath: string; recordsKey: string; nextKey?: string; idColumn: string
   readPath?: string; recordKey?: string; documentsPath?: string; documentsKey?: string
-  documentName?: string; documentUrl?: string; documentRole?: string
+  documentName?: string; documentUrl?: string; documentRole?: string; documentRoles?: Record<string, string>
   attachmentFields?: string[]; knowledgeBase?: string; table?: string
 }
 const pick = (value: any, path = ''): any => path ? path.split('.').reduce((v, k) => v?.[k], value) : value
 
 /** Only a server-installed, tenant-documented read profile may choose endpoints.
  * Credentials never enter commands, reviewed source snapshots or URL parameters. */
-async function readEnterpriseInput(c: Ctx, p: Record<string, unknown>, kit: EnterpriseKit): Promise<KitInput & { api?: { release: string; documentation: string } }> {
+async function readEnterpriseInput(c: Ctx, p: Record<string, unknown>, kit: EnterpriseKit): Promise<KitInput & { api?: { release: string; documentation: string }; sourceRoles?: Record<string, string> }> {
   if (p.source !== 'api') return readKitInput({ ...p, dateFormat: p.dateFormat ?? 'iso' })
   if (p.consent !== true) fail('CONSENT', 'Authorize this read-only source import explicitly.')
   const env = c.env as any, prefix = kit.toUpperCase(), token = env[prefix + '_IMPORT_TOKEN'], rawProfile = env[prefix + '_IMPORT_PROFILE']
@@ -31,7 +30,7 @@ async function readEnterpriseInput(c: Ctx, p: Record<string, unknown>, kit: Ente
   let base: URL
   try { base = new URL(profile.baseUrl) } catch { fail('IMPORT_CONNECTION','The configured source URL is invalid.',409) }
   if (base.protocol !== 'https:' || base.username || base.password || base.port || base.search || base.hash || !/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(base.hostname) || /^(?:\d+\.)+\d+$/.test(base.hostname) || /\.(local|localhost)$/i.test(base.hostname)) fail('IMPORT_CONNECTION', 'Use a public HTTPS source origin.', 409)
-  const at = Date.now(), artifacts: { path: string; bytes: Uint8Array; sha256: string }[] = [], snapshots: any[] = []
+  const at = Date.now(), artifacts: { path: string; bytes: Uint8Array; sha256: string }[] = [], sourceRoles: Record<string, string> = {}
   let bytesRead = 0, calls = 0
   const read = async (path: string, params: Record<string, string> = {}, binary = false) => {
     const auth = authority(c.actor, may.imports)
@@ -52,13 +51,14 @@ async function readEnterpriseInput(c: Ctx, p: Record<string, unknown>, kit: Ente
     }
     const bytes = new Uint8Array(chunks.reduce((n, v) => n + v.length, 0)); let offset = 0
     for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
+    // Inspect every response before it can enter the journal or native files.
+    if (new TextDecoder().decode(bytes).includes(token)) fail('IMPORT_PROVIDER','The source returned credential-bearing content; it was not retained.',502)
     if (binary) return bytes
     let value: any
     try { value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) } catch { fail('IMPORT_PROVIDER', 'The source did not return valid JSON.', 502) }
-    if (new TextDecoder().decode(bytes).includes(token)) fail('IMPORT_PROVIDER','The source returned credential-bearing content; it was not retained.',502)
+    if (JSON.stringify(value).includes(token)) fail('IMPORT_PROVIDER','The source returned credential-bearing content; it was not retained.',502)
     // Keep the exact original JSON, with no request URL, headers or credentials.
     artifacts.push({ path: `_api/response-${artifacts.length + 1}.json`, bytes, sha256: await sha256(bytes) })
-    snapshots.push(value)
     return value
   }
   const rows: Record<string, string>[] = [], documents: Record<string, string[]> = {}
@@ -87,8 +87,13 @@ async function readEnterpriseInput(c: Ctx, p: Record<string, unknown>, kit: Ente
         const body = await read(profile.documentsPath.replaceAll('{id}', encodeURIComponent(id))), docs = pick(body, profile.documentsKey ?? 'documents')
         if (!Array.isArray(docs)) fail('IMPORT_PROVIDER', 'The Document List does not match the documented profile.', 502)
         for (const doc of docs) {
-          const name = text(doc, profile.documentName ?? 'name', 200), path = `${id}/${name}`
-          const bytes = await read(text(doc, profile.documentUrl ?? 'url', 1000), {}, true) as Uint8Array
+          const name = text({value:pick(doc, profile.documentName ?? 'name')}, 'value', 200), path = `${id}/${name}`
+          const bytes = await read(text({value:pick(doc, profile.documentUrl ?? 'url')}, 'value', 1000), {}, true) as Uint8Array
+          if (profile.documentRole) {
+            const sourceRole = pick(doc, profile.documentRole), role = profile.documentRoles?.[sourceRole] ?? sourceRole
+            if (!['signed', 'version', 'attachment', 'certificate'].includes(role)) fail('IMPORT_PROVIDER', 'A Document List role does not match the installed role mapping.', 502)
+            sourceRoles[path] = role
+          }
           artifacts.push({ path, bytes, sha256: await sha256(bytes) }); documents[id].push(path)
         }
       } else {
@@ -109,11 +114,14 @@ async function readEnterpriseInput(c: Ctx, p: Record<string, unknown>, kit: Ente
     if (value !== null && value !== undefined && value !== '' && typeof value !== 'string') fail('IMPORT_PROVIDER', 'The next-page value is invalid.', 502)
     next = value || ''
   }
+  // A documents folder is meaningful with API metadata even without an export.
+  const exported = await readKitInput({...p,dateFormat:'iso',manifest:p.manifest ?? {filename:'supplied.csv',base64:encode(new TextEncoder().encode('id'))},files:p.files ?? []})
   if (p.manifest) {
-    const exported = await readKitInput({...p,dateFormat:'iso'})
     const metadata = readTable(exported.manifest.filename,exported.manifest.bytes)
     for (const original of metadata.rows) {
-      const id=original[profile.idColumn], remote=rows.find(r=>r[profile.idColumn]===id)
+      const id=original[profile.idColumn]?.trim()
+      if (!id) fail('IMPORT_SOURCE_CONFLICT', 'Every combined export row must have the installed profile identity column.', 409)
+      const remote=rows.find(r=>r[profile.idColumn]===id)
       if (remote) {
         for (const [column,value] of Object.entries(original)) {
           if(value&&remote[column]&&value!==remote[column]) fail('IMPORT_SOURCE_CONFLICT','Export and API metadata disagree. Review a consistent snapshot before importing.',409)
@@ -122,11 +130,11 @@ async function readEnterpriseInput(c: Ctx, p: Record<string, unknown>, kit: Ente
       } else rows.push(original)
     }
     artifacts.push({path:'_source/'+exported.manifest.filename,bytes:exported.manifest.bytes,sha256:exported.manifest.sha256})
-    for(const f of exported.files) {
+  }
+  for(const f of exported.files) {
       const held=artifacts.find(a=>a.path===f.path)
       if(held&&held.sha256!==f.sha256)fail('IMPORT_SOURCE_CONFLICT','Export and API document bytes disagree.',409)
       if(!held)artifacts.push(f)
-    }
   }
   const header = [...new Set(rows.flatMap(r => Object.keys(r)))]
   const csv = [header, ...rows.map(r => header.map(h => r[h] ?? ''))].map(row => row.map(v => '"' + v.replaceAll('"', '""') + '"').join(',')).join('\r\n')
@@ -134,7 +142,7 @@ async function readEnterpriseInput(c: Ctx, p: Record<string, unknown>, kit: Ente
   const bytes = new TextEncoder().encode(csv)
   // API snapshots and document bytes are retained by the same journal as exports.
   const input = await readKitInput({ label: p.label, dateFormat: 'iso', manifest: { filename: `${kit}-api.csv`, base64: encode(bytes) }, files: artifacts.map(f => ({ path: f.path, base64: encode(f.bytes) })) })
-  return { ...input, api: { release: profile.release, documentation: profile.documentation } }
+  return { ...input, sourceRoles, api: { release: profile.release, documentation: profile.documentation } }
 }
 function encode(bytes: Uint8Array) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s) }
 
