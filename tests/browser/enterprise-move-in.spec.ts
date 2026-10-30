@@ -25,7 +25,7 @@ test('MOVE-003 reviews editable source mappings, applies original custody and sh
       await expect(page.getByRole('heading',{name:'Move from Icertis or Agiloft'})).toBeVisible()
       const form=page.locator('form').filter({has:page.getByLabel('Source system',{exact:true})})
       await form.getByLabel('Source system').selectOption(kit)
-      await form.getByLabel('Batch name',{exact:true}).fill(kit+' browser import')
+      await form.getByLabel('Enterprise batch name',{exact:true}).fill(kit+' browser import')
       await form.getByLabel('Metadata export (XLSX or CSV)').setInputFiles({name:kit+'.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from(f.payload.manifest.base64,'base64')})
       const root=join(directory,kit)
       for(const [path,bytes] of Object.entries(f.files)){const target=join(root,path);await mkdir(join(target,'..'),{recursive:true});await writeFile(target,bytes as Uint8Array)}

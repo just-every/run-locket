@@ -25,7 +25,7 @@ export function EnterpriseImport({ state, locket, selected }: { state: LocketSta
       if(result)selected(result.batchId)
     }}>
       <Field label="Source system"><select name="kit"><option value="icertis">Icertis Contract Intelligence</option><option value="agiloft">Agiloft</option></select></Field>
-      <Field label="Batch name"><input name="label" required /></Field>
+      <Field label="Enterprise batch name"><input name="label" required /></Field>
       {state.entities.length>0&&<EntitySelect state={state}/>}
       <Field label="Read from"><select name="source" value={source} onChange={e=>setSource(e.target.value)}><option value="export">Metadata export and documents folder</option><option value="api">Configured read-only API</option></select></Field>
       <Field label="Metadata export (XLSX or CSV)" hint={source==='api'?'Optional: combine an export with the API snapshot.':undefined}><input name="manifest" type="file" accept=".xlsx,.csv" required={source==='export'}/></Field><Field label="Documents folder" hint="Folders named by source ID or ICI agreement code. Keep every original file."><input name="files" type="file" multiple {...{webkitdirectory:''}}/></Field>
