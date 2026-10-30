@@ -86,7 +86,7 @@ or returned in state. The owner explicitly authorizes the repository read, then
 checks the visible attachment job until ready. Reads are bound to that owner
 session and the private connection, expire after 30 minutes, and never revive on
 a later login or changed credential. HTTP errors remain visible and explicit
-read retry never applies an agreement. The ready original ZIP enters the same
+read retry never applies an agreement. The ready original documents enter the same
 mapping and journal path as an uploaded export. Download credentials are never
 forwarded to signed object-storage URLs or redirects.
 

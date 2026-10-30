@@ -220,7 +220,7 @@
       "executable": false
     },
     "IMPORT.md": {
-      "sha256": "272ce47514b490e5c03a0abc3ddcb8b01c4dc6bad2b2f75ada6a75a920b32fe1",
+      "sha256": "33a3c16997b2909f2f3279be589480412578780f2b88ecccf5fae0f26a9ccc98",
       "executable": false
     },
     "LICENSE": {
@@ -2616,7 +2616,7 @@
       "executable": false
     },
     "src/locket/views.ts": {
-      "sha256": "f86867aa5244ca874fa5c88e0a64255742b630acc946c7a39ef35f5edc9e30bf",
+      "sha256": "a9e50bcd3164a7e52c472aee5c1628b18c3744242b091a4138cb90169c2df8a8",
       "executable": false
     },
     "src/locket/word-pricing.ts": {
@@ -5660,7 +5660,7 @@
       "executable": false
     },
     "tests/api/ironclad-controls-journey.mjs": {
-      "sha256": "bce59a3ac6eaa5e27e8f4470afc89b6f9735755cba0da880a578b98d55ad82bf",
+      "sha256": "bd59719afdab97d505bdbf28d45256af7ecfe890ad6ab29cd0e27339752982ca",
       "executable": false
     },
     "tests/api/ironclad-inheritance-journey.mjs": {
@@ -5668,7 +5668,7 @@
       "executable": false
     },
     "tests/api/ironclad-move-in.test.mjs": {
-      "sha256": "5df80580972c65f2b454a122ee69fd32155e44fa7445243f9b13d331457d80c2",
+      "sha256": "d3b03b3b87022021aaf123d5ec0139c67ec0a14966a524b1fd2f19eb5d7fd730",
       "executable": false
     },
     "tests/api/model-settings-fixture.mjs": {
