@@ -1,3 +1,4 @@
+import { questionHandlers, readRepositoryQuestion } from './repository-questions'
 import { followupHandlers } from './execution-followups'
 import { readAgreementSummary } from './agreement-summaries'
 import { modelHandlers } from './model-settings'
@@ -98,7 +99,7 @@ import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
   ...accountingDestinationHandlers,
-  ...modelHandlers, ...signatureHandlers(), ...redactedRenditionHandlers,
+  ...questionHandlers, ...modelHandlers, ...signatureHandlers(), ...redactedRenditionHandlers,
   ...chatHandlers, ...scopedTokenHandlers, ...workforceHandlers,
   ...wordReviewHandlers,
   ...remediationHandlers,
@@ -170,6 +171,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     const exchange = await publicExchangeResponse(request,env)
     if(exchange)return exchange
     const actor = await integrationActor(env,request,path) ?? await currentActor(request, env)
+    if(request.method==='GET'&&path.startsWith('/questions/'))return reply(await readRepositoryQuestion(env,actor,decodeURIComponent(path.slice('/questions/'.length))))
     if(request.method==='GET'&&path.startsWith('/summaries/'))return reply(await readAgreementSummary(env,actor,decodeURIComponent(path.slice('/summaries/'.length))))
     if(request.method==='GET'&&path==='/access-report')return reply(await accessReport(env,actor,url.searchParams.get('agreementId')??''))
     if(request.method==='GET'&&path.startsWith('/approval-channels/requests/'))return reply(await approvalChannelRequestView(env,actor,decodeURIComponent(path.slice('/approval-channels/requests/'.length))))

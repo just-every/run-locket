@@ -757,3 +757,44 @@ agreement value and invalidate earlier approval contexts. Custom dates and money
 also require the current field definition and its edit authority. Imported
 execution history stays labelled imported and requires signature-evidence review.
 The API adapter follows the published per-record attachment URL job and authenticated keyed attachment routes. Failed/missing job outcomes and mismatched identities or hashes withhold the input. The owner archive includes validated `importJournal` originals after undo. A live owner sandbox receipt remains required; network-edge tests establish no live interoperability.
+
+## Ask the repository
+
+`question.ask` takes `{question, consent:true, simulated?}`. A signed-in human
+can ask in plain English from **Ask the repository**. The source set contains
+only their currently accessible readable versions, counterparty names and cited
+confirmed/proposed terms. Agreement types with AI switched off are excluded.
+Under the existing field policy, people with hidden fields cannot disclose
+unredacted documents through questions. The entire source set is bounded to
+200 agreements and 1.5 MB; an oversized context is refused before dispatch,
+without silently selecting a subset.
+
+The chosen provider, no-training/zero-retention policy, installation switch and
+exact questions prompt/model REVIEW-006 evaluation gate apply. Real generation
+is unavailable until that live evaluation passes. Test-only provider simulation
+uses the same Anthropic, OpenAI or Workers AI network adapters and cannot create
+a live evaluation. This repository ships no live question qualification.
+
+`GET /api/locket/questions/ID` returns only the asker's retained record and exact
+version-pinned citations. Each quote must exist in the selected agreement;
+recorded term identity, value and confirmation status come from Locket, never
+from the model. Free-text answers remain proposed interpretations. A relied-on
+unconfirmed term is labelled proposed. No match is evidence of an absent term.
+A source change marks the retained record stale. Losing access to any input
+source withdraws the whole old record; ask again over the new accessible set.
+Previous questions are private to the asker, including on command replay.
+
+`question.accept` takes `{id}` and retains the accepting person and time on a
+current answer. It does not confirm terms, change agreements or schedule a
+deadline. Records include provider/model, prompt digest, exact input/document
+digests, the question's UTC date, token counts and estimated USD cost. Questions
+use no playbook; their records say so explicitly. Usage joins the owner's
+existing monthly model ledger. The complete archive includes question records;
+personal-data erasure and legal holds cover their questions, source snapshots
+and answer text.
+
+One guarded durable claim precedes every provider request. Current session,
+role, field access, complete source set and model settings are checked again
+when retaining usage and answer text. Invalid, interrupted or stale replies
+stay uncertain and are never automatically resent. The screen links every
+citation to the original version and passage without changing original files.

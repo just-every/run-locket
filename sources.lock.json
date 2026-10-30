@@ -104,7 +104,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "daaa7448a39ffdd9b8c682acb7b5c096e2f77a3acf116c8ffa1e0d520c4ed720",
+      "sha256": "ce018188e8e5feb9f1fbe73bd94d36922e8de67d5ffee020cf898c4b99ecbdd7",
       "executable": false
     },
     ".gitignore": {
@@ -116,7 +116,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "19bb6a2e58ba9be1e64af678efc484bf5d17b7ee682c7c0d91cff88d90a9e032",
+      "sha256": "470a9f7d4579e904a7ee6c2ca963c55791b15e7cf9ae24cf6abd07b35d2310bf",
       "executable": false
     },
     "agent-surface.json": {
@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "1017f598385edd149cf9bb8b5b5b8f82bc021a21550da8f594c2c509e045eb9d",
+      "sha256": "81b15490db2527c974235aa272f786a5f2fd75a4cb6563de61de9a97ade3250b",
       "executable": false
     },
     "base-copies.json": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1cefff9bca4fcf9f1b7dda25a56a3b05e80508b1f927e451007baea58d9bbe60",
+      "sha256": "1a9d68bd5bc61426406e3d15f0e756a6b60468334d1a2b0468232428851bb207",
       "executable": false
     },
     "DEMO.md": {
@@ -589,6 +589,10 @@
     },
     "migrations/core/0093_ironclad_move_in.sql": {
       "sha256": "08373f77575728861ff6ff92e84de81f93bd93ea3fbc2fc7df01af59609d1d58",
+      "executable": false
+    },
+    "migrations/core/0094_repository_questions.sql": {
+      "sha256": "46c6870c4676f6b1374b3c3300ba4335d7e20b3d17b4c9236c20c9b4391ffefc",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1852,7 +1856,7 @@
       "executable": false
     },
     "src/locket/api.ts": {
-      "sha256": "b34205800daf7e7819def915d3f6921c3ee4e936c508a591cc4f12cc6032c647",
+      "sha256": "f6d7aaf975c5b753a8ec50ed697b105cabe3684e15a3604a22d83d5653773e17",
       "executable": false
     },
     "src/locket/approval-channel-automatic.ts": {
@@ -1948,7 +1952,7 @@
       "executable": false
     },
     "src/locket/commands.ts": {
-      "sha256": "591294b67cb1a878a22a760b6b41ef3b342fe9f2b601f2eae023b81e74d9eaa9",
+      "sha256": "731de6b80f0bbca55cd9ed8e84f7d1770adc1d492e33bdfd54303d18519f1016",
       "executable": false
     },
     "src/locket/comment-threads.ts": {
@@ -2028,7 +2032,7 @@
       "executable": false
     },
     "src/locket/erasure-plan.ts": {
-      "sha256": "8028b62cb6d7dc7e80a871ad67125f8136c3b751f4f22a39bf2d5fba00c1f145",
+      "sha256": "d02cc6702e5700cc8e9f187561ce1154d0cd784a036879affbf25f13c0031f21",
       "executable": false
     },
     "src/locket/erasure-reseal.ts": {
@@ -2216,7 +2220,7 @@
       "executable": false
     },
     "src/locket/model-settings.ts": {
-      "sha256": "546a1acf777a95350f6ea7fcb27f3235fe5bf0625960fdb8c652d46de3ee4072",
+      "sha256": "74d1a0e7d9c30e155aadaa4ef19488cb4819d3749d51d9c5f463df479d296f64",
       "executable": false
     },
     "src/locket/model.ts": {
@@ -2467,6 +2471,10 @@
       "sha256": "19627cc2ec7215a45a769f29227c0317d4fec9d5eca2ef0671a6d0caac7f5114",
       "executable": false
     },
+    "src/locket/repository-questions.ts": {
+      "sha256": "65b653aa576c2b9c2a9fea6dbce58ad0c6157da54356179f8a19ef690e9bc80f",
+      "executable": false
+    },
     "src/locket/repository.ts": {
       "sha256": "d51fdad0183ea2d17cd2d753b4238c5c0756d3c5217e374f940964e93dcf4bb0",
       "executable": false
@@ -2616,7 +2624,7 @@
       "executable": false
     },
     "src/locket/views.ts": {
-      "sha256": "a9e50bcd3164a7e52c472aee5c1628b18c3744242b091a4138cb90169c2df8a8",
+      "sha256": "e899a41dc16b4308ff1e45e0cb0d455ea79724ac36ff37f3c659c3065f2c4e19",
       "executable": false
     },
     "src/locket/word-pricing.ts": {
@@ -5104,11 +5112,11 @@
       "executable": false
     },
     "src/ui/api.ts": {
-      "sha256": "a9ab0a7d9cd3d0562f284f55895b28529b7787fd0bf9003ae009b83d790ea60b",
+      "sha256": "4395c9f1180120c8e658103b4b66a6d005e0c8e1a21cf0d55ba5f52f818d63b2",
       "executable": false
     },
     "src/ui/app.tsx": {
-      "sha256": "870f6dc6ed417faba7d08a4599b2ed1fba1238bd6dadaf85c369cd2e5b041a26",
+      "sha256": "19dcf6c5d8bf78565bccc23cb379e13aef2880f6732d87fcc658f666a814189d",
       "executable": false
     },
     "src/ui/approval-channel-review.tsx": {
@@ -5363,6 +5371,10 @@
       "sha256": "712ac9cea428a0e2cc3b7433eb860d3c7be7a89446aa7e062231b98e19e6d0b9",
       "executable": false
     },
+    "src/ui/repository-questions.tsx": {
+      "sha256": "a08571f3adfdcc89d0a9bd71307dd8e668b7ce160c793117073120afa5261457",
+      "executable": false
+    },
     "src/ui/request-queue.tsx": {
       "sha256": "e9d714350aa2a921f5a28cb24f5e0b813b59bc44d190b7ca2f1bac449080d5df",
       "executable": false
@@ -5408,7 +5420,7 @@
       "executable": false
     },
     "src/ui/shell.tsx": {
-      "sha256": "644052bd52f157cdab4c7c9d21f50f32cf601b0bcea23715a91965834a519567",
+      "sha256": "0a61d8e7d4bdc3224dbd552d9cc2de3d473d11d73f3d3ce20f63fc223128de58",
       "executable": false
     },
     "src/ui/signature-approval-summary.tsx": {
@@ -5476,7 +5488,7 @@
       "executable": false
     },
     "src/ui/style/screens.css": {
-      "sha256": "6bcd1af3e1b5056886d280bee24c06f31fa96d0b9ff6f5bf886d115a3eefd9d7",
+      "sha256": "b08a502389a2b2b5bb0b2816aa1696b2321b11bc5954ba5d8a6a7b47c882161b",
       "executable": false
     },
     "src/ui/style/shell.css": {
@@ -5757,6 +5769,14 @@
     },
     "tests/api/repository-policy-journey.mjs": {
       "sha256": "ac3821b470900f9c502ca46c26c8fd2e74ac057b5a6db74e7f23df0805395ee3",
+      "executable": false
+    },
+    "tests/api/repository-questions-fixture.mjs": {
+      "sha256": "c7c1f9bd3dea3bd46d387cf0b028e798a2e9625407fb58c098351db39f24edde",
+      "executable": false
+    },
+    "tests/api/repository-questions.test.mjs": {
+      "sha256": "101d8739e06f92da425ef6388b26db42f62513575089a014a2e57776fe59577c",
       "executable": false
     },
     "tests/api/review-redlines-fixture.mjs": {
@@ -6041,6 +6061,10 @@
     },
     "tests/browser/repository-exceptions-journey.mjs": {
       "sha256": "233051860839fbdd1c17dc007dc338165f7f812177fe254620d9cb073dc56e1e",
+      "executable": false
+    },
+    "tests/browser/repository-questions-journey.mjs": {
+      "sha256": "997dac0f7773dd5e50d4cb26d82b21ab396c6b3637eb43864acbd34d079b381d",
       "executable": false
     },
     "tests/browser/review-redlines.spec.ts": {
