@@ -473,6 +473,30 @@
       "enabledByDefault": false,
       "configuration": "The installation owner pairs Business through the existing owner-claim trust. The canonical application origin binds incoming credentials to this installation. No provider execution is enabled by pairing.",
       "responsibility": "The buyer controls its Business installation, team membership, agent consents, signed policy and trust configuration; native Locket roles and record grants still govern every call."
+    },
+    {
+      "name": "Icertis Contract Intelligence",
+      "data": "Owner-authorized read-only contract metadata, source JSON and original documents are read into the buyer installation and retained in the import journal. No contract data is written back.",
+      "bindings": [
+        "ICERTIS_IMPORT_PROFILE",
+        "ICERTIS_IMPORT_TOKEN"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Optional private read credential and tenant-documented HTTPS API profile. The buyer validates its deployed release, authentication and selectors before use. No live vendor compatibility is claimed.",
+      "responsibility": "The buyer controls the source account, export authority, minimum read access, provider terms, data locations and credential revocation."
+    },
+    {
+      "name": "Agiloft",
+      "data": "Owner-authorized read-only contract metadata, source JSON and original documents are read into the buyer installation and retained in the import journal. No contract data is written back.",
+      "bindings": [
+        "AGILOFT_IMPORT_PROFILE",
+        "AGILOFT_IMPORT_TOKEN"
+      ],
+      "connectors": [],
+      "enabledByDefault": false,
+      "configuration": "Optional private read credential and tenant-documented HTTPS API profile. The buyer validates its deployed release, authentication and selectors before use. No live vendor compatibility is claimed.",
+      "responsibility": "The buyer controls the source account, export authority, minimum read access, provider terms, data locations and credential revocation."
     }
   ],
   "assessedAt": "2026-10-27",

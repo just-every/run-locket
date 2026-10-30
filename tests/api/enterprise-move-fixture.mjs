@@ -17,7 +17,7 @@ export function enterpriseFixture(kit) {
     const id=sourceId(i+1)
     rows.push({[idColumn]:id,...(kit==='icertis'?{'Agreement Code':`ICI-CODE-${i+1}`,'First Party':'Synthetic Owner LLC'}:{}),'Contract Type':i===1||i===2?'Amendment':'MSA',[kit==='agiloft'?'Contract Title':'Name']:`${kit} agreement ${i+1}`,Status:'Executed',[kit==='agiloft'?'Company':'Second Party']:`Synthetic ${kit} Counterparty ${i+1}`,[kit==='agiloft'?'Start Date':'Effective Date']:'2022-03-01',[kit==='agiloft'?'End Date':'Expiry Date']:i===1?'2023-03-31':'2023-02-28',[kit==='agiloft'?'Amount':'Value']:'12000.50',Currency:'USD','Parent ID':i===1||i===2?sourceId(1):'',Relation:i===1||i===2?'amends':'','Auto Renewal':'yes','Renewal Type':'auto_renew','Renewal Months':'12','Notice Days':'60','Governing Law':'Delaware','Payment Terms':'Net 30','Business Unit':'Operations','Risk Class':'Low',Region:'US'})
     if(i!==29) {
-      files[`${id}/signed_document/signed.pdf`]=pdf(`${kit} signed agreement ${i+1}. End date February 28 2023. Auto renewal every 12 months. Notice 60 days. Amount USD 12000.50.`)
+      files[`${id}/signed_document/signed.pdf`]=pdf(`${kit} signed agreement ${i+1}. Effective date 2022-03-01. End date ${i===1?'2023-03-31':'2023-02-28'}. Auto renewal every 12 months. Notice 60 days. Amount USD 12000.50. Governing law Delaware. Payment terms Net 30. Business unit Operations.`)
       files[`${id}/supporting_files/schedule.txt`]=Buffer.from(`${kit} unchanged supporting evidence ${i+1}\n`)
     }
   }

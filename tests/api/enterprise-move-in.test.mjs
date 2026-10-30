@@ -18,6 +18,9 @@ test('MOVE-003 moves ICI and Agiloft export/API cohorts through review, custody,
       const viewer=await h.invite(`${kit}-viewer@example.test`,'viewer'), counsel=await h.invite(`${kit}-counsel@example.test`,'counsel')
       await viewer.command('import.preview',f.payload,{error:'FORBIDDEN'})
       const unauth=await h.request('/api/locket/commands',{method:'POST',body:{commandId:randomUUID(),type:'import.preview',payload:f.payload}});assert.equal(unauth.status,401)
+      const entity=await h.owner.command('entity.save',{legalName:`Synthetic ${kit} Owner LLC`,entityType:'LLC',formation:'Delaware',registeredAddress:'Synthetic office',noticeAddress:'Synthetic legal office',currency:'USD',timezone:'America/Chicago',signatories:[]})
+      await h.owner.command('import.preview',f.payload,{error:'ENTITY_REQUIRED'})
+      f.payload.entityId=entity.id
       const dry=await h.owner.command('import.preview',f.payload)
       assert.equal(dry.counts.rows,30);assert.equal(dry.counts.import,29);assert.equal(dry.counts.missing,1);assert.equal(dry.counts.orphanFiles,1)
       let b=await batchOf(h,dry.batchId),review=JSON.parse(b.preview)
@@ -35,7 +38,7 @@ test('MOVE-003 moves ICI and Agiloft export/API cohorts through review, custody,
       await h.owner.command('import.apply',{batchId:staleBatch.id,version:staleBatch.version,fingerprint:staleBatch.fingerprint},{error:'IMPORT_STALE'})
       let s=await h.owner.state();assert.equal(s.agreements.length,29);assert.equal(s.customValues.length,0);assert.equal(s.renewals.length,0);assert.equal(s.versions.filter(v=>v.number===2).length,1)
       const master=s.agreements.find(a=>a.title===`${kit} agreement 1`),amendments=s.agreements.filter(a=>a.parent_id===master.id)
-      assert.equal(master.status,'imported');assert.equal(master.value_cents,null);assert.equal(amendments.length,2);assert.ok(amendments.every(a=>a.relation==='amends'))
+      assert.equal(master.entity_id,entity.id);assert.equal(master.timezone,'America/Chicago');assert.equal(master.status,'imported');assert.equal(master.value_cents,null);assert.equal(amendments.length,2);assert.ok(amendments.every(a=>a.relation==='amends'))
       assert.ok(s.executions.every(e=>e.imported===1&&e.status==='needs_review'&&e.executed_on===''))
       for(const artifact of s.artifacts) {
         const path=JSON.parse(artifact.provenance).path,expected=f.files[path]
@@ -44,7 +47,8 @@ test('MOVE-003 moves ICI and Agiloft export/API cohorts through review, custody,
       }
       for(const row of f.rows.slice(0,29)) {
         const id=row['System ID']??row['Record ID'],search=await(await h.owner.request('/api/locket/search?q='+id)).json()
-        assert.equal(search.results.length,1,`source identity ${id} is searchable`)
+        const expected=s.agreements.find(a=>a.title===(row.Name??row['Contract Title']))
+        assert.ok(search.results.some(a=>a.id===expected.id),`source identity ${id} finds its agreement, alongside any other substring matches`)
       }
       if(kit==='icertis')assert.equal((await(await h.owner.request('/api/locket/search?q=ICI-CODE-1')).json()).results.length,11)
       const archive=await(await h.owner.request('/api/locket/export')).json();assert.equal(archive.records.lk_import_batches.length,3);assert.ok(archive.records.lk_audit.some(a=>a.action==='import.apply'))
@@ -77,11 +81,14 @@ test('MOVE-003 moves ICI and Agiloft export/API cohorts through review, custody,
       const file=s.artifacts.find(a=>a.agreement_id===root.id);assert.equal((await viewer.request('/api/locket/files/'+file.id)).status,404)
       const initialTerm=s.terms.find(t=>t.agreement_id===root.id&&t.key==='end_date')
       await counsel.command('term.decide',{agreementId:root.id,termId:initialTerm.id,decision:'confirm'},{error:'INVALID'})
-      for(const agreement of [root,amendment])for(const term of s.terms.filter(t=>t.agreement_id===agreement.id&&!t.key.startsWith('import:')&&!t.key.startsWith('custom:')))await counsel.command('term.decide',{agreementId:agreement.id,termId:term.id,decision:'confirm',citation:{quote:'Auto renewal every 12 months. Notice 60 days.',page:1}})
+      for(const agreement of [root,amendment])for(const term of s.terms.filter(t=>t.agreement_id===agreement.id&&!t.key.startsWith('import:')&&!t.key.startsWith('custom:')))await counsel.command('term.decide',{agreementId:agreement.id,termId:term.id,decision:'confirm',citation:{quote:({effective_date:'Effective date 2022-03-01.',end_date:`End date ${term.value}.`,governing_law:'Governing law Delaware.',payment_terms:'Payment terms Net 30.',notice_days:'Notice 60 days.'})[term.key]??'Auto renewal every 12 months.',page:1}})
       s=await h.owner.state();const current=s.renewalLifecycle?.terms??s.renewals;assert.ok(s.renewals.find(r=>r.agreement_id===root.id).deadline_date>'2026-10-17')
       const amount=s.terms.find(t=>t.agreement_id===root.id&&t.key==='import:value'),custom=s.terms.find(t=>t.agreement_id===root.id&&t.key==='custom:'+field.id)
-      for(const term of [amount,custom])await counsel.command('import.value.confirm',{agreementId:root.id,termId:term.id,citation:{quote:'Amount USD 12000.50.',page:1}})
-      s=await h.owner.state();assert.equal(s.agreements.find(a=>a.id===root.id).value_cents,1200050);assert.equal(JSON.parse(s.customValues.find(v=>v.agreement_id===root.id).value),'Operations')
+      for(const term of [amount,custom])await counsel.command('import.value.confirm',{agreementId:root.id,termId:term.id,citation:{quote:term===amount?'Amount USD 12000.50.':'Business unit Operations.',page:1}})
+      s=await h.owner.state();assert.equal(s.agreements.find(a=>a.id===root.id).value_cents,1200050);assert.equal(s.agreements.find(a=>a.id===root.id).currency,'USD');assert.equal(s.agreements.find(a=>a.id===root.id).original_cents,null);assert.equal(s.agreements.find(a=>a.id===root.id).usd_rate,null);assert.equal(s.terms.find(t=>t.agreement_id===root.id&&t.key==='import:currency').status,'confirmed');assert.equal(JSON.parse(s.customValues.find(v=>v.agreement_id===root.id).value),'Operations')
+      const other=s.agreements.find(a=>a.title===`${kit} agreement 4`), rejectedCurrency=s.terms.find(t=>t.agreement_id===other.id&&t.key==='import:currency'), otherAmount=s.terms.find(t=>t.agreement_id===other.id&&t.key==='import:value')
+      await counsel.command('term.decide',{agreementId:other.id,termId:rejectedCurrency.id,decision:'reject',reason:'Currency does not match the signed source'})
+      await counsel.command('import.value.confirm',{agreementId:other.id,termId:otherAmount.id,citation:{quote:'Amount USD 12000.50.',page:1}},{error:'IMPORT_CURRENCY'})
       const source=s.terms.find(t=>t.agreement_id===amendment.id&&t.key==='end_date')
       assert.ok(JSON.parse(source.citation).quote);assert.equal(JSON.parse(source.citation).page,1)
       await counsel.command('family.term',{agreementId:root.id,version:s.agreements.find(a=>a.id===root.id).version,termId:source.id})
@@ -90,7 +97,7 @@ test('MOVE-003 moves ICI and Agiloft export/API cohorts through review, custody,
       await h.owner.command('renewal.bulk.apply',{previewId:bulk.id})
       s=await h.owner.state();assert.equal(s.reminderSchedules.length,2)
       b=await batchOf(h,replay.batchId);await h.owner.command('import.undo',{batchId:b.id,version:b.version,reason:'Already used'},{error:'IMPORT_DEPENDENCY'})
-      const stale=await counsel.command('term.propose',{agreementId:amendment.id,key:'end_date',value:'2028-03-31',citation:{quote:'Corrected date from signed clause',page:1}})
+      const stale=await counsel.command('term.propose',{agreementId:amendment.id,key:'end_date',value:'2023-03-31',citation:{quote:'End date 2023-03-31.',page:1}})
       await counsel.command('term.decide',{agreementId:amendment.id,termId:stale.id,decision:'confirm'})
       s=await h.owner.state();assert.equal(s.terms.find(t=>t.id===source.id).status,'superseded');assert.equal(s.familyTerms.find(t=>t.term_id===source.id).term_id,source.id)
       const recovered=await h.owner.command('import.preview',{...f.payload,manifest:undefined,files:[],mapping,source:'api',consent:true,label:'Read-only recovery'})
