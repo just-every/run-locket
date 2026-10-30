@@ -1,0 +1,12 @@
+/* Exact evidence remains readable in the existing Library at phone widths. */
+.lk-drafting,
+.lk-drafting :where(article, fieldset, form) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.lk-drafting code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}

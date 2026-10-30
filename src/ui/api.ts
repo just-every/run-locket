@@ -10,6 +10,7 @@ export interface LocketState extends importReconciliationWorkspace,ServiceLevelW
  approvalChannels:import('./approval-channel-settings').ApprovalChannelWorkspace
  outcomeReports:import('./outcome-report').OutcomeReportWorkspace
  remediation:import('./obligation-remediation').RemediationWorkspace
+ playbookDrafting:Awaited<ReturnType<typeof import('../locket/playbook-drafting').draftingWorkspace>>
  playbookRecommendations:{outcomes:Row[];issues:Row[];recommendations:Row[];applications:Row[]}
  agreementPlaybooks:Record<string,string|null>
  summaries:Awaited<ReturnType<typeof import('../locket/agreement-summaries').agreementSummaries>>
