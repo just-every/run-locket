@@ -1,5 +1,7 @@
 import { pdfRenditions } from './pdf-renditions'
 import { questionWorkspace } from './repository-questions'
+import { readD1ImportOriginals } from '../modules/import-kit/src/d1/index'
+import { importContext } from './imports/commands'
 import { pantryServerMatches } from './accounting-destinations'
 import { agreementSummaries } from './agreement-summaries'
 import { modelSwitchAllows, modelWorkspace } from './model-settings'
@@ -261,12 +263,12 @@ export async function exportArchive(env: Bindings, actor: Actor) {
   records.lk_calendar_connections=await all(db,'SELECT id,operator_id,provider,calendar_id,last_error,created_at,version FROM lk_calendar_connections')
   const files = []
   for (const a of await all(db, 'SELECT * FROM lk_artifacts ORDER BY uploaded_at')) files.push({ ...a, base64: encodeBase64(await readArtifactBytes(db, a.id)) })
-  const {readD1ImportOriginals}=await import('../modules/import-kit/src/d1/index')
-  const {importContext}=await import('./imports/commands')
-  const importJournal=[]
-  for(const batch of records.lk_import_batches as any[]) {
-    const originals=await readD1ImportOriginals(batch.job_id,importContext({env,db,actor,now:Date.now(),commandId:crypto.randomUUID()},batch.id,batch.kit))
-    importJournal.push({batchId:batch.id,originals})
+  // Original source exports, orphan files and API responses are custody too,
+  // including reviewed and undone batches with no remaining native files.
+  const importJournal = []
+  for (const batch of records.lk_import_batches as any[]) {
+    const originals = await readD1ImportOriginals(batch.job_id, importContext({env,db,actor,now:Date.now(),commandId:crypto.randomUUID()}, batch.id, batch.kit))
+    importJournal.push({batchId:batch.id,kit:batch.kit,jobId:batch.job_id,originals})
   }
   return { format: 'locket-archive/1', exportedAt: new Date().toISOString(), records, files, importJournal }
 }

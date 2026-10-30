@@ -49,13 +49,15 @@ export const previewEnterprise: Handler = async (c, p) => {
   if (new Set(targets).size !== targets.length) fail('IMPORT_MAPPING', 'Map each destination only once.')
   const missingMappings = ['id','title','type','status','counterparty'].filter(required=>!targets.includes(required))
   const typeMapping = p.typeMapping === undefined ? {} : object(p.typeMapping, 'typeMapping')
-  const fileRoles = p.fileRoles === undefined ? {} : object(p.fileRoles, 'fileRoles')
+  const fileRoles = { ...input.sourceRoles, ...(p.fileRoles === undefined ? {} : object(p.fileRoles, 'fileRoles')) }
   if (Object.values(fileRoles).some(v => !['signed', 'version', 'attachment', 'certificate'].includes(String(v)))) fail('IMPORT_MAPPING', 'Choose signed, version, attachment or certificate for each file field.')
   const signedStatuses = p.signedStatuses ?? ['Executed', 'Signed', 'Completed']
   if (!Array.isArray(signedStatuses) || !signedStatuses.length || signedStatuses.length>20 || signedStatuses.some(v => typeof v !== 'string' || !v.trim() || v.length>100)) fail('IMPORT_MAPPING', 'Choose the source statuses that explicitly mean signed.')
   const unmapped = table.header.filter(h => mapping[h] === 'unmapped'), used = new Set<string>(), ids = new Map<string, string>(), seen = new Set<string>(), digests = new Set<string>()
   const rows: Row[] = [], planned = new Map<string, TargetEffect[]>()
-  const batchId = crypto.randomUUID(), parties = new Map((await c.db.prepare('SELECT id,lower(name) AS name FROM lk_parties WHERE merged_into IS NULL').all<{ id: string; name: string }>()).results.map(p => [p.name, p.id]))
+  const batchId = crypto.randomUUID()
+  const existingParties = (await c.db.prepare('SELECT id,lower(name) AS name,version,merged_into FROM lk_parties').all<{id:string;name:string;version:number;merged_into:string|null}>()).results
+  const parties = new Map<string,string>(), partySnapshots = new Map<string,unknown>()
   for (const [index, raw] of table.rows.entries()) {
     const values = Object.fromEntries(Object.entries(mapping).filter(([, target]) => !['unmapped', 'skip'].includes(target)).map(([column, target]) => [target, raw[column] ?? '']))
     const id = values.id?.trim() ?? '', type = String(typeMapping[values.type] ?? (types.includes(values.type?.toLowerCase()) ? values.type.toLowerCase() : ''))
@@ -65,13 +67,13 @@ export const previewEnterprise: Handler = async (c, p) => {
     const matched = input.files.filter(f => !f.path.startsWith('_api/') && !f.path.startsWith('_source/') && (f.path.split('/')[0] === id || values.code && f.path.split('/')[0] === values.code || (values.documents ?? '').split(';').map(s => s.trim()).includes(f.path)))
     matched.forEach(f => used.add(f.path))
     const role = (path: string) => String(fileRoles[path] ?? fileRoles[path.split('/')[1]] ?? (path.toLowerCase().endsWith('.pdf') && !/certificate|summary/i.test(path) ? 'version' : /certificate|summary/i.test(path) ? 'certificate' : 'attachment'))
-    const primary = matched.find(f => role(f.path) === 'signed') ?? matched.find(f => role(f.path) === 'version' && isPdf(f))
+    const primary = matched.find(f => role(f.path) === 'signed')
     if (missingMappings.length || !id || !values.title || !values.counterparty) { outcome = 'missing'; notes.push('Identity, title and counterparty are required.') }
     else if (seen.has(id)) { outcome = 'duplicate'; notes.push('Repeated source identity.') }
     else if (!signedStatuses.some(s => s.toLowerCase() === values.status?.toLowerCase())) { outcome = 'skip'; notes.push('This source status was not declared signed; no execution will be invented.') }
     else if (/[\/\x00-\x1f]/.test(id) || id==='.' || id==='..') { outcome='missing'; notes.push('Use a plain source identity without path separators.') }
     else if (!types.includes(type)) { outcome = 'missing'; notes.push('Map this source contract type to a Locket agreement type.') }
-    else if (!primary || !isPdf(primary)) { outcome = 'missing'; notes.push('No signed PDF matched this record.') }
+    else if (!primary || !isPdf(primary)) { outcome = 'missing'; notes.push('No signed PDF was explicitly identified. Map the executed copy as signed; source versions are never promoted automatically.') }
     else {
       const held = await c.db.prepare('SELECT 1 FROM lk_artifacts WHERE (source_system=? AND source_id=?) OR (sha256=? AND role IN (\'original\',\'signed\')) LIMIT 1').bind(kit, id, primary.sha256).first()
       if (held || digests.has(primary.sha256)) { outcome = 'duplicate'; notes.push('The source identity or signed bytes are already held.') }
@@ -126,10 +128,24 @@ export const previewEnterprise: Handler = async (c, p) => {
     source.records.push({ namespace: kit, kind: 'agreement', sourceId, payload: JSON.parse(JSON.stringify(r)), payloadHash: kitSha256(canonicalJson(r)), artifactHash: input.manifest.sha256, location: { artifact: input.manifest.filename, row: r.row } })
     if (r.outcome !== 'import') continue
     const effects: TargetEffect[] = [], id = ids.get(r.sourceId)!, versionId = crypto.randomUUID()
-    let partyId = parties.get(r.counterparty.toLowerCase())
+    const partyName = r.counterparty.toLowerCase()
+    let partyId = parties.get(partyName)
     if (!partyId) {
-      partyId = crypto.randomUUID(); parties.set(r.counterparty.toLowerCase(), partyId)
-      effects.push({ targetKind: 'party', targetId: partyId, value: { id: partyId, name: r.counterparty, kind: 'other', tax_id: null, tax_id_kind: null, email: null, created_by: c.actor.id, created_at: c.now, version: 1 } })
+      let existing = existingParties.find(p => p.name === partyName)
+      const chain = new Set<string>()
+      while (existing) {
+        if (chain.has(existing.id)) fail('IMPORT_PARTY', 'A counterparty merge chain needs review.', 409)
+        chain.add(existing.id); partySnapshots.set(existing.id, existing)
+        if (!existing.merged_into) { partyId = existing.id; break }
+        existing = existingParties.find(p => p.id === existing!.merged_into)
+        if (!existing) fail('IMPORT_PARTY', 'A merged counterparty is unavailable; review it before importing.', 409)
+      }
+      if (!partyId) {
+        partyId = crypto.randomUUID()
+        partySnapshots.set(partyId, {id:partyId,name:partyName,version:null})
+        effects.push({ targetKind: 'party', targetId: partyId, value: { id: partyId, name: r.counterparty, kind: 'other', tax_id: null, tax_id_kind: null, email: null, created_by: c.actor.id, created_at: c.now, version: 1 } })
+      }
+      parties.set(partyName, partyId)
     }
     const docs = r.documents as Row[], signed = docs.find(d => d.role === 'signed')!, certificate = docs.find(d => d.role === 'certificate'), versions: Row[] = []
     const artifactEffects: TargetEffect[] = []
@@ -153,6 +169,16 @@ export const previewEnterprise: Handler = async (c, p) => {
     } as any }, ...artifactEffects)
     planned.set(sourceId, effects)
   }
+  // One bounded predicate covers every reused party and merge alias. It is
+  // repeated in each atomic import-kit write, including resumed chunks.
+  checks.push(sql(`NOT EXISTS(SELECT 1 FROM json_each(?) expected WHERE
+    CASE WHEN json_extract(expected.value,'$.version') IS NULL THEN
+      EXISTS(SELECT 1 FROM lk_parties p WHERE
+        (lower(p.name)=json_extract(expected.value,'$.name') AND p.id<>json_extract(expected.value,'$.id')) OR
+        (p.id=json_extract(expected.value,'$.id') AND (p.version<>1 OR p.merged_into IS NOT NULL)))
+    ELSE NOT EXISTS(SELECT 1 FROM lk_parties p WHERE p.id=json_extract(expected.value,'$.id')
+      AND p.version=json_extract(expected.value,'$.version')
+      AND p.merged_into IS json_extract(expected.value,'$.merged_into')) END)`, json([...partySnapshots.values()])))
   const context = importContext(c, batchId, kit)
   // Field definitions and referenced typed identities are repeated at each native write.
   c.erasureChecks = [...(c.erasureChecks ?? []), ...checks]
