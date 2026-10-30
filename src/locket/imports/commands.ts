@@ -181,7 +181,9 @@ const applyImport: Handler = async (c, p) => {
 
 /** Records that were used after import keep the batch from being undone. */
 async function dependents(c: Ctx, batchId: string) {
-  const ids = (await c.db.prepare("SELECT DISTINCT agreement_id AS id FROM lk_artifacts WHERE imported=1 AND json_extract(provenance,'$.batch')=?").bind(batchId).all<{ id: string }>()).results.map(r => r.id)
+  // Undo removes artifacts before agreements and can resume in another request.
+  // The durable agreement effects still identify this batch after its files are gone.
+  const ids = (await c.db.prepare("SELECT DISTINCT k.target_id AS id FROM ik_provenance k JOIN lk_import_batches b ON b.job_id=k.job_id WHERE b.id=? AND k.target_kind='agreement' AND k.reversed=0").bind(batchId).all<{ id: string }>()).results.map(r => r.id)
   const used: { reference: string; reasons: string[] }[] = []
   const importedReferences = new Set<string>()
   for (const id of ids) {
