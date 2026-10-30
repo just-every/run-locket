@@ -136,9 +136,9 @@ jobs:
             if [ "$(free_kib)" -ge "$((20 * 1024 * 1024))" ]; then break; fi
             sudo rm -rf -- "$unused_tools"
           done
-      - name: Check generated execution contract documents
+      - name: Check generated contract documents
         if: matrix.name == 'core'
-        run: node scripts/contract-docs.mjs check EXEC-002 SIGN-002 SIGN-003 INT-001 INTAKE-004
+        run: node scripts/contract-docs.mjs check EXEC-002 SIGN-002 SIGN-003 INT-001 INTAKE-004 PLAY-002
       - run: pnpm exec rer check --profile first-party
       - name: Run this shard
         env:
@@ -168,6 +168,15 @@ jobs:
         with:
           name: native-obligation-screens
           path: ${{ runner.temp }}/locket-obligations
+      - name: Prove counsel playbook drafting and retained sources
+        if: matrix.name == 'core'
+        run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-playbook-drafting" pnpm exec playwright test --config tests/browser/playwright.config.ts playbook-drafting.spec.ts --workers=1
+      - name: Keep counsel playbook drafting screens
+        if: matrix.name == 'core'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: counsel-playbook-drafting-screens
+          path: ${{ runner.temp }}/locket-playbook-drafting
       - name: Prove model settings and records at both widths
         if: matrix.name == 'core'
         run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-models" node tests/browser/model-settings-journey.mjs
