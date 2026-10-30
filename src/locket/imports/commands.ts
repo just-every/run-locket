@@ -206,7 +206,10 @@ const applyImport: Handler = async (c, p) => {
   const reviewed = parse<any>(batch.preview)
   if (enterpriseKits.includes(batch.kit)) {
     if (reviewed.unmapped.length) fail('IMPORT_MAPPING','Map or explicitly skip every unmapped field in a new dry run before applying.',409)
-    c.erasureChecks.push(...reviewed.guards)
+    const guards = reviewed.guards as {sql:string;params:unknown[]}[]
+    const current = await c.db.prepare(`SELECT 1 WHERE ${guards.map(g=>`(${g.sql})`).join(' AND ')}`).bind(...guards.flatMap(g=>g.params)).first()
+    if (!current) fail('IMPORT_STALE', 'A reviewed entity, field definition or counterparty changed. Run a new dry run.', 409)
+    c.erasureChecks.push(...guards)
     const selected = reviewed.rows.filter((r:any)=>r.outcome==='import').map((r:any)=>({id:r.sourceId,sha:r.documents.find((d:any)=>d.role==='signed').sha256}))
     const fresh = sql("NOT EXISTS(SELECT 1 FROM lk_artifacts f JOIN json_each(?) source ON (f.source_system=? AND f.source_id=json_extract(source.value,'$.id')) OR (f.sha256=json_extract(source.value,'$.sha') AND f.role IN ('original','signed')) WHERE COALESCE(json_extract(f.provenance,'$.batch'),'')<>?)",json(selected),batch.kit,batch.id)
     if(!await c.db.prepare(`SELECT 1 WHERE ${fresh.sql}`).bind(...fresh.params).first())fail('IMPORT_STALE','A source identity or signed file was imported after this review. Run a new dry run; the journal retains any progress.',409)

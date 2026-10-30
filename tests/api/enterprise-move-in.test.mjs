@@ -4,10 +4,19 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash, randomUUID } from 'node:crypto'
 import { installation } from './harness.mjs'
-import { enterpriseFixture } from './enterprise-move-fixture.mjs'
+import { file as sourceFile } from './files.mjs'
+import { enterpriseFixture, xlsx } from './enterprise-move-fixture.mjs'
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex')
 const batchOf=async(h,id)=>(await h.owner.state()).imports.find(b=>b.id===id)
 const apply=async(h,dry)=>{for(let n=0;n<30;n++){const b=await batchOf(h,dry.batchId),r=await h.owner.command('import.apply',{batchId:b.id,version:b.version,fingerprint:b.fingerprint});if(r.status==='applied')return r}assert.fail('apply did not finish')}
+const journal=async(h,batchId)=>{
+  const response=await h.owner.request('/api/locket/export');assert.equal(response.status,200)
+  const archive=await response.json(),entry=archive.importJournal.find(j=>j.batchId===batchId)
+  assert.ok(entry,'owner archive includes the import journal')
+  for(const original of entry.originals)if(original.original.status==='retained')assert.equal(sha(Buffer.from(original.original.base64,'base64')),original.sha256)
+  return entry.originals
+}
+const retained=(originals,name,bytes)=>{const original=originals.find(o=>o.kind==='artifact'&&o.name===name);assert.ok(original,`retained original ${name}`);assert.equal(original.sha256,sha(bytes));assert.deepEqual(Buffer.from(original.original.base64,'base64'),bytes)}
 const undo=async(h,id)=>{for(let n=0;n<30;n++){const b=await batchOf(h,id),r=await h.owner.command('import.undo',{batchId:b.id,version:b.version,reason:'Reviewed unused trial batch'});if(r.status==='undone')return r}assert.fail('undo did not finish')}
 
 test('MOVE-003 moves ICI and Agiloft export/API cohorts through review, custody, families, confirmed current terms and guarded undo',async t=>{
@@ -36,7 +45,7 @@ test('MOVE-003 moves ICI and Agiloft export/API cohorts through review, custody,
       await apply(h,mapped)
       const staleBatch=await batchOf(h,competing.batchId)
       await h.owner.command('import.apply',{batchId:staleBatch.id,version:staleBatch.version,fingerprint:staleBatch.fingerprint},{error:'IMPORT_STALE'})
-      let s=await h.owner.state();assert.equal(s.agreements.length,29);assert.equal(s.customValues.length,0);assert.equal(s.renewals.length,0);assert.equal(s.versions.filter(v=>v.number===2).length,1)
+      let s=await h.owner.state();assert.equal(s.agreements.length,29);assert.equal(s.customValues.length,0);assert.equal(s.renewals.length,0);assert.equal(s.versions.filter(v=>v.number===2).length,2)
       const master=s.agreements.find(a=>a.title===`${kit} agreement 1`),amendments=s.agreements.filter(a=>a.parent_id===master.id)
       assert.equal(master.entity_id,entity.id);assert.equal(master.timezone,'America/Chicago');assert.equal(master.status,'imported');assert.equal(master.value_cents,null);assert.equal(amendments.length,2);assert.ok(amendments.every(a=>a.relation==='amends'))
       assert.ok(s.executions.every(e=>e.imported===1&&e.status==='needs_review'&&e.executed_on===''))
@@ -51,26 +60,79 @@ test('MOVE-003 moves ICI and Agiloft export/API cohorts through review, custody,
         assert.ok(search.results.some(a=>a.id===expected.id),`source identity ${id} finds its agreement, alongside any other substring matches`)
       }
       if(kit==='icertis')assert.equal((await(await h.owner.request('/api/locket/search?q=ICI-CODE-1')).json()).results.length,11)
+      const masterExecution=s.executions.find(e=>e.agreement_id===master.id)
+      assert.ok(JSON.parse(s.artifacts.find(a=>a.id===masterExecution.signed_artifact_id).provenance).path.endsWith('/signed_document/signed.pdf'))
+      assert.ok(s.artifacts.some(a=>a.agreement_id===master.id&&a.role==='original'&&a.filename==='unsigned.pdf'))
+      assert.ok(masterExecution.certificate_artifact_id)
+      const beforeUndo=await journal(h,mapped.batchId)
+      retained(beforeUndo,f.payload.manifest.filename,Buffer.from(f.payload.manifest.base64,'base64'))
+      for(const [path,bytes] of Object.entries(f.files))retained(beforeUndo,path,bytes)
       const archive=await(await h.owner.request('/api/locket/export')).json();assert.equal(archive.records.lk_import_batches.length,3);assert.ok(archive.records.lk_audit.some(a=>a.action==='import.apply'))
       s=await h.owner.state();assert.ok(s.audit.some(a=>a.action==='file.download'&&a.actor_id===s.actor.id))
       const again=await h.owner.command('import.preview',{...f.payload,mapping});assert.equal(again.counts.duplicate,29)
       await apply(h,again);assert.equal((await h.owner.state()).agreements.length,29)
       await undo(h,mapped.batchId);s=await h.owner.state();assert.equal(s.agreements.length,0);assert.equal(s.artifacts.length,0)
+      assert.deepEqual(await journal(h,mapped.batchId),beforeUndo)
       assert.ok((await h.db.prepare('SELECT count(*) AS n FROM ik_originals WHERE job_id=?').bind(review.jobId).first()).n>50,'unused undo retains every source original')
+
+      // Public-door reconciliation covers a folder with API metadata alone,
+      // matching combined sources and both metadata and byte contradictions.
+      const supplemented=await h.owner.command('import.preview',{...f.payload,manifest:undefined,mapping,source:'api',consent:true})
+      assert.equal(supplemented.counts.orphanFiles,1)
+      const supplementedOriginals=await journal(h,supplemented.batchId)
+      for(const [path,bytes] of Object.entries(f.files))retained(supplementedOriginals,path,bytes)
+      const combined=await h.owner.command('import.preview',{...f.payload,mapping,source:'api',consent:true})
+      assert.equal(combined.counts.import,29);assert.equal(combined.counts.orphanFiles,1)
+      retained(await journal(h,combined.batchId),'_source/'+f.payload.manifest.filename,Buffer.from(f.payload.manifest.base64,'base64'))
+      const conflictFiles=f.payload.files.map((entry,i)=>i===0?{...entry,base64:Buffer.from('conflicting original bytes').toString('base64')}:entry)
+      await h.owner.command('import.preview',{...f.payload,manifest:undefined,files:conflictFiles,mapping,source:'api',consent:true},{error:'IMPORT_SOURCE_CONFLICT'})
+      const conflictRows=f.rows.map((r,i)=>i===0?{...r,Status:'Draft'}:r)
+      await h.owner.command('import.preview',{...f.payload,manifest:sourceFile('conflict.xlsx',xlsx(conflictRows)),mapping,source:'api',consent:true},{error:'IMPORT_SOURCE_CONFLICT'})
+      // Version-only files never silently become signed artifacts.
+      const unsigned=await h.owner.command('import.preview',{...f.payload,mapping,fileRoles:{agreement_document:'version',signed_document:'version',supporting_files:'attachment',certificates:'certificate'}})
+      assert.equal(unsigned.counts.import,0);assert.equal(unsigned.counts.missing,30)
+      // A reused counterparty is part of the immutable reviewed snapshot.
+      const partyName=f.rows[0]['Second Party']??f.rows[0].Company
+      const party=await h.owner.command('party.save',{name:partyName,kind:'supplier'})
+      const staleParty=await h.owner.command('import.preview',{...f.payload,mapping})
+      await h.owner.command('party.save',{id:party.id,version:1,name:partyName,kind:'supplier'})
+      let stalePartyBatch=await batchOf(h,staleParty.batchId)
+      await h.owner.command('import.apply',{batchId:stalePartyBatch.id,version:stalePartyBatch.version,fingerprint:stalePartyBatch.fingerprint},{error:'IMPORT_STALE'})
+      const beforeMerge=await h.owner.command('import.preview',{...f.payload,mapping})
+      const kept=await h.owner.command('party.save',{name:'Kept '+kit,kind:'supplier'})
+      await h.owner.command('party.merge',{keepId:kept.id,keepVersion:1,duplicateId:party.id,duplicateVersion:2,reason:'Reviewed duplicate counterparty'})
+      stalePartyBatch=await batchOf(h,beforeMerge.batchId)
+      await h.owner.command('import.apply',{batchId:stalePartyBatch.id,version:stalePartyBatch.version,fingerprint:stalePartyBatch.fingerprint},{error:'IMPORT_STALE'})
+      assert.equal((await h.owner.state()).agreements.length,0)
+      // Agiloft supports the same thirty-record table as CSV as well as XLSX.
+      if(kit==='agiloft') {
+        const csvDry=await h.owner.command('import.preview',{...f.payload,manifest:sourceFile('contracts.csv',Buffer.from(f.csv)),mapping})
+        assert.equal(csvDry.counts.import,29);await apply(h,csvDry);await undo(h,csvDry.batchId)
+      }
+      // Reflected private credentials are refused before any binary is retained.
+      const journalCount=(await h.owner.state()).imports.length
+      f.setFailure('credential')
+      await h.owner.command('import.preview',{...f.payload,manifest:undefined,files:[],mapping,source:'api',consent:true},{error:'IMPORT_PROVIDER'})
+      f.setFailure(null)
+      assert.equal((await h.owner.state()).imports.length,journalCount)
+      assert.ok(!JSON.stringify(await(await h.owner.request('/api/locket/export')).json()).includes('synthetic-read-only-token'))
+      assert.equal((await h.owner.state()).connections.find(c=>c.id===kit+'-import').status,'failing')
 
       // The API path uses the same mapping and record identities, and records
       // real provider requests only at the external edge.
-      const api=await h.owner.command('import.preview',{...f.payload,manifest:undefined,files:[],mapping,source:'api',consent:true,label:`${kit} API thirty`})
+      const api=await h.owner.command('import.preview',{...f.payload,manifest:undefined,files:[],mapping,fileRoles:kit==='icertis'?{}:f.payload.fileRoles,source:'api',consent:true,label:`${kit} API thirty`})
       assert.equal(api.counts.rows,30);assert.equal(api.counts.import,29);assert.equal(api.counts.missing,1)
       await apply(h,api);s=await h.owner.state();assert.equal(s.agreements.length,29)
       assert.equal(s.agreements.filter(a=>a.parent_id).length,2)
+      assert.equal(s.agreements.find(a=>a.title===`${kit} agreement 1`).party_id,kept.id,'a refreshed import resolves a merged source counterparty to its retained record')
       for(const artifact of s.artifacts){const path=JSON.parse(artifact.provenance).path;assert.equal(artifact.sha256,sha(f.files[path]));assert.deepEqual(Buffer.from(await(await h.owner.request('/api/locket/files/'+artifact.id)).arrayBuffer()),f.files[path])}
       assert.ok((await h.db.prepare("SELECT count(*) AS n FROM ik_originals WHERE job_id=? AND name LIKE '_api/%'").bind(JSON.parse((await batchOf(h,api.batchId)).preview).jobId).first()).n>30)
       assert.ok(f.calls.every(c=>c.method==='GET'&&c.auth==='Bearer synthetic-read-only-token'))
       for(const op of kit==='agiloft'?['EWSelect','EWRead','EWAttachInfo','EWRetrieve']:['/ici/agreements','/ici/agreements/icertis-001/documents'])assert.ok(f.calls.some(c=>c.path===(op.startsWith('/')?op:'/'+op)))
       const apiBatch=await batchOf(h,api.batchId),apiReview=JSON.parse(apiBatch.preview)
       assert.equal(apiReview.api.release,f.profile.release)
-      await undo(h,api.batchId);assert.equal((await h.owner.state()).agreements.length,0)
+      const apiOriginals=await journal(h,api.batchId);assert.ok(apiOriginals.some(o=>o.name.startsWith('_api/')))
+      await undo(h,api.batchId);assert.deepEqual(await journal(h,api.batchId),apiOriginals);assert.equal((await h.owner.state()).agreements.length,0)
       f.setFailure('redirect');await h.owner.command('import.preview',{...f.payload,manifest:undefined,files:[],source:'api',consent:true},{error:'IMPORT_PROVIDER'});f.setFailure(null)
       assert.equal((await h.owner.state()).connections.find(c=>c.id===kit+'-import').status,'failing')
       const replay=await h.owner.command('import.preview',{...f.payload,mapping,restricted:true,source:'api',consent:true,label:'Restricted confirmed cohort'})
