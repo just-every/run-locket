@@ -769,3 +769,5 @@ guards. The existing term decisions, family source choices, current-term
 projection and reviewed bulk reminder schedule apply to these imported kinds.
 See [IMPORT.md](IMPORT.md) for complete payloads, bounded resumable apply/undo,
 private API profiles, source compatibility limits and absent live evidence.
+
+The owner archive additionally returns `importJournal` entries `{batchId,kit,jobId,originals}`. Retained originals include their source name, kind, SHA-256, size and `original:{status:"retained",base64}`. This covers metadata, orphan files and API responses before apply and after undo as well as applied batches.
