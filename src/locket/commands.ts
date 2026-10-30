@@ -1,3 +1,4 @@
+import { visibleAgreement } from './records'
 import { runExecutionFollowups } from './execution-followups'
 import { completeModelCommand } from './model-settings'
 import { authorizeAccountingComparison } from './accounting-comparison'
@@ -113,6 +114,17 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
   const c: Ctx = { env, db: env.DB, actor, now: Date.now(), commandId, request }
   const integrationChecks=await integrationCommandChecks(c,type)
   const completed = async (result: unknown) => {
+    if (type.startsWith('import.') && type !== 'import.value.confirm') requireRole(c.actor, ['owner'], 'read import outcomes')
+    if(type==='import.value.confirm') {
+      requireRole(c.actor,['owner','counsel','approver'],'read imported metadata decisions')
+      await visibleAgreement(c,payload.agreementId)
+      const term=await c.db.prepare('SELECT key FROM lk_terms WHERE id=? AND agreement_id=?').bind(payload.termId,payload.agreementId).first<{key:string}>()
+      if(term?.key.startsWith('custom:')) {
+        const field=await c.db.prepare('SELECT edit_roles FROM lk_custom_fields WHERE id=?').bind(term.key.slice(7)).first<{edit_roles:string}>()
+        if(!field)fail('STALE','This custom field is unavailable.',409)
+        requireRole(c.actor,JSON.parse(field.edit_roles),'read this imported custom decision')
+      }
+    }
     result=await completeModelCommand(c,type,result)
     if(type==='accounting.compare')await authorizeAccountingComparison(c,payload)
     if(type==='proposal.import'||type.startsWith('billing.proposal.'))requireRole(c.actor,['owner'],'read proposal handoff outcomes')

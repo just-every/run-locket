@@ -732,3 +732,15 @@ while native reading is pending or unavailable; they gain no machine coordinates
 Readable signed execution evidence continues to take precedence over draft text.
 Scanned-page OCR, correction history and the named-provider live REVIEW-006
 proof remain required by REPO-002 and are not offered by this native reader.
+## Enterprise move-in (`MOVE-003`)
+
+Owner-only `import.preview` additionally supports `kit:"icertis"|"agiloft"`
+from XLSX/CSV and a documents folder or a privately configured read-only API.
+`import.remap {batchId,version,mapping,typeMapping?,fileRoles?}` creates a new
+review from retained originals. Unmapped columns block apply; dates, monetary
+amounts and custom fields remain proposed. Cited `import.value.confirm` confirms
+an imported custom value or USD amount through native role, field and agreement
+guards. The existing term decisions, family source choices, current-term
+projection and reviewed bulk reminder schedule apply to these imported kinds.
+See [IMPORT.md](IMPORT.md) for complete payloads, bounded resumable apply/undo,
+private API profiles, source compatibility limits and absent live evidence.

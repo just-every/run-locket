@@ -1314,7 +1314,7 @@ REPO-005 and INTAKE-002 updated 22 October 2026 with named public-door evidence 
 | `MOBILE-001` | Phone-width web app | target | done | `tests/browser/journey.spec.ts`; `tests/browser/mobile-approval.spec.ts`; `tests/api/approval-mail.test.mjs`; `src/locket/approval-mail.ts` |  |
 | `MOBILE-002` | iOS and Android apps | target | missing |  | No native apps exist |
 | `MOVE-002` | Ironclad move-in | target | missing |  | Only the DocuSign kit exists |
-| `MOVE-003` | Icertis and Agiloft move-in | target | missing |  | No Icertis or Agiloft kit exists |
+| `MOVE-003` | Icertis and Agiloft move-in | target | missing | `tests/api/enterprise-move-in.test.mjs`; `tests/browser/enterprise-move-in.spec.ts`; `tests/fixtures/enterprise-move-in/README.md` | No Icertis or Agiloft kit exists |
 | `MOVE-004` | SpotDraft and Juro move-in | target | missing |  | No SpotDraft or Juro kit exists |
 | `MOVE-005` | PandaDoc and Adobe Acrobat Sign archives | target | missing |  | Only the DocuSign kit exists |
 | `MOVE-006` | Ironclad workflows in progress at cutover | target | missing |  | No Ironclad workflow import exists |

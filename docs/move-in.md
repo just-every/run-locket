@@ -30,3 +30,15 @@ A batch holds at most 6 MB of files, and each file at most 5 MB. Split a larger 
 **Undo batch** removes a batch nobody has used yet. Once an imported agreement is in use (edited, terms confirmed or rejected, obligations, a renewal or notices, comments, access grants or a family link), or another agreement names a counterparty the batch created, undo is refused and lists those agreements; correct them instead. Undo never deletes the original files: Locket's import journal keeps the report and every file you supplied.
 
 Locket never re-signs an imported agreement or makes a certificate in DocuSign's name.
+
+## Icertis and Agiloft
+
+Under **Imports**, choose **Move from Icertis or Agiloft**, supply the metadata
+XLSX/CSV and documents folder, and review each source column and contract type.
+Map custom attributes to fields created in Library, or explicitly skip them.
+Apply stays disabled until all columns are reviewed. Review lists missing and
+unmatched files, original digests and family links. The source IDs remain
+searchable; signed records are imported history, and all dates/amounts stay
+proposed until confirmed against the original. The same unused-batch undo and
+original-preserving journal apply. Read [IMPORT.md](../IMPORT.md) for private
+read-only API configuration and the currently unproved vendor evidence.

@@ -15,7 +15,7 @@ import type { Ctx, Handler } from './commands'
 import { frozenLetter } from './notice-letters'
 import { initialTracking } from './notice-tracking'
 import { day, deadline as zoned, termLabel, termValue as termText } from './display'
-import { date, fail, integer, json, object, oneOf, optionalDate, optionalText, sql, text, type Sql } from './model'
+import { date, fail, integer, json, object, oneOf, optionalDate, optionalText, parse, sql, text, type Sql } from './model'
 import { agreementGuards, bump, visibleAgreement, type AgreementRow } from './records'
 import { riskLevels } from './obligation-risk'
 import { advanceObligation } from './owner-obligations'
@@ -149,11 +149,14 @@ const decideTerm: Handler = async (c, p) => {
   const decision = oneOf(p, 'decision', ['confirm', 'reject'] as const)
   if (decision === 'reject')
     return { allowed: may.confirmTerms, result: { id: term.id, status: 'rejected' }, writes: [sql("UPDATE lk_terms SET status='rejected', confirmed_by=?, confirmed_at=?, reason=? WHERE id=?", c.actor.id, c.now, optionalText(p, 'reason', 1000), term.id), bump(c, a)], checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_terms WHERE id=?)='proposed'", term.id)], audit: [{ action: 'term.reject', agreementId: a.id, summary: `Rejected proposed ${(termLabel[term.key] ?? term.key.replaceAll('_',' ')).toLowerCase()}` }] }
-  const out = await confirmTermsWrites(c, a, [term])
+  if (term.key.startsWith('import:') || term.key.startsWith('custom:') && parse<any>(term.citation).source === 'import-manifest') fail('IMPORT_CONFIRMATION','Use the cited imported-value confirmation door for this metadata.',409)
+  const imported = parse<any>(term.citation)
+  const importedCitation = imported.source==='import-manifest' && ['icertis','agiloft'].includes(imported.kit) ? json({...await citation(c,a,p.citation),importedSource:imported}) : null
+  const out = await confirmTermsWrites(c, a, [{...term,...(importedCitation?{citation:importedCitation}:{})}])
   return {
     allowed: may.confirmTerms,
     result: { id: term.id, status: 'confirmed', superseded: out.superseded[0] ?? null },
-    writes: [...out.writes, bump(c, a)],
+    writes: [...out.writes, ...(importedCitation?[sql('UPDATE lk_terms SET citation=? WHERE id=?',importedCitation,term.id)]:[]), bump(c, a)],
     checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_terms WHERE id=?)='proposed'", term.id), ...out.checks],
     audit: [{ action: 'term.confirm', agreementId: a.id, summary: `Confirmed ${(termLabel[term.key] ?? term.key.replaceAll('_',' ')).toLowerCase()}: ${termText(term.key, term.value)}${out.superseded.length ? ' (corrects an earlier value)' : ''}${out.summary ? '; ' + out.summary : ''}` }],
   }
