@@ -769,6 +769,12 @@ unredacted documents through questions. The entire source set is bounded to
 200 agreements and 1.5 MB; an oversized context is refused before dispatch,
 without silently selecting a subset.
 
+The command result is an immutable `{id,status:"queued"}` acknowledgement of
+the retained request. Concurrent and later retries return that same result,
+including after the answer is accepted or withheld, without a second provider
+attempt. Read the answer endpoint for its current status and content. Reusing
+the command identity for different content is refused with `IDEMPOTENCY`.
+
 The chosen provider, no-training/zero-retention policy, installation switch and
 exact questions prompt/model REVIEW-006 evaluation gate apply. Real generation
 is unavailable until that live evaluation passes. Test-only provider simulation
@@ -792,6 +798,9 @@ use no playbook; their records say so explicitly. Usage joins the owner's
 existing monthly model ledger. The complete archive includes question records;
 personal-data erasure and legal holds cover their questions, source snapshots
 and answer text.
+
+Acceptance returns an immutable `{id,status:"accepted"}` acknowledgement;
+retrying that acceptance identity returns the original result.
 
 One guarded durable claim precedes every provider request. Current session,
 role, field access, complete source set and model settings are checked again

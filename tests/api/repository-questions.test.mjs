@@ -9,14 +9,34 @@ test('REVIEW-004 asks both repository questions with exact cited matches, curren
  const calls=[],control={mode:'ok'},h=await installation({bindings:{...modelBindings,TEST_NOW:String(Date.parse('2026-10-29T12:00:00Z'))},outboundResponse:questionFake(calls,control)})
  t.after(()=>h.close())
  const f=await questionFixture(h),viewer=await h.invite('synthetic-locket-question-viewer@example.test','viewer'),other=await h.invite('synthetic-locket-question-other@example.test','viewer'),agent=await h.invite('synthetic-locket-question-agent@example.test','agent')
- const ask={question:selectionQuestion,consent:true,simulated:true}
+ const ask={question:selectionQuestion,consent:true,simulated:true},ownerActor=(await h.owner.state()).actor,viewerActor=(await viewer.state()).actor
+ // Compare the complete public command reply, including while the one claimed
+ // provider request is held open and after the answer has been accepted.
+ const reply=async(person,type,payload,commandId)=>{
+  const response=await person.request('/api/locket/commands',{method:'POST',body:{commandId,type,payload}})
+  return {status:response.status,body:await response.json()}
+ }
  await h.owner.command('question.ask',{...ask,simulated:false},{error:'EVALUATION_REQUIRED'})
  await h.owner.command('question.ask',{...ask,consent:false},{error:'CONSENT'})
  await agent.command('question.ask',ask,{error:'FORBIDDEN'})
  assert.equal(calls.length,0)
- const commandId=randomUUID(),twice=await Promise.all([h.owner.command('question.ask',ask,{commandId}),h.owner.command('question.ask',ask,{commandId})])
- assert.equal(twice[0].id,twice[1].id)
- const result=await h.owner.command('question.ask',ask,{commandId}),answer=await readAnswer(h.owner,result.id)
+ const commandId=randomUUID()
+ let dispatched,release
+ const atProvider=new Promise(resolve=>{dispatched=resolve}),providerReleased=new Promise(resolve=>{release=resolve})
+ control.afterDispatch=async()=>{control.afterDispatch=null;dispatched();await providerReleased}
+ const pending=reply(h.owner,'question.ask',ask,commandId)
+ let concurrent
+ try{
+  await Promise.race([atProvider,pending.then(response=>{throw new Error('Question finished before reaching the provider: '+JSON.stringify(response))})])
+  concurrent=await reply(h.owner,'question.ask',ask,commandId)
+ }finally{release()}
+ const first=await pending
+ assert.equal(first.status,200);assert.equal(first.body.ok,true)
+ assert.deepEqual(concurrent,first,'concurrent replay must retain the complete first command outcome')
+ assert.deepEqual(await reply(h.owner,'question.ask',ask,commandId),first)
+ const changedPayload=await reply(h.owner,'question.ask',{...ask,question:liabilityQuestion},commandId)
+ assert.equal(changedPayload.status,409);assert.equal(changedPayload.body.error.code,'IDEMPOTENCY')
+ const result=first.body.result,answer=await readAnswer(h.owner,result.id)
  assert.equal(calls.length,1);assert.equal(answer.status,'proposed');assert.equal(answer.stale,false)
  assert.deepEqual(answer.content.matches.map(m=>m.agreementId).sort(),[f.acme.id,f.restricted.id].sort())
  for(const match of answer.content.matches){assert.equal(match.status,'proposed');assert.equal(match.reliesOnProposed,false);assert.equal(match.citations.length,3);for(const cite of match.citations){assert.equal(cite.status,'confirmed');assert.ok(f.records.find(r=>r.id===match.agreementId).source.includes(cite.quote))}}
@@ -25,9 +45,16 @@ test('REVIEW-004 asks both repository questions with exact cited matches, curren
  assert.equal(JSON.parse(answer.input_digests).documents.length,7);assert.equal(answer.playbookVersion,null)
  const liability=await h.owner.command('question.ask',{...ask,question:liabilityQuestion}),cap=await readAnswer(h.owner,liability.id)
  assert.equal(cap.content.matches[0].value,'USD 250000');assert.equal(cap.content.matches[0].citations[0].quote,liabilityQuote)
- const proposed=await h.owner.command('question.ask',{...ask,question:proposedQuestion}),draft=await readAnswer(h.owner,proposed.id)
+ const proposedCommandId=randomUUID(),proposedPayload={...ask,question:proposedQuestion},proposedReply=await reply(h.owner,'question.ask',proposedPayload,proposedCommandId)
+ assert.equal(proposedReply.status,200)
+ const proposed=proposedReply.body.result,draft=await readAnswer(h.owner,proposed.id)
  assert.equal(draft.content.matches[0].reliesOnProposed,true);assert.equal(draft.content.matches[0].citations.find(c=>c.key==='notice_days').status,'proposed')
- await h.owner.command('question.accept',{id:proposed.id})
+ const acceptanceId=randomUUID(),acceptanceReply=await reply(h.owner,'question.accept',{id:proposed.id},acceptanceId)
+ assert.equal(acceptanceReply.status,200)
+ const acceptedCalls=calls.length
+ assert.deepEqual(await reply(h.owner,'question.ask',proposedPayload,proposedCommandId),proposedReply,'accepting an answer must not rewrite the ask outcome')
+ assert.deepEqual(await reply(h.owner,'question.accept',{id:proposed.id},acceptanceId),acceptanceReply)
+ assert.equal(calls.length,acceptedCalls)
  const accepted=await readAnswer(h.owner,proposed.id)
  assert.equal(accepted.accepted_by,(await h.owner.state()).actor.id)
  assert.equal((await h.owner.state()).terms.find(t=>t.agreement_id===f.proposed.id&&t.key==='notice_days').status,'proposed')
@@ -40,9 +67,9 @@ test('REVIEW-004 asks both repository questions with exact cited matches, curren
  // for supplied provider usage; repeating the exact command never resends it.
  for(const mode of ['quote','foreign','term','reject']){
   control.mode=mode;control.foreignId=f.restricted.id
-  const cid=randomUUID(),bad=await viewer.command('question.ask',ask,{commandId:cid}),record=await readAnswer(viewer,bad.id)
+  const cid=randomUUID(),badReply=await reply(viewer,'question.ask',ask,cid),bad=badReply.body.result,record=await readAnswer(viewer,bad.id)
   assert.equal(record.status,'uncertain',mode);assert.equal(record.content,null,mode)
-  const count=calls.length;await viewer.command('question.ask',ask,{commandId:cid});assert.equal(calls.length,count)
+  const count=calls.length;assert.deepEqual(await reply(viewer,'question.ask',ask,cid),badReply);assert.equal(calls.length,count)
  }
  control.mode='ok'
  for(const provider of ['anthropic','workers-ai']){
@@ -79,7 +106,22 @@ test('REVIEW-004 asks both repository questions with exact cited matches, curren
  await h.owner.command('question.accept',{id:answer.id},{error:'STALE'})
  const archive=await(await h.owner.request('/api/locket/export')).json()
  assert.equal(archive.records.lk_repository_questions.find(r=>r.id===answer.id).content,JSON.stringify(answer.content))
- assert.ok(archive.records.lk_audit.some(r=>r.action==='question.read'&&r.actor_id===viewer.id))
+ const audit=archive.records.lk_audit
+ const attributed=(row,actor,agreementId)=>{
+  assert.ok(row,'expected attributed question audit entry')
+  assert.equal(row.actor_id,actor.id);assert.equal(row.actor_name,actor.name);assert.equal(row.actor_role,actor.role)
+  assert.equal(row.at,Date.parse('2026-10-29T12:00:00Z'));assert.equal(row.agreement_id,agreementId)
+  assert.equal(typeof row.summary,'string');assert.ok(row.summary.trim().length>0)
+  assert.match(row.command_id,/^[0-9a-f-]{36}$/)
+ }
+ for(const action of ['question.request','question.output']){
+  const rows=audit.filter(r=>r.action===action&&r.command_id===commandId)
+  assert.equal(rows.length,1,'concurrent and later retries must not duplicate '+action)
+  attributed(rows[0],ownerActor,null)
+ }
+ const acceptEvents=audit.filter(r=>r.action==='question.accept'&&r.command_id===acceptanceId)
+ assert.equal(acceptEvents.length,1);attributed(acceptEvents[0],ownerActor,null)
+ attributed(audit.find(r=>r.action==='question.read'&&r.actor_id===viewer.id&&r.agreement_id===f.restricted.id),viewerActor,f.restricted.id)
  assert.ok((await h.owner.state()).models.usage.simulatedEstimatedUsd>0)
  // Archive minimization applies to question text and its complete input closure;
  // a hold on any one source retains the immutable answer until released.
