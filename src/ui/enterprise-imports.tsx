@@ -30,7 +30,7 @@ export function EnterpriseImport({ state, locket, selected }: { state: LocketSta
       <Field label="Read from"><select name="source" value={source} onChange={e=>setSource(e.target.value)}><option value="export">Metadata export and documents folder</option><option value="api">Configured read-only API</option></select></Field>
       <Field label="Metadata export (XLSX or CSV)" hint={source==='api'?'Optional: combine an export with the API snapshot.':undefined}><input name="manifest" type="file" accept=".xlsx,.csv" required={source==='export'}/></Field><Field label="Documents folder" hint="Folders named by source ID or ICI agreement code. Keep every original file."><input name="files" type="file" multiple {...{webkitdirectory:''}}/></Field>
       {source==='api'&&<><p className="lk-muted">The installation must have a private read credential and a tenant-documented API profile. API responses and documents enter the same review journal.</p><Field label="Authorize this read-only import"><input name="consent" type="checkbox" required/></Field></>}
-      <Field label="Restrict imported agreements to their existing permitted readers"><input name="restricted" type="checkbox"/></Field>
+      <Field label="Restrict imported agreements" hint="Only Locket’s full readers and people granted access in Locket can see restricted agreements. Source-system permissions are not imported."><input name="restricted" type="checkbox"/></Field>
     </Form>
   </section>
 }
