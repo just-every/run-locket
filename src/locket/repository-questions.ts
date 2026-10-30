@@ -60,7 +60,7 @@ const ask: Handler = async (c,p) => {
  if(snapshot.length>200 || new TextEncoder().encode(json(snapshot)).length>1500000)fail('QUESTION_LIMIT','This repository exceeds the current question context limit (200 agreements / 1.5 MB of source context). No request was made.',409)
  const id=crypto.randomUUID(),prompt=await sha256(modelPrompts.questions)
  const digests={sources:await sha256(canonical(snapshot)),question:await sha256(question),asOf:new Date(c.now).toISOString().slice(0,10),documents:snapshot.map(r=>({agreementId:r.id,versionId:r.versionId,digest:r.digest,documents:r.documents})),playbookVersions:[]}
- return {allowed:people,result:{id},checks:await guards(c,snapshot,s.version,s.disabledTypes),writes:[sql("INSERT INTO lk_repository_questions(id,requested_by,question,sources,input_digests,provider,model,prompt_version,settings_version,simulated,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,'queued',?)",id,c.actor.id,question,json(snapshot),json(digests),s.provider,s.model,prompt,s.version,Number(simulated),c.now)],audit:[{action:'question.request',summary:'Person explicitly approved one repository question over their current accessible, AI-enabled sources.'}]}
+ return {allowed:people,result:{id,status:'queued'},checks:await guards(c,snapshot,s.version,s.disabledTypes),writes:[sql("INSERT INTO lk_repository_questions(id,requested_by,question,sources,input_digests,provider,model,prompt_version,settings_version,simulated,status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,'queued',?)",id,c.actor.id,question,json(snapshot),json(digests),s.provider,s.model,prompt,s.version,Number(simulated),c.now)],audit:[{action:'question.request',summary:'Person explicitly approved one repository question over their current accessible, AI-enabled sources.'}]}
 }
 function matches(raw: unknown, snapshot: Sources) {
  const rows=list(object(raw),'matches',200),seen=new Set<string>()
@@ -92,7 +92,9 @@ async function ownRow(c: Ctx,id: string) {
 export async function completeQuestionCommand(c: Ctx,type: string,result: any) {
  if(!type.startsWith('question.'))return result
  let row=await ownRow(c,result.id)
- if(type!=='question.ask'||row.status!=='queued')return {id:row.id,status:row.status}
+ // The guarded command batch retained its acknowledgement before dispatch.
+ // Answer lifecycle changes belong to the read endpoint, never a replay result.
+ if(type!=='question.ask'||row.status!=='queued')return result
  const s=await modelSettings(c.db),snapshot=parse<Sources>(row.sources)
  await taskGate(c,s,'questions','',row.simulated===1)
  const digest=parse<any>(row.input_digests).sources
@@ -102,7 +104,7 @@ export async function completeQuestionCommand(c: Ctx,type: string,result: any) {
   await commit(c,people,[...checks,sql("EXISTS(SELECT 1 FROM lk_repository_questions WHERE id=? AND status='queued')",row.id)],[sql("UPDATE lk_repository_questions SET status='uncertain' WHERE id=?",row.id),sql('INSERT INTO lk_model_usage VALUES(?,?,?,?,NULL,NULL,NULL,?)',row.id,s.provider,s.model,row.simulated,row.created_at)])
  } catch(error) {
   row=await ownRow(c,row.id)
-  if(row.status!=='queued')return {id:row.id,status:row.status}
+  if(row.status!=='queued')return result
   throw error
  }
  try {
@@ -121,8 +123,8 @@ export async function completeQuestionCommand(c: Ctx,type: string,result: any) {
   // interrupted replies retain an honest unknown outcome without answer text.
  }
  // Never return content or identifiers from a source whose access ended midflight.
- row=await ownRow(c,row.id)
- return {id:row.id,status:row.status}
+ await ownRow(c,row.id)
+ return result
 }
 async function guardRead(c: Ctx,row: QuestionRow,audit=false) {
  const snapshot=parse<Sources>(row.sources),policy=await repositoryPolicy(c.db)
@@ -138,7 +140,7 @@ export async function readRepositoryQuestion(env: Bindings,actor: Actor,id: stri
 const accept: Handler=async(c,p)=>{
  const row=await ownRow(c,text(p,'id',100)),s=await modelSettings(c.db),snapshot=parse<Sources>(row.sources)
  if(row.status!=='proposed'||parse<any>(row.input_digests).sources!==await sha256(canonical(await sources(c,s.disabledTypes))))fail('STALE','Only a current, unaccepted answer can be accepted.',409)
- return {allowed:people,result:{id:row.id},checks:[...await guards(c,snapshot,s.version,s.disabledTypes,'question.accept'),sql("EXISTS(SELECT 1 FROM lk_repository_questions WHERE id=? AND status='proposed')",row.id)],writes:[sql("UPDATE lk_repository_questions SET status='accepted',accepted_by=?,accepted_at=? WHERE id=?",c.actor.id,c.now,row.id)],audit:[{action:'question.accept',summary:'Person accepted an own repository answer record; cited values keep their existing confirmation status.'}]}
+ return {allowed:people,result:{id:row.id,status:'accepted'},checks:[...await guards(c,snapshot,s.version,s.disabledTypes,'question.accept'),sql("EXISTS(SELECT 1 FROM lk_repository_questions WHERE id=? AND status='proposed')",row.id)],writes:[sql("UPDATE lk_repository_questions SET status='accepted',accepted_by=?,accepted_at=? WHERE id=?",c.actor.id,c.now,row.id)],audit:[{action:'question.accept',summary:'Person accepted an own repository answer record; cited values keep their existing confirmation status.'}]}
 }
 export async function questionWorkspace(env: Bindings,actor: Actor) {
  if(!people.includes(actor.role as any)||(await hiddenFields(env.DB,actor)).length)return {available:false,simulationAvailable:false,reason:'Document access is required to ask repository questions.',records:[] as any[]}

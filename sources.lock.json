@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "500a9e67d1351caa748493d519fe78a36c48ebef7b761d68fe28255aaca06121",
+      "sha256": "2c25ec77d3f487d29e4890cc271305e191a5e6ff5a75ad9484e5a05f44701c57",
       "executable": false
     },
     "base-copies.json": {
@@ -2448,7 +2448,7 @@
       "executable": false
     },
     "src/locket/repository-questions.ts": {
-      "sha256": "65b653aa576c2b9c2a9fea6dbce58ad0c6157da54356179f8a19ef690e9bc80f",
+      "sha256": "2a1f9daceb4d16c159ccc7c070305e65372a012d4b4d6fa0a484a6a3a3320047",
       "executable": false
     },
     "src/locket/repository.ts": {
@@ -5736,7 +5736,7 @@
       "executable": false
     },
     "tests/api/repository-questions.test.mjs": {
-      "sha256": "101d8739e06f92da425ef6388b26db42f62513575089a014a2e57776fe59577c",
+      "sha256": "dd6f887639a2e381ee4153b9689b4a8c5c9d62222ef7d783f098b5261e00a725",
       "executable": false
     },
     "tests/api/review-redlines-fixture.mjs": {
