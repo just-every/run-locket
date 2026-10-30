@@ -546,6 +546,12 @@
       "name": "0093_ironclad_move_in.sql",
       "sha256": "08373f77575728861ff6ff92e84de81f93bd93ea3fbc2fc7df01af59609d1d58",
       "sql": "-- Session-bound read jobs retain the source and visible pending/failure state.\n-- Private API tokens are never stored, returned or archived.\nCREATE TABLE lk_ironclad_reads (\n id TEXT PRIMARY KEY, actor_id TEXT NOT NULL, session_id TEXT NOT NULL,\n label TEXT NOT NULL, origin TEXT NOT NULL, connection_digest TEXT NOT NULL,\n metadata TEXT NOT NULL, job_id TEXT, archive TEXT,\n status TEXT NOT NULL CHECK(status IN ('pending','ready','failed')),\n message TEXT, created_at INTEGER NOT NULL, checked_at INTEGER,\n version INTEGER NOT NULL DEFAULT 1\n);\n\n-- Imported USD values use the same cited proposal/confirmation history as dates.\nPRAGMA defer_foreign_keys = ON;\nCREATE TABLE lk_terms_move_in (\n id TEXT PRIMARY KEY, agreement_id TEXT NOT NULL REFERENCES lk_agreements(id),\n key TEXT NOT NULL CHECK(key IN ('effective_date','end_date','auto_renew','renewal_term_months','notice_days','governing_law','payment_terms','renewal_type','renewals_allowed','initial_term_months','value') OR key LIKE 'custom:%'),\n value TEXT NOT NULL, citation TEXT NOT NULL,\n status TEXT NOT NULL CHECK(status IN ('proposed','confirmed','rejected','superseded')),\n proposed_by TEXT NOT NULL, proposal_id TEXT, confirmed_by TEXT, confirmed_at INTEGER,\n supersedes_id TEXT, reason TEXT, created_at INTEGER NOT NULL\n);\nINSERT INTO lk_terms_move_in SELECT * FROM lk_terms;\nDROP TABLE lk_terms;\nALTER TABLE lk_terms_move_in RENAME TO lk_terms;\nCREATE TABLE lk_move_in_migration_guard (ok INTEGER NOT NULL CHECK(ok=1));\nINSERT INTO lk_move_in_migration_guard SELECT CASE WHEN EXISTS(SELECT 1 FROM pragma_foreign_key_check) THEN 0 ELSE 1 END;\nDROP TABLE lk_move_in_migration_guard;\nPRAGMA defer_foreign_keys = OFF;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0095_enterprise_imports.sql",
+      "sha256": "f5891d191ddbb24944829aad8b0a3e87ef3b16a074fdf96664eac5fea3d1f0a3",
+      "sql": "-- Keep imported amounts and currencies proposed until a person checks the signed source.\nPRAGMA defer_foreign_keys = ON;\nCREATE TABLE lk_terms_enterprise (\n id TEXT PRIMARY KEY, agreement_id TEXT NOT NULL REFERENCES lk_agreements(id),\n key TEXT NOT NULL CHECK(key IN ('effective_date','end_date','auto_renew','renewal_term_months','notice_days','governing_law','payment_terms','renewal_type','renewals_allowed','initial_term_months','value','import:value','import:currency') OR key LIKE 'custom:%'),\n value TEXT NOT NULL, citation TEXT NOT NULL,\n status TEXT NOT NULL CHECK(status IN ('proposed','confirmed','rejected','superseded')),\n proposed_by TEXT NOT NULL, proposal_id TEXT, confirmed_by TEXT, confirmed_at INTEGER,\n supersedes_id TEXT, reason TEXT, created_at INTEGER NOT NULL\n);\nINSERT INTO lk_terms_enterprise SELECT * FROM lk_terms;\nDROP TABLE lk_terms;\nALTER TABLE lk_terms_enterprise RENAME TO lk_terms;\nPRAGMA defer_foreign_keys = OFF;\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
@@ -599,7 +605,11 @@
     "WORKFORCE_SAML_ISSUER",
     "WORKFORCE_SAML_SSO_URL",
     "WORKFORCE_SAML_CERT",
-    "HUBSPOT_ACCESS_TOKEN"
+    "HUBSPOT_ACCESS_TOKEN",
+    "ICERTIS_IMPORT_PROFILE",
+    "ICERTIS_IMPORT_TOKEN",
+    "AGILOFT_IMPORT_PROFILE",
+    "AGILOFT_IMPORT_TOKEN"
   ],
   "schedules": [
     "0 * * * *",

@@ -807,3 +807,15 @@ role, field access, complete source set and model settings are checked again
 when retaining usage and answer text. Invalid, interrupted or stale replies
 stay uncertain and are never automatically resent. The screen links every
 citation to the original version and passage without changing original files.
+## Enterprise move-in (`MOVE-003`)
+
+Owner-only `import.preview` additionally supports `kit:"icertis"|"agiloft"`
+from XLSX/CSV and a documents folder or a privately configured read-only API.
+`import.remap {batchId,version,mapping,typeMapping?,fileRoles?}` creates a new
+review from retained originals. Unmapped columns block apply; dates, monetary
+amounts and custom fields remain proposed. Cited `import.value.confirm` confirms
+an imported custom value or USD amount through native role, field and agreement
+guards. The existing term decisions, family source choices, current-term
+projection and reviewed bulk reminder schedule apply to these imported kinds.
+See [IMPORT.md](IMPORT.md) for complete payloads, bounded resumable apply/undo,
+private API profiles, source compatibility limits and absent live evidence.
