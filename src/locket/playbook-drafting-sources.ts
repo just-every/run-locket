@@ -2,7 +2,8 @@ import { readArtifactBytes } from './artifacts'
 import { visibleSetSql } from './access'
 import type { Ctx } from './commands'
 import { readablePages } from './execution-comparison'
-import { canonical, fail, sha256, sql, type Sql } from './model'
+import { canonical, fail, json, parse, sha256, sql, type Sql } from './model'
+import { creditTableGuards, creditTableSnapshots } from './playbook-recommendation-credits'
 import { currentVersion, visibleAgreement } from './records'
 import { insideRecommendationScope, type RecommendationScope } from './playbook-recommendation-analysis'
 
@@ -14,6 +15,28 @@ export interface DraftingSource {
 export async function draftingSources(c: Ctx, templates: string[], agreements: string[], scope: RecommendationScope) {
  if (!templates.length || !agreements.length) fail('SOURCES', 'Choose approved templates and executed agreements.', 409)
  const sources: DraftingSource[] = [], checks: Sql[] = [visibleSetSql(c.actor, agreements)]
+ // Observation records do not bump the agreement revision. Snapshot the
+ // selected cohort once, and fence exact contents plus additions atomically.
+ const agreementIds = [...agreements].sort(), observationRows: Record<string, any[]> = {}
+ for (const [table, columns] of [
+  ['lk_negotiation_outcomes', ['id','agreement_id','version_id','version_digest','deviation_id','approval_id','playbook_version_id','clause_key','outcome','start','end','quote','evidence','recorded_by','recorded_at']],
+  ['lk_playbook_issues', ['id','outcome_id','agreement_id','kind','description','evidence','obligation_id','recorded_by','recorded_at']],
+ ] as const) {
+  const query = `SELECT json_group_array(json_object(${columns.map(k => `'${k}',r.${k}`).join(',')})) AS value FROM (SELECT * FROM ${table} WHERE agreement_id IN (SELECT value FROM json_each(?)) ORDER BY id) r`
+  const snapshot = await c.db.prepare(query).bind(json(agreementIds)).first<{ value: string }>()
+  observationRows[table] = parse(snapshot!.value)
+  checks.push(sql(`(${query}) IS ?`, json(agreementIds), snapshot!.value))
+ }
+ const credits = await creditTableSnapshots(c, agreementIds)
+ for (const entry of credits) {
+  // Native credit records can cite other, unselected family documents. Retain
+  // their identity/status and exact digest without disclosing those documents.
+  observationRows[entry.table] = await Promise.all(parse<any[]>(entry.value).map(async row => ({
+   id: row.id ?? null, agreement_id: row.agreement_id, version: row.version ?? null,
+   status: row.status ?? null, digest: await sha256(canonical(row)),
+  })))
+ }
+ checks.push(...creditTableGuards(agreementIds, credits))
  for (const id of [...templates].sort()) {
   const v = await c.db.prepare('SELECT v.*,t.name,t.type,t.entity_id FROM lk_template_versions v JOIN lk_templates t ON t.id=v.template_id WHERE v.id=?').bind(id).first<any>()
   if (!v || v.status !== 'approved') fail('SOURCES', 'Each template must still be approved.', 409)
@@ -38,7 +61,8 @@ export async function draftingSources(c: Ctx, templates: string[], agreements: s
   if (await sha256(bytes) !== artifact.sha256) fail('SOURCES', 'Signed original custody could not be verified.', 409)
   const pages = await readablePages(bytes)
   if (!pages) fail('NO_TEXT', 'A signed source has unreadable pages. Supply a readable signed original; no OCR is inferred.', 409)
-  const facts = { agreementVersion: a.version, executionId: e.id, executionStatus: e.status, executionChecks: e.checks, resolution: e.resolution, packageId: e.package_id, artifactId: artifact.id, artifactDigest: artifact.sha256 }
+  const observations = Object.fromEntries(Object.entries(observationRows).map(([table, rows]) => [table, rows.filter(row => row.agreement_id === id)]))
+  const facts = { observations, agreementVersion: a.version, executionId: e.id, executionStatus: e.status, executionChecks: e.checks, resolution: e.resolution, packageId: e.package_id, artifactId: artifact.id, artifactDigest: artifact.sha256 }
   sources.push({ kind: 'agreement', id, title: a.title, type: a.type, entityId: a.entity_id, versionId: v.id, number: v.number, digest: v.digest, pages: pages.map((text, index) => ({ page: index + 1, text })), facts })
   checks.push(sql("EXISTS(SELECT 1 FROM lk_agreements a JOIN lk_versions v ON v.id=a.current_version_id WHERE a.id=? AND a.version=? AND a.status='executed' AND v.id=? AND v.digest=?)", id, a.version, v.id, v.digest),
    sql('EXISTS(SELECT 1 FROM lk_executions e JOIN lk_artifacts f ON f.id=e.signed_artifact_id JOIN lk_packages p ON p.id=e.package_id WHERE e.id=? AND e.status=? AND e.checks=? AND e.resolution IS ? AND f.id=? AND f.sha256=? AND p.version_id=? AND p.version_digest=?)', e.id, e.status, e.checks, e.resolution, artifact.id, artifact.sha256, v.id, v.digest))

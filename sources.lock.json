@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "7b91337ce7772884f5da5414ead4d5c87fd5047a8f2cd7f6a0f9ac638520f8d5",
+      "sha256": "216e60d3e9f805dfb03bf7a6c9e7228bd4bdd4678016d4579c261fe24378273d",
       "executable": false
     },
     "base-copies.json": {
@@ -2200,7 +2200,7 @@
       "executable": false
     },
     "src/locket/model-settings.ts": {
-      "sha256": "01bf5f152178cbc4948b930346723f8f279a0aa1ed39ba691a8ba9b13261a575",
+      "sha256": "0c6dfba10ad49b115455e1fb261faad6bfcf9f951f899f322092cb771cffa7f0",
       "executable": false
     },
     "src/locket/model.ts": {
@@ -2296,7 +2296,7 @@
       "executable": false
     },
     "src/locket/playbook-drafting-prompt.ts": {
-      "sha256": "55658757d1ee783ba64fc928e36cc86885094a6bf6f912ba3bc6b6f4c2b402c9",
+      "sha256": "646733609947153daf4c618f853e4e54f530847c99fc1393eeda14049845a44d",
       "executable": false
     },
     "src/locket/playbook-drafting-rules.ts": {
@@ -2304,19 +2304,19 @@
       "executable": false
     },
     "src/locket/playbook-drafting-sources.ts": {
-      "sha256": "7794d863ea09fb3aef4679a182a0ab66f2b13685c06ae4fc82c861ccb7ea44f4",
+      "sha256": "3f797daa04b6af2685a36aece648b2d7e6e512b19d2296788c0127fbac2db989",
       "executable": false
     },
     "src/locket/playbook-drafting.ts": {
-      "sha256": "cbaa3b8de562f514ac730d26deb64508afc2cab05abbb921d2a19269cdf547e5",
+      "sha256": "c5981c362007481418e26a182055adf74a9dc31d520c42811ed33ba661619518",
       "executable": false
     },
     "src/locket/playbook-recommendation-analysis.ts": {
-      "sha256": "55c1c0ec32374a4ac1c8825c8c51dfc356f8854e5d277be8f87a89f0c61ab25f",
+      "sha256": "0a5e53f31cfd131849789c68ec973336f22c71c56ab02bf743151335906e5765",
       "executable": false
     },
     "src/locket/playbook-recommendation-credits.ts": {
-      "sha256": "a19eefa68840684a66e0f05bcb3f0cbce59f8e7b0b36c3e22a054ee23215ca30",
+      "sha256": "c29bfc50ec155d53f3f9be0fb51a7c96751c6f2f5d6d52ba3c435461ea37d813",
       "executable": false
     },
     "src/locket/playbook-recommendation-evidence.ts": {
@@ -5296,7 +5296,7 @@
       "executable": false
     },
     "src/ui/playbook-drafting.tsx": {
-      "sha256": "3db55e9a0dbab0be3db85cce1a15236a59400b4883e3efb800bcbce804116b7e",
+      "sha256": "ae66a1b96572e8143878d91537a262f1f51db085f18e2fa699ee38ea5bb4913d",
       "executable": false
     },
     "src/ui/playbook-recommendations.tsx": {
@@ -5708,11 +5708,11 @@
       "executable": false
     },
     "tests/api/playbook-drafting-fixture.mjs": {
-      "sha256": "9dc03de40bb6dc59bd99306d036dee2bc0e4abc712b117c1edf4310467bad4b6",
+      "sha256": "aeb419f6b4a3b319f0016a7266491f07c176346545d06e07a02a2e8ae8e20891",
       "executable": false
     },
     "tests/api/playbook-drafting.test.mjs": {
-      "sha256": "96e9663fd6cc42befa29281454cf38b4c3fddbc7d5538b3ca41cda8d6c4a4168",
+      "sha256": "d4bd089a9cf0ecceffa979ed36f3aedbff305081fc8e6de78a2d4bb8c46e37b5",
       "executable": false
     },
     "tests/api/playbook-recommendation-fixture.mjs": {
@@ -5980,7 +5980,7 @@
       "executable": false
     },
     "tests/browser/playbook-drafting.spec.ts": {
-      "sha256": "21d237bef8eedeb5a712f7a6724249640d4378ec386d23f543c2877cdb2a93c3",
+      "sha256": "30a06464c4e8b65e05f17472c3210f07133ca103cf1f3b86e2f49954fedb2fd4",
       "executable": false
     },
     "tests/browser/playbook-recommendations.spec.ts": {
