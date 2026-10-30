@@ -171,6 +171,15 @@ jobs:
       - name: Prove model settings and records at both widths
         if: matrix.name == 'core'
         run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-models" node tests/browser/model-settings-journey.mjs
+      - name: Prove cited repository questions
+        if: matrix.name == 'core'
+        run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-questions" node tests/browser/repository-questions-journey.mjs
+      - name: Keep repository question screens
+        if: matrix.name == 'core'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: repository-question-screens
+          path: ${{ runner.temp }}/locket-questions
       - name: Prove execution retrieval at both widths
         if: matrix.name == 'core'
         run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-execution" pnpm exec playwright test --config tests/browser/playwright.config.ts execution-comparison.spec.ts --grep 'AGENT-006 changed signed liability' --workers=1
