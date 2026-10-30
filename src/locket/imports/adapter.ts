@@ -16,6 +16,7 @@ export const columns = {
   lk_executions: ['id', 'agreement_id', 'package_id', 'provider', 'envelope_id', 'signed_artifact_id', 'certificate_artifact_id', 'signers', 'executed_on', 'imported', 'checks', 'status', 'resolution', 'resolved_by', 'recorded_by', 'recorded_at'],
   lk_terms: ['id', 'agreement_id', 'key', 'value', 'citation', 'status', 'proposed_by', 'proposal_id', 'confirmed_by', 'confirmed_at', 'supersedes_id', 'reason', 'created_at'],
   lk_artifacts: ['id', 'agreement_id', 'version_id', 'role', 'filename', 'media_type', 'size', 'sha256', 'source_system', 'source_id', 'provenance', 'imported', 'uploaded_by', 'uploaded_at'],
+  lk_custom_values: ['agreement_id', 'field_id', 'value', 'updated_by', 'updated_at'],
 } as const
 type Table = keyof typeof columns
 type Row = Record<string, unknown>
@@ -33,6 +34,7 @@ export interface AgreementValue {
   version: Row
   execution: Row
   terms: Row[]
+  customValues?: Row[]
 }
 
 async function first<T>(db: D1Database, sql: string, ...params: unknown[]) {
@@ -46,6 +48,11 @@ export function locketTargets(): D1TargetAdapter {
     async read(db, destination, kind, id) {
       const d = db as unknown as D1Database
       const revision = (await first<{ revision: string }>(d, 'SELECT revision FROM lk_import_targets WHERE kind=? AND id=?', kind, id))?.revision ?? 'native'
+      if (kind === 'ironclad-family') {
+        if (revision === 'native') return undefined
+        const value = await first<Row>(d, 'SELECT id,parent_id,relation FROM lk_agreements WHERE id=?', id)
+        return value ? { destination, targetKind: kind, targetId: id, revision, value } : undefined
+      }
       if (kind === 'party') {
         const row = await first<{ v: string }>(d, `SELECT ${objectSql('lk_parties')} AS v FROM lk_parties WHERE id=?`, id)
         return row ? { destination, targetKind: kind, targetId: id, revision, value: JSON.parse(row.v) } : undefined
@@ -68,13 +75,20 @@ export function locketTargets(): D1TargetAdapter {
       const execution = await first<{ v: string }>(d, `SELECT ${objectSql('lk_executions')} AS v FROM lk_executions WHERE agreement_id=? ORDER BY recorded_at LIMIT 1`, id)
       const terms = (await d.prepare(`SELECT ${objectSql('lk_terms')} AS v FROM lk_terms WHERE agreement_id=? ORDER BY id`).bind(id).all<{ v: string }>()).results.map(t => JSON.parse(t.v))
       const parsed = JSON.parse(agreement.v)
-      return { destination, targetKind: kind, targetId: id, revision, value: { agreement: parsed, version: version ? JSON.parse(version.v) : null, execution: execution ? JSON.parse(execution.v) : null, terms } }
+      const parsedVersion = version ? JSON.parse(version.v) : null
+      const customValues = parsedVersion?.fields && JSON.parse(parsedVersion.fields).ironclad ? (await d.prepare(`SELECT ${objectSql('lk_custom_values')} AS v FROM lk_custom_values WHERE agreement_id=? ORDER BY field_id`).bind(id).all<{v:string}>()).results.map(r=>JSON.parse(r.v)) : undefined
+      return { destination, targetKind: kind, targetId: id, revision, value: { agreement: parsed, version: parsedVersion, execution: execution ? JSON.parse(execution.v) : null, terms, ...(customValues ? {customValues} : {}) } }
     },
     matches(row, destination, kind, id) {
       const parts = adapter.matchesParts!(row, destination, kind, id)
       return { sql: parts.map(p => `(${p.sql})`).join(' AND '), params: parts.flatMap(p => p.params ?? []) }
     },
     matchesParts(row, _destination, kind, id) {
+      if (kind === 'ironclad-family') {
+        if (!row) return [q('NOT EXISTS(SELECT 1 FROM lk_import_targets WHERE kind=? AND id=?)', kind, id), q('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND parent_id IS NULL AND relation IS NULL AND version=1)', id)]
+        const v = row.value as Row
+        return [applied(kind, id, row.revision), q('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND parent_id=? AND relation=? AND version=1)', id, v.parent_id, v.relation), q('EXISTS(SELECT 1 FROM lk_agreements WHERE id=? AND version=1)', v.parent_id)]
+      }
       if (kind === 'party') {
         if (!row) return [q('NOT EXISTS(SELECT 1 FROM lk_parties WHERE id=?)', id)]
         return [exact('lk_parties', row.value as Row), applied(kind, id, row.revision)]
@@ -98,11 +112,16 @@ export function locketTargets(): D1TargetAdapter {
         q('NOT EXISTS(SELECT 1 FROM lk_artifacts WHERE agreement_id=? AND imported=0)', id),
         q('NOT EXISTS(SELECT 1 FROM lk_agreements WHERE parent_id=?)', id),
         q('NOT EXISTS(SELECT 1 FROM lk_proposals WHERE agreement_id=?)', id),
-        ...downstream.map(t => q(`NOT EXISTS(SELECT 1 FROM ${t} WHERE agreement_id=?)`, id)),
+        ...downstream.filter(t => t !== 'lk_custom_values' || !v.customValues).map(t => q(`NOT EXISTS(SELECT 1 FROM ${t} WHERE agreement_id=?)`, id)),
+        ...(v.customValues ? [q(`(SELECT json_group_array(json(v)) FROM (SELECT ${objectSql('lk_custom_values')} AS v FROM lk_custom_values WHERE agreement_id=? ORDER BY field_id))=?`, id, JSON.stringify(v.customValues.map(t=>JSON.parse(ordered('lk_custom_values',t)))))] : []),
       ]
     },
     write(row) {
       const mark = q('INSERT OR REPLACE INTO lk_import_targets VALUES(?,?,?)', row.targetKind, row.targetId, row.revision)
+      if (row.targetKind === 'ironclad-family') {
+        const v = row.value as Row
+        return [q('UPDATE lk_agreements SET parent_id=?,relation=? WHERE id=?', v.parent_id, v.relation, v.id), mark]
+      }
       if (row.targetKind === 'party') return [insert('lk_parties', row.value as Row), mark]
       if (row.targetKind === 'artifact') {
         const bytes = decodeBase64(row.attachment!.base64)
@@ -111,13 +130,14 @@ export function locketTargets(): D1TargetAdapter {
         return out
       }
       const v = row.value as unknown as AgreementValue
-      return [insert('lk_agreements', v.agreement), insert('lk_versions', v.version), insert('lk_executions', v.execution), ...v.terms.map(t => insert('lk_terms', t)), mark]
+      return [insert('lk_agreements', v.agreement), insert('lk_versions', v.version), insert('lk_executions', v.execution), ...v.terms.map(t => insert('lk_terms', t)), ...(v.customValues??[]).sort((a,b)=>String(a.field_id).localeCompare(String(b.field_id))).map(t=>insert('lk_custom_values',t)), mark]
     },
     remove(_destination, kind, id) {
       const unmark = q('DELETE FROM lk_import_targets WHERE kind=? AND id=?', kind, id)
+      if (kind === 'ironclad-family') return [q('UPDATE lk_agreements SET parent_id=NULL,relation=NULL WHERE id=?', id), unmark]
       if (kind === 'party') return [q('DELETE FROM lk_parties WHERE id=?', id), unmark]
       if (kind === 'artifact') return [q('DELETE FROM lk_artifact_chunks WHERE artifact_id=?', id), q('DELETE FROM lk_artifacts WHERE id=?', id), unmark]
-      return [unmark, q('DELETE FROM lk_terms WHERE agreement_id=?', id), q('DELETE FROM lk_executions WHERE agreement_id=?', id), q('DELETE FROM lk_versions WHERE agreement_id=?', id), q('DELETE FROM lk_agreements WHERE id=?', id)]
+      return [unmark, q('DELETE FROM lk_custom_values WHERE agreement_id=?',id), q('DELETE FROM lk_terms WHERE agreement_id=?', id), q('DELETE FROM lk_executions WHERE agreement_id=?', id), q('DELETE FROM lk_versions WHERE agreement_id=?', id), q('DELETE FROM lk_agreements WHERE id=?', id)]
     },
     async list(db, destination) {
       const d = db as unknown as D1Database

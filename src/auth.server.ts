@@ -16,6 +16,8 @@ export interface Bindings {
  RER_BUSINESS_TRUST?: string
  RER_OWNER_CLAIM_APP_ORIGIN?: string
 
+ IRONCLAD_API_TOKEN?: string
+ IRONCLAD_REGION?: string
  LOCKET_MODEL_SIMULATION?: string
  AI_WORKERS_ACCOUNT_ID?: string
 

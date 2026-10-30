@@ -55,7 +55,7 @@ jobs:
           analytics.spec.ts approval-reminders.spec.ts audit.spec.ts
           browser-edits.spec.ts bulk-reminders.spec.ts clause-library.spec.ts
           clickwrap.spec.ts counterparties.spec.ts deadline-reminders.spec.ts
-          entities.spec.ts families.spec.ts journey.spec.ts mobile-approval.spec.ts
+          entities.spec.ts families.spec.ts ironclad-move-in.spec.ts journey.spec.ts mobile-approval.spec.ts
           notice-agent-live.spec.ts notice-agent.spec.ts notices.spec.ts
           notifications-policy.spec.ts notifications.spec.ts obligation-evidence.spec.ts
           outcome-report.spec.ts playbook-recommendations.spec.ts portfolio.spec.ts

@@ -10,14 +10,18 @@ import { plural } from '../display'
 import { locketTargets } from './adapter'
 import { entityForNewAgreement, type EntityRow } from '../entities'
 import { KIT, MAPPING_VERSION, preview, readKitInput, type PreviewRow } from './docusign'
+import { IRONCLAD, IRONCLAD_MAPPING, readIroncladInput, mappingCatalogue } from './ironclad'
+import { planIronclad } from './ironclad-plan'
+import type { Sql } from '../model'
+import { fullFieldsCheck } from '../repository-access'
 
 const DESTINATION = 'locket'
 
-export function importContext(c: Ctx, batchId: string): D1ImportContext {
+export function importContext(c: Ctx, batchId: string, kit = KIT, checks: Sql[] = []): D1ImportContext {
   return {
     destination: DESTINATION,
-    namespace: KIT,
-    mappingVersion: MAPPING_VERSION,
+    namespace: kit,
+    mappingVersion: kit === IRONCLAD ? IRONCLAD_MAPPING : MAPPING_VERSION,
     operationKey: `locket:${batchId}`,
     batchSize: 1,
     storage: { database: c.db as any, targets: locketTargets() },
@@ -26,8 +30,8 @@ export function importContext(c: Ctx, batchId: string): D1ImportContext {
       principalId: 'role:owner',
       predicate: () => {
         const a = authority(c.actor as Actor, may.imports)
-        const checks=[a,...(c.erasureChecks??[])]
-        return {sql:checks.map(s=>`(${s.sql})`).join(' AND '),params:checks.flatMap(s=>s.params)}
+        const predicates=[a,fullFieldsCheck(c.actor),...checks,...(c.erasureChecks??[])]
+        return {sql:predicates.map(s=>`(${s.sql})`).join(' AND '),params:predicates.flatMap(s=>s.params)}
       },
     },
   }
@@ -88,7 +92,8 @@ function plannedEntities(c: Ctx, r: PreviewRow, files: Map<string, Uint8Array>, 
 
 const previewImport: Handler = async (c, p) => {
   requireRole(c.actor, may.imports, 'move archives in')
-  oneOf(p, 'kit', [KIT] as const)
+  if (p.kit === IRONCLAD) return previewIronclad(c, p)
+  oneOf(p, 'kit', [KIT, IRONCLAD] as const)
   const input = await readKitInput(p)
   // ENTITY-001: one batch moves in for one of our entities once any is recorded.
   const entity = await entityForNewAgreement(c, p)
@@ -133,6 +138,37 @@ const previewImport: Handler = async (c, p) => {
   }
 }
 
+const inspectIronclad: Handler = async (c, p) => {
+  requireRole(c.actor, may.imports, 'review Ironclad mappings')
+  const input = await readIroncladInput(p)
+  return { allowed: may.imports, result: { ...mappingCatalogue(input, p.mapping), records: input.records.length, files: input.files.length, families: input.records.filter(r=>r.parentId).map(r=>({recordId:r.id,parentId:r.parentId,relation:r.relation,type:r.type})) }, writes: [], audit: [{ action: 'import.inspect', summary: `Inspected Ironclad source ${input.label}; no agreements imported.` }] }
+}
+
+async function previewIronclad(c: Ctx, p: Record<string, unknown>) {
+  const input = await readIroncladInput(p), entity = await entityForNewAgreement(c, p), batchId = crypto.randomUUID()
+  c.erasureChecks=await refuseErasedAddress(c,'import.preview',{records:input.records,files:input.files.map(f=>({path:f.path,base64:encodeBase64(f.bytes)}))})
+  const result = await planIronclad(c, input, p, batchId, entity)
+  const context = importContext(c, batchId, IRONCLAD, result.checks)
+  const plan = await planD1Import(result.source, { version: IRONCLAD_MAPPING, map: record => {
+    const effects = result.planned.get(record.sourceId)
+    return effects ? { effects } : { effects: [], rejection: 'Not imported; see the reviewed row outcome.' }
+  } }, context)
+  context.reviewedFingerprint = plan.fingerprint
+  const job = await createD1ImportJob(plan, context)
+  const summary = { ...result.summary, fingerprint: plan.fingerprint, jobId: job.id, kitCounts: plan.counts }
+  return { allowed: may.imports, result: { batchId, counts: summary.counts, fingerprint: plan.fingerprint }, checks: result.checks,
+    writes: [sql('INSERT INTO lk_import_batches VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)', batchId, IRONCLAD, 'previewed', input.label, json(summary), plan.fingerprint, job.id, c.actor.id, c.now, null, null, null, null, null)],
+    audit: [{ action: 'import.preview', summary: `Ironclad dry run ${input.label}: ${summary.counts.import} to import, ${summary.counts.duplicate} duplicates, ${summary.counts.missing} missing documents; mappings reviewed.` }] }
+}
+
+function reviewedChecks(batch: any): Sql[] {
+  if (batch.kit !== IRONCLAD) return []
+  const summary = parse<any>(batch.preview)
+  return [summary.entityId ? sql('(SELECT version FROM lk_entities WHERE id=?)=?', summary.entityId, summary.entityVersion) : sql('NOT EXISTS(SELECT 1 FROM lk_entities)'),
+    sql('(SELECT count(*) FROM lk_custom_fields)=?', summary.fieldVersions.length),
+    ...summary.fieldVersions.map((f: any)=>sql('(SELECT version FROM lk_custom_fields WHERE id=?)=?',f.id,f.version))]
+}
+
 async function batchOf(c: Ctx, p: Record<string, unknown>) {
   const batch = await c.db.prepare('SELECT * FROM lk_import_batches WHERE id=?').bind(text(p, 'batchId', 64)).first<any>()
   if (!batch) fail('NOT_FOUND', 'No such import batch.', 404)
@@ -148,24 +184,34 @@ const applyImport: Handler = async (c, p) => {
   const batch = await batchOf(c, p)
   if (batch.status !== 'previewed') fail('STATUS', `This batch is already ${batch.status}.`, 409)
   if (p.fingerprint !== batch.fingerprint) fail('FINGERPRINT', 'Apply exactly the dry run you reviewed (its fingerprint did not match).', 409)
-  const originals=await readD1ImportOriginals(batch.job_id,importContext(c,batch.id))
+  const checks = reviewedChecks(batch)
+  for(const check of checks)if(!await c.db.prepare(`SELECT 1 WHERE ${check.sql}`).bind(...check.params).first())fail('STALE','Our entity or custom field definitions changed since this dry run. Review a new dry run before applying.',409)
+  const originals=await readD1ImportOriginals(batch.job_id,importContext(c,batch.id,batch.kit,checks))
   c.erasureChecks=await refuseErasedAddress(c,'import.apply',{originals})
-  const context = { ...importContext(c, batch.id), reviewedFingerprint: batch.fingerprint }
+  const context = { ...importContext(c, batch.id, batch.kit, checks), reviewedFingerprint: batch.fingerprint }
   const job = await applyD1ImportBatches(batch.job_id, context)
-  if (job.state !== 'completed') fail('IMPORT_INCOMPLETE', `The import stopped at ${job.checkpoint} of ${job.total}; apply again to resume from the journal.`, 409)
   const summary = parse(batch.preview)
+  if(job.state!=='completed'&&batch.kit!==IRONCLAD)fail('IMPORT_INCOMPLETE',`The import stopped at ${job.checkpoint} of ${job.total}; apply again to resume from the journal.`,409)
+  if (job.state !== 'completed') return {
+    allowed:may.imports,result:{batchId:batch.id,status:'applying',version:batch.version+1,job:{state:job.state,checkpoint:job.checkpoint,total:job.total}},
+    checks:[...checks,sql("EXISTS(SELECT 1 FROM lk_import_batches WHERE id=? AND status='previewed' AND version=?)",batch.id,batch.version)],
+    writes:[sql('UPDATE lk_import_batches SET preview=?,version=version+1 WHERE id=?',json({...summary,progress:{checkpoint:job.checkpoint,total:job.total}}),batch.id)],
+    audit:[{action:'import.progress',summary:`${batch.source_label}: ${job.checkpoint} of ${job.total} journal entries applied; resume keeps the reviewed fingerprint.`}],
+  }
   return {
     allowed: may.imports,
     result: { batchId: batch.id, status: 'applied', job: { state: job.state, checkpoint: job.checkpoint, total: job.total } },
     writes: [sql("UPDATE lk_import_batches SET status='applied', applied_by=?, applied_at=?, version=version+1 WHERE id=?", c.actor.id, c.now, batch.id)],
-    checks: [sql("(SELECT status FROM lk_import_batches WHERE id=?)='previewed'", batch.id)],
+    checks: [...checks, sql("EXISTS(SELECT 1 FROM lk_import_batches WHERE id=? AND status='previewed' AND version=?)", batch.id,batch.version)],
     audit: [{ action: 'import.apply', summary: `Applied ${batch.source_label}: ${plural(summary.counts.import, 'agreement')} imported with original files and certificates` }],
   }
 }
 
 /** Records that were used after import keep the batch from being undone. */
 async function dependents(c: Ctx, batchId: string) {
-  const ids = (await c.db.prepare("SELECT DISTINCT agreement_id AS id FROM lk_artifacts WHERE imported=1 AND json_extract(provenance,'$.batch')=?").bind(batchId).all<{ id: string }>()).results.map(r => r.id)
+  // A bounded reversal can remove a file before its agreement. The retained
+  // target journal, rather than the remaining files, owns batch membership.
+  const ids = (await c.db.prepare("SELECT DISTINCT a.id FROM lk_import_batches b JOIN ik_provenance p ON p.job_id=b.job_id AND p.target_kind='agreement' JOIN lk_agreements a ON a.id=p.target_id WHERE b.id=?").bind(batchId).all<{ id: string }>()).results.map(r => r.id)
   const used: { reference: string; reasons: string[] }[] = []
   const importedReferences = new Set<string>()
   for (const id of ids) {
@@ -178,7 +224,7 @@ async function dependents(c: Ctx, batchId: string) {
       const hit = await c.db.prepare(`SELECT 1 AS x FROM ${table} agreement_id=? LIMIT 1`).bind(id).first()
       if (hit) reasons.push(label)
     }
-    if (await c.db.prepare('SELECT 1 AS x FROM lk_agreements WHERE parent_id=? LIMIT 1').bind(id).first()) reasons.push('linked as a parent')
+    if (await c.db.prepare('SELECT 1 AS x FROM lk_agreements WHERE parent_id=? AND id NOT IN (SELECT value FROM json_each(?)) LIMIT 1').bind(id, json(ids)).first()) reasons.push('linked as a parent')
     if (reasons.length) used.push({ reference: a.reference, reasons })
   }
   // A counterparty this batch created that another agreement now names stays, so undo would break that agreement.
@@ -195,18 +241,25 @@ const undoImport: Handler = async (c, p) => {
   const reason = text(p, 'reason', 1000)
   const used = await dependents(c, batch.id)
   if (used.length) fail('IMPORT_DEPENDENCY', `Imported agreements are in use and keep their history: ${used.map(u => `${u.reference} (${u.reasons.join(', ')})`).join('; ')}. Undo is refused; correct those records instead.`, 409, { used })
-  const job = await undoD1Import(batch.job_id, importContext(c, batch.id))
-  if (job.state !== 'undone') fail('IMPORT_INCOMPLETE', 'Undo stopped before finishing; run it again to resume from the journal.', 409)
+  const job = await undoD1Import(batch.job_id, importContext(c, batch.id, batch.kit))
+  if(job.state!=='undone'&&batch.kit!==IRONCLAD)fail('IMPORT_INCOMPLETE','Undo stopped before finishing; run it again to resume from the journal.',409)
+  if (job.state !== 'undone') return {
+    allowed:may.imports,result:{batchId:batch.id,status:'undoing',version:batch.version+1},
+    checks:[sql("EXISTS(SELECT 1 FROM lk_import_batches WHERE id=? AND status='applied' AND version=?)",batch.id,batch.version)],
+    writes:[sql('UPDATE lk_import_batches SET preview=?,version=version+1 WHERE id=?',json({...parse<any>(batch.preview),undoing:true}),batch.id)],
+    audit:[{action:'import.progress',summary:`${batch.source_label}: undo is in progress; continue to resume the retained journal.`}],
+  }
   return {
     allowed: may.imports,
     result: { batchId: batch.id, status: 'undone' },
     writes: [sql("UPDATE lk_import_batches SET status='undone', undone_by=?, undone_at=?, undo_reason=?, version=version+1 WHERE id=?", c.actor.id, c.now, reason, batch.id)],
-    checks: [sql("(SELECT status FROM lk_import_batches WHERE id=?)='applied'", batch.id)],
+    checks: [sql("EXISTS(SELECT 1 FROM lk_import_batches WHERE id=? AND status='applied' AND version=?)", batch.id,batch.version)],
     audit: [{ action: 'import.undo', summary: `Undid ${batch.source_label}: ${reason}` }],
   }
 }
 
 export const importHandlers: Record<string, Handler> = {
+  'import.inspect': inspectIronclad,
   'import.preview': previewImport,
   'import.apply': applyImport,
   'import.undo': undoImport,

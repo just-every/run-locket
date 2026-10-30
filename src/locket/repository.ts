@@ -60,6 +60,8 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
       department: a.department ?? null, owner: people.get(a.owner_id) ?? null, requester: people.get(a.requester_id) ?? null,
       restricted: a.restricted ? 'yes' : 'no', needed_by: a.needed_by, start_date: a.start_date,
       timezone: a.timezone, origin: a.origin,
+      ironclad_record_id: s.artifacts.find(f => f.agreement_id === a.id && f.source_system === 'ironclad')?.source_id ?? null,
+      ironclad_workflow_id: (() => { const f = s.artifacts.find(f => f.agreement_id === a.id && f.source_system === 'ironclad'); return f ? JSON.parse(f.provenance).workflowId || null : null })(),
       created_at: new Date(a.created_at).toISOString().slice(0, 10), updated_at: new Date(a.updated_at).toISOString().slice(0, 10),
       effective_date: terms.effective_date ?? null, end_date: terms.end_date ?? null,
       auto_renew: terms.auto_renew ?? null,
