@@ -198,6 +198,15 @@ jobs:
         with:
           name: ironclad-move-in-screens
           path: ${{ runner.temp }}/locket-ironclad
+      - name: Prove enterprise move-in through the browser
+        if: matrix.name == 'core'
+        run: LOCKET_SCREENSHOTS="${{ runner.temp }}/locket-enterprise-move" pnpm exec playwright test --config tests/browser/playwright.config.ts enterprise-move-in.spec.ts --workers=1
+      - name: Keep enterprise move-in screens
+        if: matrix.name == 'core'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: enterprise-move-in-screens
+          path: ${{ runner.temp }}/locket-enterprise-move
 
   light:
     needs: plan

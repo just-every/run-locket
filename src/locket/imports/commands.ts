@@ -10,6 +10,8 @@ import { plural } from '../display'
 import { locketTargets } from './adapter'
 import { entityForNewAgreement, type EntityRow } from '../entities'
 import { KIT, MAPPING_VERSION, preview, readKitInput, type PreviewRow } from './docusign'
+import { previewEnterprise, confirmImportValue, remapEnterprise } from './enterprise'
+import { enterpriseKits } from './enterprise-source'
 import { IRONCLAD, IRONCLAD_MAPPING, readIroncladInput, mappingCatalogue } from './ironclad'
 import { planIronclad } from './ironclad-plan'
 import type { Sql } from '../model'
@@ -17,14 +19,14 @@ import { fullFieldsCheck } from '../repository-access'
 
 const DESTINATION = 'locket'
 
-export function importContext(c: Ctx, batchId: string, kit = KIT, checks: Sql[] = []): D1ImportContext {
+export function importContext(c: Ctx, batchId: string, kit: string = KIT, checks: Sql[] = []): D1ImportContext {
   return {
     destination: DESTINATION,
     namespace: kit,
-    mappingVersion: kit === IRONCLAD ? IRONCLAD_MAPPING : MAPPING_VERSION,
+    mappingVersion: kit === IRONCLAD ? IRONCLAD_MAPPING : kit === KIT ? MAPPING_VERSION : `${kit}/1`,
     operationKey: `locket:${batchId}`,
     batchSize: 1,
-    storage: { database: c.db as any, targets: locketTargets() },
+    storage: { database: c.db as any, targets: locketTargets(kit) },
     authorization: {
       // Bound to the owner role, not one operator row, so a restored installation can still undo.
       principalId: 'role:owner',
@@ -104,7 +106,8 @@ function plannedEntities(c: Ctx, r: PreviewRow, files: Map<string, Uint8Array>, 
 const previewImport: Handler = async (c, p) => {
   requireRole(c.actor, may.imports, 'move archives in')
   if (p.kit === IRONCLAD) return previewIronclad(c, p)
-  oneOf(p, 'kit', [KIT, IRONCLAD] as const)
+  oneOf(p, 'kit', [KIT, IRONCLAD, ...enterpriseKits] as const)
+  if (enterpriseKits.includes(p.kit as any)) return previewEnterprise(c, p)
   const input = await readKitInput(p)
   // ENTITY-001: one batch moves in for one of our entities once any is recorded.
   const entity = await entityForNewAgreement(c, p)
@@ -199,11 +202,20 @@ const applyImport: Handler = async (c, p) => {
   const checks = reviewedChecks(batch)
   for(const check of checks)if(!await c.db.prepare(`SELECT 1 WHERE ${check.sql}`).bind(...check.params).first())fail('STALE','Our entity or custom field definitions changed since this dry run. Review a new dry run before applying.',409)
   const originals=await readD1ImportOriginals(batch.job_id,importContext(c,batch.id,batch.kit,checks))
-  c.erasureChecks=await refuseErasedAddress(c,'import.apply',{originals})
+  c.erasureChecks=[...await refuseErasedAddress(c,'import.apply',{originals}),sql('EXISTS(SELECT 1 FROM lk_import_batches WHERE id=? AND version=? AND status=?)',batch.id,batch.version,'previewed')]
+  const reviewed = parse<any>(batch.preview)
+  if (enterpriseKits.includes(batch.kit)) {
+    if (reviewed.unmapped.length) fail('IMPORT_MAPPING','Map or explicitly skip every unmapped field in a new dry run before applying.',409)
+    c.erasureChecks.push(...reviewed.guards)
+    const selected = reviewed.rows.filter((r:any)=>r.outcome==='import').map((r:any)=>({id:r.sourceId,sha:r.documents.find((d:any)=>d.role==='signed').sha256}))
+    const fresh = sql("NOT EXISTS(SELECT 1 FROM lk_artifacts f JOIN json_each(?) source ON (f.source_system=? AND f.source_id=json_extract(source.value,'$.id')) OR (f.sha256=json_extract(source.value,'$.sha') AND f.role IN ('original','signed')) WHERE COALESCE(json_extract(f.provenance,'$.batch'),'')<>?)",json(selected),batch.kit,batch.id)
+    if(!await c.db.prepare(`SELECT 1 WHERE ${fresh.sql}`).bind(...fresh.params).first())fail('IMPORT_STALE','A source identity or signed file was imported after this review. Run a new dry run; the journal retains any progress.',409)
+    c.erasureChecks.push(fresh)
+  }
   const context = { ...importContext(c, batch.id, batch.kit, checks), reviewedFingerprint: batch.fingerprint }
   const job = await applyD1ImportBatches(batch.job_id, context)
   const summary = parse(batch.preview)
-  if(job.state!=='completed'&&batch.kit!==IRONCLAD)fail('IMPORT_INCOMPLETE',`The import stopped at ${job.checkpoint} of ${job.total}; apply again to resume from the journal.`,409)
+  if(job.state!=='completed'&&batch.kit===KIT)fail('IMPORT_INCOMPLETE',`The import stopped at ${job.checkpoint} of ${job.total}; apply again to resume from the journal.`,409)
   if (job.state !== 'completed') return {
     allowed:may.imports,result:{batchId:batch.id,status:'applying',version:batch.version+1,job:{state:job.state,checkpoint:job.checkpoint,total:job.total}},
     checks:[...checks,sql("EXISTS(SELECT 1 FROM lk_import_batches WHERE id=? AND status='previewed' AND version=?)",batch.id,batch.version)],
@@ -254,8 +266,9 @@ const undoImport: Handler = async (c, p) => {
   const reason = text(p, 'reason', 1000)
   const used = await dependents(c, batch.id)
   if (used.length) fail('IMPORT_DEPENDENCY', `Imported agreements are in use and keep their history: ${used.map(u => `${u.reference} (${u.reasons.join(', ')})`).join('; ')}. Undo is refused; correct those records instead.`, 409, { used })
+  c.erasureChecks=[sql('EXISTS(SELECT 1 FROM lk_import_batches WHERE id=? AND version=? AND status=?)',batch.id,batch.version,'applied')]
   const job = await undoD1Import(batch.job_id, importContext(c, batch.id, batch.kit))
-  if(job.state!=='undone'&&batch.kit!==IRONCLAD)fail('IMPORT_INCOMPLETE','Undo stopped before finishing; run it again to resume from the journal.',409)
+  if(job.state!=='undone'&&batch.kit===KIT)fail('IMPORT_INCOMPLETE','Undo stopped before finishing; run it again to resume from the journal.',409)
   if (job.state !== 'undone') return {
     allowed:may.imports,result:{batchId:batch.id,status:'undoing',version:batch.version+1},
     checks:[sql("EXISTS(SELECT 1 FROM lk_import_batches WHERE id=? AND status='applied' AND version=?)",batch.id,batch.version)],
@@ -276,4 +289,6 @@ export const importHandlers: Record<string, Handler> = {
   'import.preview': previewImport,
   'import.apply': applyImport,
   'import.undo': undoImport,
+  'import.remap': remapEnterprise,
+  'import.value.confirm': confirmImportValue,
 }

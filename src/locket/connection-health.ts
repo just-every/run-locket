@@ -21,6 +21,10 @@ export async function connectionRegistry(env:Bindings){
  for(const c of(await db.prepare('SELECT * FROM lk_signature_connections').all<any>()).results)rows.push({id:c.provider,kind:'signing',account:c.account_id??c.base_url,configuredAt:c.configured_at,connectionVersion:c.version,probe:c.provider!=='inkwell'})
  for(const c of(await db.prepare('SELECT id,provider,calendar_id,created_at,version FROM lk_calendar_connections').all<any>()).results)rows.push({id:'calendar:'+c.id,sourceId:c.id,kind:'calendar',label:c.provider==='google'?'Google Calendar':'Outlook Calendar',account:c.provider+' calendar '+c.calendar_id,connectionVersion:c.version,probe:true})
  if(env.POSTMARK_SERVER_TOKEN)rows.push({id:'exchange-mail',kind:'mail',account:env.MAIL_FROM??'Sender not configured',probe:true})
+ for(const kit of ['icertis','agiloft']) {
+  const envKey=kit.toUpperCase(),raw=(env as any)[envKey+'_IMPORT_PROFILE']
+  if(raw&&(env as any)[envKey+'_IMPORT_TOKEN']) {let account='Configured source (identity unverified)';try{account=new URL(JSON.parse(raw).baseUrl).origin}catch{};rows.push({id:kit+'-import',kind:'import',label:kit==='icertis'?'Icertis import':'Agiloft import',account,probe:false})}
+ }
  if(env.UPTIME_ORIGIN&&env.UPTIME_METRICS_KEY)rows.push({id:'uptime',kind:'monitoring',account:env.UPTIME_ORIGIN,probe:false})
  if(env.LINEN_ORIGIN&&env.LINEN_MCP_TOKEN)rows.push({id:'linen',kind:'tickets',account:env.LINEN_ORIGIN,probe:false})
  for(const d of(await db.prepare('SELECT * FROM lk_execution_destinations').all<any>()).results)rows.push({id:'execution:'+d.kind,kind:'execution',label:d.kind+' execution destination',account:d.account_id,connectionVersion:d.revision,configuredAt:d.configured_at,probe:false})
@@ -39,6 +43,7 @@ export async function connectionRegistry(env:Bindings){
    if(failed){row.status='failing';row.reason='Execution action outcome is uncertain. Inspect the destination; it will not be resent automatically.'}
    else if(actions.some(a=>a.status==='completed')){row.status='healthy';row.reason='Separately authorized execution copies or CRM value matched destination readback.'}
   }
+  if(row.kind==='import')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_artifacts WHERE source_system=? AND imported=1').bind(row.id.replace('-import','')).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(row.kind==='signing')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_packages WHERE provider=?').bind(row.id).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(row.id==='pantry')ids=(await db.prepare('SELECT DISTINCT agreement_id FROM lk_accounting_schedules WHERE origin=?').bind(row.account).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)
   if(['quickbooks','netsuite','pantry'].includes(row.id))ids=[...new Set([...ids,...(await db.prepare('SELECT DISTINCT agreement_id FROM lk_accounting_links WHERE provider=?').bind(row.id).all<{agreement_id:string}>()).results.map(a=>a.agreement_id)])]

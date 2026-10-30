@@ -757,3 +757,15 @@ agreement value and invalidate earlier approval contexts. Custom dates and money
 also require the current field definition and its edit authority. Imported
 execution history stays labelled imported and requires signature-evidence review.
 The API adapter follows the published per-record attachment URL job and authenticated keyed attachment routes. Failed/missing job outcomes and mismatched identities or hashes withhold the input. The owner archive includes validated `importJournal` originals after undo. A live owner sandbox receipt remains required; network-edge tests establish no live interoperability.
+## Enterprise move-in (`MOVE-003`)
+
+Owner-only `import.preview` additionally supports `kit:"icertis"|"agiloft"`
+from XLSX/CSV and a documents folder or a privately configured read-only API.
+`import.remap {batchId,version,mapping,typeMapping?,fileRoles?}` creates a new
+review from retained originals. Unmapped columns block apply; dates, monetary
+amounts and custom fields remain proposed. Cited `import.value.confirm` confirms
+an imported custom value or USD amount through native role, field and agreement
+guards. The existing term decisions, family source choices, current-term
+projection and reviewed bulk reminder schedule apply to these imported kinds.
+See [IMPORT.md](IMPORT.md) for complete payloads, bounded resumable apply/undo,
+private API profiles, source compatibility limits and absent live evidence.
