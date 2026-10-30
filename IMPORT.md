@@ -172,7 +172,7 @@ through the normal Terms screen; the existing current-term lifecycle and bulk
 reminder preview/apply then operate on them. Confirm a custom field or USD amount
 with `import.value.confirm {agreementId,termId,citation:{quote,page}}`, using
 words/page from the signed original. Custom definitions must still match the
-review. Non-USD amounts require the native value editor's explicit conversion
+review. Confirming a USD amount confirms its matching proposed currency in the same guarded write and replaces any earlier conversion context. A rejected or absent currency cannot authorize the amount. Non-USD amounts require the native value editor's explicit conversion
 rate and are not silently converted by the importer.
 
 ### Private API profiles
