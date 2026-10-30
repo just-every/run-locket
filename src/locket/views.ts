@@ -75,7 +75,7 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
   const db = env.DB
   const { agreements, ids, hiddenParties } = await visibleIds(env, actor)
   const versions = mine(await all(db, 'SELECT id, agreement_id, number, kind, label, template_version_id, fields, text, text_source, digest, created_by, created_at FROM lk_versions ORDER BY number'), ids)
-  const candidateArtifacts = mine(await all(db, 'SELECT id, agreement_id, version_id, role, filename, media_type, size, sha256, source_system, source_id, provenance, imported, uploaded_by, uploaded_at FROM lk_artifacts ORDER BY uploaded_at'), ids)
+  const candidateArtifacts = mine(await all(db, 'SELECT id, agreement_id, version_id, role, filename, media_type, size, sha256, source_system, source_id, provenance, imported, uploaded_by, uploaded_at FROM lk_artifacts ORDER BY uploaded_at'), ids).filter(f=>f.source_system!=='ironclad-api'||actor.role==='owner')
   const artifacts=[]
   for(const artifact of candidateArtifacts){const provenance=JSON.parse(artifact.provenance);if(provenance.kind==='service_level_evidence'&&!await canReadServiceSources(db,actor,JSON.stringify(provenance.sources)))continue;if(provenance.kind!=='renewal_brief'||await canReadBrief(db,actor,{sources:JSON.stringify(provenance.sources)}))artifacts.push(artifact)}
   const routes: Record<string, unknown> = {}
@@ -227,6 +227,7 @@ export async function download(env: Bindings, actor: Actor, id: string): Promise
   requireRole(actor, may.read, 'download files')
   if((await hiddenFields(env.DB,actor)).length&&!(await approvedRenditions(env.DB,actor)).some(r=>r.artifact_id===id))fail('FIELD_ACCESS','Only current counsel-approved renditions may be downloaded by this role.',403)
   const artifact = await env.DB.prepare('SELECT * FROM lk_artifacts WHERE id=?').bind(id).first<any>()
+  if(artifact?.source_system==='ironclad-api'&&actor.role!=='owner')fail('NOT_FOUND','No file you can access has that identity.',404)
   const { ids } = await visibleIds(env, actor)
   if (!artifact || (artifact.agreement_id && !ids.has(artifact.agreement_id))) fail('NOT_FOUND', 'No file you can access has that identity.', 404)
   if(JSON.parse(artifact.provenance).kind==='service_level_evidence'&&!await canReadServiceSources(env.DB,actor,JSON.stringify(JSON.parse(artifact.provenance).sources)))fail('NOT_FOUND','Some monitoring evidence sources are no longer accessible.',404)

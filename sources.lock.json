@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "7e014bf2233fb24513fde62cbbfce88bf6e62033b70fa9e7532b1edabb73e8b8",
+      "sha256": "5b5b4d5c5cd84f3834f8c752995dcf381dc2bd500210de2d4e7a323ea422feb5",
       "executable": false
     },
     "base-copies.json": {
@@ -2616,7 +2616,7 @@
       "executable": false
     },
     "src/locket/views.ts": {
-      "sha256": "5c78a5f4a04277a6ba8e14b43ffd5176fbab0339bf7adb07f3be4987263fb0a0",
+      "sha256": "89fc22729ef440cde2ef44a75e246145e3d352c2036eb0f1c2a0f2515dcf9ea1",
       "executable": false
     },
     "src/locket/word-pricing.ts": {
@@ -5660,7 +5660,7 @@
       "executable": false
     },
     "tests/api/ironclad-move-in.test.mjs": {
-      "sha256": "fd067788a5c118c85456f12430038faba72033e4204afc7e62966e7fa494dd40",
+      "sha256": "cbd627e8d216864c74a2036f1d1bfa4092bc4bd4d508f054355731307f835a62",
       "executable": false
     },
     "tests/api/model-settings-fixture.mjs": {

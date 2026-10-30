@@ -746,6 +746,8 @@ Owner-only commands use the existing `/api/locket/commands` door:
 
 Owner state includes `ironcladReads` without credentials or authorizing session
 IDs. Source API metadata and downloaded ZIPs use native chunked original custody.
+Those raw export files remain owner-only in workspace and download reads;
+imported agreement originals follow each agreement’s normal access.
 The archive removes session and private-connection bindings. Imported record and
 workflow identifiers are searchable and available as repository columns.
 
