@@ -258,5 +258,12 @@ export async function exportArchive(env: Bindings, actor: Actor) {
   records.lk_calendar_connections=await all(db,'SELECT id,operator_id,provider,calendar_id,last_error,created_at,version FROM lk_calendar_connections')
   const files = []
   for (const a of await all(db, 'SELECT * FROM lk_artifacts ORDER BY uploaded_at')) files.push({ ...a, base64: encodeBase64(await readArtifactBytes(db, a.id)) })
-  return { format: 'locket-archive/1', exportedAt: new Date().toISOString(), records, files }
+  const {readD1ImportOriginals}=await import('../modules/import-kit/src/d1/index')
+  const {importContext}=await import('./imports/commands')
+  const importJournal=[]
+  for(const batch of records.lk_import_batches as any[]) {
+    const originals=await readD1ImportOriginals(batch.job_id,importContext({env,db,actor,now:Date.now(),commandId:crypto.randomUUID()},batch.id,batch.kit))
+    importJournal.push({batchId:batch.id,originals})
+  }
+  return { format: 'locket-archive/1', exportedAt: new Date().toISOString(), records, files, importJournal }
 }

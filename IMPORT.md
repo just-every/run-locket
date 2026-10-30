@@ -90,9 +90,32 @@ read retry never applies an agreement. The ready original ZIP enters the same
 mapping and journal path as an uploaded export. Download credentials are never
 forwarded to signed object-storage URLs or redirects.
 
-The adapter and pending/ready protocol are exercised at the network edge using
-synthetic records. The developer reference was unavailable (HTTP 403) during
-this build; the attachment-job protocol still requires confirmation on the
-owner's Ironclad sandbox before any live compatibility claim. An authorized
-real export and a live sandbox run are the remaining MOVE-002 acceptance items.
-See [fixture sources](tests/fixtures/ironclad/README.md).
+The adapter follows the published [Records API](https://developer.ironcladapp.com/reference/list-all-records)
+and [attachment URL job](https://developer.ironcladapp.com/reference/create-attachment-download-urls).
+It pages `/records` using the total `count`, requests at most 100 `identifiers`
+per `POST /records/attachments/download-urls` with `type:latestSignedCopy`, and
+polls `/records/attachments/download-urls/{jobId}` from `processing` to
+`complete` or `failed`. Completed results contain per-record `succeeded` and
+`failed` entries, not a ZIP URL. Each signed-copy URL is identity/hash/expiry
+checked; additional keyed attachments use the authenticated record attachment
+door. Signed downloads receive no bearer token and redirects never forward it.
+A partial or failed job offers no partial import. The owner can instead supply
+an exported ZIP through the same mapping/review door.
+
+Records JSON retains `source.workflowId`, typed properties, keyed attachments,
+`parentId`, `parentLinkType` and `childIds`. Amendment links become `amends`;
+other family relations remain editable in the dry run. Dates preserve the
+provider's calendar-date component. USD money is proposed without currency
+conversion; ISO durations convert only when exactly expressible as whole
+calendar months (renewals) or days (notice). Optional Extension maps to optional
+renewal. Unsupported units/currencies require correction or an explicit skip.
+Native and custom dates/money remain proposals until cited confirmation.
+
+The owner-only complete archive includes `importJournal`, with validated exact
+originals, names, sizes and SHA-256 digests for every batch, including after
+undo. The retained report includes skipped, duplicate, missing and orphan rows.
+API signed URLs and private/session bindings are excluded from the archive.
+
+Network-edge journeys prove documented shapes and local behavior, not live
+interoperability. An authorized real export and a live sandbox run remain the
+only account-dependent MOVE-002 acceptance items. See [fixture sources](tests/fixtures/ironclad/README.md).

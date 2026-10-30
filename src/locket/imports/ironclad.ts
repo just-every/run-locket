@@ -12,7 +12,7 @@ export const propertyTargets = ['title', 'counterparty', 'effective_date', 'end_
 export interface IroncladRecord {
   id: string; workflowId: string; name: string; type: string; status: string
   properties: Record<string, unknown>; attachments: string[]
-  parentId: string; relation: string
+  parentId: string; relation: string; sourceType: string
 }
 export interface IroncladInput {
   label: string; manifest: SourceFile; files: SourceFile[]; originals: SourceFile[]; records: IroncladRecord[]
@@ -23,7 +23,7 @@ const scalar = (v: unknown): unknown => v && typeof v === 'object' && 'value' in
 const named = (v: unknown) => v && typeof v === 'object' ? string((v as any).name ?? (v as any).id) : string(v)
 const identity = (v: unknown) => v && typeof v === 'object' ? string((v as any).id) : string(v)
 const split = (v: unknown) => Array.isArray(v) ? v.map(string) : string(v).split(/[;\n]/).map(s => s.trim()).filter(Boolean)
-const structural = ['record id', 'record name', 'record type', 'workflow id', 'status', 'attachments', 'parent record id', 'relation', 'parent id', 'attachment filenames', 'stage', 'stage index', 'ironclad id', 'record type id', 'related record ids', 'workflow link', 'repository link']
+const structural = ['record id', 'record name', 'record type', 'workflow id', 'status', 'attachments', 'parent record id', 'relation', 'parent id', 'attachment filenames', 'stage', 'stage index', 'ironclad id', 'record type id', 'related record ids', 'workflow link', 'repository link', 'source type']
 
 export function normalizeRecords(raw: unknown): IroncladRecord[] {
   const input = Array.isArray(raw) ? raw : (raw as any)?.list ?? (raw as any)?.records
@@ -35,14 +35,15 @@ export function normalizeRecords(raw: unknown): IroncladRecord[] {
     if (!Array.isArray(parents) || parents.length > 1) fail('IRONCLAD_FAMILY', 'Resolve records with multiple parents before import.')
     const attachments = r.attachments ?? []
     const row: IroncladRecord = {
-      id: string(csv ? columns['record id'] : r.id), workflowId: string(csv ? columns['workflow id'] : r.workflowId),
+      id: string(csv ? columns['record id'] : r.id), workflowId: string(csv ? columns['workflow id'] : (r.source as any)?.type === 'workflow' ? (r.source as any).workflowId : r.workflowId),
       name: string(csv ? columns['record name'] : r.name), type: named(csv ? columns['record type'] : r.recordType ?? r.type),
-      status: string(csv ? columns.status ?? columns.stage : r.status), properties: Object.fromEntries(Object.entries(properties).map(([k, v]) => [k, scalar(v)])),
+      status: string(csv ? columns.status ?? columns.stage : r.status), properties: Object.fromEntries(Object.entries(properties)),
       attachments: csv ? split(columns.attachments ?? columns['attachment filenames']) : Array.isArray(attachments) ? attachments.map(a => typeof a === 'string' ? a : string(a.path ?? a.filename ?? a.name)) : Object.values(attachments as object).map((a: any) => string(a.path ?? a.filename ?? a.name)),
       parentId: string(csv ? columns['parent record id'] ?? columns['parent id'] : r.parentId ?? identity(parents[0])),
-      relation: string(csv ? columns.relation : r.relation ?? parents[0]?.relation),
+      relation: string(csv ? columns.relation : r.relation ?? (r.parentLinkType === 'amendment' ? 'amends' : parents[0]?.relation)),
+      sourceType: string((r.source as any)?.type ?? columns['source type']),
     }
-    if (!row.id || row.id.length > 200 || !row.type || row.type.length > 200 || row.id.includes('/')) fail('IRONCLAD_RECORDS', `Record ${i + 1} needs a plain ID and record type.`)
+    if (!row.id || row.id.length > 200 || !row.type || row.type.length > 200 || /[\/\\\x00-\x1f]/.test(row.id)) fail('IRONCLAD_RECORDS', `Record ${i + 1} needs a plain ID and record type.`)
     return row
   })
   if (new Set(records.map(r => r.id)).size !== records.length) fail('IRONCLAD_RECORDS', 'Record IDs must be distinct in a batch.')
@@ -111,7 +112,7 @@ const defaults: Record<string, string> = {
   'agreement date': 'effective_date', agreementDate: 'effective_date', 'expiration date': 'end_date', expirationDate: 'end_date',
   'auto-renewal type': 'renewal_type', autoRenewalType: 'renewal_type', 'renewal term length': 'renewal_term_months', renewalTermLength: 'renewal_term_months',
   'number of renewals': 'renewals_allowed', numberOfRenewals: 'renewals_allowed', 'notice days': 'notice_days', noticeDays: 'notice_days',
-  counterparty: 'counterparty', 'contract value': 'value', contractValue: 'value', title: 'title',
+  counterpartyName: 'counterparty', counterparty: 'counterparty', 'contract value': 'value', contractValue: 'value', title: 'title',
 }
 export function mappingCatalogue(input: IroncladInput, supplied?: unknown) {
   const types = [...new Set(input.records.map(r => r.type))].sort(), properties = [...new Set(input.records.flatMap(r => Object.keys(r.properties)))].sort()
@@ -129,11 +130,11 @@ export function mappingCatalogue(input: IroncladInput, supplied?: unknown) {
 }
 
 export function mappedValue(key: string, raw: unknown): string {
-  const value = string(raw).trim()
+  const value = string(sourceValue(raw, key)).trim()
   if (['effective_date', 'end_date'].includes(key)) return date({ value }, 'value')
   if (key === 'renewal_type') {
     const normalized = value.toLowerCase().replace(/[ -]/g, '_')
-    const type = ({ fixed_term: 'fixed', auto_renews: 'auto_renew', automatically_renews: 'auto_renew', automatic: 'auto_renew', none: 'fixed' } as Record<string, string>)[normalized] ?? normalized
+    const type = ({ fixed_term: 'fixed', auto_renews: 'auto_renew', automatically_renews: 'auto_renew', automatic: 'auto_renew', auto_renewal: 'auto_renew', optional_extension: 'optional', none: 'fixed' } as Record<string, string>)[normalized] ?? normalized
     if (!['fixed', 'auto_renew', 'evergreen', 'optional'].includes(type)) fail('IRONCLAD_VALUE', `Unrecognized renewal type: ${value}. Edit the mapping or correct the export.`)
     return type
   }
@@ -142,5 +143,25 @@ export function mappedValue(key: string, raw: unknown): string {
     if (!/^\d+$/.test(value) || Number(value) > (key === 'renewal_term_months' ? 120 : key === 'notice_days' ? 730 : 100000) || (key === 'renewal_term_months' && !Number(value))) fail('IRONCLAD_VALUE', `Map ${key} to a whole number in its supported range.`)
   }
   if (key === 'value' && money({value},'value')===null) fail('IRONCLAD_VALUE','Supply the contract value in USD.')
+  return value
+}
+
+/** Convert only documented typed values; never round a duration or convert currency. */
+export function sourceValue(raw: unknown, target: string): unknown {
+  const value = scalar(raw)
+  if (['effective_date','end_date','date'].includes(target) && typeof value === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value))) return value.slice(0,10)
+  }
+  if (['value','money'].includes(target) && value && typeof value === 'object') {
+    const amount = value as any
+    if (amount.currency !== 'USD' || !['number','string'].includes(typeof amount.amount)) fail('IRONCLAD_VALUE','Only explicit USD monetary amounts can map to a USD field; skip or correct this property.')
+    return String(amount.amount)
+  }
+  if (['renewal_term_months','notice_days'].includes(target) && typeof value === 'string' && value.startsWith('P')) {
+    const m = /^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?$/.exec(value)
+    if (!m || !m.slice(1).some(Boolean) || (target === 'renewal_term_months' ? Number(m[3] || 0)+Number(m[4] || 0) : Number(m[1] || 0)+Number(m[2] || 0))) fail('IRONCLAD_VALUE','This duration cannot map exactly to whole calendar months or days; skip or correct it.')
+    return target === 'renewal_term_months' ? Number(m[1] || 0)*12+Number(m[2] || 0) : Number(m[3] || 0)*7+Number(m[4] || 0)
+  }
+  if (value !== null && typeof value === 'object') fail('IRONCLAD_VALUE',`This structured value cannot map to ${target}; choose a compatible field or skip it.`)
   return value
 }

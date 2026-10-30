@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "5b5b4d5c5cd84f3834f8c752995dcf381dc2bd500210de2d4e7a323ea422feb5",
+      "sha256": "1017f598385edd149cf9bb8b5b5b8f82bc021a21550da8f594c2c509e045eb9d",
       "executable": false
     },
     "base-copies.json": {
@@ -220,7 +220,7 @@
       "executable": false
     },
     "IMPORT.md": {
-      "sha256": "8a7a3d65b800ce582ef7b4d3bea56f9cc0c472a81d49706f43a4bcaf9f679eab",
+      "sha256": "272ce47514b490e5c03a0abc3ddcb8b01c4dc6bad2b2f75ada6a75a920b32fe1",
       "executable": false
     },
     "LICENSE": {
@@ -2088,7 +2088,7 @@
       "executable": false
     },
     "src/locket/families.ts": {
-      "sha256": "deac36a1be9bd3897d3b6a1fe9d57c5340e2d50214df7ee897e4f999d343d2aa",
+      "sha256": "d1d15637669d5910a0850a1ac576afe8dca3f437f26d2fca36b0e7dd5c3001d1",
       "executable": false
     },
     "src/locket/family-analysis-facts.ts": {
@@ -2128,7 +2128,7 @@
       "executable": false
     },
     "src/locket/family-projection.ts": {
-      "sha256": "316b987d245a9ee0837eba00fbf6c2dec0a94d53d3419813ea8db1c0fb5e1b49",
+      "sha256": "41eac6904b09b17e67deb160ce53a9a487afa2c1f990c40c64fca44fa1933885",
       "executable": false
     },
     "src/locket/family-relations.ts": {
@@ -2140,7 +2140,7 @@
       "executable": false
     },
     "src/locket/imports/commands.ts": {
-      "sha256": "9697a440ff9a9c127696c3b3e072c2142dadea095a9bf8248ed6bb898c3d16b4",
+      "sha256": "5afb8ff7f964ca8cf7dbb1f81521d732d0b523c0915e2497d88d0bbe826edc67",
       "executable": false
     },
     "src/locket/imports/csv.ts": {
@@ -2152,15 +2152,15 @@
       "executable": false
     },
     "src/locket/imports/ironclad-api.ts": {
-      "sha256": "247f87c951a39c588782019ac73b640c9d41a7050c5929ad042d42819e0b4ad5",
+      "sha256": "383ac3272088b957acc3eff9783e18917952f9fa1b419ce2a008429fcf57bc44",
       "executable": false
     },
     "src/locket/imports/ironclad-plan.ts": {
-      "sha256": "98e9bd011739d97fbc39f188995ff23570f51da72c647d2e64ab99982ee85ff0",
+      "sha256": "75d9a6c61afd64532407ab2041810c084d9d5ba76ed883f1dbe264ab339f48cf",
       "executable": false
     },
     "src/locket/imports/ironclad.ts": {
-      "sha256": "5b46efd43f2e761d9fbfa9bb5519527dd012805f4d95193afde2f9dc4743eeff",
+      "sha256": "f01087d6a11942bf5b6ae3e4c09b07526da147109bc36e9007cdeb5d7f4f73fc",
       "executable": false
     },
     "src/locket/imports/xlsx.ts": {
@@ -2616,7 +2616,7 @@
       "executable": false
     },
     "src/locket/views.ts": {
-      "sha256": "89fc22729ef440cde2ef44a75e246145e3d352c2036eb0f1c2a0f2515dcf9ea1",
+      "sha256": "f86867aa5244ca874fa5c88e0a64255742b630acc946c7a39ef35f5edc9e30bf",
       "executable": false
     },
     "src/locket/word-pricing.ts": {
@@ -5659,8 +5659,16 @@
       "sha256": "02a25765219215c3e072d2620b5625e802933f9ca5258d088500380749e161d0",
       "executable": false
     },
+    "tests/api/ironclad-controls-journey.mjs": {
+      "sha256": "bce59a3ac6eaa5e27e8f4470afc89b6f9735755cba0da880a578b98d55ad82bf",
+      "executable": false
+    },
+    "tests/api/ironclad-inheritance-journey.mjs": {
+      "sha256": "61aa222f59271a8cb2b96f71ca699dcc8213d3bca0b2b75597553035f4a84b47",
+      "executable": false
+    },
     "tests/api/ironclad-move-in.test.mjs": {
-      "sha256": "cbd627e8d216864c74a2036f1d1bfa4092bc4bd4d508f054355731307f835a62",
+      "sha256": "5df80580972c65f2b454a122ee69fd32155e44fa7445243f9b13d331457d80c2",
       "executable": false
     },
     "tests/api/model-settings-fixture.mjs": {
@@ -5916,7 +5924,7 @@
       "executable": false
     },
     "tests/browser/ironclad-move-in.spec.ts": {
-      "sha256": "c08e449c760fdab2033b5adf620c10a4ee6ec5f304c253817b681be7010649fd",
+      "sha256": "bdc43e4560022810376b19cb59648df48d2b940323e8210fac5ecb00f3d1ef4e",
       "executable": false
     },
     "tests/browser/journey.spec.ts": {
@@ -6100,11 +6108,11 @@
       "executable": false
     },
     "tests/fixtures/ironclad/archive.mjs": {
-      "sha256": "732838222732a1fae7195efd68d3ba28b0cfb8211b7e76831d7035e379670f62",
+      "sha256": "260e5f00b2c736b456d6ec661c214d32fc7ca222f7dd8e8beedb5afdc8204def",
       "executable": false
     },
     "tests/fixtures/ironclad/README.md": {
-      "sha256": "497d6fab37e306637c6980ef51bad4538c89acc24dd13cc0edd0cfb04682c554",
+      "sha256": "632f2b4ac4cfdc4baeb9811e9dabd783b013f93a08970bcf08f97f1a0dd75c76",
       "executable": false
     },
     "tests/operations-live-client.mjs": {

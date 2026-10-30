@@ -1,4 +1,4 @@
-import { fail } from './model'
+import { fail, parse } from './model'
 import { familyConflicts } from './family-conflicts'
 type Row = { id: string; [key: string]: any }
 type Workspace = { now: number; agreements: Row[]; terms: Row[]; familyTerms: Row[]; renewals: Row[]; notices: Row[]; settings: { rollNoticeDeadlines: boolean } }
@@ -28,7 +28,7 @@ export function family(workspace: Workspace, id: string) {
     const term = workspace.terms.find(t => t.id === choice.term_id)
     const source = term && byId.get(term.agreement_id)
     if (!term || !source) return []
-    return [{ ...choice, key: choice.key as string, term, source, stale: !ids.has(source.id) || term.status !== 'confirmed' || source.parent_id !== choice.source_parent_id || source.relation !== choice.source_relation }]
+    return [{ ...choice, key: choice.key as string, term, source, stale: !ids.has(source.id) || term.status !== 'confirmed' || parse<any>(term.citation).versionId !== source.current_version_id || source.parent_id !== choice.source_parent_id || source.relation !== choice.source_relation }]
   })
   return { root, members, candidates, governing, conflicts: familyConflicts(workspace, root, members) }
 }

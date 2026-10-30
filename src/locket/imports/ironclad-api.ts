@@ -53,14 +53,19 @@ const start: Handler = async (c, p) => {
     if (!Array.isArray(response.list)) fail('IRONCLAD_READ', 'The Records API returned no list.', 502)
     records.push(...response.list); pages.push(response)
     if (records.length > 250) fail('IRONCLAD_RECORDS', 'Export a selection of at most 250 records for this batch.')
-    if (!response.list.length || (response.count !== undefined ? records.length >= Number(response.count) : response.list.length < 100)) break
-    if (++page >= 3) fail('IRONCLAD_RECORDS', 'Split this API selection into smaller exports.')
+    if (!response.list.length && response.count !== undefined && records.length < Number(response.count)) fail('IRONCLAD_READ','The Records API ended before its reported total; no partial selection is offered.',502)
+    if (!response.list.length || (response.count !== undefined ? records.length >= Number(response.count) : response.list.length < Number(response.pageSize || 100))) break
+    if (++page >= 250) fail('IRONCLAD_RECORDS', 'Split this API selection into smaller exports.')
   }
   normalizeRecords(records)
   c.erasureChecks = await refuseErasedAddress(c, 'import.preview', { records })
-  const job = records.length ? await api(c, '/records/attachments/download', { recordIds: records.map(r => r.id) }) : null
-  const jobId = job?.jobId ?? job?.id ?? null
-  if (records.length && (typeof jobId !== 'string' || !/^[A-Za-z0-9_-]{1,200}$/.test(jobId))) fail('IRONCLAD_READ', 'Ironclad returned no plain attachment job ID.', 502)
+  const jobs: string[] = []
+  for (let i=0;i<records.length;i+=100) {
+    const job = await api(c,'/records/attachments/download-urls',{identifiers:records.slice(i,i+100).map(r=>r.id),type:'latestSignedCopy'})
+    if (job.status !== 'processing' || typeof job.jobId !== 'string' || !/^[A-Za-z0-9_-]{1,200}$/.test(job.jobId)) fail('IRONCLAD_READ','Ironclad returned no valid attachment job.',502)
+    jobs.push(job.jobId)
+  }
+  const jobId = json(jobs)
   const id = crypto.randomUUID(), config = connection(c), binding = await sha256(canonical({ origin: config.origin, token: config.token }))
   const metadata = await storeArtifact({ filename:'records.json', mediaType:'application/json', bytes:new TextEncoder().encode(json({list:records,pages})) }, {agreementId:null,role:'import_source',sourceSystem:'ironclad-api',sourceId:id,provenance:{readId:id,imported:true},imported:true,actorId:c.actor.id,at:c.now})
   return { allowed: ['owner'], result: { id, status: records.length ? 'pending' : 'ready', records: records.length },
@@ -81,29 +86,70 @@ const poll: Handler = async (c, p) => {
   const metadataBytes = await readArtifactBytes(c.db,row.metadata)
   try {
     if (status === 'pending') {
-      const job = await api(c, `/jobs/${encodeURIComponent(row.job_id)}`)
-      if (job.status === 'pending' || job.status === 'processing') message = 'Ironclad is preparing the attachment ZIP. Check again when ready.'
-      else if (job.status === 'ready' || job.status === 'completed') {
-        let url: URL
-        try { url = new URL(job.downloadUrl) } catch { fail('IRONCLAD_READ','The attachment job returned no download URL.',502) }
-        if (url.protocol !== 'https:' || url.username || url.password || url.port || !(url.origin === config.origin || /^(?:[a-z0-9-]+\.)+(?:amazonaws\.com|storage\.googleapis\.com)$/.test(url.hostname))) fail('IRONCLAD_READ','Ironclad returned an unsupported original-download destination.',502)
-        await authorization(c)
-        const response = await fetch(url, { redirect:'manual', signal:AbortSignal.timeout(20_000) })
-        const bytes = await bounded(response); await authorization(c)
-        const source={label:row.label,manifest:{filename:'records.json',base64:encodeBase64(metadataBytes)},archive:{filename:'ironclad-attachments.zip',base64:encodeBase64(bytes)}}
+      const jobs = parse<string[]>(row.job_id)
+      const results = []
+      for (const id of jobs) {
+        const result=await api(c, `/records/attachments/download-urls/${encodeURIComponent(id)}`)
+        if(result.jobId!==id)fail('IRONCLAD_READ','The provider returned a different attachment job identity.',502)
+        results.push(result)
+      }
+      if (results.some(job=>job.status === 'processing')) message = 'Ironclad is preparing attachment download URLs. Check again when ready.'
+      else if (results.some(job=>job.status !== 'complete')) { status='failed';message='Ironclad could not prepare attachments. Authorize a new read.' }
+      else {
+        const records = JSON.parse(new TextDecoder().decode(metadataBytes)).list as any[]
+        const succeeded = results.flatMap(job=>Array.isArray(job.succeeded)?job.succeeded:[])
+        const failed = results.flatMap(job=>Array.isArray(job.failed)?job.failed:[])
+        const selected = new Set(records.map(r=>r.id)), outcomes = [...succeeded,...failed].map(r=>r.identifier)
+        if (outcomes.length !== selected.size || new Set(outcomes).size !== selected.size || outcomes.some(id=>!selected.has(id))) fail('IRONCLAD_READ','Attachment job results do not match the selected record identities.',502)
+        if (failed.length) fail('IRONCLAD_ATTACHMENT_FAILURE',`${failed.length} records could not supply attachments (${[...new Set(failed.map(r=>r.errorCode))].join(', ')}). No partial import is offered.`,502)
+        const files: {path:string;base64:string}[] = []
+        let total=metadataBytes.length
+        const download = async (raw:string, authenticated=false):Promise<Uint8Array> => {
+          let url:URL
+          try {url=new URL(raw)} catch {fail('IRONCLAD_READ','An attachment has no valid download URL.',502)}
+          if (url.protocol !== 'https:' || url.username || url.password || url.port || !(url.origin===config.origin || url.hostname==='storage.googleapis.com' || /^(?:[a-z0-9-]+\.)+(?:amazonaws\.com|storage\.googleapis\.com)$/.test(url.hostname))) fail('IRONCLAD_READ','Unsupported original-download destination.',502)
+          if(authenticated && url.origin!==config.origin)fail('IRONCLAD_READ','Authenticated attachment destinations must belong to the configured provider.',502)
+          await authorization(c)
+          const response=await fetch(url,{headers:authenticated?{Authorization:'Bearer '+config.token}:{},redirect:'manual',signal:AbortSignal.timeout(20_000)})
+          if(authenticated && [301,302,303,307,308].includes(response.status)) {
+            const next=response.headers.get('location');await response.body?.cancel()
+            if(!next)fail('IRONCLAD_READ','Attachment redirect has no destination.',502)
+            return download(new URL(next,url).href)
+          }
+          const bytes=await bounded(response);await authorization(c)
+          total+=bytes.length
+          if(total>IMPORT_LIMIT)fail('IMPORT_SIZE','Split this API selection into smaller batches.',413)
+          return bytes
+        }
+        for (const record of records) {
+          const result=succeeded.find(r=>r.identifier===record.id)
+          if(result.recordId!==record.id || result.ironcladId!==record.ironcladId || !record.attachments?.[result.fileKey] || result.filename!==record.attachments[result.fileKey].filename || !/^[a-f0-9]{64}$/i.test(result.fileHash) || !Number.isFinite(Date.parse(result.expiration)) || Date.parse(result.expiration)<=c.now)fail('IRONCLAD_READ','The attachment job identity, hash or expiry is invalid.',502)
+          for(const [key,attachment] of Object.entries(record.attachments) as [string,any][]) {
+            if(!attachment.filename || /[\/\\\x00-\x1f]/.test(attachment.filename))fail('IRONCLAD_READ','Attachment filenames must be plain names.',502)
+            const bytes=await download(key===result.fileKey?result.downloadUrl:config.base+`/records/${encodeURIComponent(record.id)}/attachments/${encodeURIComponent(key)}`,key!==result.fileKey)
+            if(key===result.fileKey && attachment.fileHash && attachment.fileHash.toLowerCase()!==result.fileHash.toLowerCase())fail('IRONCLAD_READ','Attachment metadata changed after the Records snapshot. Authorize a new read.',502)
+            const digest=await sha256(bytes),expected=key===result.fileKey?result.fileHash:attachment.fileHash
+            if(expected && digest!==expected.toLowerCase())fail('IRONCLAD_READ','Downloaded attachment digest differs from the provider metadata.',502)
+            files.push({path:record.id+'/'+attachment.filename,base64:encodeBase64(bytes)})
+          }
+        }
+        const source={label:row.label,manifest:{filename:'records.json',base64:encodeBase64(metadataBytes)},files}
         const input=await readIroncladInput(source)
-        c.erasureChecks=await refuseErasedAddress(c,'import.preview',{records:input.records,files:input.files.map(f=>({path:f.path,base64:encodeBase64(f.bytes)}))})
-        const stored=await storeArtifact({filename:'ironclad-attachments.zip',mediaType:'application/zip',bytes},{agreementId:null,role:'import_source',sourceSystem:'ironclad-api',sourceId:row.id,provenance:{readId:row.id,imported:true},imported:true,actorId:c.actor.id,at:c.now})
-        writes.push(...stored.writes);archive=stored.id;archiveBytes=bytes;status='ready';message='Original attachment ZIP is ready for mapping and dry run.'
-      } else { status = 'failed'; message = 'Ironclad could not prepare the attachments. Authorize a new read.' }
+        c.erasureChecks=await refuseErasedAddress(c,'import.preview',{records:input.records,files})
+        // Custody holds exact downloaded bytes; signed URLs are never persisted.
+        const bytes=new TextEncoder().encode(json(files))
+        const stored=await storeArtifact({filename:'ironclad-attachments.json',mediaType:'application/json',bytes},{agreementId:null,role:'import_source',sourceSystem:'ironclad-api',sourceId:row.id,provenance:{readId:row.id,imported:true},imported:true,actorId:c.actor.id,at:c.now})
+        writes.push(...stored.writes);archive=stored.id;archiveBytes=bytes;status='ready';message='Original attachments are ready for mapping and dry run.'
+      }
     }
   } catch (error) {
     if ((error as any).code === 'AUTHORITY') throw error
     // Read errors are visible and explicit retry is safe; no native import was attempted.
+    if ((error as any).code === 'IRONCLAD_ATTACHMENT_FAILURE') status='failed'
     message = (error as any).code ? (error as Error).message : 'Attachment read failed. Check the connection and retry explicitly.'
   }
   if(status==='ready'&&archive&&!archiveBytes)archiveBytes=await readArtifactBytes(c.db,archive)
-  const input = status === 'ready' ? { label:row.label, manifest:{filename:'records.json',base64:encodeBase64(metadataBytes)}, ...(archiveBytes?{archive:{filename:'ironclad-attachments.zip',base64:encodeBase64(archiveBytes)}}:{}) } : null
+  const input = status === 'ready' ? { label:row.label, manifest:{filename:'records.json',base64:encodeBase64(metadataBytes)}, ...(archiveBytes?{files:JSON.parse(new TextDecoder().decode(archiveBytes))}:{}) } : null
   return { allowed:['owner'], result:{id:row.id,status,message,version:row.version+1,input},checks,
     writes:[...writes,sql('UPDATE lk_ironclad_reads SET status=?,archive=?,message=?,checked_at=?,version=version+1 WHERE id=?',status,archive??null,message,c.now,row.id)],
     audit:[{action:'import.ironclad.poll',summary:`Ironclad attachment read ${status}: ${message}`}] }

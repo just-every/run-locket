@@ -29,7 +29,7 @@ test('MOVE-002 owner reviews editable Ironclad mappings, imports fifty originals
     await page.getByLabel('Attachments ZIP',{exact:true}).setInputFiles({name:'attachments.zip',mimeType:'application/zip',buffer:fixture.archive})
     await page.getByRole('button',{name:'Inspect Ironclad source',exact:true}).click()
     const mapping=page.getByRole('region',{name:'Ironclad mapping',exact:true})
-    await expect(mapping).toContainText('50 records · 51 supplied files')
+    await expect(mapping).toContainText('50 records · 52 supplied files')
     await expect(mapping).toContainText('Initially unmapped: Business Unit, Cost Center, Legacy Flag.')
     await mapping.getByLabel('Record type: Master Services Agreement',{exact:true}).selectOption('supplier')
     await mapping.getByRole('button',{name:'Create custom text field for Business Unit',exact:true}).click()
