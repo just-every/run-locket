@@ -1,4 +1,5 @@
 import { completeQuestionCommand } from './repository-questions'
+import { completePlaybookDraft } from './playbook-drafting'
 import { runExecutionFollowups } from './execution-followups'
 import { completeModelCommand } from './model-settings'
 import { authorizeAccountingComparison } from './accounting-comparison'
@@ -117,6 +118,7 @@ export async function runCommand(env: Bindings, actor: Actor, body: unknown, han
     if (type.startsWith('import.')) requireRole(c.actor, ['owner'], 'read move-in outcomes')
     result=await completeQuestionCommand(c,type,result)
     result=await completeModelCommand(c,type,result)
+    result=await completePlaybookDraft(c,type,result)
     if(type==='accounting.compare')await authorizeAccountingComparison(c,payload)
     if(type==='proposal.import'||type.startsWith('billing.proposal.'))requireRole(c.actor,['owner'],'read proposal handoff outcomes')
     if(type==='billing.proposal.send')await dispatchBillingProposal(c,(result as {id:string}).id)

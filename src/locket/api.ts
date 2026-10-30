@@ -1,4 +1,5 @@
 import { questionHandlers, readRepositoryQuestion } from './repository-questions'
+import { playbookDraftingHandlers } from './playbook-drafting'
 import { followupHandlers } from './execution-followups'
 import { readAgreementSummary } from './agreement-summaries'
 import { modelHandlers } from './model-settings'
@@ -99,7 +100,7 @@ import { compare, download, exportArchive, state } from './views'
 
 export const handlers: Record<string, Handler> = {
   ...accountingDestinationHandlers,
-  ...questionHandlers, ...modelHandlers, ...signatureHandlers(), ...redactedRenditionHandlers,
+  ...questionHandlers, ...playbookDraftingHandlers, ...modelHandlers, ...signatureHandlers(), ...redactedRenditionHandlers,
   ...chatHandlers, ...scopedTokenHandlers, ...workforceHandlers,
   ...wordReviewHandlers,
   ...remediationHandlers,
