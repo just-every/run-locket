@@ -1,3 +1,4 @@
+import { EnterpriseImport, EnterprisePreview, runImportOperation } from './enterprise-imports'
 import { useState } from 'react'
 import { fileToPayload, type LocketState } from './api'
 import type { Locket } from './app'
@@ -50,9 +51,11 @@ export function Imports({ state, locket }: { state: LocketState; locket: Locket 
             )}
           </section>
         </div>
+        <EnterpriseImport state={state} locket={locket} selected={setSelected}/>
         {batch && preview && (
           <section className="lk-panel lk-wide-panel">
             <div className="lk-panel-head"><h2 title={`Report ${preview.manifest.filename}, sha256 ${preview.manifest.sha256}; dry-run fingerprint ${batch.fingerprint}; journal ${preview.jobId}`}>{batch.source_label}</h2><Badge value={batch.status} /></div>
+            {['icertis','agiloft'].includes(batch.kit) ? <EnterprisePreview state={state} locket={locket} batch={batch} preview={preview} selected={setSelected}/> : <>
             {batch.kit==='ironclad-records'&&<details className="lk-disclosure" open><summary>Reviewed Ironclad mapping</summary><p>Our contracting entity: {state.entities.find(e=>e.id===preview.entityId)?.legal_name??'No entity recorded'}. Entity and custom field definitions are pinned to this review. Changing a mapping produces a new dry run.</p><div className="lk-columns"><div><h3>Record types</h3><dl>{Object.entries(preview.mapping.types).map(([k,v])=><div key={k}><dt>{k}</dt><dd>{String(v)}</dd></div>)}</dl></div><div><h3>Properties</h3><dl>{Object.entries(preview.mapping.properties).map(([k,v])=><div key={k}><dt>{k}</dt><dd>{String(v).startsWith('custom:')?state.customFields.find(f=>f.id===String(v).slice(7))?.name??'Custom field unavailable':String(v)}</dd></div>)}</dl></div></div><p>Imported executions retain their history; signature evidence needs human review. No new signature event or certificate is created.</p></details>}
             <div className="lk-dry-run">
               <div className="lk-stats">
@@ -81,7 +84,8 @@ export function Imports({ state, locket }: { state: LocketState; locket: Locket 
               </table>
             </div>
             {batch.status === 'previewed' && <button type="button" className="lk-primary" disabled={busy || preview.counts.import === 0} onClick={() => void run('import.apply', { batchId: batch.id, version: batch.version, fingerprint: batch.fingerprint })}>{preview.progress?`Continue reviewed import (${preview.progress.checkpoint}/${preview.progress.total})`:`Apply this dry run (${plural(preview.counts.import, 'agreement')})`}</button>}
-            {batch.status === 'applied' && <p>Applied {when(batch.applied_at)} by {personName(state, batch.applied_by)}. <button type="button" disabled={busy} onClick={() => { const reason = window.prompt('Why undo this move-in? Agreements used since import keep it from being undone.'); if (reason) void run('import.undo', { batchId: batch.id, version: batch.version, reason }) }}>{preview.undoing?'Continue undo':'Undo batch'}</button></p>}
+            </>}
+            {batch.status === 'applied' && <p>Applied {when(batch.applied_at)} by {personName(state, batch.applied_by)}. <button type="button" disabled={busy} onClick={() => { const reason = window.prompt('Why undo this move-in? Agreements used since import keep it from being undone.'); if (reason) { if(batch.kit==='docusign-archive')void run('import.undo', { batchId: batch.id, version: batch.version, reason });else void runImportOperation(locket,'import.undo',batch,{reason}) } }}>{preview.undoing?'Continue undo':'Undo batch'}</button></p>}
             {batch.status === 'undone' && <p>Undone {when(batch.undone_at)} by {personName(state, batch.undone_by)}: {batch.undo_reason}. The journal and original files remain.</p>}
           </section>
         )}

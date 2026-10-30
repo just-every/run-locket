@@ -156,9 +156,10 @@ const decideTerm: Handler = async (c, p) => {
   const decision = oneOf(p, 'decision', ['confirm', 'reject'] as const)
   if (decision === 'reject')
     return { allowed: may.confirmTerms, result: { id: term.id, status: 'rejected' }, writes: [sql("UPDATE lk_terms SET status='rejected', confirmed_by=?, confirmed_at=?, reason=? WHERE id=?", c.actor.id, c.now, optionalText(p, 'reason', 1000), term.id), bump(c, a)], checks: [...agreementGuards(c, a), sql("(SELECT status FROM lk_terms WHERE id=?)='proposed'", term.id)], audit: [{ action: 'term.reject', agreementId: a.id, summary: `Rejected proposed ${(termLabel[term.key] ?? term.key.replaceAll('_',' ')).toLowerCase()}` }] }
-  const imported = parse<any>(term.citation).kit === 'ironclad-records'
+  if (term.key.startsWith('import:') || term.key.startsWith('custom:') && parse<any>(term.citation).source === 'import-manifest') fail('IMPORT_CONFIRMATION','Use the cited imported-value confirmation door for this metadata.',409)
+  const imported = ['ironclad-records','icertis','agiloft'].includes(parse<any>(term.citation).kit)
   const evidence = imported ? await citation(c, a, p.citation) : null
-  const customId=imported&&term.key.startsWith('custom:')?term.key.slice(7):null
+  const customId=parse<any>(term.citation).kit==='ironclad-records'&&term.key.startsWith('custom:')?term.key.slice(7):null
   const sourceCitation=parse<any>(term.citation)
   let custom = null
   if(customId){

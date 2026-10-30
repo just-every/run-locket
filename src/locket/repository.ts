@@ -76,7 +76,8 @@ export async function repositoryResult(env: Bindings, actor: Actor, params: URLS
       values[`custom:${field.id}`] = stored === undefined || !field.types.has(a.type)
         ? null : customValue(field, stored, people, parties)
     }
-    if (query && !Object.values(values).some(v => v !== null && String(v).toLocaleLowerCase().includes(query)) && !matches.length) continue
+    const sourceIds = s.artifacts.filter(f => f.agreement_id === a.id).map(f => f.source_id ?? '').join(' ') + ' ' + s.versions.filter(v => v.agreement_id === a.id).map(v => v.label ?? '').join(' ')
+    if (query && !sourceIds.toLowerCase().includes(query) && !Object.values(values).some(v => v !== null && String(v).toLocaleLowerCase().includes(query)) && !matches.length) continue
     if (!filters.every(f => {
       const actual = values[f.field]
       if (actual === null || actual === undefined) return false

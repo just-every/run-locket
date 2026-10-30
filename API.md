@@ -820,3 +820,15 @@ The guarded request reserves one output, claims one outbound attempt, and never 
 `playbook.generation.decide` takes `{draftId,revision,ruleKey,decision:"accept"|"edit"|"reject",reason,rule?}`. Counsel's edited `rule` uses the ordinary PLAY-001 rule shape, keeping its clause key. Each decision keeps the original model proposal and citations beside the effective wording, person, time and reason; later decisions append to the retained rule history. Edits remain counsel wording, not new historical observations. All rules must be decided before `playbook.generation.approve` `{draftId,revision,scope,reason,consent:true}` publishes the accepted and edited rules as one new immutable PLAY-001 version. This is the only activation step for generated rules. The exact analyzed future scope is required; other types/entities keep their preceding applicable version, and existing findings, approvals and signed originals retain their original identities. Model requests resolve that same type/entity application chain at reservation, dispatch and completion, including a superseded version that still governs an out-of-scope agreement. A changed applicable version withholds an in-flight result; unrelated scoped activation does not invalidate it.
 
 The Library shows source selection, model/evaluation state, per-rule decisions, original model proposals, signed-original links, source pages/offsets/digests, totals and explicit scoped publication consent. `state.playbookDrafting` and generated-command results are counsel-only. The complete owner archive retains drafts, sources, decisions and scope applications, with the authorizing session removed. Recovery archives exclude that session column; a recovered request cannot regain its dispatch authority. Erasure includes draft source/proposal/reason text and respects holds on any source agreement. Live accuracy acceptance remains REVIEW-006; local fakes establish only the public-door workflow.
+## Enterprise move-in (`MOVE-003`)
+
+Owner-only `import.preview` additionally supports `kit:"icertis"|"agiloft"`
+from XLSX/CSV and a documents folder or a privately configured read-only API.
+`import.remap {batchId,version,mapping,typeMapping?,fileRoles?}` creates a new
+review from retained originals. Unmapped columns block apply; dates, monetary
+amounts and custom fields remain proposed. Cited `import.value.confirm` confirms
+an imported custom value or USD amount through native role, field and agreement
+guards. The existing term decisions, family source choices, current-term
+projection and reviewed bulk reminder schedule apply to these imported kinds.
+See [IMPORT.md](IMPORT.md) for complete payloads, bounded resumable apply/undo,
+private API profiles, source compatibility limits and absent live evidence.
