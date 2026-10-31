@@ -77,14 +77,42 @@ export default async function auditExportJourney({ createInstallation = installa
     }
     const snapshot = async () => {
       const archive = await personJson('/api/locket/export')
-      return { agreements: archive.records.lk_agreements, commands: archive.records.lk_agent_commands,
-        audit: archive.records.lk_audit.filter(row => ['request.create', 'request.update'].includes(row.action)) }
+      return { agreements: archive.records.lk_agreements, proposals: archive.records.lk_proposals,
+        access: archive.records.lk_access, roles: archive.records.lk_roles, commands: archive.records.lk_agent_commands,
+        audit: archive.records.lk_audit.filter(row => ['request.create', 'request.update', 'proposal.prepare', 'access.grant', 'access.revoke', 'role.set'].includes(row.action)) }
     }
     const createArgs = (phase, restricted = false) => ({ title: 'synthetic-locket-audit-' + phase,
       type: 'supplier', party: { name: 'synthetic-locket-audit-party-' + phase, kind: 'supplier',
         ...(restricted ? { taxId: '12-3456789', taxIdKind: 'ein' } : {}) },
       restricted, idempotency_key: randomUUID() })
-    const done = [], pendingIds = [], refusedKeys = [], replayKeys = []
+    const viewer = await h.invite(surface.verification.reviewers[0].email, 'viewer')
+    const done = [], pendingIds = [], refusedKeys = [], replayKeys = [], heldReplayKeys = []
+    const markReview = async (client, answer) => {
+      const id = answer.result?._meta?.['com.runeditrun/review']?.id
+      if (!id) return
+      const marked = await client.personRequest('/agents/api/reviews/' + id + '/reviewed', { method: 'POST', body: '{}' })
+      assert.equal(marked.status, 200)
+      assert.equal((await marked.json()).review.state, 'reviewed')
+    }
+    const execute = async (client, tool, args, effect) => {
+      const before = await snapshot()
+      let answer = await client.call(tool, args)
+      const heldDecision = answer.result?.resultType === 'input_required' ? answer.decision.id : null
+      if (heldDecision) {
+        assert.deepEqual(await snapshot(), before, 'Held calls must not create a native command or effect')
+        assert.equal((await client.decideApproval(answer)).body.approval.state, 'executed')
+        answer = await client.call(tool, args, { requestState: answer.result.requestState })
+      }
+      assert.equal(answer.result?.isError, false, tool + ': ' + errorCode(answer))
+      await markReview(client, answer)
+      done.push({ key: args.idempotency_key, agent: client, ...effect })
+      const after = await snapshot()
+      assert.deepEqual((await client.call(tool, args)).result.structuredContent, answer.result.structuredContent)
+      assert.deepEqual(await snapshot(), after, 'Every mutator replay retains one native command and effect')
+      if (heldDecision) heldReplayKeys.push({ key: args.idempotency_key, decisionId: heldDecision })
+      else replayKeys.push(args.idempotency_key)
+      return answer.result.structuredContent
+    }
     let latest
     for (const [phase, policy] of [['autonomous', autonomousPolicy()], ['held', heldPolicy()]]) {
       const signed = await a.adopt(policy)
@@ -149,6 +177,46 @@ export default async function auditExportJourney({ createInstallation = installa
       }
       assert.equal(answer.result?.isError, false)
       done.push({ key: sensitive.idempotency_key, agent: b, id: answer.result.structuredContent.id, phase })
+      const restrictedId = answer.result.structuredContent.id
+      // Exercise every currently declared native mutator, not just requests.
+      // Their operation and command joins must remain useful in an owner archive.
+      const beforeProposal = await h.owner.state()
+      const { idempotency_key: unused, ...proposalPayload } = createArgs(phase + '-proposal')
+      const proposal = await execute(a, 'locket.proposals.prepare', {
+        payload: proposalPayload, evidence: ['synthetic-locket-recorded-request'],
+        idempotency_key: randomUUID(),
+      }, { action: 'proposal.prepare', id: null, phase })
+      const afterProposal = await h.owner.state()
+      assert.equal(afterProposal.proposals.find(row => row.id === proposal.id).status, 'pending')
+      assert.equal(afterProposal.agreements.length, beforeProposal.agreements.length)
+      for (const grant of ['grant', 'revoke']) {
+        const agreement = (await h.owner.state()).agreements.find(row => row.id === restrictedId)
+        await execute(b, 'locket.access.update', {
+          agreementId: restrictedId, operatorId: viewer.id, grant, version: agreement.version,
+          expected_revision: agreement.version, idempotency_key: randomUUID(),
+        }, { action: 'access.' + grant, id: restrictedId, phase, scope: 'locket:access',
+          target: { kind: 'agreement', id: restrictedId } })
+        assert.equal((await viewer.state()).agreements.some(row => row.id === restrictedId), grant === 'grant')
+      }
+      for (const role of ['requester', 'viewer']) {
+        const listed = await a.call('locket.people.list', {})
+        assert.equal(listed.result?.isError, false)
+        const person = listed.result.structuredContent.members.find(row => row.id === viewer.id)
+        assert.ok(person)
+        await execute(b, 'locket.people.update', {
+          operatorId: viewer.id, role, expected_revision: person.revision, idempotency_key: randomUUID(),
+        }, { action: 'role.set', id: null, phase, scope: 'locket:people' })
+        assert.equal((await viewer.state()).actor.role, role)
+      }
+      const beforeReads = await snapshot()
+      const searched = await a.call('locket.repo.search_and_structured_filters', { query: 'synthetic-locket-updated-' + phase })
+      assert.equal(searched.result?.isError, false)
+      assert.deepEqual(searched.result.structuredContent.records.map(row => row.id), [latest])
+      const counted = await b.call('locket.records.count', {})
+      assert.equal(counted.result?.isError, false)
+      assert.equal(counted.result.structuredContent.count, beforeReads.agreements.length)
+      assert.deepEqual(counted.result.structuredContent.agreements.map(row => row.id).sort(), beforeReads.agreements.map(row => row.id).sort())
+      assert.deepEqual(await snapshot(), beforeReads, 'Read tools create audit history without native effects')
       // A real multi-page fixture, split across two agents sharing one sponsor.
       // Reads remain standard under the held policy and enter its review feed.
       for (let index = 0; index < 104; index++) {
@@ -181,7 +249,7 @@ export default async function auditExportJourney({ createInstallation = installa
       assert.equal(row.agent.specialist, surface.specialist)
       assert.equal(row.client_id, 'synthetic-locket-client-' + (fixture.agent === a ? 1 : 2))
       assert.equal(row.consent, fixture.agent.consent)
-      assert.ok(row.scopes.includes('locket:write'))
+      assert.ok(row.scopes.includes(fixture.scope ?? 'locket:write'))
       assert.equal(row.label, row.agent.name + ' for ' + row.sponsor.name)
       assert.ok(row.classes.length && row.rules.length && row.revision > 0)
       const commands = archive.records.lk_agent_commands.filter(item => item.operation_id === row.operation_id)
@@ -194,7 +262,7 @@ export default async function auditExportJourney({ createInstallation = installa
       if (fixture.target) assert.deepEqual(row.resource, fixture.target)
       assert.equal(native[0].agreement_id, fixture.id)
       assert.equal(native[0].actor_name, row.label)
-      if (fixture.agent === a) assert.equal(row.trace, 'synthetic-locket-trace-' + fixture.phase)
+      if (fixture.agent === a && !fixture.action) assert.equal(row.trace, 'synthetic-locket-trace-' + fixture.phase)
       if (row.approval) {
         const approval = archive.agentAudit.approvals.find(item => item.id === row.approval.id)
         assert.equal(approval.state, 'executed')
@@ -216,6 +284,14 @@ export default async function auditExportJourney({ createInstallation = installa
       assert.equal(row.resource.kind, 'agreement')
       assert.ok(done.some(fixture => fixture.id === row.resource.id))
     }
+    for (const tool of surface.tools) {
+      assert.ok(rows.some(row => row.tool === tool.name && row.outcome === 'done'), 'Archive retains successful calls to ' + tool.name)
+    }
+    for (const code of ['policy_unset', 'policy_blocked', 'idempotency_conflict']) {
+      const refused = rows.filter(row => row.code === code)
+      assert.ok(refused.length, 'Archive retains typed refusal ' + code)
+      assert.ok(refused.every(row => row.outcome === 'refused' && !nativeIds.has(row.operation_id)))
+    }
     assert.equal(new Set(rows.map(row => row.sponsor.id)).size, 1)
     for (const id of pendingIds) {
       const row = rows.find(row => row.approval?.id === id && row.outcome === 'pending')
@@ -235,6 +311,21 @@ export default async function auditExportJourney({ createInstallation = installa
       assert.equal(replay.operation_id, original.operation_id)
       assert.notEqual(replay.id, original.id)
     }
+    for (const { key, decisionId } of heldReplayKeys) {
+      const pending = rows.find(row => row.id === decisionId)
+      const executed = rows.find(row => row.idempotency_key === key && row.outcome === 'done')
+      const replays = rows.filter(row => row.idempotency_key === key && row.outcome === 'replayed')
+      assert.equal(pending.outcome, 'pending')
+      assert.equal(executed.decision_id, pending.id)
+      assert.notEqual(executed.id, pending.id, 'Human approval execution has its own call audit row')
+      assert.equal(executed.operation_id, pending.operation_id)
+      assert.ok(replays.length)
+      for (const replay of replays) {
+        assert.equal(replay.replay_of, pending.id, 'Held replay links to the original decision, not a new native effect')
+        assert.equal(replay.operation_id, executed.operation_id)
+        assert.notEqual(replay.id, executed.id)
+      }
+    }
     assert.ok(archive.agentAudit.decisions.some(event => event.state === 'rejected' && event.actor.kind === 'person' && event.actor.person.id === rows[0].sponsor.id && event.actor.person.name === rows[0].sponsor.name))
     const classIds = [...new Set(rows.flatMap(row => row.classes.map(item => item.class)))]
     assert.ok(classIds.includes('standard') && classIds.includes('sensitive'))
@@ -245,7 +336,6 @@ export default async function auditExportJourney({ createInstallation = installa
       const expected = rows.filter(row => (!filters.agent || row.agent.id === filters.agent) && (!filters.class || row.classes.some(item => item.class === filters.class)))
       assert.deepEqual((await auditPages(personJson, filters)).rows, expected)
     }
-    const viewer = await h.invite(surface.verification.reviewers[0].email, 'viewer')
     const refusedArchive = await viewer.request('/api/locket/export')
     assert.equal(refusedArchive.status, 403)
     assert.equal((await refusedArchive.json()).error.code, 'FORBIDDEN')

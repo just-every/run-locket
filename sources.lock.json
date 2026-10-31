@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "dc864a60a426961d5ac68bf8861afefd2c87d629d6d92f4a8d0ca1e708ab010d",
+      "sha256": "41aadc1b144a0ceb8ab96250710c62330da5be0a18012f506129dc0294b5fa04",
       "executable": false
     },
     "base-copies.json": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "99cf95d77a0625693c4575a6d12c002976d6fd10b8d0b030450f82d93daf8138",
+      "sha256": "4aed0c563fb653ea43836523057a5f41d8abc10b6bbf1ab40768b1f735256c5f",
       "executable": false
     },
     "DEMO.md": {
@@ -5600,7 +5600,7 @@
       "executable": false
     },
     "tests/agent-door/audit-export.mjs": {
-      "sha256": "a3ca029f3265585b2a09392cc94f791be2e8368ae0dc53dd630917a4ae6bdadc",
+      "sha256": "2acdef4f707ea1b9f12161f3b0f163f763beaa96165f97f94f6c74bed9a82940",
       "executable": false
     },
     "tests/agent-door/colleague.mjs": {
