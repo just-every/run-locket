@@ -3,6 +3,8 @@ import { mkdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pdf } from '../api/files.mjs'
 
+test.use({ ignoreHTTPSErrors: true })
+
 const origin = process.env.LOCKET_BASE_URL || 'http://127.0.0.1:8787'
 test(`AUDIT-001 filters and matching CSV after approval, restricted view and download at 1440px and 390px`, async ({ page }) => {
   test.setTimeout(240_000)
@@ -82,4 +84,42 @@ test(`AUDIT-001 filters and matching CSV after approval, restricted view and dow
     if (process.env.LOCKET_SCREENSHOTS) await page.screenshot({ path: join(process.env.LOCKET_SCREENSHOTS, `${width}-audit-empty.png`), fullPage: true })
 
   }
+})
+
+// Keep the archive proof on the same real Worker that receives the MCP calls.
+// The component host serves the product assets; every API request reaches D1.
+test('BASE-AGENT-009 downloads complete native agent audit custody from Activity', async ({ page }) => {
+  test.setTimeout(240_000)
+  const { default: auditExportJourney } = await import('../agent-door/audit-export.mjs')
+  const { productPage } = await import('./product-harness.mjs')
+  let product: any
+  const fixture = await auditExportJourney({ keepOpen: true, createInstallation: async (options: any) => {
+    product = await productPage(page, { ...options, width: 1440 })
+    return product.h
+  } })
+  try {
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 })
+      await page.goto(fixture.origin + '/app#activity')
+      const archiveLink = page.getByRole('link', { name: 'Export complete archive (JSON with files)', exact: true })
+      await expect(archiveLink).toBeVisible()
+      const downloading = page.waitForEvent('download')
+      await archiveLink.click()
+      const download = await downloading
+      const archive = JSON.parse(await readFile((await download.path())!, 'utf8'))
+      expect(archive.format).toBe('locket-archive/1')
+      expect(archive.agentAudit.rows.length).toBeGreaterThan(200)
+      expect(archive.agentAudit).toEqual(fixture.archive.agentAudit)
+      expect(archive.records.lk_agent_commands).toEqual(fixture.archive.records.lk_agent_commands)
+      expect(new Set(archive.agentAudit.rows.map((row: any) => row.agent.id)).size).toBe(2)
+      expect(archive.agentAudit.approvals.some((row: any) => row.state === 'pending')).toBe(true)
+      expect(archive.agentAudit.reviews.some((row: any) => row.marked_name)).toBe(true)
+      expect(JSON.stringify(archive.agentAudit)).not.toMatch(/"(?:evidence|saved|envelope|authorization|token|secret)"\s*:/i)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      if (process.env.LOCKET_SCREENSHOTS) {
+        await mkdir(process.env.LOCKET_SCREENSHOTS, { recursive: true })
+        await page.screenshot({ path: join(process.env.LOCKET_SCREENSHOTS, `${width}-agent-audit-archive.png`), fullPage: true })
+      }
+    }
+  } finally { await product.close() }
 })

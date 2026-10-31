@@ -1,3 +1,4 @@
+import { agentAuditExport } from "./agent-audit-export"
 import { pdfRenditions } from './pdf-renditions'
 import { preparedProposals } from './agent-provenance'
 import { questionWorkspace } from './repository-questions'
@@ -280,5 +281,6 @@ export async function exportArchive(env: Bindings, actor: Actor) {
     const originals = await readD1ImportOriginals(batch.job_id, importContext({env,db,actor,now:Date.now(),commandId:crypto.randomUUID()}, batch.id, batch.kit))
     importJournal.push({batchId:batch.id,kit:batch.kit,jobId:batch.job_id,originals})
   }
-  return { format: 'locket-archive/1', exportedAt: new Date().toISOString(), records, files, importJournal }
+  return { format: 'locket-archive/1', exportedAt: new Date().toISOString(), records, files, importJournal,
+    agentAudit: await agentAuditExport(db) }
 }
