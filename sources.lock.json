@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "bf9e1cb6e2f2954c0a8589ec2ba37b6fbfd339b8f62375c6143dfcecfd81b598",
+      "sha256": "287256b92ab2f055839fe31aff103cfff86ee6481a09eb1601c9cc5246b17fa7",
       "executable": false
     },
     "DEMO.md": {
@@ -1597,6 +1597,10 @@
     },
     "src/agent-door/people.ts": {
       "sha256": "af4f662da097806ba0e2a896526e2a08d9ffcd431930c5c9b8b8e8fcc37cfefc",
+      "executable": false
+    },
+    "src/agent-door/prompts.ts": {
+      "sha256": "c62f3b118eaa5db66330e12d009be2ce0e3a6535af217eedba8179139b70ffda",
       "executable": false
     },
     "src/agent-door/records.ts": {
@@ -5597,6 +5601,10 @@
     },
     "tests/agent-door/owner.mjs": {
       "sha256": "fe6531a14cb0d5fb1edc0cdf33685565b434de19d305d23b5bdf2a813dfde957",
+      "executable": false
+    },
+    "tests/agent-door/prompts.mjs": {
+      "sha256": "fa9d8b0a40f27ce2bbc9af9ae3e4179191a880947bd051576d078f5aceec6b2f",
       "executable": false
     },
     "tests/api/accounting-read-fixture.mjs": {
