@@ -6,7 +6,9 @@ export async function agentAuditExport(db: D1Database) {
     id: string; state: string; saved: string; approvals: string; result: string | null
   }>()).results.map(record => {
     const saved = JSON.parse(record.saved)
-    return { id: record.id, state: record.state, decision_id: saved.decision_id,
+    const state = record.state === 'pending' && Date.now() >= Date.parse(saved.expires_at) ? 'expired'
+      : record.state === 'executing' ? 'pending' : record.state
+    return { id: record.id, state, decision_id: saved.decision_id,
       revision: saved.revision, tool: saved.tool, expires_at: saved.expires_at,
       approvals: JSON.parse(record.approvals) as Array<{ ref: string; person: string; name: string; at: string }>,
       code: record.result ? JSON.parse(record.result).code ?? null : null }

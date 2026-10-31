@@ -109,6 +109,24 @@ export default async function auditExportJourney({ createInstallation = installa
       const conflict = await a.call('locket.requests.create', { ...args, title: 'synthetic-locket-changed' })
       assert.equal(errorCode(conflict), 'idempotency_conflict')
       assert.deepEqual(await snapshot(), beforeReplay)
+      const current = (await h.owner.state()).agreements.find(row => row.id === latest)
+      const updateArgs = { agreementId: latest, version: current.version, expected_revision: current.version,
+        title: 'synthetic-locket-updated-' + phase, idempotency_key: randomUUID() }
+      const updated = await b.call('locket.requests.update', updateArgs)
+      assert.equal(updated.result?.isError, false)
+      if (phase === 'held') {
+        const id = updated.result._meta['com.runeditrun/review'].id
+        const marked = await b.personRequest('/agents/api/reviews/' + id + '/reviewed', { method: 'POST', body: '{}' })
+        assert.equal(marked.status, 200)
+        assert.equal((await marked.json()).review.state, 'reviewed')
+      }
+      assert.equal((await h.owner.state()).agreements.find(row => row.id === latest).title, updateArgs.title)
+      done.push({ key: updateArgs.idempotency_key, agent: b, id: latest, phase, action: 'request.update',
+        target: { kind: 'agreement', id: latest } })
+      const beforeUpdateReplay = await snapshot()
+      assert.deepEqual((await b.call('locket.requests.update', updateArgs)).result.structuredContent, updated.result.structuredContent)
+      assert.deepEqual(await snapshot(), beforeUpdateReplay)
+      replayKeys.push(updateArgs.idempotency_key)
       const sensitive = createArgs(phase + '-sensitive', true)
       const beforeHeld = await snapshot()
       let answer = await b.call('locket.requests.create', sensitive)
@@ -172,7 +190,8 @@ export default async function auditExportJourney({ createInstallation = installa
       assert.equal(commands[0].sponsor_id, row.sponsor.id)
       const native = archive.records.lk_audit.filter(item => item.command_id === commands[0].command_id)
       assert.equal(native.length, 1)
-      assert.equal(native[0].action, 'request.create')
+      assert.equal(native[0].action, fixture.action ?? 'request.create')
+      if (fixture.target) assert.deepEqual(row.resource, fixture.target)
       assert.equal(native[0].agreement_id, fixture.id)
       assert.equal(native[0].actor_name, row.label)
       if (fixture.agent === a) assert.equal(row.trace, 'synthetic-locket-trace-' + fixture.phase)
@@ -192,6 +211,10 @@ export default async function auditExportJourney({ createInstallation = installa
         assert.ok(review.marked_at)
         assert.equal(row.review.by, row.sponsor.id)
       }
+    }
+    for (const row of rows.filter(row => row.tool === 'locket.agreements.read' && row.outcome === 'done')) {
+      assert.equal(row.resource.kind, 'agreement')
+      assert.ok(done.some(fixture => fixture.id === row.resource.id))
     }
     assert.equal(new Set(rows.map(row => row.sponsor.id)).size, 1)
     for (const id of pendingIds) {
@@ -241,6 +264,16 @@ export default async function auditExportJourney({ createInstallation = installa
     const after = await personJson('/api/locket/export')
     assert.deepEqual(after.agentAudit.rows.slice(0, rows.length), rows)
     assert.ok(after.agentAudit.rows.filter(row => row.agent.id === a.agentId).every(row => row.agent.name === a.name))
+    const now = Date.now()
+    try {
+      await h.setTime(now + 2 * 60 * 60 * 1000)
+      const publicApproval = (await personJson('/agents/api/approvals/' + pendingIds[0])).approval
+      const expired = await personJson('/api/locket/export')
+      assert.equal(publicApproval.state, 'expired')
+      assert.equal(expired.agentAudit.approvals.find(row => row.id === pendingIds[0]).state, publicApproval.state)
+      assert.deepEqual(expired.agentAudit.rows, after.agentAudit.rows, 'Expiry changes no historical call outcome')
+      assert.deepEqual(expired.records.lk_agent_commands, after.records.lk_agent_commands)
+    } finally { await h.setTime(now) }
     const serialized = JSON.stringify(after)
     for (const secret of secrets) assert.equal(serialized.includes(secret), false, 'Archive must exclude authentication and signed envelopes')
     assert.doesNotMatch(JSON.stringify(after.agentAudit), /"(?:evidence|saved|envelope|revision_signature|principal|authorization|token|secret)"\s*:/i)

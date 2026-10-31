@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "5312b0c28ab90112188354861cd50a49ccdad904ea47f5b2c5ae4a68e0a06326",
+      "sha256": "e569dc82cb078b4b52cbb86454f621a7e5c553b309dd42cba3d2526f8a1ea575",
       "executable": false
     },
     "DEMO.md": {
@@ -1856,7 +1856,7 @@
       "executable": false
     },
     "src/locket/agent-audit-export.ts": {
-      "sha256": "51aefe80e2a399852998a5c42c26171af6eabaa16b9ff4d1894f354f8ed5c5f0",
+      "sha256": "1ac67113ca639a0dd485cc8fb30cd746d09e8f262e01e9be1aae17dd5d3f6a48",
       "executable": false
     },
     "src/locket/agreement-summaries.ts": {
@@ -5600,7 +5600,7 @@
       "executable": false
     },
     "tests/agent-door/audit-export.mjs": {
-      "sha256": "7b1c10943eee3cff51d28d0b1bf27495237316627c9eb164d88cd4e781c436e7",
+      "sha256": "a3ca029f3265585b2a09392cc94f791be2e8368ae0dc53dd630917a4ae6bdadc",
       "executable": false
     },
     "tests/agent-door/colleague.mjs": {
