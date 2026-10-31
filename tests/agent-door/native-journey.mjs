@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { assertAgreementLink, runResources } from './resource-parity.mjs'
+import { assertAgreementLink, assertRequestLinks, runResources } from './resource-parity.mjs'
 
 export default async function ({ request, origin, cookie, tool }) {
   const human = async (path, init = {}) => {
@@ -12,7 +12,7 @@ export default async function ({ request, origin, cookie, tool }) {
   const created = await tool('locket.requests.create', args)
   assert.equal(created.result?.isError, false)
   const result = created.result.structuredContent
-  assertAgreementLink(created.result, result.id)
+  assertRequestLinks(created.result, await human('/api/locket/state'))
   const before = (await human('/api/locket/state')).agreements
   const replayed = await tool('locket.requests.create', args)
   assert.deepEqual(replayed.result.structuredContent, result)

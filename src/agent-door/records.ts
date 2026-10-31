@@ -8,9 +8,15 @@ export const recordKinds = {
   agreements: 'agreements', versions: 'versions', files: 'artifacts', counterparties: 'parties',
   templates: 'templates', playbooks: 'playbooks', findings: 'deviations', obligations: 'obligations',
   renewals: 'renewals', notices: 'notices', reports: 'reports',
+  people: 'operators', proposals: 'proposals', terms: 'terms', approvals: 'approvals',
+  packages: 'packages', executions: 'executions', comments: 'comments', requirements: 'requirements',
+  'template-versions': 'templateVersions', entities: 'entities', 'saved-views': 'savedViews', imports: 'imports',
+  'clickwrap-terms': 'clickwrapTerms', 'clickwrap-versions': 'clickwrapVersions',
 } as const
 export type RecordKind = keyof typeof recordKinds
 export type NativeRecord = Record<string, unknown>
+
+export const resourceLink = (kind: RecordKind, id: string) => ({ uri: `locket://${kind}/${id}`, name: `Locket ${kind}` })
 
 /** Use the exact native workspace visibility and field projection, then select a
  * single record. Never return opaque provider, queue or credential state. */
