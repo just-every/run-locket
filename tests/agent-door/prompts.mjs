@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import documentationJourney from './documentation.mjs'
 import { randomUUID, webcrypto } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -78,6 +79,7 @@ export default async function promptJourney() {
     console.log('PROBE BASE-AGENT-013 policy-unset: authenticated MCP prompt calls -> empty listing, policy_unset retrieval, no content')
     for (const [phase, policy] of [['autonomous', autonomousPolicy()], ['held', heldPolicy()]]) {
       await c.adopt(policy)
+      await documentationJourney(c, { phase, surface })
       const discovered = await c.mcp('server/discover')
       const initialized = await c.mcp('initialize', { protocolVersion: '2026-07-28', capabilities: {} })
       assert.deepEqual(discovered.result.capabilities.prompts, { listChanged: false })

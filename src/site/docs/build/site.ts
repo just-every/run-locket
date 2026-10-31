@@ -5,6 +5,7 @@ import { run } from '../../run';
 import type { DocsBody, DocsSection } from '../types.ts';
 import { docsDirectory, manifestPath, readManifest } from './manifest.ts';
 import { renderMarkdown } from './render.ts';
+import { agentReferenceMarkdown } from '../../../agent-door/documentation.ts';
 
 // The whole docs site from the tree as it is: every page in docs/site.json rendered, every link to another docs page and
 // every anchor checked, and nothing that names a build machine's paths. Any problem fails the build with the full list.
@@ -17,11 +18,11 @@ const machinePath = /(?<![\w.@~-])\/(?:Users|home|private|tmp|var|Volumes|root)\
 export function buildDocs(root: string): DocsSite {
   const sections = readManifest(root);
   const pages = sections.flatMap(section => section.pages);
-  const files = [join(root, manifestPath)];
+  const files = [join(root, manifestPath), ...['src/agent-door/catalogue.json', 'src/agent-door/documentation.ts', 'agent-surface.json'].map(file => join(root, file))];
   const rendered = new Map(pages.map(page => {
     const file = join(root, docsDirectory, page.file);
     files.push(file);
-    const markdown = readFileSync(file, 'utf8')
+    const markdown = (page.slug === 'agents' ? agentReferenceMarkdown() : readFileSync(file, 'utf8'))
       .replaceAll('{{run.start}}', startLine(run))
       .replaceAll('{{run.node}}', run.clone)
       .replaceAll('{{run.requirements}}', runRequirements);

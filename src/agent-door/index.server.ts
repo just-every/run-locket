@@ -5,6 +5,7 @@ import { tools } from './tools'
 import { resources } from './resources'
 import { prompts } from './prompts'
 import { businessSettings } from './business'
+import { agentManifest, agentInstructions, agentDocumentationPage, limits } from './documentation'
 
 export function agentTrust(env: Bindings): Trust | null {
   const issuer = env.RER_OWNER_CLAIM_ISSUER, installationId = env.RER_OWNER_CLAIM_INSTALLATION_ID
@@ -23,7 +24,20 @@ export const notTools = [
 
 export async function locketAgentDoor(original: Bindings) {
   const env = runtimeBindings(original)
-  return createAgentDoor({ capabilities: [...CORE_CAPABILITIES, 'prompts'], seed: 'locket', name: String(await businessSettings(env).resolve('display_name', 'Locket')), specialist: 'contract operations clerk', db: env.DB,
-    origin: env.AUTH_ORIGIN, trust: agentTrust(env), people: locketPeople(env), tools: tools(env), resources: resources(env), prompts: prompts(), notTools: notTools.map(item => ({ ...item, clauses: [...item.clauses] })),
-  })
+  const options = { capabilities: [...CORE_CAPABILITIES, 'prompts'], seed: 'locket', name: String(await businessSettings(env).resolve('display_name', 'Locket')), specialist: 'contract operations clerk', db: env.DB,
+    origin: env.AUTH_ORIGIN, trust: agentTrust(env), people: locketPeople(env), tools: tools(env), resources: resources(env), prompts: prompts(), notTools: notTools.map(item => ({ ...item, clauses: [...item.clauses] })), limits,
+  } satisfies Parameters<typeof createAgentDoor>[0]
+  const door = createAgentDoor(options)
+  const manifest = agentManifest(options)
+  return { ...door, async handle(request: Request) {
+    if (new URL(request.url).pathname === '/docs/agents') return request.method === 'GET'
+      ? agentDocumentationPage(manifest) : new Response(null, { status: 405, headers: { Allow: 'GET' } })
+    const response = await door.handle(request)
+    if (response?.status !== 200 || new URL(request.url).pathname !== '/mcp') return response
+    const rpc = await response.clone().json() as { result?: { instructions?: string } }
+    if (typeof rpc.result?.instructions !== 'string') return response
+    await response.body?.cancel()
+    rpc.result.instructions = agentInstructions(manifest)
+    return Response.json(rpc, { status: response.status, headers: response.headers })
+  } }
 }

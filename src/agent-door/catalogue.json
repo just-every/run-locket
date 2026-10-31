@@ -96,7 +96,8 @@
       "additionalProperties": false
     },
     "untrusted": true,
-    "promptJob": "prepare_request"
+    "promptJob": "prepare_request",
+    "job": "Prepare requests"
   },
   {
     "name": "locket.requests.update",
@@ -147,7 +148,8 @@
       "additionalProperties": false
     },
     "untrusted": true,
-    "promptJob": "prepare_request"
+    "promptJob": "prepare_request",
+    "job": "Prepare requests"
   },
   {
     "name": "locket.agreements.read",
@@ -207,7 +209,8 @@
       "additionalProperties": true
     },
     "untrusted": true,
-    "promptJob": "read_agreement"
+    "promptJob": "read_agreement",
+    "job": "Read agreements"
   },
   {
     "name": "locket.repo.search_and_structured_filters",
@@ -272,7 +275,8 @@
       ],
       "additionalProperties": false
     },
-    "untrusted": true
+    "untrusted": true,
+    "job": "Search the repository"
   },
   {
     "name": "locket.proposals.prepare",
@@ -388,7 +392,8 @@
       "additionalProperties": false
     },
     "untrusted": true,
-    "promptJob": "prepare_request"
+    "promptJob": "prepare_request",
+    "job": "Prepare requests"
   },
   {
     "name": "locket.access.update",
@@ -444,7 +449,8 @@
       ],
       "additionalProperties": false
     },
-    "untrusted": true
+    "untrusted": true,
+    "job": "Manage people and visibility"
   },
   {
     "name": "locket.people.update",
@@ -497,7 +503,8 @@
       ],
       "additionalProperties": false
     },
-    "untrusted": true
+    "untrusted": true,
+    "job": "Manage people and visibility"
   },
   {
     "name": "locket.people.list",
@@ -556,7 +563,8 @@
       ],
       "additionalProperties": false
     },
-    "untrusted": true
+    "untrusted": true,
+    "job": "Manage people and visibility"
   },
   {
     "name": "locket.records.count",
@@ -672,6 +680,7 @@
         }
       }
     },
-    "untrusted": true
+    "untrusted": true,
+    "job": "Search the repository"
   }
 ]

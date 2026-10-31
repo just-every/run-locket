@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "49f284e84be10ededda050ef83669a11caaf0aabe22b01ce20d34d8758827399",
+      "sha256": "3cf49b9be8660f37fbf0d30455a557e15c800b0112e0035ba999962d2ea9ef7d",
       "executable": false
     },
     "base-copies.json": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "287256b92ab2f055839fe31aff103cfff86ee6481a09eb1601c9cc5246b17fa7",
+      "sha256": "39c36d085107c4fef7fc51c60e988871e20ccd8d9abeffc9c08d3cd8d438095b",
       "executable": false
     },
     "DEMO.md": {
@@ -160,7 +160,7 @@
       "executable": false
     },
     "docs/agents-and-the-api.md": {
-      "sha256": "98dc380d07f79882d031dcca4463f2401f6b88afa30c07493ce7514386a0f3ee",
+      "sha256": "968d4041086fc0380525199959237ad7881896fe73e83491996cf9c9c26c8baa",
       "executable": false
     },
     "docs/backup-and-restore.md": {
@@ -204,7 +204,7 @@
       "executable": false
     },
     "docs/site.json": {
-      "sha256": "8bdced1ca7f0040adf6470c49204c04aaef063b3ac5d2e2e0c0c37c1f883d364",
+      "sha256": "863c18d68f5ae8885da4d228b6af3696bc28bba7fca4b94f70b685f53d28c3b4",
       "executable": false
     },
     "docs/terms-obligations-and-renewals.md": {
@@ -1584,11 +1584,11 @@
       "executable": false
     },
     "src/agent-door/catalogue.json": {
-      "sha256": "fccf768dae86f0bad7355b5972419c08e9abf92c82b4f4ce1d022e1e4d7fce31",
+      "sha256": "60514d73725914052f172360daf8a0b9d39688a10cc1d6f1683bafe6023ff5de",
       "executable": false
     },
     "src/agent-door/index.server.ts": {
-      "sha256": "1a65c147c8fb3f7705b35c1047c95b18a9a34a61ab5cdfd430f38beb894e323d",
+      "sha256": "e8352b72b4375e1bf1b0ca3298383c46a519b73ff6b90016353e92e444b86f00",
       "executable": false
     },
     "src/agent-door/native.ts": {
@@ -4940,7 +4940,7 @@
       "executable": false
     },
     "src/server.ts": {
-      "sha256": "a156e41367c2a1618612697026de3d9d3f00f1a7fad51c09152d579e4bd85179",
+      "sha256": "ec4023d5693984e2c42e8b1c870ef596d30f96ee666736336a2d9f1b4a1499fc",
       "executable": false
     },
     "src/site/docs/Arrow.tsx": {
@@ -4960,7 +4960,7 @@
       "executable": false
     },
     "src/site/docs/build/site.ts": {
-      "sha256": "893aa1af1a2b24c608b425b20e5b0868c1bf043d0f5b206d7a732b379aac56cf",
+      "sha256": "9fd81441e812c22798f3bbb84f1a8c00fa0f373b271e78619fbc1be59cfbf881",
       "executable": false
     },
     "src/site/docs/build/slug.ts": {
@@ -5604,7 +5604,7 @@
       "executable": false
     },
     "tests/agent-door/prompts.mjs": {
-      "sha256": "fa9d8b0a40f27ce2bbc9af9ae3e4179191a880947bd051576d078f5aceec6b2f",
+      "sha256": "e543f17880a3dee4f15a71eb9ea87a8dab8c4efc719de6ee929056815a77a283",
       "executable": false
     },
     "tests/api/accounting-read-fixture.mjs": {

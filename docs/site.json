@@ -21,6 +21,7 @@
       "title": "Running Locket",
       "pages": [
         { "slug": "people-and-roles", "title": "People and roles", "file": "people-and-roles.md", "summary": "Invite people, give each one a role, and keep restricted agreements to the people who need them." },
+        { "slug": "agents", "title": "Agent reference", "file": "agents.md", "summary": "The contract operations clerk registry, computed classes and fixtures, scopes, prompts and protocol limits." },
         { "slug": "agents-and-the-api", "title": "Agents and the API", "file": "agents-and-the-api.md", "summary": "Let your own agent prepare proposals through the same API the screens use; people approve them." },
         { "slug": "run-it-locally", "title": "Run it locally", "file": "run-it-locally.md", "summary": "The rer commands for running, stopping, checking and resetting your installation, and where its data lives." }
       ]
