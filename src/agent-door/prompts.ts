@@ -5,7 +5,7 @@ const jobs = {
   prepare_request: {
     title: 'Prepare a contract request',
     description: 'Contract operations clerk guidance for draft requests, title edits and evidenced intake proposals.',
-    guidance: 'Ask for missing request details and evidence; never invent them. Preparing an intake proposal is distinct from creating a draft request. A title edit requires the current agreement version. Use a fresh idempotency key for a new write and retain it for retries. A proposal remains pending until an authorized person decides it.',
+    guidance: 'Ask for missing request details and evidence; never invent them. Choose draft creation only when the person requests a draft; preparing an evidenced intake proposal is a separate operation and creates no agreement. A title edit requires the current agreement version. Use a fresh idempotency key for a new write and retain it for retries. Policy approval to prepare a proposal does not decide that proposal: it remains pending until an authorized person makes the native intake decision.',
   },
   read_agreement: {
     title: 'Read an accessible agreement',
