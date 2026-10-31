@@ -3,6 +3,7 @@ import { runtimeBindings, type Bindings } from '../auth.server'
 import { locketPeople } from './people'
 import { tools } from './tools'
 import { resources } from './resources'
+import { prompts } from './prompts'
 import { businessSettings } from './business'
 
 export function agentTrust(env: Bindings): Trust | null {
@@ -22,7 +23,7 @@ export const notTools = [
 
 export async function locketAgentDoor(original: Bindings) {
   const env = runtimeBindings(original)
-  return createAgentDoor({ capabilities: CORE_CAPABILITIES, seed: 'locket', name: String(await businessSettings(env).resolve('display_name', 'Locket')), specialist: 'contract operations clerk', db: env.DB,
-    origin: env.AUTH_ORIGIN, trust: agentTrust(env), people: locketPeople(env), tools: tools(env), resources: resources(env), notTools: notTools.map(item => ({ ...item, clauses: [...item.clauses] })),
+  return createAgentDoor({ capabilities: [...CORE_CAPABILITIES, 'prompts'], seed: 'locket', name: String(await businessSettings(env).resolve('display_name', 'Locket')), specialist: 'contract operations clerk', db: env.DB,
+    origin: env.AUTH_ORIGIN, trust: agentTrust(env), people: locketPeople(env), tools: tools(env), resources: resources(env), prompts: prompts(), notTools: notTools.map(item => ({ ...item, clauses: [...item.clauses] })),
   })
 }

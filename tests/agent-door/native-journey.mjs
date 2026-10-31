@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
+import promptJourney from './prompts.mjs'
 
 export default async function ({ request, origin, cookie, tool }) {
+  await promptJourney()
   const human = async (path, init = {}) => {
     const response = await request(origin + path, { ...init, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json', ...init.headers } })
     assert.equal(response.ok, true)
