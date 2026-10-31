@@ -116,7 +116,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "115899ef3ef9a6207e39bab68c6434894f13962936774a487ea1083857235a4c",
+      "sha256": "021aca397a4d4a2cd8c4227714c37f6663d2dd74a018f31ed84aec3a9e5a1a82",
       "executable": false
     },
     "agent-surface.json": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "83e1e5f6b2e1c8cf482233ca476fa84a92fb527c667fd6d091a4271c406d82e6",
+      "sha256": "70354959ef6d6448a75341390dc69ff54674dbc6baa9a7feb4efbc2458a72cf6",
       "executable": false
     },
     "DEMO.md": {
@@ -5619,12 +5619,16 @@
       "sha256": "dfc9aeef4ebb2aa91931b7656cbd1f5da243acf284b69923a8858bb8e2f99a28",
       "executable": false
     },
+    "tests/agent-door/prompt-operations.mjs": {
+      "sha256": "f343b1a45b6ceff185a42d380e78664b1a3dd8ea4b73720cd69cd811f680839f",
+      "executable": false
+    },
     "tests/agent-door/prompts.mjs": {
       "sha256": "8821502b41f66655d9082ffe05c2052a1df8014ce35a0fe2eaf47107e74a3cf7",
       "executable": false
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
-      "sha256": "6fc0ca9085739bfdb106d7f4f19f2e22b39c75025fbafd53663107f8ed0f359c",
+      "sha256": "40efebaefb7888979e94e78432784d06ce0534439ae778359a0b11937f47012b",
       "executable": false
     },
     "tests/api/accounting-read-fixture.mjs": {
