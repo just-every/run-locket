@@ -14,7 +14,8 @@ async function confirm(client, agreementId, terms) {
 }
 
 test('US-001 installation US zone, USD with recorded-rate other currencies, EINs, US required attachments and Thanksgiving business-day rolling', async t => {
-  const h = await installation(); t.after(() => h.close())
+  // Keep the holiday fixture before its notice deadlines and agreement expiry.
+  const h = await installation({ bindings: { TEST_NOW: String(Date.parse('2026-10-31T12:00:00Z')) } }); t.after(() => h.close())
   const people = await team(h)
 
   // A fresh installation: USD, Eastern until the owner chooses, deadlines on their calendar date.

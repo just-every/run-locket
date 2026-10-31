@@ -49,6 +49,7 @@ import { risks } from './obligation-risk'
 import { obligationWorkspace } from './owner-obligations'
 import { counterpartySummaries } from './counterparty-summary'
 import { customFields } from './custom-fields'
+import { roleRevision } from './people'
 
 const all = async <T = any>(db: D1Database, query: string, ...params: unknown[]) => (await db.prepare(query).bind(...params).all<T>()).results
 
@@ -84,7 +85,11 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
   for(const artifact of candidateArtifacts){const provenance=JSON.parse(artifact.provenance);if(provenance.kind==='service_level_evidence'&&!await canReadServiceSources(db,actor,JSON.stringify(provenance.sources)))continue;if(provenance.kind!=='renewal_brief'||await canReadBrief(db,actor,{sources:JSON.stringify(provenance.sources)}))artifacts.push(artifact)}
   const routes: Record<string, unknown> = {}
   for (const a of agreements) if (['draft', 'in_review', 'approved'].includes(a.status)) routes[a.id] = await routing(db, a)
-  const operators = await all(db, "SELECT o.id, o.display_name AS name, o.email, o.status, CASE WHEN o.role='owner' THEN 'owner' ELSE COALESCE(r.role,'viewer') END AS role FROM oa_operators o LEFT JOIN lk_roles r ON r.operator_id=o.id ORDER BY o.created_at")
+  const operatorRows = await all(db, "SELECT o.id, o.display_name, o.email, o.status, o.role AS native_role, o.version, COALESCE(r.role,'viewer') AS role, COALESCE(r.updated_at,0) AS changed_at FROM oa_operators o LEFT JOIN lk_roles r ON r.operator_id=o.id ORDER BY o.created_at")
+  const operators = await Promise.all(operatorRows.map(async row => ({
+    id: row.id, name: row.display_name, email: row.email, status: row.status,
+    role: row.native_role === 'owner' ? 'owner' : row.role, revision: await roleRevision(row),
+  })))
   const renewals = mine(await all(db, 'SELECT * FROM lk_renewals ORDER BY deadline_at'), ids)
   const terms = mine(await all(db, 'SELECT * FROM lk_terms ORDER BY created_at'), ids)
   const proposals = mine(await all(db, 'SELECT * FROM lk_proposals ORDER BY prepared_at DESC'), ids).filter(p => seesIntake(actor, p))
@@ -160,7 +165,7 @@ export async function state(env: Bindings, actor: Actor, scheduledReport?: Sched
     notifications: scheduledReport ? {preferences:{inApp:false,email:false,digest:false,timezone:settings.timezone},items:[]} : await notificationState(env, actor),
     now,
     settings,
-    operators: operators.map(o => (actor.role === 'owner' ? o : { id: o.id, name: o.name, role: o.role, status: o.status })),
+    operators: operators.map(o => (actor.role === 'owner' ? o : { id: o.id, name: o.name, role: o.role, status: o.status, revision: o.revision })),
     parties,
     counterparties: counterpartySummaries({ agreements, terms, renewals, notices, parties }, now, settings.rollNoticeDeadlines),
     entities: await all(db, 'SELECT * FROM lk_entities ORDER BY legal_name'),
