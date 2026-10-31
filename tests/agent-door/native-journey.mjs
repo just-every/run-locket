@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { assertAgreementLink } from './resource-parity.mjs'
+import { assertAgreementLink, runResources } from './resource-parity.mjs'
 
 export default async function ({ request, origin, cookie, tool }) {
   const human = async (path, init = {}) => {
@@ -33,4 +33,5 @@ export default async function ({ request, origin, cookie, tool }) {
   assert.equal((await human('/api/locket/state')).agreements.find(item => item.id === row.id).title, 'Native link revision')
   const audit = await human('/api/locket/audit?agreement=' + row.id)
   assert.ok(audit.rows.some(item => item.action === 'request.create' && item.actor_name.includes(' for Synthetic Base 1')))
+  await runResources()
 }

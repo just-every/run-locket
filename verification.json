@@ -5,8 +5,7 @@
       "browser": true,
       "hosted": true,
       "commands": [
-        "node .github/scripts/verify.mjs core-app",
-        "node tests/agent-door/resource-parity.mjs"
+        "node .github/scripts/verify.mjs core-app"
       ]
     },
     {

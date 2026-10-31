@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "60be3d1cf9746a04e4e5bd295f5c4e7ef5f3a85f259a36749990893a6f716038",
+      "sha256": "4a795c3c12ba14df81fe666da95cea67f3e739eee5c6ceb7258dfc81439c4f42",
       "executable": false
     },
     "base-copies.json": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "13c633fa313e8bafbd4c65219a364887892f5d72ce58ea6622fe52f0d961e717",
+      "sha256": "c7ad41591ca807a7df362dbad38632a00ffbb291b3fccac4e9fb0d3e8a070fc1",
       "executable": false
     },
     "DEMO.md": {
@@ -160,7 +160,7 @@
       "executable": false
     },
     "docs/agents-and-the-api.md": {
-      "sha256": "2148a26e747b33a0eb37d61ad8639297621d588379426e80b9314c0655d5fdeb",
+      "sha256": "f3363d23774419ed1db11ee5622db277ef2b3f4131b7d5fb6b5c0b2ac93b703c",
       "executable": false
     },
     "docs/backup-and-restore.md": {
@@ -5592,11 +5592,19 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "3e84181763f2e3b92d526230d85308c7fb1436876eb1e5584f8a1cd54e1431d3",
+      "sha256": "a70d8a6c0bb79005bea80b14913d8bcc5d7019f986b2ae8694b1cfd24c827589",
       "executable": false
     },
     "tests/agent-door/owner.mjs": {
       "sha256": "fe6531a14cb0d5fb1edc0cdf33685565b434de19d305d23b5bdf2a813dfde957",
+      "executable": false
+    },
+    "tests/agent-door/resource-fixtures.mjs": {
+      "sha256": "8a83387c619c027983377dba27f693837130e6383141f2cc3e0b5285298dfb30",
+      "executable": false
+    },
+    "tests/agent-door/resource-parity.mjs": {
+      "sha256": "666c654698648366e0db2d18b87b03b6c857c2f28dcc9a4469a507e664e6a8a7",
       "executable": false
     },
     "tests/api/accounting-read-fixture.mjs": {
@@ -6240,7 +6248,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "646b1c0eaa994b3f576e76d53a0f3e065f0e7f38855e38055f4fff8d21935cb2",
+      "sha256": "ccb4fc9ca7fcc2fe1855539551c0233e28f590a911b8af0881c23148f25010a5",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {

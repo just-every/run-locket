@@ -120,12 +120,14 @@ export async function resourceRecords(h) {
   const report = await h.owner.command('report.create', { name: 'synthetic-locket-report', viewId: view.id, groupField: 'status', frequency: 'weekly', format: 'csv', firstAt: '2099-01-01T09:00', recipients: [h.ownerId] })
   await h.owner.command('report.stop', { id: report.id, version: 1 })
   const secret = await h.owner.command('request.create', { title: 'synthetic-locket-private', type: 'supplier', restricted: true, party: { name: 'synthetic-locket-private-party', kind: 'supplier' }, file: file('synthetic-locket-private.docx', docx(['Restricted source text'])) })
-  const sensitive = await h.owner.command('request.create', { title: 'synthetic-locket-sensitive', type: 'supplier', party: { name: 'synthetic-locket-sensitive-party', kind: 'supplier', taxId: '12-3456789', taxIdKind: 'ein' } })
+  const sensitive = await h.owner.command('request.create', { title: 'synthetic-locket-sensitive', type: 'supplier', restricted: true, party: { name: 'synthetic-locket-sensitive-party', kind: 'supplier', taxId: '12-3456789', taxIdKind: 'ein' } })
+  let sensitiveRow = (await h.owner.state()).agreements.find(row => row.id === sensitive.id)
+  await h.owner.command('access.set', { agreementId: sensitive.id, version: sensitiveRow.version, operatorId: h.viewerId, grant: 'grant' })
   native = await h.owner.state()
   const agreement = native.agreements.find(row => row.id === imported.id)
   const artifact = native.artifacts.find(row => row.agreement_id === imported.id)
   assert.ok(artifact)
   return { ids: { agreements: imported.id, versions: agreement.current_version_id, files: artifact.id, counterparties: agreement.party_id,
     templates: template.id, playbooks: playbook.id, findings: finding.id, obligations: obligation.id, renewals: renewal.id, notices: notice.id, reports: report.id },
-    secret: secret.id, sensitive: native.agreements.find(row => row.id === sensitive.id).party_id, quote }
+    secret: secret.id, sensitiveAgreement: sensitive.id, sensitive: native.agreements.find(row => row.id === sensitive.id).party_id, quote }
 }
