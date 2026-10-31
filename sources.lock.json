@@ -120,7 +120,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "96140f92a3ab7f0d564e160700169d57cae09165d3cc560497bcabd1cc6ddc7e",
+      "sha256": "97c072c59854b5b9202098405e175dd83318f093cf76a941e06e85ffb628c779",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -1584,7 +1584,7 @@
       "executable": false
     },
     "src/agent-door/catalogue.json": {
-      "sha256": "1e53dc30f3ed2e4df0c872cc9d9af8b7a89c1221f7ad4bf986b564afae9c3414",
+      "sha256": "6892131e2a24e870475b160f0e88dd7bbf74b8362053017108075ba80102be6b",
       "executable": false
     },
     "src/agent-door/index.server.ts": {
@@ -1608,7 +1608,7 @@
       "executable": false
     },
     "src/agent-door/tools.ts": {
-      "sha256": "8d9ff9598c58adbfce254a71c32bdb75eae574503ba8ca85fa2a3908be546afb",
+      "sha256": "6550137f1876e28f2fcfeeec66059fc53ca6a8a7da734b7af08c974aa374e9e7",
       "executable": false
     },
     "src/auth.server.ts": {
@@ -2516,7 +2516,7 @@
       "executable": false
     },
     "src/locket/repository.ts": {
-      "sha256": "9cf81480668af65cc7ad8be5fa1639f95b01e9960cba8040c3f0c29fa08c2d20",
+      "sha256": "a9612076576fe26207d195f6bb82b613b3b25dbca46781f62b0b08a20f9c8768",
       "executable": false
     },
     "src/locket/request-queue.ts": {
@@ -5592,7 +5592,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "5f14541d040b6e31b7a6762e436b831f900a82e928ae60d6d37c9c2bbd5ee9d8",
+      "sha256": "0c02895b456f3307fb2d6bde441e96b95383b9be510c9956abad2d2dc8e18651",
       "executable": false
     },
     "tests/agent-door/owner.mjs": {
@@ -5860,7 +5860,7 @@
       "executable": false
     },
     "tests/api/search.test.mjs": {
-      "sha256": "e26ed06c08cfe6460eefd150ca36f6337c3339e84fbbb39e6ff046b446796440",
+      "sha256": "fad081900a96164eaf31e59ba484004b4fc1568b19c9635b69f65e436c8dcb7d",
       "executable": false
     },
     "tests/api/security.test.mjs": {
@@ -5904,7 +5904,7 @@
       "executable": false
     },
     "tests/api/worker.ts": {
-      "sha256": "e458efb173275971dcc7d47b10fbd4b5c062f289b9d43765ed700e1498c036a5",
+      "sha256": "96fb717beaf6514cc7dce4e2a0844e29732e2b08950120805e388fb827366acc",
       "executable": false
     },
     "tests/api/workforce-fixture.mjs": {

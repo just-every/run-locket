@@ -342,7 +342,29 @@
       "id": "search",
       "tool": "locket.repo.search_and_structured_filters",
       "args": {
-        "query": "Northwind"
+        "query": "Northwind",
+        "columns": [
+          "reference",
+          "title",
+          "status",
+          "type"
+        ],
+        "filters": [
+          {
+            "field": "type",
+            "operator": "eq",
+            "value": "supplier"
+          },
+          {
+            "field": "status",
+            "operator": "eq",
+            "value": "draft"
+          }
+        ],
+        "sort": {
+          "field": "reference",
+          "direction": "desc"
+        }
       },
       "expect": [
         {

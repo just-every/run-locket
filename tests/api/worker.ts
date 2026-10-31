@@ -14,7 +14,9 @@ import { runNoticeAgent } from '../../src/locket/notice-agent-runtime'
 import { runNotifications } from '../../src/locket/notification-dispatch'
 import { runReports } from '../../src/locket/report-dispatch'
 import { locketResponse } from '../../src/locket/api'
-import { authResponse } from '../../src/auth.server'
+import { authResponse, runtimeBindings } from '../../src/auth.server'
+import { businessSettings } from '../../src/agent-door/business'
+import { locketAgentDoor } from '../../src/agent-door/index.server'
 import { runApprovalReminders } from '../../src/locket/approval-reminder-dispatch'
 import { runDeadlineReminders } from '../../src/locket/deadline-reminder-dispatch'
 
@@ -22,6 +24,15 @@ const systemNow = Date.now
 export default {
   async fetch(request: Request, env: any) {
     Date.now = env.TEST_NOW ? () => Number(env.TEST_NOW) : systemNow
+    const path = new URL(request.url).pathname
+    if (['/api/rer/business-settings', '/rer-business-logo', '/rer-business.css'].includes(path)) {
+      const business = await businessSettings(runtimeBindings(env)).handle(request)
+      if (business) return business
+    }
+    if (path === '/mcp' || path === '/api/rer/agent-policy' || path === '/agents' || path.startsWith('/agents/') || ['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'].includes(path)) {
+      const agent = await (await locketAgentDoor(env)).handle(request)
+      if (agent) return agent
+    }
     return (await locketResponse(request, env)) ?? (await authResponse(request, env)) ?? new Response('Not found', { status: 404 })
   },
   async scheduled(controller: ScheduledController, env: any) {

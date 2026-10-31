@@ -5,8 +5,9 @@ import { proposalHandlers } from '../locket/proposals'
 import { peopleHandlers } from '../locket/people'
 import { may, requireRole, fullReaders, grantsFor, canSee } from '../locket/access'
 import { agentActor, command, nativeCall } from './native'
-import { classification, disclosureClasses, nativeWitness, record, records } from './records'
+import { classification, disclosureClasses, nativeWitness, record } from './records'
 import { nativeActor } from './people'
+import { repositorySearch } from '../locket/repository'
 import catalogue from './catalogue.json'
 
 const definitions = new Map(catalogue.map(item => [item.name, item]))
@@ -53,11 +54,14 @@ export function tools(env: Bindings): ToolDefinition[] {
     },
   })
   const search = defineTool({ ...metadata('locket.repo.search_and_structured_filters'),
-    classify: async (args, ctx) => { const query = String(args.query ?? '').trim().toLocaleLowerCase(); const rows = await records(env, await agentActor(env, ctx), 'agreements'); return classification(rows.filter(row => !query || `${row.reference} ${row.title}`.toLocaleLowerCase().includes(query)).map(row => ({ title: row.title }))) },
+    async classify(args, ctx) {
+      const actor = await agentActor(env, ctx)
+      const result = await nativeCall(() => repositorySearch(env, actor, args))
+      return classification({ columns: result.columns, rows: result.rows })
+    },
     async run(args, ctx) {
-      const query = String(args.query ?? '').trim().toLocaleLowerCase()
-      const rows = await records(env, await agentActor(env, ctx), 'agreements')
-      return { result: { records: rows.filter(row => !query || `${row.reference} ${row.title}`.toLocaleLowerCase().includes(query)).map(row => ({ id: row.id, reference: row.reference, title: row.title, status: row.status, version: row.version })) } }
+      const actor = await agentActor(env, ctx)
+      return { result: await nativeCall(() => repositorySearch(env, actor, args)) }
     },
   })
   const prepare = defineTool({ ...metadata('locket.proposals.prepare'),

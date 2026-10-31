@@ -3,8 +3,10 @@ import assert from 'node:assert/strict'
 import { installation } from './harness.mjs'
 import { searchFixture, searchDefinition, searchText } from './search-fixture.mjs'
 import { file, docx } from './files.mjs'
+import { runRepositoryAuthority } from '../agent-door/repository-authority.mjs'
 
 test('REPO-006 current-term structured search, all version passages, scoped filters, literal offsets and authenticated navigation data', async t => {
+  await runRepositoryAuthority()
   const h = await installation({ bindings: { TEST_NOW: String(Date.parse('2026-10-17T12:00:00Z')) } }); t.after(() => h.close())
   const ids = await searchFixture(h.owner)
   const viewer = await h.invite('search-viewer@example.test', 'viewer')

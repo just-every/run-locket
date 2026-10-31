@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
+import { repositoryStep } from './repository-parity.mjs'
+
+export const beforeStep = context => repositoryStep({ ...context, stage: 'beforeStep' })
+export const afterStep = context => repositoryStep({ ...context, stage: 'afterStep' })
 
 export default async function ({ request, origin, cookie, tool }) {
   const human = async (path, init = {}) => {

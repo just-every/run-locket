@@ -208,8 +208,8 @@
   },
   {
     "name": "locket.repo.search_and_structured_filters",
-    "title": "Search visible agreement titles and references",
-    "description": "Search visible agreement titles and references through the current native sponsor and service.",
+    "title": "Search and filter the visible repository",
+    "description": "Run the native repository search over current sponsor permissions. Query metadata and document passages, combine typed filters, choose visible columns and order deterministically. Omitted options use the repository screen defaults. Only confirmed terms enter term columns; hidden fields cannot be filtered or sorted. Results retain native passage anchors and values (money in USD cents).",
     "scope": "locket:read",
     "readOnly": true,
     "classes": [
@@ -221,18 +221,165 @@
     ],
     "inputSchema": {
       "type": "object",
-      "additionalProperties": false,
       "properties": {
         "query": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 2000
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A current repository field id, including custom:<id> for a custom field. The native catalogue validates identity and type."
+          }
+        },
+        "filters": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A current repository field id, including custom:<id> for a custom field. The native catalogue validates identity and type."
+              },
+              "operator": {
+                "enum": [
+                  "eq",
+                  "contains",
+                  "gte",
+                  "lte"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Native typed filter text. Money uses decimal USD; dates use YYYY-MM-DD; numbers use finite decimal notation."
+              }
+            },
+            "required": [
+              "field",
+              "operator",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "sort": {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string",
+              "minLength": 1,
+              "description": "A current repository field id, including custom:<id> for a custom field. The native catalogue validates identity and type."
+            },
+            "direction": {
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          "required": [
+            "field",
+            "direction"
+          ],
+          "additionalProperties": false
         }
       },
-      "required": []
+      "required": [],
+      "additionalProperties": false
     },
     "outputSchema": {
       "type": "object",
       "properties": {
-        "records": {
+        "definition": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "filters": {
+              "type": "array",
+              "maxItems": 30,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "A current repository field id, including custom:<id> for a custom field. The native catalogue validates identity and type."
+                  },
+                  "operator": {
+                    "enum": [
+                      "eq",
+                      "contains",
+                      "gte",
+                      "lte"
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "Native typed filter text. Money uses decimal USD; dates use YYYY-MM-DD; numbers use finite decimal notation."
+                  }
+                },
+                "required": [
+                  "field",
+                  "operator",
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "sort": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "A current repository field id, including custom:<id> for a custom field. The native catalogue validates identity and type."
+                },
+                "direction": {
+                  "enum": [
+                    "asc",
+                    "desc"
+                  ]
+                }
+              },
+              "required": [
+                "field",
+                "direction"
+              ],
+              "additionalProperties": false
+            },
+            "columns": {
+              "type": "array",
+              "minItems": 0,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A current repository field id, including custom:<id> for a custom field. The native catalogue validates identity and type."
+              }
+            }
+          },
+          "required": [
+            "query",
+            "filters",
+            "sort",
+            "columns"
+          ],
+          "additionalProperties": false
+        },
+        "columns": {
           "type": "array",
           "items": {
             "type": "object",
@@ -240,32 +387,159 @@
               "id": {
                 "type": "string"
               },
-              "reference": {
+              "label": {
                 "type": "string"
               },
-              "title": {
-                "type": "string"
+              "kind": {
+                "enum": [
+                  "text",
+                  "number",
+                  "money",
+                  "date"
+                ]
               },
-              "status": {
-                "type": "string"
-              },
-              "version": {
-                "type": "integer"
+              "customKind": {
+                "enum": [
+                  "text",
+                  "number",
+                  "money",
+                  "date",
+                  "pick_list",
+                  "yes_no",
+                  "person",
+                  "counterparty"
+                ]
               }
             },
             "required": [
               "id",
-              "reference",
-              "title",
-              "status",
-              "version"
+              "label",
+              "kind"
             ],
             "additionalProperties": false
           }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "matches": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "versionId": {
+                      "type": "string"
+                    },
+                    "quote": {
+                      "type": "string"
+                    },
+                    "excerpt": {
+                      "type": "string"
+                    },
+                    "renditionId": {
+                      "type": "string"
+                    },
+                    "artifactId": {
+                      "type": "string"
+                    },
+                    "sourceSha256": {
+                      "type": "string"
+                    },
+                    "versionDigest": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "start": {
+                      "type": "integer"
+                    },
+                    "end": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "position": {
+                      "type": "object",
+                      "properties": {
+                        "start": {
+                          "type": "integer"
+                        },
+                        "end": {
+                          "type": "integer"
+                        },
+                        "x": {
+                          "type": "number"
+                        },
+                        "y": {
+                          "type": "number"
+                        },
+                        "width": {
+                          "type": "number"
+                        },
+                        "height": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "start",
+                        "end",
+                        "x",
+                        "y",
+                        "width",
+                        "height"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "versionId",
+                    "version",
+                    "start",
+                    "end",
+                    "quote",
+                    "excerpt"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "values": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": [
+                    "string",
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "matches",
+              "values"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "evaluatedAt": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
         }
       },
       "required": [
-        "records"
+        "definition",
+        "columns",
+        "rows",
+        "evaluatedAt"
       ],
       "additionalProperties": false
     },
