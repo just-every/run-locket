@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import promptJourney from './prompts.mjs'
+import transportReplayJourney from './transport-replay.mjs'
 import { beforeStep as beforeAccess, afterStep as afterAccess } from './access-parity.mjs'
 
 async function accessHook(hook, context) {
@@ -15,6 +16,7 @@ export const afterStep = context => accessHook(afterAccess, context)
 
 export default async function ({ request, origin, cookie, tool }) {
   await promptJourney()
+  await transportReplayJourney()
   const human = async (path, init = {}) => {
     const response = await request(origin + path, { ...init, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json', ...init.headers } })
     assert.equal(response.ok, true)

@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "253ac3ae3ab76f65ba6cd085189deadbcf5bba97dfe64f2bd6fc5c1007c925eb",
+      "sha256": "3c30208e018edcb41b9361ea9fdac46728fca9f6c75ceb02a46161941797d1ab",
       "executable": false
     },
     "DEMO.md": {
@@ -5604,7 +5604,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "4a41b7006e98f513dd99cffbefd949f769c0016f3b77d28cf814540280b170e4",
+      "sha256": "ce97b4b85f5976a42ec332917aba0a4a63bc776fa65837f62f4745fde5a73506",
       "executable": false
     },
     "tests/agent-door/negative-sponsor.mjs": {
@@ -5621,6 +5621,10 @@
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
       "sha256": "ca52751e1d96c36e8d66323267b5ced72941c446b3bac440b0a9db6db02bde69",
+      "executable": false
+    },
+    "tests/agent-door/transport-replay.mjs": {
+      "sha256": "cff1fbb6ab10cf570147b5e73328035a8a7bcc5b5a9bcab34a80f3a10d8ea883",
       "executable": false
     },
     "tests/api/accounting-read-fixture.mjs": {
