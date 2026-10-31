@@ -116,11 +116,11 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "6f8cb89bc883329c11f967d1983a89976b5c5a255b9a00b49061580cd9461516",
+      "sha256": "115899ef3ef9a6207e39bab68c6434894f13962936774a487ea1083857235a4c",
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "a15ce565b19e9e39f83fcb8789769d73dcc013fb855c312c5b779be081bd21a8",
+      "sha256": "c4cc787d6a7cbaf6db056832d59099029e14ce0ef11214efa43a4cea6eda0e4b",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "c7ad41591ca807a7df362dbad38632a00ffbb291b3fccac4e9fb0d3e8a070fc1",
+      "sha256": "4bb36ef3ba5aa0cf815105f06746a84d2ab4c555200130fa5fc7957bb9613fca",
       "executable": false
     },
     "DEMO.md": {
@@ -172,7 +172,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "8e20a45829d11dfd028f21e8695cb6d817b394d842456d7c33e5b0e55360de95",
+      "sha256": "bf4cb8cacf2458bb4b9274f0acf44aee7a4f3312ba59e0a2eb2d83ab4a60e5f2",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -1600,7 +1600,7 @@
       "executable": false
     },
     "src/agent-door/records.ts": {
-      "sha256": "82167694c6e6bb48a5aa2dadbda27783eaa796be9dd28520059575dd08154bd7",
+      "sha256": "f3231ff69b268540f8de4fc17b7d51f75e411aa0fc5717e83df8b26f06b471a5",
       "executable": false
     },
     "src/agent-door/resources.ts": {
@@ -5584,7 +5584,7 @@
       "executable": false
     },
     "tests/agent-door/colleague.mjs": {
-      "sha256": "e676dc62f865dc30a288c45ec80993a4ec9408c142a50fb729ec355d286952fd",
+      "sha256": "a73b69bf507f3f96b5bacfee6617c88ab73a8a3922cfca4181288632d19b09bc",
       "executable": false
     },
     "tests/agent-door/mail-provider.mjs": {
@@ -5595,16 +5595,24 @@
       "sha256": "a70d8a6c0bb79005bea80b14913d8bcc5d7019f986b2ae8694b1cfd24c827589",
       "executable": false
     },
+    "tests/agent-door/negative-sponsor.mjs": {
+      "sha256": "8526bb80caadd3edc0e1318bb1231fa11cfdcafb1bcf16cb247017cb61de15da",
+      "executable": false
+    },
     "tests/agent-door/owner.mjs": {
-      "sha256": "fe6531a14cb0d5fb1edc0cdf33685565b434de19d305d23b5bdf2a813dfde957",
+      "sha256": "dfc9aeef4ebb2aa91931b7656cbd1f5da243acf284b69923a8858bb8e2f99a28",
       "executable": false
     },
     "tests/agent-door/resource-fixtures.mjs": {
-      "sha256": "8a83387c619c027983377dba27f693837130e6383141f2cc3e0b5285298dfb30",
+      "sha256": "8061ab44805a54f4f98d6da2cd0ce21d4ba963a12906b639bc75954dbf7bf234",
       "executable": false
     },
     "tests/agent-door/resource-parity.mjs": {
-      "sha256": "666c654698648366e0db2d18b87b03b6c857c2f28dcc9a4469a507e664e6a8a7",
+      "sha256": "77cd766e58c51b0e6d9deb4e85dd587c202808639537ce59861244dd715da986",
+      "executable": false
+    },
+    "tests/agent-door/sponsor-fixtures.mjs": {
+      "sha256": "6fc0ca9085739bfdb106d7f4f19f2e22b39c75025fbafd53663107f8ed0f359c",
       "executable": false
     },
     "tests/api/accounting-read-fixture.mjs": {

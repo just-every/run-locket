@@ -26,13 +26,13 @@ const unavailable = answer => {
   return answer.body.error
 }
 
-async function approveRead(h, c, address) {
+async function approveRead(h, c, address, withheld = '12-3456789') {
   const pending = await c.mcp('resources/read', { uri: address })
   assert.equal(errorCode(pending), 'approval_required')
   assert.equal(pending.decision.disposition, 'approval')
   assert.equal(pending.result, undefined)
   assert.equal(pending.body.error.data.contents, undefined)
-  assert.equal(JSON.stringify(pending.body).includes('12-3456789'), false)
+  assert.equal(JSON.stringify(pending.body).includes(withheld), false)
   assert.ok(pending.decision.classes.some(row => row.class === 'sensitive' && row.do === 'approval'))
   const { approval: handle, requestState } = pending.body.error.data
   const view = await c.personJson('/agents/api/approvals/' + handle.id)
@@ -111,6 +111,37 @@ export async function runResources() {
         assert.equal(actual.tax_id, '12-3456789')
       }
       console.log(`PROBE BASE-AGENT-003 sensitive-${phase}: counterparty tax identifier -> ${phase === 'held' ? 'no content before native human approval; exact native content after approval' : 'exact authorized content'}`)
+      // A template answer remains sensitive inside the native serialized fields,
+      // even when its value never appears in the rendered document text.
+      for (const [human, c] of [[h.owner, h.a], [h.viewer, h.b]]) {
+        const address = uri('versions', f.bankVersionId)
+        const expected = (await human.state()).versions.find(row => row.id === f.bankVersionId)
+        assert.equal(JSON.parse(expected.fields).values.bank_account, f.bankAccount)
+        if (phase === 'held') assert.deepEqual(await approveRead(h, c, address, f.bankAccount), expected)
+        else {
+          const allowed = await c.mcp('resources/read', { uri: address })
+          assert.deepEqual(content(allowed), expected)
+          assert.ok(allowed.decision.classes.some(row => row.class === 'sensitive' && row.do === 'autonomous'))
+        }
+      }
+      const blockedPolicy = structuredClone(policy)
+      blockedPolicy.rules.push({ id: 'block-bank-read', class: 'sensitive', do: 'blocked' })
+      await h.a.adopt(blockedPolicy)
+      const beforeBlock = await h.owner.state()
+      for (const c of [h.a, h.b]) {
+        const denied = await c.mcp('resources/read', { uri: uri('versions', f.bankVersionId) })
+        assert.equal(errorCode(denied), 'policy_blocked')
+        assert.equal(denied.decision.disposition, 'blocked')
+        assert.equal(denied.result, undefined)
+        assert.equal(denied.body.error.data.contents, undefined)
+        assert.equal(JSON.stringify(denied.body).includes(f.bankAccount), false)
+      }
+      const afterBlock = await h.owner.state()
+      for (const collection of Object.values(families)) assert.deepEqual(afterBlock[collection], beforeBlock[collection])
+      await h.a.adopt(policy)
+      console.log(phase === 'held'
+        ? 'PROBE BLOCKING-B held: owner and viewer read a version with a serialized bank_account answer -> no content before human approval, exact native row after approval; blocked reads disclose nothing and change no records'
+        : 'PROBE BLOCKING-B autonomous: owner and viewer read a version with a serialized bank_account answer -> sensitive classification and exact authorized row; blocked reads disclose nothing and change no records')
       // The same admitted viewer credential loses every newly revoked record.
       const token = await accessToken(h.b)
       const readSecret = () => h.b.mcp('resources/read', { uri: uri('agreements', f.secret) }, { token })

@@ -30,12 +30,28 @@ export async function record(env: Bindings, actor: Actor, kind: RecordKind, id: 
 
 /** Classification reads the record's own fields, never a caller-provided risk. */
 export function classification(value: unknown): ClassAndFacts[] {
-  const sensitive = (v: unknown): boolean => {
-    if (Array.isArray(v)) return v.some(sensitive)
-    if (!v || typeof v !== 'object') return typeof v === 'string' && /\b\d{2}-\d{7}\b|\b\d{3}-\d{2}-\d{4}\b/.test(v)
-    return Object.entries(v).some(([key, item]) => /^(tax_id|taxId|bank_account|ssn)$/.test(key) && Boolean(item) || sensitive(item))
+  const kinds = new Set<string>()
+  const inspect = (v: unknown): void => {
+    if (Array.isArray(v)) { v.forEach(inspect); return }
+    if (typeof v === 'string') {
+      if (/\b\d{2}-\d{7}\b|\b\d{3}-\d{2}-\d{4}\b/.test(v)) kinds.add('tax_identifier')
+      // Native rows retain structured values as JSON text (notably version
+      // template answers). Classify their contents before policy sees the row.
+      if (/^\s*[\[{]/.test(v)) {
+        try { inspect(JSON.parse(v)) } catch { /* Ordinary document text. */ }
+      }
+      return
+    }
+    if (!v || typeof v !== 'object') return
+    for (const [name, item] of Object.entries(v)) {
+      if (item && /^(tax_id|taxId|ssn)$/.test(name)) kinds.add('tax_identifier')
+      if (item && name === 'bank_account') kinds.add('bank_account')
+      inspect(item)
+    }
   }
-  return [{ class: 'standard', facts: { measure: 1 } }, ...(sensitive(value) ? [{ class: 'sensitive' as const, facts: { measure: 1, kind: 'tax_identifier' } }] : [])]
+  inspect(value)
+  return [{ class: 'standard', facts: { measure: 1 } },
+    ...(kinds.size ? [{ class: 'sensitive' as const, facts: { measure: 1, kind: [...kinds].sort().join(',') } }] : [])]
 }
 
 /** A reader grant exposes this agreement's currently visible native content,

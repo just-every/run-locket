@@ -123,11 +123,21 @@ export async function resourceRecords(h) {
   const sensitive = await h.owner.command('request.create', { title: 'synthetic-locket-sensitive', type: 'supplier', restricted: true, party: { name: 'synthetic-locket-sensitive-party', kind: 'supplier', taxId: '12-3456789', taxIdKind: 'ein' } })
   let sensitiveRow = (await h.owner.state()).agreements.find(row => row.id === sensitive.id)
   await h.owner.command('access.set', { agreementId: sensitive.id, version: sensitiveRow.version, operatorId: h.viewerId, grant: 'grant' })
+  const bankAccount = 'synthetic-locket-2468'
+  const bankTemplate = await h.owner.command('template.create', { name: 'synthetic-locket-bank-template', type: 'supplier',
+    body: 'Synthetic supplier agreement.', fields: [{ name: 'bank_account', label: 'Bank account', required: true }], clauses: [] })
+  await h.owner.command('template.decide', { versionId: bankTemplate.versionId, decision: 'approve' })
+  const bank = await h.owner.command('request.create', { title: 'synthetic-locket-bank', type: 'supplier',
+    party: { name: 'synthetic-locket-bank-party', kind: 'supplier' }, templateVersionId: bankTemplate.versionId,
+    fields: { bank_account: bankAccount } })
   native = await h.owner.state()
+  const bankVersion = native.versions.find(row => row.id === bank.versionId)
+  assert.equal(JSON.parse(bankVersion.fields).values.bank_account, bankAccount)
+  assert.equal(bankVersion.text.includes(bankAccount), false)
   const agreement = native.agreements.find(row => row.id === imported.id)
   const artifact = native.artifacts.find(row => row.agreement_id === imported.id)
   assert.ok(artifact)
   return { ids: { agreements: imported.id, versions: agreement.current_version_id, files: artifact.id, counterparties: agreement.party_id,
     templates: template.id, playbooks: playbook.id, findings: finding.id, obligations: obligation.id, renewals: renewal.id, notices: notice.id, reports: report.id },
-    secret: secret.id, sensitiveAgreement: sensitive.id, sensitive: native.agreements.find(row => row.id === sensitive.id).party_id, quote }
+    bankVersionId: bank.versionId, bankAccount, secret: secret.id, sensitiveAgreement: sensitive.id, sensitive: native.agreements.find(row => row.id === sensitive.id).party_id, quote }
 }
