@@ -38,7 +38,16 @@ export async function record(env: Bindings, actor: Actor, kind: RecordKind, id: 
 export function classification(value: unknown): ClassAndFacts[] {
   const sensitive = (v: unknown): boolean => {
     if (Array.isArray(v)) return v.some(sensitive)
-    if (!v || typeof v !== 'object') return typeof v === 'string' && /\b\d{2}-\d{7}\b|\b\d{3}-\d{2}-\d{4}\b/.test(v)
+    if (typeof v === 'string') {
+      if (/\b\d{2}-\d{7}\b|\b\d{3}-\d{2}-\d{4}\b/.test(v)) return true
+      // Native rows retain structured payloads as JSON text. Inspect their
+      // labelled fields too, without changing the exact native projection.
+      if (/^\s*[\[{]/.test(v)) {
+        try { return sensitive(JSON.parse(v)) } catch { return false }
+      }
+      return false
+    }
+    if (!v || typeof v !== 'object') return false
     return Object.entries(v).some(([key, item]) => /^(tax_id|taxId|bank_account|ssn)$/.test(key) && Boolean(item) || sensitive(item))
   }
   return [{ class: 'standard', facts: { measure: 1 } }, ...(sensitive(value) ? [{ class: 'sensitive' as const, facts: { measure: 1, kind: 'tax_identifier' } }] : [])]

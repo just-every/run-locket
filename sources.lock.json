@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "31e0b2793b08a4017873d98e82b9e65e9f856a66adef910952b14d25a9e8f540",
+      "sha256": "a1c61f4c1e731f53bd970f180066496c320e5aa31f501302d8f3bf394c21cbb9",
       "executable": false
     },
     "base-copies.json": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ceb52bba4db24bc5af920872890eb5b3f10b9ba0284888ad6771cae6a6fb6ead",
+      "sha256": "de1e58f8711a541e73d7bfcb49e41ae6846ab27f36f6b8fb9fe77c59e4ffe423",
       "executable": false
     },
     "DEMO.md": {
@@ -1600,7 +1600,7 @@
       "executable": false
     },
     "src/agent-door/records.ts": {
-      "sha256": "d6267154e399e827aa300b1ccf6deaf7cd919bea94717a7c450fcfea7942ee4d",
+      "sha256": "d8b52ae0342c78fcb1e7bfcab673c575c2e41992f7618532c3678c4cee489f98",
       "executable": false
     },
     "src/agent-door/resources.ts": {
@@ -5604,11 +5604,11 @@
       "executable": false
     },
     "tests/agent-door/resource-fixtures.mjs": {
-      "sha256": "826296a630e5aadd31de62ea10b78216ee36afb4a813ede636249627f86e219c",
+      "sha256": "c02ded44d0876a374bfb62d654caa6d0dfdeb625c2d9c8e7d812267dce36e387",
       "executable": false
     },
     "tests/agent-door/resource-parity.mjs": {
-      "sha256": "c31a95376c90ed3b01cb464b175a8a540fad760b14b6a9933f1792a08776e673",
+      "sha256": "5495ae7db653a531810c08d807c4c8f996e9af398bd20aa164703cdab8188257",
       "executable": false
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
