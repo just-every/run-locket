@@ -10,6 +10,17 @@ import { pdfSearchPassages, searchPassages, type SearchPassage } from './search-
 
 export interface RepositoryRow { id: string; matches?: SearchPassage[]; values: Record<string, string | number | null> }
 export interface RepositoryResult { definition: ViewDefinition; columns: RepositoryField[]; rows: RepositoryRow[]; evaluatedAt: number; name?: string }
+/** Agent search uses the screen's definition defaults and executor, including
+ * current field validation, visibility, confirmed terms and passage anchors. */
+export function repositorySearch(env: Bindings, actor: Actor, input: Record<string, unknown>): Promise<RepositoryResult> {
+  const definition = {
+    query: input.query ?? defaultViewDefinition.query,
+    columns: input.columns ?? defaultViewDefinition.columns,
+    filters: input.filters ?? defaultViewDefinition.filters,
+    sort: input.sort ?? defaultViewDefinition.sort,
+  }
+  return repositoryResult(env, actor, new URLSearchParams({ definition: JSON.stringify(definition) }))
+}
 const compare = (a: string | number, b: string | number): number => typeof a === 'number' && typeof b === 'number' ? a - b : String(a).toLocaleLowerCase().localeCompare(String(b).toLocaleLowerCase(), 'en-US')
 export async function repositoryResult(env: Bindings, actor: Actor, params: URLSearchParams, scheduledReport?: ScheduledReportRead): Promise<RepositoryResult> {
   const s = await state(env, actor, scheduledReport), evaluatedAt = s.now
