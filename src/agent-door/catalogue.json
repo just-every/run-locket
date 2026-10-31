@@ -64,6 +64,10 @@
         },
         "restricted": {
           "type": "boolean"
+        },
+        "entityId": {
+          "type": "string",
+          "description": "Current contracting entity selected through the native workspace; required when entities exist."
         }
       },
       "required": [
