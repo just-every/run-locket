@@ -5,8 +5,8 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 19 | 0 | 0 | 19 |
-| Target and push further | 45 | 33 | 17 | 95 |
-| All | 64 | 33 | 17 | 114 |
+| Target and push further | 45 | 37 | 13 | 95 |
+| All | 64 | 37 | 13 | 114 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -50,7 +50,7 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | `DRAFT-002` | Word documents from templates | target | done | [Source evidence](CONTRACT.md#status) | None for current source-field&#47;optional-paragraph&#47;manual line-item doors; INTAKE-004&#47;LINK-003 inherit the validated line-item door and SIGN-005 retains signature-field placement. |
 | `DRAFT-003` | Clause library in negotiation | target | done | [Source evidence](CONTRACT.md#status) |  |
 | `DRAFT-004` | Templates authored from existing Word documents | target | done | [Source evidence](CONTRACT.md#status) | Current main-document plain-text fields and whole-paragraph optionals; unsupported active&#47;tracked&#47;externally linked source packages are explicitly refused |
-| `PLAY-002` | Playbooks drafted from templates and history | target | missing | [Source evidence](CONTRACT.md#status) | Playbooks are authored by hand only |
+| `PLAY-002` | Playbooks drafted from templates and history | target | partial | [Source evidence](CONTRACT.md#status) | Drafting runs only against a simulated model provider; a passing live REVIEW-006 playbook-drafting record is absent, so live drafting is refused |
 | `NEG-002` | Word tracked changes round-trip | target | partial | [Source evidence](CONTRACT.md#status) | Licensed Word opening proof unavailable; structural revisions, text boxes and non-main-story revisions explicitly refused; plain rendition never satisfies this clause |
 | `NEG-003` | Locket for Word add-in | target | missing | [Source evidence](CONTRACT.md#status) | No Word add-in exists |
 | `NEG-004` | Browser redlining and threaded comments | target | done | [Source evidence](CONTRACT.md#status) |  |
@@ -58,7 +58,7 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | `NEG-006` | Counterparty exchange by email and secure link | target | partial | [Source evidence](CONTRACT.md#status) | Sending through the person’s connected Gmail or Outlook remains blocked on owner mail-account authorization. Original-format round-trip stays with NEG-002. Separate server-generated link and inbound-only reply capabilities now ship; legacy reply addresses require a fresh exchange. No live mail-account receipt is claimed. This round passed real component browser proof against Worker and D1 at 1440 and 390; native rer startup failed and is not claimed as passing. |
 | `REVIEW-002` | Built-in playbook review | target | partial | [Source evidence](CONTRACT.md#status) | The built-in model run does not exist |
 | `REVIEW-003` | AI redlines a person edits before sending | target | done | [Source evidence](CONTRACT.md#status) | None for accepted review-proposal redlines; REVIEW-002&#47;005&#47;006 retain built-in live model evaluation. |
-| `REVIEW-004` | Ask the repository | target | missing | [Source evidence](CONTRACT.md#status) | No question answering exists |
+| `REVIEW-004` | Ask the repository | target | partial | [Source evidence](CONTRACT.md#status) | Questions run only against a simulated model provider; a passing live REVIEW-006 questions record is absent, so live answering is refused |
 | `REVIEW-005` | Model choice, records and switch-off | target | done | [Source evidence](CONTRACT.md#status) | None for REVIEW-005. REVIEW-006 retains labeled datasets, live evaluation generation, qualification and populated live-result display; simulation never supplies live evaluation evidence. |
 | `REVIEW-006` | Live accuracy evidence for every AI and OCR task | target | missing | [Source evidence](CONTRACT.md#status) | No evaluation command, labeled set or recorded live run exists |
 | `REVIEW-007` | Plain-English summary of one agreement | target | done | [Source evidence](CONTRACT.md#status) |  |
@@ -66,7 +66,7 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | `APPROVE-003` | Approve where people work | target | done | [Source evidence](CONTRACT.md#status) | None |
 | `APPROVE-004` | Approval reminders and escalation | target | done | [Source evidence](CONTRACT.md#status) |  |
 | `SIGN-002` | Live Docusign, Adobe Acrobat Sign and Dropbox Sign | target | partial | [Source evidence](CONTRACT.md#status) | OAuth, developer-account live sandbox receipts, verified callbacks, correction, provider reminders and provider voiding remain unproved; SIGN-005 packet transports alone do not complete this clause |
-| `SIGN-003` | Inkwell signing | target | missing | [Source evidence](CONTRACT.md#status) | BLOCKED: Inkwell public machine-send&#47;manage and signed outgoing completion events are absent at 6c4638762028477f6ddba6b6bd8fc18ad2fcbb04; requires the Inkwell seed before automatic signed PDF&#47;certificate retrieval can complete |
+| `SIGN-003` | Inkwell signing | target | missing | [Source evidence](CONTRACT.md#status) | BLOCKED: Inkwell public machine-send&#47;manage and signed outgoing completion events are absent at 6c4638762028477f6ddba6b6bd8fc18ad2fcbb04; requires the Inkwell seed before automatic signed PDF&#47;certificate retrieval can complete; draft preparation is owned by SIGN-005 |
 | `EXEC-002` | Automatic retrieval and filing of executed agreements | target | done | [Source evidence](CONTRACT.md#status) | Computed typography and hosted-shell acceptance are carved out by CT; neither is claimed. |
 | `SIGN-004` | Clickwrap acceptance of published terms | target | done | [Source evidence](CONTRACT.md#status) |  |
 | `SIGN-005` | Signer rules, signature fields and multi-document packets | target | done | [Source evidence](CONTRACT.md#status) | None for the network-edge packet acceptance. Live provider sending&#47;callbacks and sandbox receipts remain SIGN-002&#47;SIGN-003. |
@@ -96,8 +96,8 @@ Generated from CONTRACT.md. These source claims retain every named gap and requi
 | `REPORT-003` | Portfolio dashboard | target | done | [Source evidence](CONTRACT.md#status) |  |
 | `MOBILE-001` | Phone-width web app | target | done | [Source evidence](CONTRACT.md#status) |  |
 | `MOBILE-002` | iOS and Android apps | target | missing | [Source evidence](CONTRACT.md#status) | No native apps exist |
-| `MOVE-002` | Ironclad move-in | target | missing | [Source evidence](CONTRACT.md#status) | Only the DocuSign kit exists |
-| `MOVE-003` | Icertis and Agiloft move-in | target | missing | [Source evidence](CONTRACT.md#status) | No Icertis or Agiloft kit exists |
+| `MOVE-002` | Ironclad move-in | target | partial | [Source evidence](CONTRACT.md#status) | The Ironclad export, ZIP and API kit ships with its 50-record fixture; the real Ironclad export and sandbox API run are still absent; workflows and clickwrap history are not imported (MOVE-006, MOVE-007) |
+| `MOVE-003` | Icertis and Agiloft move-in | target | partial | [Source evidence](CONTRACT.md#status) | The ICI kit (synthetic profile) and the Agiloft kit (invented protocol recording) ship with their 30-agreement fixtures; ICI tenant API documentation is not supplied, and the real export and sandbox run are still absent for both |
 | `MOVE-004` | SpotDraft and Juro move-in | target | missing | [Source evidence](CONTRACT.md#status) | No SpotDraft or Juro kit exists |
 | `MOVE-005` | PandaDoc and Adobe Acrobat Sign archives | target | missing | [Source evidence](CONTRACT.md#status) | Only the DocuSign kit exists |
 | `MOVE-006` | Ironclad workflows in progress at cutover | target | missing | [Source evidence](CONTRACT.md#status) | No Ironclad workflow import exists |
