@@ -5631,6 +5631,10 @@
       "sha256": "dbbf6b4e96885adb97b721fbcf665d0c342f661f8ab7e78fafaec0c8cf13b4e9",
       "executable": false
     },
+    "tests/agent-door/proposal-decision-attribution.mjs": {
+      "sha256": "60f8996b9759bb1569e75c54421a5cab247d5f3a0e33758171ce1ae6a7ec4e76",
+      "executable": false
+    },
     "tests/agent-door/sponsor-fixtures.mjs": {
       "sha256": "ca52751e1d96c36e8d66323267b5ced72941c446b3bac440b0a9db6db02bde69",
       "executable": false
@@ -5948,7 +5952,7 @@
       "executable": false
     },
     "tests/browser/agent-proposal-attribution.mjs": {
-      "sha256": "8de3b6ccf97e260ac7905a5e6ef6a5dd9c1976ae0f1dcbdf699f81a1e50d6a4c",
+      "sha256": "f7c59d568e13e7e5fb053f0620efb16fc8ceed3efec8627a99dcbe78f9a1bee1",
       "executable": false
     },
     "tests/browser/agreement-summary-journey.mjs": {

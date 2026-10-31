@@ -122,6 +122,7 @@ try {
         secure: true, httpOnly: true, sameSite: 'Lax' }
     }))
     await page.goto(f.origin + '/app#proposals')
+    await page.reload()
     const heldCard = page.locator('.lk-proposal').filter({ hasText: 'synthetic-locket-held-intake' })
     await both('held-pending', async () => {
       await expect(heldCard).toContainText('Prepared by ' + label)
