@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import documentationJourney from './documentation.mjs'
 import promptOperationsJourney from './prompt-operations.mjs'
+import conformanceGuards from './conformance-guards.mjs'
 import { randomUUID, webcrypto } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -177,6 +178,7 @@ export default async function promptJourney() {
     assert.deepEqual(points.filter(point => !point.ok), [])
     console.log('PROBE BASE-AGENT-013 Pause: Business and local Pause -> empty listings and agents_paused; resume restores retrieval; policy removal withholds again; native records and audit unchanged')
     await promptOperationsJourney(c, native)
+    await conformanceGuards(c, native)
     assert.equal(networkAttempts, 0)
     assert.deepEqual(points.filter(point => !point.ok), [])
   } finally { await hosted.close() }
