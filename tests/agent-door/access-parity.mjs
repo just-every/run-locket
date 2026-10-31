@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import accessFixture from './access-fixture.mjs'
 import { autonomousPolicy, heldPolicy } from '../../node_modules/@runeditrun/rer/modules/agent-door/conformance/crypto.mjs'
+import { errorCode } from '../../node_modules/@runeditrun/rer/modules/agent-door/conformance/protocol.mjs'
 
 // These are confirmed disposable sessions, never a browser profile or a fixture
 // account inserted into storage. The owner initializer supplies the invitation.
@@ -59,7 +60,7 @@ export default async function prepare(context) {
       party: { name: 'synthetic-locket-access-control', kind: 'supplier' }, restricted: true,
     })
   }
-  phases.set(context.phase, { colleagueId: colleague.id, sponsorId: sponsor.id, controlId: control?.id })
+  phases.set(context.phase, { colleagueId: colleague.id, sponsorId: sponsor.id, sponsorName: sponsor.name, controlId: control?.id })
   return { values: { colleague: { id: colleague.id } } }
 }
 
@@ -182,6 +183,8 @@ export async function afterStep(context) {
   const row = rows[0]
   assert.equal(row.tool, step.tool)
   assert.equal(row.sponsor.id, fixture.sponsorId)
+  assert.equal(row.sponsor.name, fixture.sponsorName)
+  assert.equal(row.agent.name, 'Agent door conformance')
   assert.equal(row.decision, phase === 'held' ? 'approval' : 'autonomous')
   assert.deepEqual(row.classes, [{ class: 'access', facts: {
     measure: 1, direction: ['grant', 'role'].includes(step.id) ? 'widens' : 'narrows',
@@ -226,7 +229,7 @@ export async function afterStep(context) {
 export async function authorityJourney() {
   const context = await accessFixture()
   try {
-    const d = doors(context), { owner, sponsor, post } = context
+    const d = doors(context), { owner, sponsor } = context
     const state = await d.state()
     const sponsorId = state.operators.find(row => row.email === context.colleagueEmail).id
     const colleagueId = state.operators.find(row => row.email === context.targetEmail).id
@@ -235,67 +238,88 @@ export async function authorityJourney() {
     sponsor.sponsor.id = sponsorId
     const created = await d.command('request.create', { title: 'synthetic-locket-authority', type: 'supplier',
       party: { name: 'synthetic-locket-authority', kind: 'supplier' }, restricted: true })
-    const nativeRole = async role => {
-      const response = await post('/auth/operator/role', { operatorId: sponsorId, role }, context.cookie)
-      assert.equal(response.ok, true)
-      await response.body?.cancel()
-    }
+    const version = async () => (await d.state()).agreements.find(row => row.id === created.id).version
+    const accessArgs = async grant => ({ agreementId: created.id, operatorId: colleagueId, grant,
+      version: await version(), idempotency_key: randomUUID() })
+    const roleArgs = () => ({ operatorId: colleagueId, role: 'requester', idempotency_key: randomUUID() })
+    const revoke = client => d.json('/agents/api/agents/' + encodeURIComponent(client.agentId) + '/revoke', { method: 'POST', body: '{}' })
+    const error = errorCode
     await owner.adopt(autonomousPolicy())
-    await nativeRole('owner')
-    for (const [name, input] of [
-      ['locket.access.update', { agreementId: created.id, operatorId: colleagueId, grant: 'grant',
-        version: (await d.state()).agreements.find(row => row.id === created.id).version }],
-      ['locket.people.update', { operatorId: colleagueId, role: 'requester' }],
-    ]) {
-      const allowed = await sponsor.tool(name, { ...input, idempotency_key: randomUUID() })
-      assert.equal(allowed.result?.isError, false, 'An active native owner sponsor may act')
-    }
-    assert.deepEqual(grants(await d.state(), created.id), [colleagueId])
+    await d.command('role.set', { operatorId: sponsorId, role: 'counsel' })
+    // Keep the sponsor a reader after demotion so this tests loss of the
+    // native write authority independently from restricted-record visibility.
+    await d.command('access.set', { agreementId: created.id, operatorId: sponsorId, grant: 'grant', version: await version() })
+    const grant = await accessArgs('grant')
+    const allowedGrant = await sponsor.tool('locket.access.update', grant)
+    assert.equal(allowedGrant.status, 200, 'Active native access control: ' + error(allowedGrant))
+    assert.equal(allowedGrant.result?.isError, false)
+    assert.deepEqual(grants(await d.state(), created.id), [colleagueId, sponsorId].sort())
+    const people = context.ownerClient(), assignment = roleArgs()
+    const allowedRole = await people.tool('locket.people.update', assignment)
+    assert.equal(allowedRole.result?.isError, false)
     assert.equal(roleOf(await d.state(), colleagueId), 'requester')
-    await nativeRole('member')
+
+    await d.command('role.set', { operatorId: sponsorId, role: 'viewer' })
+    await revoke(people)
     let before = await d.snapshot()
-    for (const [name, input] of [
-      ['locket.access.update', { agreementId: created.id, operatorId: colleagueId, grant: 'revoke',
-        version: (await d.state()).agreements.find(row => row.id === created.id).version }],
-      ['locket.people.update', { operatorId: colleagueId, role: 'viewer' }],
-    ]) {
-      const refused = await sponsor.tool(name, { ...input, idempotency_key: randomUUID() })
-      assert.equal(refused.result?._meta?.['com.runeditrun/error']?.code, 'FORBIDDEN')
+    const native = await context.signInSponsor()
+    const noAccess = await accessArgs('revoke')
+    for (const input of [noAccess, grant]) {
+      const refused = await sponsor.tool('locket.access.update', input)
+      assert.equal(error(refused), 'FORBIDDEN')
       assert.equal(refused.result?.structuredContent, undefined)
-      assert.deepEqual(await d.snapshot(), before, 'Lost native authority must refuse without an effect')
+      assert.deepEqual(await d.snapshot(), before)
     }
-    console.log('PROBE BASE-AGENT-005 native-authority: current native sponsor demotion -> both MCP tools refuse and native state is unchanged')
+    for (const input of [roleArgs(), assignment]) {
+      const refused = await people.tool('locket.people.update', input)
+      assert.equal(refused.status, 401)
+      assert.equal(refused.result?.structuredContent, undefined)
+      assert.deepEqual(await d.snapshot(), before)
+    }
+    for (const [type, payload] of [['access.set', noAccess], ['role.set', assignment]]) {
+      const refused = await d.send('/api/locket/commands', { method: 'POST', body: JSON.stringify({
+        commandId: randomUUID(), type, payload,
+      }) }, native.cookie)
+      assert.equal(refused.status, 403)
+      assert.equal((await refused.json()).error.code, 'FORBIDDEN')
+      assert.deepEqual(await d.snapshot(), before)
+    }
+    console.log('PROBE BASE-AGENT-005 native-authority: native counsel demotion and agent revocation -> current calls and captured replays refuse with unchanged native state')
+
     const held = heldPolicy()
     held.rules[0].approver = ['role:owner']
     await owner.adopt(held)
-    // Direct native changes invalidate held evidence for both tools.
-    const current = (await d.state()).agreements.find(row => row.id === created.id)
     for (const [toolName, args, access] of [
-      ['locket.access.update', { agreementId: created.id, operatorId: colleagueId, grant: 'revoke', version: current.version }, true],
+      ['locket.access.update', { agreementId: created.id, operatorId: colleagueId, grant: 'revoke', version: await version() }, true],
       ['locket.people.update', { operatorId: colleagueId, role: 'viewer' }, false],
     ]) {
       await staleApproval({ step: { tool: toolName }, args, tool: owner.tool }, d, { colleagueId }, access)
     }
-    // A valid approval cannot restore authority that the sponsor has lost.
-    for (const [name, input] of [
-      ['locket.access.update', { agreementId: created.id, operatorId: colleagueId, grant: 'revoke' }],
-      ['locket.people.update', { operatorId: colleagueId, role: 'viewer' }],
-    ]) {
-      await nativeRole('owner')
-      const args = { ...input, ...(name === 'locket.access.update' ? {
-        version: (await d.state()).agreements.find(row => row.id === created.id).version,
-      } : {}), idempotency_key: randomUUID() }
-      const pending = await sponsor.tool(name, args)
-      assert.equal(pending.result?.resultType, 'input_required')
-      await nativeRole('member')
-      before = await d.snapshot()
-      const approved = await owner.decideApproval(pending)
-      assert.equal(approved.ok, true)
-      assert.equal(approved.body.approval.state, 'refused')
-      const retried = await sponsor.tool(name, args, { requestState: pending.result.requestState })
-      assert.equal(retried.result?._meta?.['com.runeditrun/error']?.code, 'FORBIDDEN')
-      assert.deepEqual(await d.snapshot(), before, 'Approval and replay cannot restore lost native authority')
-    }
+    await d.command('role.set', { operatorId: sponsorId, role: 'counsel' })
+    const pendingAccessArgs = await accessArgs('revoke')
+    const pendingAccess = await sponsor.tool('locket.access.update', pendingAccessArgs)
+    assert.equal(pendingAccess.result?.resultType, 'input_required')
+    await d.command('role.set', { operatorId: sponsorId, role: 'viewer' })
+    before = await d.snapshot()
+    const accessApproval = await owner.decideApproval(pendingAccess)
+    assert.equal(accessApproval.ok, true)
+    assert.equal(accessApproval.body.approval.state, 'refused')
+    assert.equal(error(await sponsor.tool('locket.access.update', pendingAccessArgs,
+      { requestState: pendingAccess.result.requestState })), 'FORBIDDEN')
+    assert.deepEqual(await d.snapshot(), before)
+
+    const heldPeople = context.ownerClient(), pendingRoleArgs = { ...roleArgs(), role: 'viewer' }
+    const pendingRole = await heldPeople.tool('locket.people.update', pendingRoleArgs)
+    assert.equal(pendingRole.result?.resultType, 'input_required')
+    await revoke(heldPeople)
+    before = await d.snapshot()
+    const roleApproval = await owner.decideApproval(pendingRole)
+    assert.equal(roleApproval.ok, true)
+    assert.equal(roleApproval.body.approval.state, 'refused')
+    const retry = await heldPeople.tool('locket.people.update', pendingRoleArgs, { requestState: pendingRole.result.requestState })
+    assert.equal(retry.status, 401)
+    assert.equal(retry.result?.structuredContent, undefined)
+    assert.deepEqual(await d.snapshot(), before)
     console.log('PROBE BASE-AGENT-005 held-authority: stale approval and lost native authority -> both tools refuse, including replay, with unchanged native state')
   } catch (error) {
     console.error('Native authority journey failed:', error.code ?? error.name,

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import promptJourney from './prompts.mjs'
-import { beforeStep as beforeAccess, afterStep as afterAccess, authorityJourney } from './access-parity.mjs'
+import { beforeStep as beforeAccess, afterStep as afterAccess } from './access-parity.mjs'
 
 async function accessHook(hook, context) {
   try { await hook(context) } catch (error) {
@@ -37,5 +37,4 @@ export default async function ({ request, origin, cookie, tool }) {
   assert.equal((await human('/api/locket/state')).agreements.find(item => item.id === row.id).title, 'Human revision')
   const audit = await human('/api/locket/audit?agreement=' + row.id)
   assert.ok(audit.rows.some(item => item.action === 'request.create' && item.actor_name.includes(' for Synthetic Base 1')))
-  await authorityJourney()
 }
