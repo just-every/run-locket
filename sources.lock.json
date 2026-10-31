@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "afef86c3a7e7559e04663bdd0b5bf8605f81342b737f4ed76c98b8d2fe28d519",
+      "sha256": "31e0b2793b08a4017873d98e82b9e65e9f856a66adef910952b14d25a9e8f540",
       "executable": false
     },
     "base-copies.json": {
@@ -160,7 +160,7 @@
       "executable": false
     },
     "docs/agents-and-the-api.md": {
-      "sha256": "ece0f8fb874bb22f0dedfdb9b03e0e4e64d44776ed88d1a46eac51f65896eb14",
+      "sha256": "b5a90a8287ce4eb7e8b4e4dc6e932dfa57c9f2e022683dd23c88fabb90a1a2b6",
       "executable": false
     },
     "docs/backup-and-restore.md": {
@@ -5608,7 +5608,7 @@
       "executable": false
     },
     "tests/agent-door/resource-parity.mjs": {
-      "sha256": "29dc2356facd667e6257789cd99d557e90da5c1854659e116ebfc292479b375b",
+      "sha256": "c31a95376c90ed3b01cb464b175a8a540fad760b14b6a9933f1792a08776e673",
       "executable": false
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
