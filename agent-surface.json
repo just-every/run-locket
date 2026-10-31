@@ -459,8 +459,8 @@
           "pointer": "/id"
         },
         "operatorId": {
-          "$from": "people",
-          "pointer": "/members/1/id"
+          "$fixture": "colleague",
+          "pointer": "/id"
         },
         "grant": "grant",
         "version": {
@@ -505,8 +505,8 @@
           "pointer": "/id"
         },
         "operatorId": {
-          "$from": "people",
-          "pointer": "/members/1/id"
+          "$fixture": "colleague",
+          "pointer": "/id"
         },
         "grant": "revoke",
         "version": {
@@ -558,8 +558,8 @@
           "pointer": "/id"
         },
         "operatorId": {
-          "$from": "people",
-          "pointer": "/members/1/id"
+          "$fixture": "colleague",
+          "pointer": "/id"
         },
         "grant": "grant",
         "version": {
@@ -589,8 +589,8 @@
       "tool": "locket.people.update",
       "args": {
         "operatorId": {
-          "$from": "people",
-          "pointer": "/members/1/id"
+          "$fixture": "colleague",
+          "pointer": "/id"
         },
         "role": "requester"
       },
@@ -609,8 +609,8 @@
       "tool": "locket.people.update",
       "args": {
         "operatorId": {
-          "$from": "people",
-          "pointer": "/members/1/id"
+          "$fixture": "colleague",
+          "pointer": "/id"
         },
         "role": "viewer"
       },
@@ -648,6 +648,11 @@
         "label": "colleague",
         "email": "synthetic-colleague@example.invalid",
         "initializer": "tests/agent-door/colleague.mjs"
+      },
+      {
+        "label": "inactive",
+        "email": "synthetic-locket-4@example.invalid",
+        "initializer": "tests/agent-door/negative-sponsor.mjs"
       }
     ],
     "replayAdmission": {
@@ -655,6 +660,21 @@
         "create"
       ]
     },
-    "journey": "tests/agent-door/native-journey.mjs"
+    "journey": "tests/agent-door/native-journey.mjs",
+    "sponsors": [
+      {
+        "label": "owner"
+      },
+      {
+        "label": "inactive",
+        "email": "synthetic-locket-4@example.invalid",
+        "role": "admin",
+        "negativeOnly": true,
+        "initializer": "tests/agent-door/negative-sponsor.mjs"
+      }
+    ],
+    "fixtures": {
+      "module": "tests/agent-door/sponsor-fixtures.mjs"
+    }
   }
 }
