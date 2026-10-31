@@ -16,7 +16,11 @@ export default async function promptJourney() {
   const root = process.cwd()
   const surface = JSON.parse(await readFile('agent-surface.json', 'utf8'))
   const catalogue = JSON.parse(await readFile('src/agent-door/catalogue.json', 'utf8'))
-  const { email, sub } = (await verificationSponsors(root, surface.verification))[0]
+  // This isolated Worker has one owner. Additional sponsor lifecycles, including
+  // negative-only fixtures, remain exercised by the enclosing conformance run.
+  const { email, sub } = (await verificationSponsors(root, { ...surface.verification,
+    sponsors: surface.verification.sponsors?.slice(0, 1),
+  }))[0]
   const pair = await webcrypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])
   const kid = randomUUID(), installationId = randomUUID(), issuer = 'https://synthetic-locket.invalid'
   const publicKeys = { [kid]: await webcrypto.subtle.exportKey('jwk', pair.publicKey) }
