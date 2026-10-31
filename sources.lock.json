@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "06eca707cdaa31930fec60dfb7d1e8b7e41e80732a4c277d8457ecde26d97bce",
+      "sha256": "bbffc220fba98a713929b731e2c85f03e2165a5ec438caa4dcb17c0fb9f30888",
       "executable": false
     },
     "DEMO.md": {
@@ -5628,7 +5628,7 @@
       "executable": false
     },
     "tests/agent-door/proposal-attribution.mjs": {
-      "sha256": "0a10625ab01cc4fd76ea3104a0c6b4eeed5f8583e1fa7efd81d564c465cb7575",
+      "sha256": "dbbf6b4e96885adb97b721fbcf665d0c342f661f8ab7e78fafaec0c8cf13b4e9",
       "executable": false
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
@@ -5948,7 +5948,7 @@
       "executable": false
     },
     "tests/browser/agent-proposal-attribution.mjs": {
-      "sha256": "88a68f89aace7f94eda64ff5e35c02c23648dcd4c1fb1b84273c29e95868f7af",
+      "sha256": "8de3b6ccf97e260ac7905a5e6ef6a5dd9c1976ae0f1dcbdf699f81a1e50d6a4c",
       "executable": false
     },
     "tests/browser/agreement-summary-journey.mjs": {
