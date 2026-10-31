@@ -5,7 +5,8 @@
       "browser": true,
       "hosted": true,
       "commands": [
-        "node .github/scripts/verify.mjs core-app"
+        "node .github/scripts/verify.mjs core-app",
+        "pnpm exec playwright test --config tests/browser/playwright.config.ts audit.spec.ts --grep BASE-AGENT-009 --workers=1"
       ]
     },
     {
