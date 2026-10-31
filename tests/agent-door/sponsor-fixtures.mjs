@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
 import { colleagueIdentity } from './colleague.mjs'
+import prepareAccess from './access-parity.mjs'
 import { inactiveSponsor } from './negative-sponsor.mjs'
 
-export default async function ({ phase, request, origin, cookie, database }) {
+export default async function (context) {
+  const { phase, request, origin, cookie, database } = context
+  await prepareAccess(context)
   const colleague = colleagueIdentity()
   const values = { colleague: { id: colleague.id } }
   if (phase !== 'negative') return { values }

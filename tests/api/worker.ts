@@ -15,6 +15,8 @@ import { runNotifications } from '../../src/locket/notification-dispatch'
 import { runReports } from '../../src/locket/report-dispatch'
 import { locketResponse } from '../../src/locket/api'
 import { authResponse } from '../../src/auth.server'
+import { locketAgentDoor } from '../../src/agent-door/index.server'
+import { businessSettings } from '../../src/agent-door/business'
 import { runApprovalReminders } from '../../src/locket/approval-reminder-dispatch'
 import { runDeadlineReminders } from '../../src/locket/deadline-reminder-dispatch'
 
@@ -22,6 +24,11 @@ const systemNow = Date.now
 export default {
   async fetch(request: Request, env: any) {
     Date.now = env.TEST_NOW ? () => Number(env.TEST_NOW) : systemNow
+    const path = new URL(request.url).pathname
+    if (path === '/api/rer/business-settings') return (await businessSettings(env).handle(request))!
+    if (path === '/mcp' || path === '/api/rer/agent-policy' || path.startsWith('/agents/api/')) {
+      return (await (await locketAgentDoor(env)).handle(request))!
+    }
     return (await locketResponse(request, env)) ?? (await authResponse(request, env)) ?? new Response('Not found', { status: 404 })
   },
   async scheduled(controller: ScheduledController, env: any) {
