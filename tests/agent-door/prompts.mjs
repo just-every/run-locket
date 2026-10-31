@@ -15,15 +15,18 @@ export default async function promptJourney() {
   const root = process.cwd()
   const surface = JSON.parse(await readFile('agent-surface.json', 'utf8'))
   const catalogue = JSON.parse(await readFile('src/agent-door/catalogue.json', 'utf8'))
-  const { email, sub } = (await verificationSponsors(root, surface.verification))[0]
+  // This isolated prompt installation needs only its owner; the main verifier
+  // retains and exercises every additional sponsor, including negative-only probes.
+  const { email, sub } = (await verificationSponsors(root, { owner: surface.verification.owner }))[0]
   const pair = await webcrypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])
   const kid = randomUUID(), installationId = randomUUID(), issuer = 'https://synthetic-locket.invalid'
   const publicKeys = { [kid]: await webcrypto.subtle.exportKey('jwk', pair.publicKey) }
+  let networkAttempts = 0
   const hosted = await serveHosted(root, { bindings: {
     RER_OWNER_CLAIM_ISSUER: issuer, RER_OWNER_CLAIM_INSTALLATION_ID: installationId,
     RER_OWNER_CLAIM_PUBLIC_KEYS: JSON.stringify(publicKeys), OWNER_EMAIL: email,
     RER_BUSINESS_TRUST: JSON.stringify({ v: 1, issuer, audience: HOSTED_ORIGIN, subject: installationId, email, keys: publicKeys }),
-  }, outboundService: () => { throw new Error('Prompt journey must not contact a provider') } })
+  }, outboundService: () => { networkAttempts++; throw new Error('Prompt journey must not contact a provider') } })
   try {
     const origin = hosted.origin, business = 'synthetic-locket-1'
     const request = (absolute, init = {}) => {
@@ -57,10 +60,10 @@ export default async function promptJourney() {
       const state = await native('/api/locket/state')
       return { agreements: state.agreements, parties: state.parties, operators: state.operators,
         proposals: state.proposals, versions: state.versions, artifacts: state.artifacts,
-        terms: state.terms, obligations: state.obligations, audit: await native('/api/locket/audit?agreement=' + agreementId) }
+        terms: state.terms, obligations: state.obligations, audit: await native('/api/locket/audit?agreement=' + agreementId), networkAttempts }
     }
     const before = await snapshot()
-    for (const [key, value] of Object.entries(before)) if (key !== 'audit') assert.ok(Array.isArray(value), key)
+    for (const [key, value] of Object.entries(before)) if (!['audit', 'networkAttempts'].includes(key)) assert.ok(Array.isArray(value), key)
     assert.ok(before.agreements.some(row => row.id === agreementId))
     const promptNames = [...new Set(catalogue.filter(tool => tool.promptJob).map(tool => `locket.contract_operations.${tool.promptJob}`))].sort()
     assert.equal(promptNames.length, 2)
@@ -85,6 +88,7 @@ export default async function promptJourney() {
       const first = await c.mcp('prompts/list'), second = await c.mcp('prompts/list')
       assert.deepEqual(first.result, second.result)
       assert.equal(first.result.cacheScope, 'private')
+      assert.equal(first.headers.get('cache-control'), 'no-store')
       assert.equal(typeof first.result.ttlMs, 'number')
       assert.deepEqual(first.result.prompts.map(prompt => prompt.name), promptNames)
       const tools = (await c.mcp('tools/list')).result.tools
@@ -93,6 +97,7 @@ export default async function promptJourney() {
         assert.equal(answer.status, 200)
         assert.equal(answer.body.error, undefined)
         assert.equal(answer.result.cacheScope, 'private')
+        assert.equal(answer.headers.get('cache-control'), 'no-store')
         assert.equal(answer.result.description, prompt.description)
         assert.ok(answer.result.messages.length > 0)
         for (const message of answer.result.messages) {

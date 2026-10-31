@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a658ec3c9328ddfc75d1c87ff7ad730ae25d8b6ef13e71c11120506e2fdee571",
+      "sha256": "76616defbd0b537d3af7dcc6422d383b4060f8dc4d7b11620d60c03d3e803d1d",
       "executable": false
     },
     "DEMO.md": {
@@ -5608,7 +5608,7 @@
       "executable": false
     },
     "tests/agent-door/prompts.mjs": {
-      "sha256": "b8d2049e327a252791dbbfb2f569b10341bfb52bc03e4af3bd8f81edf4a1f51d",
+      "sha256": "268fdd5b3d172814b3e36167ca4f93cf53587a9080b6335fb2a58e03e937361c",
       "executable": false
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
