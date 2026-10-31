@@ -17,7 +17,6 @@ export default async function accessFixture() {
   const installationId = randomUUID(), kid = randomUUID(), ownerSub = randomUUID(), colleagueSub = randomUUID()
   const pair = await webcrypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])
   const publicKeys = { [kid]: await webcrypto.subtle.exportKey('jwk', pair.publicKey) }
-  console.log('Native authority fixture: preparing Worker')
   const h = await installation({ bindings: origin => ({
     RER_OWNER_CLAIM_ISSUER: issuer, RER_OWNER_CLAIM_INSTALLATION_ID: installationId,
     RER_OWNER_CLAIM_APP_ORIGIN: origin, RER_OWNER_CLAIM_PUBLIC_KEYS: JSON.stringify(publicKeys),
@@ -25,7 +24,6 @@ export default async function accessFixture() {
     OWNER_EMAIL: email,
   }) })
   try {
-    console.log('Native authority fixture: native Worker ready')
     const origin = h.origin, cookie = h.owner.cookie
     const request = (absolute, init = {}) => {
       assert.equal(new URL(absolute).origin, origin)
@@ -35,7 +33,6 @@ export default async function accessFixture() {
       method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json', Cookie: session },
       body: JSON.stringify(body),
     })
-    await h.invite(colleagueEmail, 'viewer')
     const target = await h.invite(targetEmail, 'viewer')
     const iat = seconds()
     const settings = await signJws(pair.privateKey, kid, 'rer-business-settings+jwt', {
@@ -46,6 +43,17 @@ export default async function accessFixture() {
     const paired = await post('/api/rer/business-settings', { settings })
     assert.equal(paired.status, 200)
     assert.equal((await paired.json()).rev, 1)
+    // Business creates its own invitation and durable native binding. An
+    // unrelated account with the same address is deliberately never adopted.
+    const message = h.mails.findLast(message => message.to.includes(colleagueEmail))
+    assert.ok(message)
+    const link = new URL(message.text.match(/https?:\/\/[^\s]+/)[0])
+    assert.equal(link.origin, origin)
+    const confirmed = await h.request('/auth/confirm', { method: 'POST', body: { token: link.searchParams.get('token') } })
+    assert.equal(confirmed.status, 303)
+    const sponsorCookie = confirmed.headers.getSetCookie().map(value => value.split(';', 1)[0]).join('; ')
+    assert.ok(sponsorCookie && sponsorCookie !== cookie)
+    await confirmed.body?.cancel()
     const makeClient = sub => createProtocol({
       fetch: request, origin, surface, signer: { issuer, installationId, kid, privateKey: pair.privateKey },
       person: { email: sub === ownerSub ? email : colleagueEmail, cookie, sub },
@@ -54,6 +62,6 @@ export default async function accessFixture() {
     })
     return { request, origin, cookie, colleague: { email: targetEmail, cookie: target.cookie },
       owner: makeClient(ownerSub), sponsor: makeClient(colleagueSub), colleagueEmail, targetEmail, post,
-      signInSponsor: () => h.signIn(colleagueEmail), close: () => h.close() }
+      ownerClient: () => makeClient(ownerSub), signInSponsor: () => h.signIn(colleagueEmail), close: () => h.close() }
   } catch (error) { await h.close(); throw error }
 }
