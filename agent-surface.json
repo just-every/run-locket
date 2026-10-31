@@ -8,7 +8,8 @@
     "pause",
     "audit",
     "idempotency",
-    "prompts"
+    "prompts",
+    "resources"
   ],
   "tools": [
     {
@@ -156,7 +157,19 @@
       "reason": "installation"
     }
   ],
-  "resources": [],
+  "resources": [
+    "locket://agreements/{id}",
+    "locket://versions/{id}",
+    "locket://files/{id}",
+    "locket://counterparties/{id}",
+    "locket://templates/{id}",
+    "locket://playbooks/{id}",
+    "locket://findings/{id}",
+    "locket://obligations/{id}",
+    "locket://renewals/{id}",
+    "locket://notices/{id}",
+    "locket://reports/{id}"
+  ],
   "journey": [
     {
       "id": "count",
