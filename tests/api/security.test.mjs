@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { installation } from './harness.mjs'
 import { file, find, library, pdf, submitted, team } from './setup.mjs'
+import { authorityJourney } from '../agent-door/access-parity.mjs'
 
 test('sessions, roles, idempotent commands and stale writes are enforced by the server', async t => {
   const h = await installation(); t.after(() => h.close())
@@ -75,6 +76,7 @@ test('sessions, roles, idempotent commands and stale writes are enforced by the 
   await h.owner.command('requirement.attach', { agreementId: id, requirementId: (await h.owner.state()).requirements.find(r => r.agreement_id === id).id, file: file('again.pdf', pdf('again')) })
   const audit = (await h.owner.state()).audit.filter(x => x.agreement_id === id)
   assert.ok(audit.some(x => x.action === 'agreement.submit' && x.actor_role === 'requester'))
+  await authorityJourney()
 })
 
 test('a restricted request prepared by an agent stays hidden, counterparty included, from everyone outside it', async t => {
