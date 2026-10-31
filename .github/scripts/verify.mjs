@@ -7,6 +7,7 @@ import { readFile, readdir } from 'node:fs/promises'
 const packageJson = JSON.parse(await readFile('package.json', 'utf8'))
 const commands = [
   ...['build', 'typecheck', 'test:runtime', 'test:email-link'].map(script => ({ command: `pnpm run ${script}`, script, phase: 'core' })),
+  { command: 'node tests/browser/agent-proposal-attribution.mjs', script: 'proposal-attribution', phase: 'core' },
   { command: 'pnpm run test:api', script: 'test:api', phase: 'api' },
   { command: 'pnpm run test:portable', script: 'test:portable', phase: 'portable' },
 ]

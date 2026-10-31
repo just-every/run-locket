@@ -1,4 +1,5 @@
 import { signaturePacketHandlers } from './signature-packets'
+import { proposalPreparerWrites } from './agent-provenance'
 import { agentDraft, preparedNoticeText, sourceOf, sourceChecks } from './notice-agent'
 import { prepareCustomFields, applyCustomFields, customProposalAuthority } from './custom-proposals'
 // Agent work: an agent (or any preparer) records an evidence-backed proposal;
@@ -49,7 +50,7 @@ const prepare: Handler = async (c, p) => {
   return {
     allowed: may.prepare,
     result: { id, status: 'pending' },
-    writes: [sql('INSERT INTO lk_proposals VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', id, kind, agreementId, json(payload), json(evidence), assumptions, c.actor.id, c.now, 'pending', null, null, null, null)],
+    writes: [sql('INSERT INTO lk_proposals VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', id, kind, agreementId, json(payload), json(evidence), assumptions, c.actor.id, c.now, 'pending', null, null, null, null), ...proposalPreparerWrites(c, id)],
     audit: [{ action: 'proposal.prepare', agreementId, summary: `Prepared ${kind} proposal for review` }],
   }
 }

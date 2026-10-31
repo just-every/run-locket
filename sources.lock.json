@@ -84,7 +84,7 @@
       "executable": false
     },
     ".github/scripts/verify.mjs": {
-      "sha256": "021f187eddd3f0754aff04d8e3cbffc145c40a6710c608297ffd7f0ec6cd9821",
+      "sha256": "5fdf954301d3ec90c29e19499eeadb3246fb4b69b82d988db092578c4f78f67c",
       "executable": false
     },
     ".github/workflows/nightly-acceptance.yml": {
@@ -601,6 +601,10 @@
     },
     "migrations/core/0096_enterprise_imports.sql": {
       "sha256": "f5891d191ddbb24944829aad8b0a3e87ef3b16a074fdf96664eac5fea3d1f0a3",
+      "executable": false
+    },
+    "migrations/core/0097_proposal_agent_provenance.sql": {
+      "sha256": "8973371981c1d9926f0fbdff5d3a6be34b53c47106b8f2b4b48d01a0e7221e40",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1855,6 +1859,10 @@
       "sha256": "afe0d445948ddd047bc872b1dc7fbe6605a8a820b1fd36985ebb755bbf58a428",
       "executable": false
     },
+    "src/locket/agent-provenance.ts": {
+      "sha256": "b954e03b8638b0ce72750d48ace37958f69cf7ca6b8895e98e806d3521c4f0e1",
+      "executable": false
+    },
     "src/locket/agreement-summaries.ts": {
       "sha256": "b6c69f3effcbf4e62b3b79bce2c116d6058ce4a3d9c1c34925362713a25d1002",
       "executable": false
@@ -1964,7 +1972,7 @@
       "executable": false
     },
     "src/locket/commands.ts": {
-      "sha256": "c4d0ba4687611f952685b362fbc1a4a944aa50c4129815a2b39bb90db00ef6b0",
+      "sha256": "c678346259160f8e2dd745048ed1bbb6f091877b396f5cfb9abf187e8cc052cf",
       "executable": false
     },
     "src/locket/comment-threads.ts": {
@@ -2396,7 +2404,7 @@
       "executable": false
     },
     "src/locket/proposals.ts": {
-      "sha256": "40b70a09c3ee77a420ec16c31b2c3ceea8b167a7e69dd6a33fb7cdbd65c91ba8",
+      "sha256": "a3210ee035899996e7349cb70bf8f57c682e02714c89e1fec6c45c70f5e3cafc",
       "executable": false
     },
     "src/locket/reconciliation-decisions.ts": {
@@ -2668,7 +2676,7 @@
       "executable": false
     },
     "src/locket/views.ts": {
-      "sha256": "ff6599d7fb49b231e4c3311e39a55d2ef63b33ae430459926e3cd50af937f738",
+      "sha256": "08e2690d6ef58ebbba3073e250560c8ec3b6f5c7fc21b59261f7b8ce618122c4",
       "executable": false
     },
     "src/locket/word-pricing.ts": {
@@ -5380,7 +5388,7 @@
       "executable": false
     },
     "src/ui/proposals.tsx": {
-      "sha256": "6743a42294ce8c68e5dd9181819620d0ce71cefd7cc72ce3c4726b0645137c0b",
+      "sha256": "795ce488f0839e1d3c2c8c53b91c61ff779812134944bff63908389e5418c152",
       "executable": false
     },
     "src/ui/reconciliation-finding.tsx": {
@@ -5604,7 +5612,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "4a41b7006e98f513dd99cffbefd949f769c0016f3b77d28cf814540280b170e4",
+      "sha256": "a8a1cf148b67b202e7180535d9b87ef6c400586294cc0cb7a9d97f2061078054",
       "executable": false
     },
     "tests/agent-door/negative-sponsor.mjs": {
@@ -5617,6 +5625,10 @@
     },
     "tests/agent-door/prompts.mjs": {
       "sha256": "268fdd5b3d172814b3e36167ca4f93cf53587a9080b6335fb2a58e03e937361c",
+      "executable": false
+    },
+    "tests/agent-door/proposal-attribution.mjs": {
+      "sha256": "083eff44b5c9c99768498ec90ca98e56d8cc25cb7a736960563f24293dd0c5cc",
       "executable": false
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
@@ -5933,6 +5945,10 @@
     },
     "tests/api/workforce-fixture.mjs": {
       "sha256": "5bc012995e5f786807b39e07f36db9c20eda239c14ab409bee1d8c3da8272b54",
+      "executable": false
+    },
+    "tests/browser/agent-proposal-attribution.mjs": {
+      "sha256": "56d08a70a259b85d22df49b305f738f6dee6bf0750d679f97dff14a66065f735",
       "executable": false
     },
     "tests/browser/agreement-summary-journey.mjs": {
