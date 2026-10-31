@@ -111,6 +111,16 @@ test('BASE-AGENT-009 downloads complete native agent audit custody from Activity
       expect(archive.agentAudit.rows.length).toBeGreaterThan(200)
       expect(archive.agentAudit).toEqual(fixture.archive.agentAudit)
       expect(archive.records.lk_agent_commands).toEqual(fixture.archive.records.lk_agent_commands)
+      const actions = new Set()
+      for (const command of archive.records.lk_agent_commands) {
+        const calls = archive.agentAudit.rows.filter((row: any) => row.operation_id === command.operation_id && row.outcome === 'done')
+        expect(calls).toHaveLength(1)
+        expect(calls[0].agent.id).toBe(command.agent_id)
+        const native = archive.records.lk_audit.filter((row: any) => row.command_id === command.command_id)
+        expect(native).toHaveLength(1)
+        actions.add(native[0].action)
+      }
+      expect(actions).toEqual(new Set(['request.create', 'request.update', 'proposal.prepare', 'access.grant', 'access.revoke', 'role.set']))
       expect(new Set(archive.agentAudit.rows.map((row: any) => row.agent.id)).size).toBe(2)
       expect(archive.agentAudit.approvals.some((row: any) => row.state === 'pending')).toBe(true)
       expect(archive.agentAudit.reviews.some((row: any) => row.marked_name)).toBe(true)
@@ -118,7 +128,8 @@ test('BASE-AGENT-009 downloads complete native agent audit custody from Activity
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
       if (process.env.LOCKET_SCREENSHOTS) {
         await mkdir(process.env.LOCKET_SCREENSHOTS, { recursive: true })
-        await page.screenshot({ path: join(process.env.LOCKET_SCREENSHOTS, `${width}-agent-audit-archive.png`), fullPage: true })
+        await archiveLink.scrollIntoViewIfNeeded()
+        await page.screenshot({ path: join(process.env.LOCKET_SCREENSHOTS, `${width}-agent-audit-archive.png`) })
       }
     }
   } finally { await product.close() }

@@ -182,7 +182,7 @@ export default async function auditExportJourney({ createInstallation = installa
       // Their operation and command joins must remain useful in an owner archive.
       const beforeProposal = await h.owner.state()
       const { idempotency_key: unused, ...proposalPayload } = createArgs(phase + '-proposal')
-      const proposal = await execute(a, 'locket.proposals.prepare', {
+      const proposal = await execute(b, 'locket.proposals.prepare', {
         payload: proposalPayload, evidence: ['synthetic-locket-recorded-request'],
         idempotency_key: randomUUID(),
       }, { action: 'proposal.prepare', id: null, phase })
@@ -249,7 +249,8 @@ export default async function auditExportJourney({ createInstallation = installa
       assert.equal(row.agent.specialist, surface.specialist)
       assert.equal(row.client_id, 'synthetic-locket-client-' + (fixture.agent === a ? 1 : 2))
       assert.equal(row.consent, fixture.agent.consent)
-      assert.ok(row.scopes.includes(fixture.scope ?? 'locket:write'))
+      assert.ok(row.scopes.includes('locket:write'))
+      if (fixture.scope) assert.ok(row.scopes.includes(fixture.scope))
       assert.equal(row.label, row.agent.name + ' for ' + row.sponsor.name)
       assert.ok(row.classes.length && row.rules.length && row.revision > 0)
       const commands = archive.records.lk_agent_commands.filter(item => item.operation_id === row.operation_id)
@@ -262,7 +263,7 @@ export default async function auditExportJourney({ createInstallation = installa
       if (fixture.target) assert.deepEqual(row.resource, fixture.target)
       assert.equal(native[0].agreement_id, fixture.id)
       assert.equal(native[0].actor_name, row.label)
-      if (fixture.agent === a && !fixture.action) assert.equal(row.trace, 'synthetic-locket-trace-' + fixture.phase)
+      if (fixture.agent === a) assert.equal(row.trace, 'synthetic-locket-trace-' + fixture.phase)
       if (row.approval) {
         const approval = archive.agentAudit.approvals.find(item => item.id === row.approval.id)
         assert.equal(approval.state, 'executed')

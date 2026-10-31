@@ -116,7 +116,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "b88f3b3ab17d28513db79d3b80c60f2d338da0aa6bc40bd881b4426afd74ff60",
+      "sha256": "e79f1f600d0bf6eb5a6f8771e8431d230c31613c4352c24d8ae59f0b19a312e7",
       "executable": false
     },
     "agent-surface.json": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "4aed0c563fb653ea43836523057a5f41d8abc10b6bbf1ab40768b1f735256c5f",
+      "sha256": "d6aba1598d808131ec06100676efc133139067a36abed4fc4fcef36b1e20f910",
       "executable": false
     },
     "DEMO.md": {
@@ -172,7 +172,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "78a198944d951f4a13b6b322cfc04bd20f34c6d2cb709245f0e41f6e465435ec",
+      "sha256": "452612ef319d4ee1f461b323bc79f3e8ce313955f7a97aee585a1376bf21b607",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -5600,7 +5600,7 @@
       "executable": false
     },
     "tests/agent-door/audit-export.mjs": {
-      "sha256": "2acdef4f707ea1b9f12161f3b0f163f763beaa96165f97f94f6c74bed9a82940",
+      "sha256": "a58ec70fc526aa08fc1a5f408e6274723b55b3d61b930b36e46c77aa37c41591",
       "executable": false
     },
     "tests/agent-door/colleague.mjs": {
@@ -5612,7 +5612,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "0bfa56f007a062847e55165e0a7122a2d01d70df09ee96af3486b23c33e0ccc1",
+      "sha256": "455ce532967ed1f505632e591466f713ccc3b2e7eded41c8995507d586d8554f",
       "executable": false
     },
     "tests/agent-door/negative-sponsor.mjs": {
@@ -5629,6 +5629,10 @@
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
       "sha256": "ca52751e1d96c36e8d66323267b5ced72941c446b3bac440b0a9db6db02bde69",
+      "executable": false
+    },
+    "tests/agent-door/transport-replay.mjs": {
+      "sha256": "cff1fbb6ab10cf570147b5e73328035a8a7bcc5b5a9bcab34a80f3a10d8ea883",
       "executable": false
     },
     "tests/api/accounting-read-fixture.mjs": {
@@ -5964,7 +5968,7 @@
       "executable": false
     },
     "tests/browser/audit.spec.ts": {
-      "sha256": "81afe46b99d3e257f64037a7b121d11998e28736227cf3413690d5482b8e9a33",
+      "sha256": "80e748c81e3973895d44a5cf7b241c56c0bd6601f657a1c056e06566d8e72a08",
       "executable": false
     },
     "tests/browser/browser-edits-live.mjs": {
