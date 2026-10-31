@@ -47,11 +47,11 @@ function ProposalCard({ state, p, open, onOpen, locket }: { state: LocketState; 
   const customFields = state.customFields.filter(f => proposedIds.includes(f.id))
   const fieldAuthority = p.kind !== 'custom_fields' || (customFields.length === proposedIds.length && customFields.every(f => mayEditField(state, f)))
   const mayDecide = fieldAuthority && deciders[p.kind].includes(state.actor.role) && (p.prepared_by !== state.actor.id || state.actor.role === 'owner')
-  const by = personName(state, p.prepared_by)
+  const by = p.prepared_label ?? personName(state, p.prepared_by)
   return (
     <li className={`lk-proposal${open ? ' lk-open' : ''}`}>
       <div className="lk-proposal-head">
-        <Avatar name={by} agent={isAgent(state, p.prepared_by)} large />
+        <Avatar name={by} agent={!!p.prepared_agent_id || isAgent(state, p.prepared_by)} large />
         <span>
           <button type="button" className="lk-linklike" aria-expanded={open} onClick={onOpen}>{agreement ? `${agreement.title} — ` : ''}{kindLabel[p.kind]}</button>
           <small>Prepared by {by} · {when(p.prepared_at)}</small>
