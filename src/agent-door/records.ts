@@ -48,6 +48,14 @@ export function classification(value: unknown): ClassAndFacts[] {
   return [{ class: 'standard', facts: { measure: 1 } }, ...(sensitive(value) ? [{ class: 'sensitive' as const, facts: { measure: 1, kind: 'tax_identifier' } }] : [])]
 }
 
+/** Count sensitive records once, even when several returned fields or repeated
+ * identifiers in the same record match. Hidden native fields are never inputs. */
+export function peopleClassification(members: NativeRecord[]): ClassAndFacts[] {
+  const sensitive = new Set(members.filter(member => classification(member).some(item => item.class === 'sensitive')).map(member => member.id))
+  return [{ class: 'standard', facts: { measure: 1 } }, ...(sensitive.size
+    ? [{ class: 'sensitive' as const, facts: { measure: sensitive.size, kind: 'tax_identifier' } }] : [])]
+}
+
 /** A reader grant exposes this agreement's currently visible native content,
  * including its counterparty and document text, rather than just its title. */
 export async function disclosureClasses(env: Bindings, actor: Actor, id: string) {

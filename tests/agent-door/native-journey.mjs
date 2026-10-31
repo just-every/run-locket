@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import promptJourney from './prompts.mjs'
 import transportReplayJourney from './transport-replay.mjs'
+import peopleClassificationJourney, { beforeStep as beforePeople, afterStep as afterPeople } from './people-classification.mjs'
 import { beforeStep as beforeAccess, afterStep as afterAccess } from './access-parity.mjs'
 import { beforeStep as beforeAttribution, afterStep as afterAttribution } from './proposal-attribution.mjs'
 
@@ -14,10 +15,12 @@ async function accessHook(hook, context) {
 }
 export const beforeStep = async context => {
   await accessHook(beforeAccess, context)
+  await beforePeople(context)
   await attributionHook(beforeAttribution, context)
 }
 export const afterStep = async context => {
   await accessHook(afterAccess, context)
+  await afterPeople(context)
   await attributionHook(afterAttribution, context)
 }
 
@@ -32,6 +35,7 @@ async function attributionHook(hook, context) {
 export default async function ({ request, origin, cookie, tool }) {
   await promptJourney()
   await transportReplayJourney()
+  await peopleClassificationJourney()
   const human = async (path, init = {}) => {
     const response = await request(origin + path, { ...init, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json', ...init.headers } })
     assert.equal(response.ok, true)
