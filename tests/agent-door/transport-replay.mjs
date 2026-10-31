@@ -246,6 +246,52 @@ export default async function transportReplayJourney() {
         assert.deepEqual((await native('/api/locket/audit?agreement=' + agreementId)).rows.filter(row => row.command_id === command.command_id), effect)
         assert.deepEqual(committed.audit.filter(row => row.command_id === command.command_id), effect)
         console.log(`PROBE BASE-AGENT-012 point-2 ${phase}.${kind}: authenticated MCP through severed HTTP connection -> zero response bytes; two fresh-id retries recover identical recorded outcome, original approval and one native effect with separate linked replay audit rows`)
+
+        // A person can continue working while the caller recovers its lost
+        // response. The retained outcome must not rerun an old title update or
+        // treat its now-stale expected revision as a new operation.
+        const changedTitle = `synthetic-locket-14-${phase}-${kind}`
+        const committedRow = committed.agreements.find(row => row.id === agreementId)
+        const humanCommandId = randomUUID()
+        const edited = await c.personRequest('/api/locket/commands', { method: 'POST', body: JSON.stringify({
+          commandId: humanCommandId, type: 'request.update',
+          payload: { agreementId, version: committedRow.version, title: changedTitle },
+        }) })
+        assert.equal(edited.status, 200)
+        assert.deepEqual((await edited.json()).result, { id: agreementId })
+        const advanced = await snapshot()
+        const advancedRow = advanced.agreements.find(row => row.id === agreementId)
+        assert.equal(advancedRow.version, committedRow.version + 1)
+        assert.equal(advancedRow.title, changedTitle)
+        assert.equal(advanced.records.lk_audit.length, committed.records.lk_audit.length + 1)
+        assert.deepEqual(advanced.records.lk_agent_commands, committed.records.lk_agent_commands)
+        assert.equal(advanced.records.lk_audit.filter(row => row.command_id === humanCommandId).length, 1)
+
+        // Only the original arguments and key are needed, even for a held
+        // operation: a retry need not retain the earlier approval requestState.
+        const historical = await c.tool(name, args)
+        assert.equal(historical.result?.isError, false)
+        assert.deepEqual(historical.result.structuredContent, recorded.structuredContent)
+        assert.deepEqual(historical.result.content, recorded.content)
+        if (pending) {
+          assert.deepEqual(historical.result._meta['com.runeditrun/receipt'], recorded._meta['com.runeditrun/receipt'])
+          assert.deepEqual((await native(approvalPath)).approval, approvalBefore)
+        }
+        assert.deepEqual(await snapshot(), advanced, 'Recovery must preserve the later human title and revision with no extra native effect')
+        const historicalRows = await doorAudit(args.idempotency_key)
+        const historicalReplays = historicalRows.filter(row => row.outcome === 'replayed')
+        assert.equal(historicalReplays.length, initialReplays + 3)
+        const historicalReplay = historicalReplays.at(-1)
+        assert.equal(historicalReplay.operation_id, original.operation_id)
+        assert.equal(historicalReplay.replay_of, replayOf)
+        assert.deepEqual(historicalReplay.approval, original.approval)
+        assert.equal(historicalRows.filter(row => row.outcome === 'done').length, 1)
+        const recoveryRequests = proxy.wire.slice(start)
+        assert.equal(recoveryRequests.length, 4)
+        assert.equal(new Set(recoveryRequests.map(row => row.id)).size, 4)
+        assert.equal(new Set(recoveryRequests.map(row => row.connection)).size, 4)
+        for (const row of recoveryRequests) assert.deepEqual(row.args, args)
+        console.log(`PROBE BASE-AGENT-012 point-2 ${phase}.${kind}.later-edit: person command advances title and revision -> same-key fresh-id recovery without requestState returns the archived outcome and original approval, preserves the human edit and adds only one linked replay audit row`)
       }
     }
     assert.equal(networkAttempts, 0)
