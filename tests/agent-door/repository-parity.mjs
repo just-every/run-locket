@@ -12,8 +12,9 @@ function person({ request, origin, cookie }) {
   const fetch = (path, init = {}) => request(origin + path, { ...init, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json', ...init.headers } })
   const json = async (path, init) => {
     const response = await fetch(path, init)
-    assert.equal(response.status, 200, path.split('?')[0])
-    return response.json()
+    const body = await response.json()
+    assert.equal(response.status, 200, `${path.split('?')[0]}: ${body.error?.code ?? 'request failed'}`)
+    return body
   }
   return {
     fetch, state: () => json('/api/locket/state'),

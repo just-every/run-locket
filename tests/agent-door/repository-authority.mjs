@@ -28,7 +28,7 @@ export async function runRepositoryAuthority() {
     const request = (absoluteURL, init = {}) => {
       const url = new URL(absoluteURL)
       assert.equal(url.origin, h.origin, 'Authority fixtures use only their disposable installation')
-      return h.request(url.pathname + url.search, { ...init, ...(init.body === undefined ? {} : { body: JSON.parse(init.body) }) })
+      return h.request(url.pathname + url.search, { ...init, headers: Object.fromEntries(new Headers(init.headers)), ...(init.body === undefined ? {} : { body: JSON.parse(init.body) }) })
     }
     const ownerSession = await (await h.owner.request('/auth/session')).json()
     const ownerSubject = randomUUID(), viewerSubject = randomUUID(), business = randomUUID()
