@@ -5604,7 +5604,7 @@
       "executable": false
     },
     "tests/agent-door/repository-parity.mjs": {
-      "sha256": "d95219af73c2b6dd3b767bf5ae843a0c6afecc1c8775e2c0d36618f8d3a2588f",
+      "sha256": "072ebde8a5f86a570b13eb8940f33101a851087707a84ee0ea66a95ca2cc3fbf",
       "executable": false
     },
     "tests/api/accounting-read-fixture.mjs": {

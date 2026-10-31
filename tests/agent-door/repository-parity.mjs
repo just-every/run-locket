@@ -159,13 +159,14 @@ async function colleagueParity(context, owner, fixture) {
 }
 
 async function sensitivePassage(context, owner, fixture) {
-  const query = `${fixture.tag} EIN 12-3456789`
-  const text = `A disclosed passage: ${query}.`
+  const query = `${fixture.tag} disclosure`
+  const text = `A disclosed passage: ${query}. Supplier EIN 12-3456789.`
   const made = await owner.command('request.create', { title: `${fixture.tag} sensitive`, type: 'supplier', party: { name: fixture.tag, kind: 'supplier' }, file: file(`${fixture.tag}-sensitive.docx`, docx([text])), text })
   const args = { query, columns: ['title'] }
   const native = await owner.repository({ ...(await owner.repository()).definition, ...args })
   assert.deepEqual(ids(native), [made.id])
   assert.equal(native.rows[0].matches[0].quote, query)
+  assert.ok(native.rows[0].matches[0].excerpt.includes('12-3456789'))
   const before = await businessState(owner)
   const answer = await context.tool(searchTool, args)
   assert.ok(answer.decision?.classes.some(item => item.class === 'sensitive' && item.facts.kind === 'tax_identifier'))
