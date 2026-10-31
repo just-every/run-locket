@@ -539,13 +539,17 @@
               },
               "email": {
                 "type": "string"
+              },
+              "revision": {
+                "type": "string"
               }
             },
             "required": [
               "id",
               "name",
               "role",
-              "status"
+              "status",
+              "revision"
             ],
             "additionalProperties": false
           }

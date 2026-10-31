@@ -2,7 +2,7 @@ import type { Bindings } from '../auth.server'
 import { defineTool, ToolRefusal, type ToolDefinition, type ToolContext, type JsonSchemaObject } from '../modules/agent-door/index.ts'
 import { agreementHandlers } from '../locket/agreements'
 import { proposalHandlers } from '../locket/proposals'
-import { peopleHandlers } from '../locket/people'
+import { peopleHandlers, roleSnapshot } from '../locket/people'
 import { may, requireRole, fullReaders, grantsFor, canSee } from '../locket/access'
 import { agentActor, command, nativeCall } from './native'
 import { classification, disclosureClasses, nativeWitness, record, records } from './records'
@@ -92,6 +92,8 @@ export function tools(env: Bindings): ToolDefinition[] {
     },
   })
   const people = defineTool({ ...metadata('locket.people.update'),
+    revisionType: 'string',
+    revision: async args => (await nativeCall(() => roleSnapshot(env.DB, String(args.operatorId)))).revision,
     async authority(args) {
       const subject = await nativeActor(env, String(args.operatorId))
       return { subject: subject.id, widens: roleWidens(subject.role, String(args.role)) }
@@ -101,8 +103,15 @@ export function tools(env: Bindings): ToolDefinition[] {
       const subject = await nativeActor(env, String(args.operatorId))
       return [{ class: 'access', facts: { measure: 1, direction: roleWidens(subject.role, String(args.role)) ? 'widens' : 'narrows' } }]
     },
-    summary: async args => ({ target: { id: String(args.operatorId), name: (await nativeActor(env, String(args.operatorId))).name }, role: String(args.role) }),
-    async run(args, ctx) { return { result: await command(env, ctx, 'role.set', args, peopleHandlers['role.set']) } },
+    summary: async args => {
+      const subject = await nativeCall(() => roleSnapshot(env.DB, String(args.operatorId)))
+      return { target: { id: String(args.operatorId), name: subject.display_name }, role: String(args.role),
+        items: ['Current role: ' + subject.role, 'Native revision: ' + subject.revision] }
+    },
+    async run(args, ctx) {
+      const subject = await nativeCall(() => roleSnapshot(env.DB, String(args.operatorId)))
+      return { result: await command(env, ctx, 'role.set', { ...args, expectedRevision: subject.revision }, peopleHandlers['role.set']) }
+    },
   })
   const list = defineTool({ ...metadata('locket.people.list'), classify: () => classification(null),
     async run(_args, ctx) {
