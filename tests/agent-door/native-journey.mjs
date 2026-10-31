@@ -2,21 +2,29 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import promptJourney from './prompts.mjs'
 import transportReplayJourney from './transport-replay.mjs'
+import eventJourney, { beforeStep as beforeEvents, afterStep as afterEvents } from './events.mjs'
 import { beforeStep as beforeAccess, afterStep as afterAccess } from './access-parity.mjs'
 
 async function accessHook(hook, context) {
   try { await hook(context) } catch (error) {
-    console.error('Native access parity failed:', context.phase, context.step.id,
-      error.code ?? error.name, error.stack?.split('\n').find(line => line.includes('access-parity.mjs:')))
+    console.error('Native agent journey failed:', context.phase, context.step.id,
+      error.code ?? error.name, error.stack?.split('\n').find(line => line.includes('access-parity.mjs:') || line.includes('events.mjs:')))
     throw error
   }
 }
-export const beforeStep = context => accessHook(beforeAccess, context)
-export const afterStep = context => accessHook(afterAccess, context)
+export async function beforeStep(context) {
+  await accessHook(beforeAccess, context)
+  await accessHook(beforeEvents, context)
+}
+export async function afterStep(context) {
+  await accessHook(afterAccess, context)
+  await accessHook(afterEvents, context)
+}
 
 export default async function ({ request, origin, cookie, tool }) {
   await promptJourney()
   await transportReplayJourney()
+  await eventJourney()
   const human = async (path, init = {}) => {
     const response = await request(origin + path, { ...init, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json', ...init.headers } })
     assert.equal(response.ok, true)
