@@ -7,6 +7,7 @@ import { may, requireRole, fullReaders, grantsFor, canSee } from '../locket/acce
 import { agentActor, command, nativeCall } from './native'
 import { classification, disclosureClasses, nativeWitness, record, records } from './records'
 import { nativeActor } from './people'
+import { peopleProjection } from './people-projection'
 import catalogue from './catalogue.json'
 
 const definitions = new Map(catalogue.map(item => [item.name, item]))
@@ -113,13 +114,7 @@ export function tools(env: Bindings): ToolDefinition[] {
       return { result: await command(env, ctx, 'role.set', { ...args, expectedRevision: subject.revision }, peopleHandlers['role.set']) }
     },
   })
-  const list = defineTool({ ...metadata('locket.people.list'), classify: () => classification(null),
-    async run(_args, ctx) {
-      const actor = await agentActor(env, ctx)
-      const current = await nativeCall(() => import('../locket/views').then(({state}) => state(env, actor)))
-      return { result: { members: current.operators } }
-    },
-  })
+  const list = defineTool({ ...metadata('locket.people.list'), ...peopleProjection(env) })
   const count = defineTool({ ...metadata('locket.records.count'), classify: () => classification(null),
     async run(_args, ctx) { return { result: await nativeWitness(env, await agentActor(env, ctx)) } },
   })

@@ -506,7 +506,8 @@
     "scope": "locket:read",
     "readOnly": true,
     "classes": [
-      "standard"
+      "standard",
+      "sensitive"
     ],
     "clauses": [
       "ROLE-001"

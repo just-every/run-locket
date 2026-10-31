@@ -11,10 +11,10 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import assert from 'node:assert/strict'
 import { builtinModules } from 'node:module'
 
-let bundled
-async function worker() {
-  bundled ??= (await build({ entryPoints: ['tests/api/worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], target: 'es2022', external: ['node:*', 'cloudflare:*'], alias: Object.fromEntries(builtinModules.filter(n=>!n.startsWith('node:')).map(n=>[n,'node:'+n])), banner: { js: "import {createRequire} from 'node:module'; const require=createRequire('/locket-worker.mjs');" }, loader: { '.css': 'text', '.svg': 'text' }, logLevel: 'silent' })).outputFiles[0].text
-  return bundled
+const bundles = new Map()
+async function worker(entryPoint) {
+  if (!bundles.has(entryPoint)) bundles.set(entryPoint, (await build({ entryPoints: [entryPoint], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], target: 'es2022', external: ['node:*', 'cloudflare:*'], alias: Object.fromEntries(builtinModules.filter(n=>!n.startsWith('node:')).map(n=>[n,'node:'+n])), banner: { js: "import {createRequire} from 'node:module'; const require=createRequire('/locket-worker.mjs');" }, loader: { '.css': 'text', '.svg': 'text' }, logLevel: 'silent' })).outputFiles[0].text)
+  return bundles.get(entryPoint)
 }
 
 async function freePort() {
@@ -25,19 +25,20 @@ async function freePort() {
   return port
 }
 
-export async function installation({ bindings = {}, mailResponse, outboundResponse } = {}) {
+export async function installation({ bindings = {}, mailResponse, outboundResponse, entryPoint = 'tests/api/worker.ts', serviceBindings = {} } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'locket-api-'))
   const setup = randomBytes(32).toString('hex')
   // Production-shaped: local runtimes suppress mail, so invitation links leave
   // through the real Resend sender and are captured at the network edge.
   const origin = `https://127.0.0.1:${await freePort()}`, mails = []
-  const script = await worker()
+  const script = await worker(entryPoint)
   const workerBindings = { AUTH_LOCAL: 'false', AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: randomBytes(32).toString('hex'), SETUP_TOKEN: setup, MAIL_PROVIDER: 'resend', MAIL_FROM: 'auth@example.test', MAIL_API_KEY: 'test-only-key', ...bindings }
   if (typeof bindings === 'function') Object.assign(workerBindings, bindings(origin))
   const runtimeOptions = () => ({
     ...convertV4MiniflareOptions({
       host: '127.0.0.1', port: Number(new URL(origin).port), https: true, modules: true, script, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: ['DB'],
       bindings: workerBindings,
+      serviceBindings,
       outboundService: async request => {
         if(outboundResponse && ((request.method==='GET'&&['api.resend.com','api.postmarkapp.com'].includes(new URL(request.url).hostname)) || ['api.anthropic.com','api.cloudflare.com','synthetic-locket.invalid','api.pandadoc.com','api.stripe.com','api.hubapi.com','slack.com','hooks.slack.com','demo.ironcladapp.com','na1.ironcladapp.com','eu1.ironcladapp.com','synthetic-ironclad.s3.amazonaws.com','demo.docusign.net','www.docusign.net','api.hellosign.com'].includes(new URL(request.url).hostname) || /^api\.[a-z0-9-]+\.(adobesign|echosign|documents\.adobe)\.com$/.test(new URL(request.url).hostname) || ['CHEST_ORIGIN','PANTRY_ORIGIN','APPROVAL_NOOK_ORIGIN','SIGNATURE_INKWELL_ORIGIN','PLATTER_ORIGIN','NECTAR_ORIGIN'].some(key=>workerBindings[key]&&new URL(request.url).origin===workerBindings[key]) || ['www.googleapis.com','graph.microsoft.com','synthetic-locket.sharepoint.com'].includes(new URL(request.url).hostname)||(/^(sandbox-)?quickbooks\.api\.intuit\.com$/.test(new URL(request.url).hostname)||/^[a-z0-9-]+\.suitetalk\.api\.netsuite\.com$/.test(new URL(request.url).hostname)) || new URL(request.url).origin===new URL(workerBindings.AI_BASE_URL??'https://api.openai.com/v1').origin || workerBindings.UPTIME_ORIGIN&&new URL(request.url).origin===workerBindings.UPTIME_ORIGIN || workerBindings.LINEN_ORIGIN&&new URL(request.url).origin===workerBindings.LINEN_ORIGIN))return outboundResponse(request)
         if(request.url==='https://api.postmarkapp.com/email'){

@@ -8,7 +8,7 @@ import { seconds, signJws } from '../../node_modules/@runeditrun/rer/modules/age
 
 // This separate native Worker uses the production auth, Business and MCP doors.
 // Only its paid mail edge is simulated; every account is genuinely invited.
-export default async function accessFixture() {
+export default async function accessFixture(installationOptions = {}) {
   const surface = JSON.parse(await readFile('agent-surface.json', 'utf8'))
   const { email } = await verificationOwner(process.cwd(), surface.verification.owner)
   const colleagueEmail = surface.verification.reviewers[0].email
@@ -17,7 +17,7 @@ export default async function accessFixture() {
   const installationId = randomUUID(), kid = randomUUID(), ownerSub = randomUUID(), colleagueSub = randomUUID()
   const pair = await webcrypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])
   const publicKeys = { [kid]: await webcrypto.subtle.exportKey('jwk', pair.publicKey) }
-  const h = await installation({ bindings: origin => ({
+  const h = await installation({ ...installationOptions, bindings: origin => ({
     RER_OWNER_CLAIM_ISSUER: issuer, RER_OWNER_CLAIM_INSTALLATION_ID: installationId,
     RER_OWNER_CLAIM_APP_ORIGIN: origin, RER_OWNER_CLAIM_PUBLIC_KEYS: JSON.stringify(publicKeys),
     RER_BUSINESS_TRUST: JSON.stringify({ v: 1, issuer, audience: origin, subject: installationId, email, keys: publicKeys }),
