@@ -33,6 +33,7 @@ export async function installation({ bindings = {}, mailResponse, outboundRespon
   const origin = `https://127.0.0.1:${await freePort()}`, mails = []
   const script = await worker()
   const workerBindings = { AUTH_LOCAL: 'false', AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: randomBytes(32).toString('hex'), SETUP_TOKEN: setup, MAIL_PROVIDER: 'resend', MAIL_FROM: 'auth@example.test', MAIL_API_KEY: 'test-only-key', ...bindings }
+  if (typeof bindings === 'function') Object.assign(workerBindings, bindings(origin))
   const runtimeOptions = () => ({
     ...convertV4MiniflareOptions({
       host: '127.0.0.1', port: Number(new URL(origin).port), https: true, modules: true, script, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: ['DB'],

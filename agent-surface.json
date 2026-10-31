@@ -459,8 +459,8 @@
           "pointer": "/id"
         },
         "operatorId": {
-          "$from": "people",
-          "pointer": "/members/1/id"
+          "$fixture": "colleague",
+          "pointer": "/id"
         },
         "grant": "grant",
         "version": {
@@ -505,8 +505,8 @@
           "pointer": "/id"
         },
         "operatorId": {
-          "$from": "people",
-          "pointer": "/members/1/id"
+          "$fixture": "colleague",
+          "pointer": "/id"
         },
         "grant": "revoke",
         "version": {
@@ -558,8 +558,8 @@
           "pointer": "/id"
         },
         "operatorId": {
-          "$from": "people",
-          "pointer": "/members/1/id"
+          "$fixture": "colleague",
+          "pointer": "/id"
         },
         "grant": "grant",
         "version": {
@@ -589,8 +589,8 @@
       "tool": "locket.people.update",
       "args": {
         "operatorId": {
-          "$from": "people",
-          "pointer": "/members/1/id"
+          "$fixture": "colleague",
+          "pointer": "/id"
         },
         "role": "requester"
       },
@@ -609,8 +609,8 @@
       "tool": "locket.people.update",
       "args": {
         "operatorId": {
-          "$from": "people",
-          "pointer": "/members/1/id"
+          "$fixture": "colleague",
+          "pointer": "/id"
         },
         "role": "viewer"
       },
@@ -655,6 +655,9 @@
         "create"
       ]
     },
-    "journey": "tests/agent-door/native-journey.mjs"
+    "journey": "tests/agent-door/native-journey.mjs",
+    "fixtures": {
+      "module": "tests/agent-door/access-parity.mjs"
+    }
   }
 }
