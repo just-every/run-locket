@@ -120,7 +120,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "96140f92a3ab7f0d564e160700169d57cae09165d3cc560497bcabd1cc6ddc7e",
+      "sha256": "a15ce565b19e9e39f83fcb8789769d73dcc013fb855c312c5b779be081bd21a8",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -1588,7 +1588,7 @@
       "executable": false
     },
     "src/agent-door/index.server.ts": {
-      "sha256": "674bbdee1106b0de37b73621f6a9eeaecf7b58b876eea8ebd93886c9a940f87b",
+      "sha256": "9a41037fb6f9ec38c7cd527ca786902681c6f4f29720399ceb5fa6247a61baec",
       "executable": false
     },
     "src/agent-door/native.ts": {
@@ -1600,11 +1600,11 @@
       "executable": false
     },
     "src/agent-door/records.ts": {
-      "sha256": "8ce6ef2a1573b5108cd1ff5401e10499debbfb79816e91be0d7a56b477a590ad",
+      "sha256": "82167694c6e6bb48a5aa2dadbda27783eaa796be9dd28520059575dd08154bd7",
       "executable": false
     },
     "src/agent-door/resources.ts": {
-      "sha256": "2aa725ca92275c6c50b3387aabe8e60f5d2467773642e5f18f838a21e05bb48a",
+      "sha256": "255809a17f48cc240add059896622d07fafadacdb8d1a8489da93c5a1039860b",
       "executable": false
     },
     "src/agent-door/tools.ts": {
@@ -5592,7 +5592,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "5f14541d040b6e31b7a6762e436b831f900a82e928ae60d6d37c9c2bbd5ee9d8",
+      "sha256": "3e84181763f2e3b92d526230d85308c7fb1436876eb1e5584f8a1cd54e1431d3",
       "executable": false
     },
     "tests/agent-door/owner.mjs": {
@@ -6240,7 +6240,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "ccb4fc9ca7fcc2fe1855539551c0233e28f590a911b8af0881c23148f25010a5",
+      "sha256": "646b1c0eaa994b3f576e76d53a0f3e065f0e7f38855e38055f4fff8d21935cb2",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {

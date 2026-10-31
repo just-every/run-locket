@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
+import { assertAgreementLink } from './resource-parity.mjs'
 
 export default async function ({ request, origin, cookie, tool }) {
   const human = async (path, init = {}) => {
@@ -11,6 +12,7 @@ export default async function ({ request, origin, cookie, tool }) {
   const created = await tool('locket.requests.create', args)
   assert.equal(created.result?.isError, false)
   const result = created.result.structuredContent
+  assertAgreementLink(created.result, result.id)
   const before = (await human('/api/locket/state')).agreements
   const replayed = await tool('locket.requests.create', args)
   assert.deepEqual(replayed.result.structuredContent, result)
@@ -22,6 +24,13 @@ export default async function ({ request, origin, cookie, tool }) {
   const stale = await tool('locket.requests.update', { agreementId: row.id, title: 'Stale agent revision', version: row.version, expected_revision: row.version, idempotency_key: randomUUID() })
   assert.equal(stale.result?._meta?.['com.runeditrun/error']?.code, 'revision_conflict')
   assert.equal((await human('/api/locket/state')).agreements.find(item => item.id === row.id).title, 'Human revision')
+  const read = await tool('locket.agreements.read', { agreementId: row.id })
+  assert.equal(read.result.structuredContent.title, 'Human revision')
+  assertAgreementLink(read.result, row.id)
+  const updated = await tool('locket.requests.update', { agreementId: row.id, title: 'Native link revision', version: read.result.structuredContent.version, idempotency_key: randomUUID() })
+  assert.equal(updated.result.isError, false)
+  assertAgreementLink(updated.result, row.id)
+  assert.equal((await human('/api/locket/state')).agreements.find(item => item.id === row.id).title, 'Native link revision')
   const audit = await human('/api/locket/audit?agreement=' + row.id)
   assert.ok(audit.rows.some(item => item.action === 'request.create' && item.actor_name.includes(' for Synthetic Base 1')))
 }
