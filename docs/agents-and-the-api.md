@@ -1,6 +1,19 @@
 Company agents enter through Locket's shared `/mcp` door. Their signed Business subject resolves to a current native operator; their sponsor's Locket role, record visibility and field permissions remain authoritative. A company's signed policy decides whether a declared action runs, waits for review, needs a named person's approval or is blocked. People inspect decisions and Pause at `/agents`.
 
-The core declaration supports draft requests and title edits, evidenced intake proposals, agreement reads and title/reference search, counts and people listings, native role assignments and agreement reader grants. It does not claim a complete contract week, signing, provider sends, execution, erasure or the remaining specialist jobs. The CORE declaration exposes tools, policy, Pause, audit and idempotency. Events, public resources, prompts and subscriptions are typed-refused. `agent-surface.json` lists the exact tools, classes, scopes and journey; [API.md](https://github.com/just-every/run-locket/blob/main/API.md#company-agent-door) explains the limits.
+The core declaration supports draft requests and title edits, evidenced intake proposals, agreement reads and title/reference search, counts and people listings, native role assignments and agreement reader grants. It does not claim a complete contract week, signing, provider sends, execution, erasure or the remaining specialist jobs. The declaration exposes tools, policy, Pause, audit, idempotency and bounded specialist prompts. Events, public resources and subscriptions are typed-refused. `agent-surface.json` lists the exact tools, classes, scopes and journey; [API.md](https://github.com/just-every/run-locket/blob/main/API.md#company-agent-door) explains the limits.
+
+## Specialist prompts
+
+Authenticated MCP clients can discover two contract operations clerk jobs with `prompts / list` and retrieve their static guidance with `prompts / get`:
+
+| Prompt | Bounded job |
+| --- | --- |
+| `locket.contract_operations.prepare_request` | Prepare draft requests, title edits and evidenced intake proposals using the currently listed native tools. |
+| `locket.contract_operations.read_agreement` | Read one currently accessible agreement using the native read tool. |
+
+The referenced tool names, operation descriptions, scopes, possible classes and native schemas come from `src/agent-door/catalogue.json`. The prompts take no input and contain no agreement data. Retrieving one does not call a tool, create a request, read an agreement or grant authority. A client must discover the current tools and satisfy their schemas, native access, company policy and any required human approval separately.
+
+Listings and retrieval are authenticated, deterministic and privately cached. Before a policy is set, or while Business or local Pause is active, the listing is empty and retrieval returns the corresponding typed refusal. A blocked standard-read policy may still list static job metadata, but retrieval returns `policy_blocked` without messages. Under the held policy, standard review permits this static guidance; any later native tool call still receives its own class-based decision. An unknown prompt returns JSON-RPC invalid parameters (`-32602`), without messages. This bounded offer does not complete the specialist week, provider jobs, generated registry documentation or stranger-agent acceptance.
 
 An invited operator with Locket's legacy `agent` role remains a proposal preparer using the native HTTP API. Its narrow role is distinct from a company agent acting for a named sponsor.
 

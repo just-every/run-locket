@@ -120,7 +120,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "96140f92a3ab7f0d564e160700169d57cae09165d3cc560497bcabd1cc6ddc7e",
+      "sha256": "a2c91795fd6d675acf22aa67484fadfc61ecba171904edcef666e0d102f0a2ef",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "60be3d1cf9746a04e4e5bd295f5c4e7ef5f3a85f259a36749990893a6f716038",
+      "sha256": "49f284e84be10ededda050ef83669a11caaf0aabe22b01ce20d34d8758827399",
       "executable": false
     },
     "base-copies.json": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "13c633fa313e8bafbd4c65219a364887892f5d72ce58ea6622fe52f0d961e717",
+      "sha256": "bf9e1cb6e2f2954c0a8589ec2ba37b6fbfd339b8f62375c6143dfcecfd81b598",
       "executable": false
     },
     "DEMO.md": {
@@ -160,7 +160,7 @@
       "executable": false
     },
     "docs/agents-and-the-api.md": {
-      "sha256": "2148a26e747b33a0eb37d61ad8639297621d588379426e80b9314c0655d5fdeb",
+      "sha256": "98dc380d07f79882d031dcca4463f2401f6b88afa30c07493ce7514386a0f3ee",
       "executable": false
     },
     "docs/backup-and-restore.md": {
@@ -1584,11 +1584,11 @@
       "executable": false
     },
     "src/agent-door/catalogue.json": {
-      "sha256": "1e53dc30f3ed2e4df0c872cc9d9af8b7a89c1221f7ad4bf986b564afae9c3414",
+      "sha256": "fccf768dae86f0bad7355b5972419c08e9abf92c82b4f4ce1d022e1e4d7fce31",
       "executable": false
     },
     "src/agent-door/index.server.ts": {
-      "sha256": "674bbdee1106b0de37b73621f6a9eeaecf7b58b876eea8ebd93886c9a940f87b",
+      "sha256": "1a65c147c8fb3f7705b35c1047c95b18a9a34a61ab5cdfd430f38beb894e323d",
       "executable": false
     },
     "src/agent-door/native.ts": {
@@ -5592,7 +5592,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "5f14541d040b6e31b7a6762e436b831f900a82e928ae60d6d37c9c2bbd5ee9d8",
+      "sha256": "e03c1fe851020d51554e8b7bcc4d9b59acb3fa4d1fbd84643b78e68f5aef480b",
       "executable": false
     },
     "tests/agent-door/owner.mjs": {
