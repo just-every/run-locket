@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "3a023423ddb871fb72708acb0aca84bf90e493da0750f0b722ce82eb2355d3c1",
+      "sha256": "a8370c722af889da5a927284336527c194d659307f69d4f84e36601db69dd455",
       "executable": false
     },
     "base-copies.json": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3c30208e018edcb41b9361ea9fdac46728fca9f6c75ceb02a46161941797d1ab",
+      "sha256": "8143ad3f9400cef8023ebff5ba6bceff5c92de3e80ab638ce8c4198a0cb92655",
       "executable": false
     },
     "DEMO.md": {
@@ -5595,6 +5595,10 @@
       "sha256": "23457dca7e8279262e9fdaf7ff184aa7cd2b04770d536b882a3843d75cca8c30",
       "executable": false
     },
+    "tests/agent-door/capacity.mjs": {
+      "sha256": "78c88bb0c0877b47ceb10c27e5827a7463655e534fb4240bfd106be4decbaeb9",
+      "executable": false
+    },
     "tests/agent-door/colleague.mjs": {
       "sha256": "a73b69bf507f3f96b5bacfee6617c88ab73a8a3922cfca4181288632d19b09bc",
       "executable": false
@@ -5604,7 +5608,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "ce97b4b85f5976a42ec332917aba0a4a63bc776fa65837f62f4745fde5a73506",
+      "sha256": "b4470b521b1dec35ab5ac6e58489ab3abe3e78e9633b6b3f6fc8877ac288e117",
       "executable": false
     },
     "tests/agent-door/negative-sponsor.mjs": {

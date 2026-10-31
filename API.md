@@ -696,6 +696,27 @@ The owner-only reasoned waiver is an interim conservative default pending CT rev
 
 Company agents present short-lived, audience-bound Business credentials with a stable sponsor subject, consent and explicit scopes to `/mcp`. The declared Business settings owner/team IDs bind that subject to an existing native operator. The signed display name identifies the company in the agent door; other branding slots are not declared. Email is descriptive and never selects the sponsor. Signed policy arrives at `/api/rer/agent-policy`; people use `/agents` for policy state, Pause, approvals, reviews and audit. MCP supports 2026-07-28 and 2025-11-25.
 
+The production MCP discovery method `server / discover` publishes capacity in
+`_meta["com.runeditrun/limits"]`: currently `requestsPerMinute: 600` and
+`maxBodyBytes: 1048576`. Authenticated requests share a fixed one-minute window
+per agent identity, including requests from different credentials for that
+identity. Another agent for the same admitted sponsor has its own capacity;
+signed-in native person sessions remain usable. Discovery and initialization
+precede authenticated admission and do not consume that capacity. These are
+installation protections, separate from company policy and daily business caps.
+
+An exhausted identity receives HTTP 429 with JSON-RPC error data
+`{code:"rate_limited"}` and a positive integer `Retry-After` of at most 60 seconds.
+The refused call returns no tool result and performs no native mutation. Wait
+the advertised seconds before trying again; a mutation must retain its
+idempotency key. Admission resumes in the next window, with ordinary policy and
+human approval still enforced. `tests/agent-door/capacity.mjs`, loaded by the
+native conformance journey, exercises these production limits through raw HTTP
+under autonomous and held policies, including refusal without effect, identity
+isolation, person-session access and recovery. It neither lowers the limits nor
+uses the conformance client's automatic 429 retries. Provider spend enforcement,
+outside-recipient daily caps and complete per-agent usage remain owed.
+
 Native people lists expose an opaque role `revision`. A caller can pass it as `expected_revision` to `locket.people.update`, or as `expectedRevision` in the person command `role.set`. A stale revision refuses without changing the role. Held role decisions also bind their displayed summary to the current native role revision; a subsequent assignment requires fresh approval. The native command checks the target person's version and role assignment atomically with the write.
 
 The declared core registry is in `agent-surface.json`; its native schemas and scopes are in `src/agent-door/catalogue.json`. It currently supports draft request creation, title edits with the native version, evidenced intake preparation, visible agreement reads, title/reference search, counts, native people lists, role assignment and agreement reader grants. Title edits and agreement reader grants require the current native agreement version over MCP. The deployed door declares tools, policy, Pause, audit, idempotency and bounded specialist prompts. Events, public resources and subscriptions are undeclared and receive typed capability refusals. Each write uses the same native command runner as the interface, with a door admission in place of a browser session and the sponsor's current native role, visibility and field guards. Native audit labels name the agent and sponsoring person; `lk_agent_commands` retains the operation, consent and named Business approvers in the same transaction.
