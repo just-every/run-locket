@@ -5908,7 +5908,7 @@
       "executable": false
     },
     "tests/api/us-defaults.test.mjs": {
-      "sha256": "b344f56fcdbbabc78a218cf84ed89bd09d7943381c091a30b47d54113296a873",
+      "sha256": "5968e7fbf62506e4cfdf013ce37ea9b22458988ba7d67f5e1b645bcf97979029",
       "executable": false
     },
     "tests/api/word-review-fixture.mjs": {
