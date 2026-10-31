@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "253ac3ae3ab76f65ba6cd085189deadbcf5bba97dfe64f2bd6fc5c1007c925eb",
+      "sha256": "06eca707cdaa31930fec60dfb7d1e8b7e41e80732a4c277d8457ecde26d97bce",
       "executable": false
     },
     "DEMO.md": {
@@ -228,7 +228,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "4d577d47ee5c354bcc29555fef602e32d640127e5a2357b4c1f517c783b48d6e",
+      "sha256": "dfeb36412e487d2b4d1c33ebc69c509ed160cd34a242b165489dc25fed69ad03",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -2676,7 +2676,7 @@
       "executable": false
     },
     "src/locket/views.ts": {
-      "sha256": "08e2690d6ef58ebbba3073e250560c8ec3b6f5c7fc21b59261f7b8ce618122c4",
+      "sha256": "586074584a69e74e8d570495c7ef59c753151ad8d1d714c291a93647db542c2d",
       "executable": false
     },
     "src/locket/word-pricing.ts": {
@@ -5628,7 +5628,7 @@
       "executable": false
     },
     "tests/agent-door/proposal-attribution.mjs": {
-      "sha256": "083eff44b5c9c99768498ec90ca98e56d8cc25cb7a736960563f24293dd0c5cc",
+      "sha256": "0a10625ab01cc4fd76ea3104a0c6b4eeed5f8583e1fa7efd81d564c465cb7575",
       "executable": false
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
@@ -5948,7 +5948,7 @@
       "executable": false
     },
     "tests/browser/agent-proposal-attribution.mjs": {
-      "sha256": "56d08a70a259b85d22df49b305f738f6dee6bf0750d679f97dff14a66065f735",
+      "sha256": "88a68f89aace7f94eda64ff5e35c02c23648dcd4c1fb1b84273c29e95868f7af",
       "executable": false
     },
     "tests/browser/agreement-summary-journey.mjs": {

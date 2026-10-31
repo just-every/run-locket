@@ -76,6 +76,7 @@ try {
     const agent = exported.records.lk_agent_commands.find(row => row.command_id === binding.command_id)
     assert.equal(agent.agent_name + ' for ' + agent.sponsor_name, label)
     assert.equal(exported.records.lk_proposals.find(row => row.id === id).decided_by, state.actor.id)
+    assert.equal(exported.records.lk_proposals.find(row => row.id === id).prepared_label, label)
     assert.ok(exported.records.lk_audit.some(row => row.command_id === binding.command_id && row.actor_name === label))
     await both('activity-and-export')
     const proposals = page.getByRole('navigation', { name: 'Locket', exact: true }).getByRole('link', { name: 'Proposals', exact: true })
