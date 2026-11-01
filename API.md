@@ -696,6 +696,27 @@ The owner-only reasoned waiver is an interim conservative default pending CT rev
 
 Company agents present short-lived, audience-bound Business credentials with a stable sponsor subject, consent and explicit scopes to `/mcp`. The declared Business settings owner/team IDs bind that subject to an existing native operator. The signed display name identifies the company in the agent door; other branding slots are not declared. Email is descriptive and never selects the sponsor. Signed policy arrives at `/api/rer/agent-policy`; people use `/agents` for policy state, Pause, approvals, reviews and audit. MCP supports 2026-07-28 and 2025-11-25.
 
+The production MCP discovery method `server / discover` publishes capacity in
+`_meta["com.runeditrun/limits"]`: currently `requestsPerMinute: 600` and
+`maxBodyBytes: 1048576`. Authenticated requests share a fixed one-minute window
+per agent identity, including requests from different credentials for that
+identity. Another agent for the same admitted sponsor has its own capacity;
+signed-in native person sessions remain usable. Discovery and initialization
+precede authenticated admission and do not consume that capacity. These are
+installation protections, separate from company policy and daily business caps.
+
+An exhausted identity receives HTTP 429 with JSON-RPC error data
+`{code:"rate_limited"}` and a positive integer `Retry-After` of at most 60 seconds.
+The refused call returns no tool result and performs no native mutation. Wait
+the advertised seconds before trying again; a mutation must retain its
+idempotency key. Admission resumes in the next window, with ordinary policy and
+human approval still enforced. `tests/agent-door/capacity.mjs`, loaded by the
+native conformance journey, exercises these production limits through raw HTTP
+under autonomous and held policies, including refusal without effect, identity
+isolation, person-session access and recovery. It neither lowers the limits nor
+uses the conformance client's automatic 429 retries. Provider spend enforcement,
+outside-recipient daily caps and complete per-agent usage remain owed.
+
 Native people lists expose an opaque role `revision`. A caller can pass it as `expected_revision` to `locket.people.update`, or as `expectedRevision` in the person command `role.set`. A stale revision refuses without changing the role. Held role decisions also bind their displayed summary to the current native role revision; a subsequent assignment requires fresh approval. The native command checks the target person's version and role assignment atomically with the write.
 
 `locket.people.list` declares standard and sensitive. Each call classifies exactly the currently permitted native member projection, including displayed names and owner-visible addresses. A tax-shaped identifier in a returned field adds sensitive with `kind: "tax_identifier"`; its measure counts distinct returned people containing identifiers, once per person. Ordinary listings remain standard. Hidden native fields neither return nor affect classification, and agent-supplied class or confirmation claims grant no exemption. The tool rechecks current native authority and binds the returned projection to the classification snapshot; a change during execution refuses with `resource_changed` without member content. Required human approval withholds members, and an earlier approval cannot authorize a changed sensitive record count. Wider sensitive kinds and undeclared tools remain outside this bounded classification.
