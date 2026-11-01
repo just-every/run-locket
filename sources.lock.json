@@ -5640,7 +5640,7 @@
       "executable": false
     },
     "tests/agent-door/transport-replay.mjs": {
-      "sha256": "cff1fbb6ab10cf570147b5e73328035a8a7bcc5b5a9bcab34a80f3a10d8ea883",
+      "sha256": "0288173c78c01402483cfd80a5952dcd60870c8b3092d4c830cc2a5dabead58f",
       "executable": false
     },
     "tests/api/accounting-read-fixture.mjs": {
