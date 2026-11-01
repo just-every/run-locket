@@ -8,7 +8,8 @@
     "pause",
     "audit",
     "idempotency",
-    "prompts"
+    "prompts",
+    "events"
   ],
   "tools": [
     {
@@ -121,6 +122,17 @@
       ],
       "clauses": [
         "ACCESS-001"
+      ]
+    },
+    {
+      "name": "locket.events.list",
+      "scope": "events:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BASE-AGENT-010"
       ]
     }
   ],
@@ -642,6 +654,21 @@
           "facts": {
             "measure": 1,
             "direction": "narrows"
+          }
+        }
+      ]
+    },
+    {
+      "id": "events",
+      "tool": "locket.events.list",
+      "args": {
+        "limit": 2
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
           }
         }
       ]

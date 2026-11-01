@@ -120,7 +120,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "456c1601822a90c890664b400e81ba14882458f1ae14f0e01f991dee30ba4820",
+      "sha256": "151277f149207858d17091d8e60f85b527de031d127aff5aa27e9fc9e7c924f9",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "f517229aec7d9579e76823a3b9b2787c6bc3f55843fdf322a4ab47c273157df2",
+      "sha256": "1a87f1c3bd36fafed359dca1f86a02799f451b31c7262118edbe5d7f603e5786",
       "executable": false
     },
     "base-copies.json": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "10d2ae2e30e6301e30f27ad718771275d2d8d86260dbcbd6d594608798406652",
+      "sha256": "bc036ab5c2d76efe3665e8102a54f934678b6e47bb4a97f4dafcf0e5dea11294",
       "executable": false
     },
     "DEMO.md": {
@@ -160,7 +160,7 @@
       "executable": false
     },
     "docs/agents-and-the-api.md": {
-      "sha256": "98dc380d07f79882d031dcca4463f2401f6b88afa30c07493ce7514386a0f3ee",
+      "sha256": "361ca38037aa5f322dde8534052958e28f9be77eb2e4171bde3ade9dfcb4453a",
       "executable": false
     },
     "docs/backup-and-restore.md": {
@@ -1592,7 +1592,7 @@
       "executable": false
     },
     "src/agent-door/index.server.ts": {
-      "sha256": "1a65c147c8fb3f7705b35c1047c95b18a9a34a61ab5cdfd430f38beb894e323d",
+      "sha256": "bd208dc845dd6615320bbc25970e16f70085b966e1fff49e679aa6db98b8701c",
       "executable": false
     },
     "src/agent-door/native.ts": {
@@ -5611,12 +5611,16 @@
       "sha256": "a73b69bf507f3f96b5bacfee6617c88ab73a8a3922cfca4181288632d19b09bc",
       "executable": false
     },
+    "tests/agent-door/events.mjs": {
+      "sha256": "28a0d8f6ba0e36139e18f92f153393e1a3fcf7caa336618d81db0ed439c99c07",
+      "executable": false
+    },
     "tests/agent-door/mail-provider.mjs": {
       "sha256": "e778d87868b1b899949ae12f605e86dc62f4064cb0957f128681f13feda7d62b",
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "d3757114647956e301e628246838850e33f5de3eb87241ab9c636dd9a3d9f5c3",
+      "sha256": "f43bbfa5cc97cff7600379766e9d4643baccda6455b896c4867ee5205783312b",
       "executable": false
     },
     "tests/agent-door/negative-sponsor.mjs": {
