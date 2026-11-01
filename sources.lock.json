@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "0c31d6f477e9c14aa7c351f382a67363f87b0c3e9a8eb170086038c4905fb725",
+      "sha256": "75deee0a45325903924412cade855b30148f73d6aa4136cc492ceeb5ddd8059f",
       "executable": false
     },
     "DEMO.md": {
@@ -5628,7 +5628,11 @@
       "executable": false
     },
     "tests/agent-door/proposal-attribution.mjs": {
-      "sha256": "0a10625ab01cc4fd76ea3104a0c6b4eeed5f8583e1fa7efd81d564c465cb7575",
+      "sha256": "dbbf6b4e96885adb97b721fbcf665d0c342f661f8ab7e78fafaec0c8cf13b4e9",
+      "executable": false
+    },
+    "tests/agent-door/proposal-decision-attribution.mjs": {
+      "sha256": "60f8996b9759bb1569e75c54421a5cab247d5f3a0e33758171ce1ae6a7ec4e76",
       "executable": false
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
@@ -5952,7 +5956,7 @@
       "executable": false
     },
     "tests/browser/agent-proposal-attribution.mjs": {
-      "sha256": "88a68f89aace7f94eda64ff5e35c02c23648dcd4c1fb1b84273c29e95868f7af",
+      "sha256": "f7c59d568e13e7e5fb053f0620efb16fc8ceed3efec8627a99dcbe78f9a1bee1",
       "executable": false
     },
     "tests/browser/agreement-summary-journey.mjs": {

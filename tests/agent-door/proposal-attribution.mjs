@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { installation } from '../api/harness.mjs'
 import { colleagueIdentity } from './colleague.mjs'
+import { proposalDecisionAttribution } from './proposal-decision-attribution.mjs'
 import { verificationOwner } from '../../node_modules/@runeditrun/rer/cli/agent-sponsors.mjs'
 import { createProtocol } from '../../node_modules/@runeditrun/rer/modules/agent-door/conformance/protocol.mjs'
 import { autonomousPolicy, heldPolicy, seconds, signJws } from '../../node_modules/@runeditrun/rer/modules/agent-door/conformance/crypto.mjs'
@@ -222,6 +223,7 @@ export async function attributionJourney() {
     // Deleting an unused native draft removes its proposal binding, while a
     // captured prepare replay remains a receipt and cannot restore the draft.
     await client.adopt(autonomousPolicy())
+    await proposalDecisionAttribution(fixture)
     const erasedArgs = { payload: { title: 'synthetic-locket-erasure', type: 'other',
       party: { name: 'synthetic-locket-erasure', kind: 'supplier' } }, evidence: ['synthetic-locket-erasure'], idempotency_key: randomUUID() }
     const erased = await client.tool(step.tool, erasedArgs)
