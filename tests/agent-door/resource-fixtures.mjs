@@ -10,6 +10,10 @@ export const families = {
   agreements: 'agreements', versions: 'versions', files: 'artifacts', counterparties: 'parties',
   templates: 'templates', playbooks: 'playbooks', findings: 'deviations', obligations: 'obligations',
   renewals: 'renewals', notices: 'notices', reports: 'reports',
+  people: 'operators', proposals: 'proposals', terms: 'terms', approvals: 'approvals',
+  packages: 'packages', executions: 'executions', comments: 'comments', requirements: 'requirements',
+  'template-versions': 'templateVersions', entities: 'entities', 'saved-views': 'savedViews', imports: 'imports',
+  'clickwrap-terms': 'clickwrapTerms', 'clickwrap-versions': 'clickwrapVersions',
 }
 
 /** Disposable production build, genuine signed Business bindings and confirmed
@@ -61,6 +65,7 @@ export async function resourceInstallation() {
     await confirmed.body?.cancel()
     assert.ok(viewerCookie && viewerCookie !== cookie)
     const human = session => ({
+      request: path => request(origin + path, { headers: { Cookie: session } }),
       async state() {
         const response = await request(origin + '/api/locket/state', { headers: { Cookie: session } })
         assert.equal(response.status, 200)
@@ -103,6 +108,30 @@ export async function resourceRecords(h) {
   await h.owner.command('playbook.activate', { id: playbook.id })
   const draft = await h.owner.command('request.create', { title: 'synthetic-locket-review', type: 'supplier', party: { name: 'synthetic-locket-review-party', kind: 'supplier' }, templateVersionId: template.versionId })
   const finding = await h.owner.command('deviation.add', { agreementId: draft.id, versionId: draft.versionId, clauseKey: 'delivery', result: 'met', start: 0, end: quote.length, quote, explanation: 'Manually cited customer text.' })
+  const comment = await h.owner.command('comment.add', { agreementId: draft.id, versionId: draft.versionId, body: quote })
+  await h.owner.command('requirement.add', { agreementId: draft.id, label: 'synthetic-locket-requirement' })
+  const requirement = (await h.owner.state()).requirements.find(row => row.agreement_id === draft.id && row.label === 'synthetic-locket-requirement')
+  assert.ok(requirement)
+  for (const row of (await h.owner.state()).requirements.filter(row => row.agreement_id === draft.id)) {
+    await h.owner.command('requirement.waive', { agreementId: draft.id, requirementId: row.id, reason: 'Synthetic manual waiver for resource parity.' })
+  }
+  let draftRow = (await h.owner.state()).agreements.find(row => row.id === draft.id)
+  await h.owner.command('agreement.submit', { agreementId: draft.id, version: draftRow.version })
+  draftRow = (await h.owner.state()).agreements.find(row => row.id === draft.id)
+  await h.owner.command('approval.decide', { agreementId: draft.id, version: draftRow.version, versionId: draft.versionId, kind: 'commercial', decision: 'approved' })
+  draftRow = (await h.owner.state()).agreements.find(row => row.id === draft.id)
+  const packet = await h.owner.command('package.prepare', { agreementId: draft.id, version: draftRow.version, provider: 'paper',
+    recipients: [{ name: 'Synthetic signer', email: ['synthetic-locket-signer', 'example.invalid'].join('@'), action: 'sign' }] })
+  draftRow = (await h.owner.state()).agreements.find(row => row.id === draft.id)
+  const envelopeId = 'synthetic-locket-' + randomUUID()
+  await h.owner.command('package.sent', { agreementId: draft.id, version: draftRow.version, packageId: packet.packageId, envelopeId })
+  draftRow = (await h.owner.state()).agreements.find(row => row.id === draft.id)
+  const original = await h.owner.request('/api/locket/files/' + packet.pdfArtifactId)
+  assert.equal(original.status, 200)
+  const execution = await h.owner.command('execution.record', { agreementId: draft.id, version: draftRow.version, envelopeId,
+    executedOn: '2026-10-01', documentConfirmed: true,
+    signers: [{ name: 'Synthetic signer', email: ['synthetic-locket-signer', 'example.invalid'].join('@') }],
+    signed: file('synthetic-locket-signed.pdf', Buffer.from(await original.arrayBuffer())) })
   const imported = await h.owner.command('legacy.import', { title: 'synthetic-locket-import', type: 'supplier', value: '7382.19',
     party: { name: 'synthetic-locket-import-party', kind: 'supplier' }, sourceSystem: 'synthetic-locket-manual', sourceId: 'synthetic-locket-1',
     signed: true, file: file('synthetic-locket-1.docx', docx([quote])) })
@@ -119,8 +148,15 @@ export async function resourceRecords(h) {
   const view = await h.owner.command('view.save', { name: 'synthetic-locket-view', sharedRoles: [], definition: { query: '', filters: [], sort: { field: 'title', direction: 'asc' }, columns: ['title', 'value'] } })
   const report = await h.owner.command('report.create', { name: 'synthetic-locket-report', viewId: view.id, groupField: 'status', frequency: 'weekly', format: 'csv', firstAt: '2099-01-01T09:00', recipients: [h.ownerId] })
   await h.owner.command('report.stop', { id: report.id, version: 1 })
-  const secret = await h.owner.command('request.create', { title: 'synthetic-locket-private', type: 'supplier', restricted: true, party: { name: 'synthetic-locket-private-party', kind: 'supplier' }, file: file('synthetic-locket-private.docx', docx(['Restricted source text'])) })
-  const sensitive = await h.owner.command('request.create', { title: 'synthetic-locket-sensitive', type: 'supplier', restricted: true, party: { name: 'synthetic-locket-sensitive-party', kind: 'supplier', taxId: '12-3456789', taxIdKind: 'ein' } })
+  const proposal = await h.owner.command('proposal.prepare', { kind: 'intake', payload: { title: 'synthetic-locket-proposal', restricted: true }, evidence: [quote] })
+  const entity = await h.owner.command('entity.save', { legalName: 'synthetic-locket-entity', entityType: 'Corporation', formation: 'Delaware',
+    registeredAddress: '1 Synthetic Street', noticeAddress: '1 Synthetic Street', currency: 'USD', timezone: 'America/New_York', signatories: [] })
+  const clickwrap = await h.owner.command('clickwrap.publish', { name: 'synthetic-locket-terms', kind: 'tos', siteOrigin: 'https://synthetic-locket.invalid', body: quote })
+  const importPreview = await h.owner.command('import.preview', { kit: 'docusign-archive', entityId: entity.id, label: 'synthetic-locket-preview', dateFormat: 'dmy',
+    manifest: file('synthetic-locket-envelope.csv', Buffer.from('Envelope ID,Subject,Status,Completed On,Counterparty,Agreement Type\n' +
+      randomUUID() + ',synthetic-locket-preview,Sent,,synthetic-locket-party,Supplier\n')), files: [] })
+  const secret = await h.owner.command('request.create', { entityId: entity.id, title: 'synthetic-locket-private', type: 'supplier', restricted: true, party: { name: 'synthetic-locket-private-party', kind: 'supplier' }, file: file('synthetic-locket-private.docx', docx(['Restricted source text'])) })
+  const sensitive = await h.owner.command('request.create', { entityId: entity.id, title: 'synthetic-locket-sensitive', type: 'supplier', restricted: true, party: { name: 'synthetic-locket-sensitive-party', kind: 'supplier', taxId: '12-3456789', taxIdKind: 'ein' } })
   let sensitiveRow = (await h.owner.state()).agreements.find(row => row.id === sensitive.id)
   await h.owner.command('access.set', { agreementId: sensitive.id, version: sensitiveRow.version, operatorId: h.viewerId, grant: 'grant' })
   native = await h.owner.state()
@@ -128,6 +164,11 @@ export async function resourceRecords(h) {
   const artifact = native.artifacts.find(row => row.agreement_id === imported.id)
   assert.ok(artifact)
   return { ids: { agreements: imported.id, versions: agreement.current_version_id, files: artifact.id, counterparties: agreement.party_id,
-    templates: template.id, playbooks: playbook.id, findings: finding.id, obligations: obligation.id, renewals: renewal.id, notices: notice.id, reports: report.id },
+    templates: template.id, playbooks: playbook.id, findings: finding.id, obligations: obligation.id, renewals: renewal.id, notices: notice.id, reports: report.id,
+    people: h.viewerId, proposals: proposal.id, terms: native.terms.find(row => row.agreement_id === imported.id).id,
+    approvals: native.approvals.find(row => row.agreement_id === draft.id).id, packages: packet.packageId,
+    executions: execution.executionId, comments: comment.commentId, requirements: requirement.id,
+    'template-versions': template.versionId, entities: entity.id, 'saved-views': view.id, imports: importPreview.batchId,
+    'clickwrap-terms': clickwrap.id, 'clickwrap-versions': clickwrap.versionId },
     secret: secret.id, sensitiveAgreement: sensitive.id, sensitive: native.agreements.find(row => row.id === sensitive.id).party_id, quote }
 }

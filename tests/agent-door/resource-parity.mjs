@@ -9,6 +9,14 @@ export function assertAgreementLink(result, id) {
   const links = result.content.filter(item => item.type === 'resource_link')
   assert.deepEqual(links.map(link => link.uri), [`locket://agreements/${id}`])
 }
+export function assertRequestLinks(result, native) {
+  const id = result.structuredContent.id
+  const current = native.agreements.find(row => row.id === id)
+  assert.ok(current)
+  assert.deepEqual(result.content.filter(item => item.type === 'resource_link').map(link => link.uri),
+    [uri('agreements', id), uri('counterparties', current.party_id), ...(current.current_version_id ? [uri('versions', current.current_version_id)] : []),
+      ...(current.entity_id ? [uri('entities', current.entity_id)] : [])])
+}
 const uri = (kind, id) => `locket://${kind}/${id}`
 const content = answer => {
   assert.equal(answer.status, 200)
@@ -46,6 +54,28 @@ async function approveRead(h, c, address) {
   return content(read)
 }
 
+async function linkedTool(h, name, args, expected) {
+  const before = await h.owner.state()
+  let answer = await h.a.tool(name, args)
+  if (answer.result?.resultType === 'input_required') {
+    const waiting = await h.owner.state()
+    for (const collection of ['agreements', 'access', 'operators', 'proposals']) assert.deepEqual(waiting[collection], before[collection])
+    const approved = await h.a.decideApproval(answer)
+    assert.equal(approved.ok, true)
+    answer = await h.a.tool(name, args, { requestState: answer.result.requestState })
+  }
+  assert.equal(answer.result?.isError, false, JSON.stringify(answer.body))
+  const result = answer.result.structuredContent
+  const links = answer.result.content.filter(item => item.type === 'resource_link')
+  assert.deepEqual(links.map(link => link.uri).sort(), expected(result).sort())
+  const native = await h.owner.state()
+  for (const link of links) {
+    const address = new URL(link.uri), kind = address.hostname, id = address.pathname.slice(1)
+    assert.deepEqual(content(await h.a.mcp('resources/read', { uri: link.uri })), native[families[kind]].find(row => row.id === id))
+  }
+  return result
+}
+
 export async function runResources() {
   const h = await resourceInstallation()
   try {
@@ -64,7 +94,7 @@ export async function runResources() {
         const native = await human.state()
         for (const [kind, collection] of Object.entries(families)) {
           const expected = native[collection].find(row => row.id === f.ids[kind])
-          if (label === 'owner' || kind !== 'reports') assert.ok(expected, `${phase} ${label} seeded ${kind} must be visible`)
+          if (label === 'owner' || !['reports', 'proposals', 'saved-views', 'imports'].includes(kind)) assert.ok(expected, `${phase} ${label} seeded ${kind} must be visible`)
           const answer = await c.mcp('resources/read', { uri: uri(kind, f.ids[kind]) })
           if (expected) {
             assert.deepEqual(content(answer), expected, `${phase} ${label} ${kind}`)
@@ -74,14 +104,14 @@ export async function runResources() {
               assert.equal(Object.hasOwn(content(answer), 'bytes'), false)
               assert.match(content(answer).sha256, /^[a-f0-9]{64}$/)
             }
-          } else unavailable(answer)
+          } else assert.deepEqual(unavailable(answer), unavailable(await c.mcp('resources/read', { uri: uri(kind, randomUUID()) })))
         }
       }
       const title = 'synthetic-locket-link-' + phase
-      const created = await h.a.tool('locket.requests.create', { title, type: 'supplier', party: { name: title, kind: 'supplier' }, idempotency_key: randomUUID() })
+      const created = await h.a.tool('locket.requests.create', { entityId: f.ids.entities, title, type: 'supplier', party: { name: title, kind: 'supplier' }, idempotency_key: randomUUID() })
       assert.equal(created.result.isError, false)
       const id = created.result.structuredContent.id
-      assertAgreementLink(created.result, id)
+      assertRequestLinks(created.result, await h.owner.state())
       let linked = content(await h.a.mcp('resources/read', { uri: created.result.content.find(item => item.type === 'resource_link').uri }))
       assert.equal(linked.title, title)
       assert.deepEqual(linked, (await h.owner.state()).agreements.find(row => row.id === id))
@@ -94,8 +124,31 @@ export async function runResources() {
       linked = content(await h.a.mcp('resources/read', { uri: changed.result.content.find(item => item.type === 'resource_link').uri }))
       assert.equal(linked.title, title + '-revised')
       assert.deepEqual(linked, (await h.owner.state()).agreements.find(row => row.id === id))
+      const prepared = await linkedTool(h, 'locket.proposals.prepare', {
+        payload: { title: 'synthetic-locket-linked-proposal-' + phase, type: 'supplier', party: { name: 'synthetic-locket-linked-party', kind: 'supplier' } },
+        evidence: [f.quote], idempotency_key: randomUUID(),
+      }, result => [uri('proposals', result.id)])
+      assert.equal(content(await h.a.mcp('resources/read', { uri: uri('proposals', prepared.id) })).status, 'pending')
+      const people = await linkedTool(h, 'locket.people.list', {}, result => result.members.map(person => uri('people', person.id)))
+      assert.ok(people.members.some(person => person.id === h.viewerId))
+      for (const role of ['requester', 'viewer']) {
+        await linkedTool(h, 'locket.people.update', { operatorId: h.viewerId, role, idempotency_key: randomUUID() }, () => [uri('people', h.viewerId)])
+        assert.equal((await h.viewer.state()).actor.role, role)
+      }
+      for (const grant of ['grant', 'revoke']) {
+        const secret = (await h.owner.state()).agreements.find(row => row.id === f.secret)
+        await linkedTool(h, 'locket.access.update', { agreementId: secret.id, version: secret.version, operatorId: h.viewerId, grant,
+          idempotency_key: randomUUID() }, () => [uri('agreements', secret.id), uri('people', h.viewerId)])
+        assert.equal((await h.viewer.state()).agreements.some(row => row.id === secret.id), grant === 'grant')
+      }
+      const found = await linkedTool(h, 'locket.repo.search_and_structured_filters', { query: 'synthetic-locket-link-' + phase },
+        result => result.records.map(row => uri('agreements', row.id)))
+      assert.ok(found.records.some(row => row.id === id))
+      await linkedTool(h, 'locket.records.count', {}, result => [...result.agreements.map(row => uri('agreements', row.id)),
+        ...result.people.map(row => uri('people', row.id)), ...result.proposals.map(row => uri('proposals', row.id))])
       console.log(`PROBE BASE-AGENT-003 links-${phase}: agreement read, create and update MCP outputs -> exact record links and current native state readback`)
-      console.log(`PROBE BASE-AGENT-003 native-parity-${phase}: eleven templates and complete owner and viewer native rows -> exact scoped JSON; file metadata only; untrusted markers retained`)
+      console.log(`PROBE BASE-AGENT-003 wider-links-${phase}: proposals, people, role changes, reader changes, repository search and record witness -> exact links, native readback and unchanged state before required approval`)
+      console.log(`PROBE BASE-AGENT-003 native-parity-${phase}: ${templates.length} templates and complete owner and viewer native rows -> exact scoped JSON; file metadata only; untrusted markers retained`)
       // Customer, imported and document text is returned as data, not authority.
       const document = await h.b.mcp('resources/read', { uri: uri('versions', f.ids.versions) })
       assert.ok(content(document).text.includes(f.quote))
@@ -203,7 +256,7 @@ export async function runResources() {
     assert.equal(revoked.status, 401)
     assert.equal(revoked.result, undefined)
     console.log('PROBE BASE-AGENT-003 credential-revocation: revoke admitted agent, reuse valid Business credential -> HTTP 401 with no native content')
-    console.log('Resource parity journey passed: eleven native kinds, owner and viewer, autonomous and held policies, current field and record authority.')
+    console.log('Resource parity journey passed: primary native records, owner and viewer, autonomous and held policies, current field and record authority.')
   } finally { await h.close() }
 }
 

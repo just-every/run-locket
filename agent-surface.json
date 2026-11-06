@@ -168,7 +168,21 @@
     "locket://obligations/{id}",
     "locket://renewals/{id}",
     "locket://notices/{id}",
-    "locket://reports/{id}"
+    "locket://reports/{id}",
+    "locket://people/{id}",
+    "locket://proposals/{id}",
+    "locket://terms/{id}",
+    "locket://approvals/{id}",
+    "locket://packages/{id}",
+    "locket://executions/{id}",
+    "locket://comments/{id}",
+    "locket://requirements/{id}",
+    "locket://template-versions/{id}",
+    "locket://entities/{id}",
+    "locket://saved-views/{id}",
+    "locket://imports/{id}",
+    "locket://clickwrap-terms/{id}",
+    "locket://clickwrap-versions/{id}"
   ],
   "journey": [
     {

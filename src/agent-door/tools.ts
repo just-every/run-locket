@@ -5,7 +5,7 @@ import { proposalHandlers } from '../locket/proposals'
 import { peopleHandlers, roleSnapshot } from '../locket/people'
 import { may, requireRole, fullReaders, grantsFor, canSee } from '../locket/access'
 import { agentActor, command, nativeCall } from './native'
-import { classification, disclosureClasses, nativeWitness, record, records } from './records'
+import { classification, disclosureClasses, nativeWitness, record, records, resourceLink } from './records'
 import { nativeActor } from './people'
 import { peopleProjection } from './people-projection'
 import catalogue from './catalogue.json'
@@ -40,7 +40,10 @@ export function tools(env: Bindings): ToolDefinition[] {
     async run(args, ctx) {
       const result = await command(env, ctx, 'request.create', args, agreementHandlers['request.create']) as { id: string }
       ctx.emit('request.created', `locket://agreements/${result.id}`)
-      return { result, resources: [{ uri: `locket://agreements/${result.id}`, name: 'Draft request' }] }
+      const current = await record(env, await agentActor(env, ctx), 'agreements', result.id)
+      return { result, resources: [resourceLink('agreements', result.id), resourceLink('counterparties', String(current.party_id)),
+        ...(current.current_version_id ? [resourceLink('versions', String(current.current_version_id))] : []),
+        ...(current.entity_id ? [resourceLink('entities', String(current.entity_id))] : [])] }
     },
   })
   const update = defineTool({ ...metadata('locket.requests.update'), target,
@@ -58,15 +61,17 @@ export function tools(env: Bindings): ToolDefinition[] {
     async run(args, ctx) {
       const query = String(args.query ?? '').trim().toLocaleLowerCase()
       const rows = await records(env, await agentActor(env, ctx), 'agreements')
-      return { result: { records: rows.filter(row => !query || `${row.reference} ${row.title}`.toLocaleLowerCase().includes(query)).map(row => ({ id: row.id, reference: row.reference, title: row.title, status: row.status, version: row.version })) } }
+      const found = rows.filter(row => !query || `${row.reference} ${row.title}`.toLocaleLowerCase().includes(query))
+      return { result: { records: found.map(row => ({ id: row.id, reference: row.reference, title: row.title, status: row.status, version: row.version })) },
+        resources: found.map(row => resourceLink('agreements', String(row.id))) }
     },
   })
   const prepare = defineTool({ ...metadata('locket.proposals.prepare'),
     classify: args => classification(args),
     summary: args => ({ target: { name: String((args.payload as { title: string }).title) }, items: ['Prepare intake proposal; no agreement created'] }),
     async run(args, ctx) {
-      const result = await command(env, ctx, 'proposal.prepare', { ...args, kind: 'intake' }, proposalHandlers['proposal.prepare'])
-      return { result }
+      const result = await command(env, ctx, 'proposal.prepare', { ...args, kind: 'intake' }, proposalHandlers['proposal.prepare']) as { id: string }
+      return { result, resources: [resourceLink('proposals', result.id)] }
     },
   })
   const access = defineTool({ ...metadata('locket.access.update'),
@@ -89,7 +94,7 @@ export function tools(env: Bindings): ToolDefinition[] {
     async run(args, ctx) {
       const result = await command(env, ctx, 'access.set', args, agreementHandlers['access.set'])
       ctx.emit('agreement.access_changed', `locket://agreements/${id(args)}`)
-      return { result }
+      return { result, resources: [resourceLink('agreements', id(args)), resourceLink('people', String(args.operatorId))] }
     },
   })
   const people = defineTool({ ...metadata('locket.people.update'),
@@ -111,12 +116,23 @@ export function tools(env: Bindings): ToolDefinition[] {
     },
     async run(args, ctx) {
       const subject = await nativeCall(() => roleSnapshot(env.DB, String(args.operatorId)))
-      return { result: await command(env, ctx, 'role.set', { ...args, expectedRevision: subject.revision }, peopleHandlers['role.set']) }
+      return { result: await command(env, ctx, 'role.set', { ...args, expectedRevision: subject.revision }, peopleHandlers['role.set']), resources: [resourceLink('people', String(args.operatorId))] }
     },
   })
-  const list = defineTool({ ...metadata('locket.people.list'), ...peopleProjection(env) })
+  const projection = peopleProjection(env)
+  const list = defineTool({ ...metadata('locket.people.list'), ...projection,
+    async run(args, ctx) {
+      const answer = await projection.run(args, ctx)
+      const result = answer.result as { members: { id: string }[] }
+      return { ...answer, resources: result.members.map(person => resourceLink('people', person.id)) }
+    },
+  })
   const count = defineTool({ ...metadata('locket.records.count'), classify: () => classification(null),
-    async run(_args, ctx) { return { result: await nativeWitness(env, await agentActor(env, ctx)) } },
+    async run(_args, ctx) {
+      const result = await nativeWitness(env, await agentActor(env, ctx))
+      return { result, resources: [...result.agreements.map(row => resourceLink('agreements', row.id)),
+        ...result.people.map(row => resourceLink('people', row.id)), ...result.proposals.map(row => resourceLink('proposals', row.id))] }
+    },
   })
   return [read, create, update, search, prepare, access, people, list, count]
 }
