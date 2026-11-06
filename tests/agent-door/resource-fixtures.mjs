@@ -149,6 +149,10 @@ export async function resourceRecords(h) {
   const report = await h.owner.command('report.create', { name: 'synthetic-locket-report', viewId: view.id, groupField: 'status', frequency: 'weekly', format: 'csv', firstAt: '2099-01-01T09:00', recipients: [h.ownerId] })
   await h.owner.command('report.stop', { id: report.id, version: 1 })
   const proposal = await h.owner.command('proposal.prepare', { kind: 'intake', payload: { title: 'synthetic-locket-proposal', restricted: true }, evidence: [quote] })
+  const serializedTaxId = 'synthetic-locket-tax-identifier'
+  const sensitiveProposal = await h.owner.command('proposal.prepare', { kind: 'intake',
+    payload: { title: 'synthetic-locket-sensitive-proposal', restricted: true, party: { name: 'synthetic-locket-proposed-party', kind: 'supplier', taxId: serializedTaxId } },
+    evidence: [quote] })
   const entity = await h.owner.command('entity.save', { legalName: 'synthetic-locket-entity', entityType: 'Corporation', formation: 'Delaware',
     registeredAddress: '1 Synthetic Street', noticeAddress: '1 Synthetic Street', currency: 'USD', timezone: 'America/New_York', signatories: [] })
   const clickwrap = await h.owner.command('clickwrap.publish', { name: 'synthetic-locket-terms', kind: 'tos', siteOrigin: 'https://synthetic-locket.invalid', body: quote })
@@ -170,5 +174,6 @@ export async function resourceRecords(h) {
     executions: execution.executionId, comments: comment.commentId, requirements: requirement.id,
     'template-versions': template.versionId, entities: entity.id, 'saved-views': view.id, imports: importPreview.batchId,
     'clickwrap-terms': clickwrap.id, 'clickwrap-versions': clickwrap.versionId },
-    secret: secret.id, sensitiveAgreement: sensitive.id, sensitive: native.agreements.find(row => row.id === sensitive.id).party_id, quote }
+    secret: secret.id, sensitiveAgreement: sensitive.id, sensitive: native.agreements.find(row => row.id === sensitive.id).party_id,
+    sensitiveProposal: sensitiveProposal.id, serializedTaxId, quote }
 }

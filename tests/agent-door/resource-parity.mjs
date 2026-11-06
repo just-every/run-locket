@@ -34,13 +34,13 @@ const unavailable = answer => {
   return answer.body.error
 }
 
-async function approveRead(h, c, address) {
+async function approveRead(h, c, address, secret = '12-3456789') {
   const pending = await c.mcp('resources/read', { uri: address })
   assert.equal(errorCode(pending), 'approval_required')
   assert.equal(pending.decision.disposition, 'approval')
   assert.equal(pending.result, undefined)
   assert.equal(pending.body.error.data.contents, undefined)
-  assert.equal(JSON.stringify(pending.body).includes('12-3456789'), false)
+  assert.equal(JSON.stringify(pending.body).includes(secret), false)
   assert.ok(pending.decision.classes.some(row => row.class === 'sensitive' && row.do === 'approval'))
   const { approval: handle, requestState } = pending.body.error.data
   const view = await c.personJson('/agents/api/approvals/' + handle.id)
@@ -71,7 +71,9 @@ async function linkedTool(h, name, args, expected) {
   const native = await h.owner.state()
   for (const link of links) {
     const address = new URL(link.uri), kind = address.hostname, id = address.pathname.slice(1)
-    assert.deepEqual(content(await h.a.mcp('resources/read', { uri: link.uri })), native[families[kind]].find(row => row.id === id))
+    const read = await h.a.mcp('resources/read', { uri: link.uri })
+    const value = errorCode(read) === 'approval_required' ? await approveRead(h, h.a, link.uri, 'synthetic-locket-tax-identifier') : content(read)
+    assert.deepEqual(value, native[families[kind]].find(row => row.id === id))
   }
   return result
 }
@@ -184,6 +186,14 @@ export async function runResources() {
         assert.equal(actual.tax_id, '12-3456789')
       }
       console.log(`PROBE BASE-AGENT-003 sensitive-${phase}: counterparty tax identifier -> ${phase === 'held' ? 'no content before native human approval; exact native content after approval' : 'exact authorized content'}`)
+      const proposalUri = uri('proposals', f.sensitiveProposal)
+      const expectedProposal = (await h.owner.state()).proposals.find(row => row.id === f.sensitiveProposal)
+      const proposalRead = phase === 'held' ? await approveRead(h, h.a, proposalUri, f.serializedTaxId) : content(await h.a.mcp('resources/read', { uri: proposalUri }))
+      assert.deepEqual(proposalRead, expectedProposal)
+      assert.equal(JSON.parse(proposalRead.payload).party.taxId, f.serializedTaxId)
+      assert.deepEqual(unavailable(await h.b.mcp('resources/read', { uri: proposalUri })),
+        unavailable(await h.b.mcp('resources/read', { uri: uri('proposals', randomUUID()) })))
+      console.log(`PROBE BASE-AGENT-003 serialized-sensitive-${phase}: labelled tax identifier inside retained JSON text -> ${phase === 'held' ? 'content withheld until human approval' : 'exact authorized native projection'}; private proposal unavailable to viewer`)
       // The same admitted viewer credential loses every newly revoked record.
       const token = await accessToken(h.b)
       const readSecret = () => h.b.mcp('resources/read', { uri: uri('agreements', f.secret) }, { token })
@@ -245,7 +255,8 @@ export async function runResources() {
     assert.equal(content(await h.b.mcp('resources/read', { uri: uri('versions', f.ids.versions) })).text, null)
     assert.deepEqual(content(await h.a.mcp('resources/read', { uri: uri('agreements', f.ids.agreements) })), full.agreements.find(row => row.id === f.ids.agreements))
     console.log('PROBE BASE-AGENT-003 hidden-fields: native viewer value hiding -> no value, no document text or withheld records; owner retains full native fields')
-    for (const [cls, address] of [['standard', uri('agreements', f.ids.agreements)], ['sensitive', uri('counterparties', f.sensitive)]]) {
+    for (const [cls, address] of [['standard', uri('agreements', f.ids.agreements)], ['sensitive', uri('counterparties', f.sensitive)],
+      ['sensitive', uri('proposals', f.sensitiveProposal)]]) {
       const policy = autonomousPolicy(); policy.rules.push({ id: 'block-resource', class: cls, do: 'blocked' })
       await h.a.adopt(policy)
       const before = await h.owner.state()
