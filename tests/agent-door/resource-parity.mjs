@@ -108,10 +108,29 @@ export async function runResources() {
         }
       }
       const title = 'synthetic-locket-link-' + phase
+      for (const entityId of [undefined, randomUUID()]) {
+        const payload = { ...(entityId ? { entityId } : {}), title: title + '-refused', type: 'supplier', party: { name: title + '-refused', kind: 'supplier' } }
+        const before = await h.owner.state()
+        const person = await h.jsonRequest('/api/locket/commands', { commandId: randomUUID(), type: 'request.create', payload }, h.cookie)
+        assert.equal(person.ok, false)
+        const nativeError = (await person.json()).error.code
+        const refused = await h.a.tool('locket.requests.create', { ...payload, idempotency_key: randomUUID() })
+        assert.equal(refused.result?.isError, true)
+        assert.equal(errorCode(refused), nativeError)
+        assert.deepEqual(refused.result.content.filter(item => item.type === 'resource_link'), [])
+        const after = await h.owner.state()
+        for (const collection of ['agreements', 'parties', 'versions', 'artifacts']) assert.deepEqual(after[collection], before[collection])
+      }
       const created = await h.a.tool('locket.requests.create', { entityId: f.ids.entities, title, type: 'supplier', party: { name: title, kind: 'supplier' }, idempotency_key: randomUUID() })
       assert.equal(created.result.isError, false)
       const id = created.result.structuredContent.id
-      assertRequestLinks(created.result, await h.owner.state())
+      const createdNative = await h.owner.state()
+      assertRequestLinks(created.result, createdNative)
+      for (const link of created.result.content.filter(item => item.type === 'resource_link')) {
+        const address = new URL(link.uri)
+        assert.deepEqual(content(await h.a.mcp('resources/read', { uri: link.uri })),
+          createdNative[families[address.hostname]].find(row => row.id === address.pathname.slice(1)))
+      }
       let linked = content(await h.a.mcp('resources/read', { uri: created.result.content.find(item => item.type === 'resource_link').uri }))
       assert.equal(linked.title, title)
       assert.deepEqual(linked, (await h.owner.state()).agreements.find(row => row.id === id))
@@ -147,6 +166,7 @@ export async function runResources() {
       await linkedTool(h, 'locket.records.count', {}, result => [...result.agreements.map(row => uri('agreements', row.id)),
         ...result.people.map(row => uri('people', row.id)), ...result.proposals.map(row => uri('proposals', row.id))])
       console.log(`PROBE BASE-AGENT-003 links-${phase}: agreement read, create and update MCP outputs -> exact record links and current native state readback`)
+      console.log(`PROBE BASE-AGENT-003 entity-${phase}: omitted or missing contracting entity -> same native refusal, no writes or links; selected entity -> exact linked native entity and request`)
       console.log(`PROBE BASE-AGENT-003 wider-links-${phase}: proposals, people, role changes, reader changes, repository search and record witness -> exact links, native readback and unchanged state before required approval`)
       console.log(`PROBE BASE-AGENT-003 native-parity-${phase}: ${templates.length} templates and complete owner and viewer native rows -> exact scoped JSON; file metadata only; untrusted markers retained`)
       // Customer, imported and document text is returned as data, not authority.
