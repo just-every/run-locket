@@ -116,11 +116,11 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "3ea41b9de053f19917984dc3ca097a17b4f76501190bc08f33bfc6ffc3559940",
+      "sha256": "74e87e274fb7b1a2882622d94d50892b2c11385169f6fbd36b4a1aea290c5929",
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "456c1601822a90c890664b400e81ba14882458f1ae14f0e01f991dee30ba4820",
+      "sha256": "78a0065460cad045a4736e30a00cfbbbddc436faa32debd29bc444300a997356",
       "executable": false
     },
     "AGENTS.consumer.md": {
@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "ca07b6235d4cf0e4036cdc3bbc7551086d531e74caa03e47a21d3cca8b855ec0",
+      "sha256": "79dfe29c70fab1fdb11697f391a8a9830ed5a0939196074a64597aa9c5b364c0",
       "executable": false
     },
     "base-copies.json": {
@@ -140,7 +140,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9f432f679304a12b67d5a3e9eca0c87a9656390f4b7e2eeec2c4d7dcbc2e360e",
+      "sha256": "568c1a11dc98bda16efe65dfa3376822332f5b2371e1f250aaa240705f26a1da",
       "executable": false
     },
     "DEMO.md": {
@@ -160,7 +160,7 @@
       "executable": false
     },
     "docs/agents-and-the-api.md": {
-      "sha256": "98dc380d07f79882d031dcca4463f2401f6b88afa30c07493ce7514386a0f3ee",
+      "sha256": "cb4d6e22214b3be88d1f6d50a233585ed816c297fde0d96eabc48a8f36e9fc7d",
       "executable": false
     },
     "docs/backup-and-restore.md": {
@@ -172,7 +172,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "7f8d04422ce3706c1c19cc7c2edb0bfdbea13a24e70bc7522114bbc01a1c95e5",
+      "sha256": "cac4e5d56a09a70a1eb31db6068c49ec6ca0052597c51bd506f3cc2e0728c1ab",
       "executable": false
     },
     "docs/getting-started.md": {
@@ -1588,11 +1588,11 @@
       "executable": false
     },
     "src/agent-door/catalogue.json": {
-      "sha256": "15cd27d2c6cab61104e51f42f6db247dd653d5b058a19c2720dfa3f5c09b9af6",
+      "sha256": "4e6e98eafb7e238478f5923b983f203d3b8b600ad07d958669ae9e3880617ebb",
       "executable": false
     },
     "src/agent-door/index.server.ts": {
-      "sha256": "1a65c147c8fb3f7705b35c1047c95b18a9a34a61ab5cdfd430f38beb894e323d",
+      "sha256": "9f513c4b9eea5dcee9e15ed9987c2c65397e2f013bd02f0dede618aea69234dc",
       "executable": false
     },
     "src/agent-door/native.ts": {
@@ -1612,15 +1612,15 @@
       "executable": false
     },
     "src/agent-door/records.ts": {
-      "sha256": "c3ffbd9423d42e34b977f8d138e4712fef67401dbb25559fd4e8991d6c96e3e2",
+      "sha256": "262155edccced997545667c6c3c24f6e43386e5e6ab2241fdfdefe38004ed0f6",
       "executable": false
     },
     "src/agent-door/resources.ts": {
-      "sha256": "2aa725ca92275c6c50b3387aabe8e60f5d2467773642e5f18f838a21e05bb48a",
+      "sha256": "255809a17f48cc240add059896622d07fafadacdb8d1a8489da93c5a1039860b",
       "executable": false
     },
     "src/agent-door/tools.ts": {
-      "sha256": "cf99faffe265173628f1d90abf13e1e5d0be558d09fb2c474a8de17e0764807c",
+      "sha256": "bddae0d41a67e9a0d280e3c6e0087fdeaad0f32d04d3faea98edc22daae8a997",
       "executable": false
     },
     "src/auth.server.ts": {
@@ -5620,7 +5620,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "6603ad243101170a45146c9f29a523f8e5c63f0a76573b882784ad1c201f0899",
+      "sha256": "f13e1a15dc013cc9b88092a81b2c30ef4c9b2560c6b92ac00d0f84669a2e1dfe",
       "executable": false
     },
     "tests/agent-door/negative-sponsor.mjs": {
@@ -5649,6 +5649,14 @@
     },
     "tests/agent-door/proposal-decision-attribution.mjs": {
       "sha256": "60f8996b9759bb1569e75c54421a5cab247d5f3a0e33758171ce1ae6a7ec4e76",
+      "executable": false
+    },
+    "tests/agent-door/resource-fixtures.mjs": {
+      "sha256": "c02ded44d0876a374bfb62d654caa6d0dfdeb625c2d9c8e7d812267dce36e387",
+      "executable": false
+    },
+    "tests/agent-door/resource-parity.mjs": {
+      "sha256": "5495ae7db653a531810c08d807c4c8f996e9af398bd20aa164703cdab8188257",
       "executable": false
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
