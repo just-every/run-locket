@@ -32,6 +32,7 @@ async function approveRead(h, c, address) {
   assert.equal(pending.decision.disposition, 'approval')
   assert.equal(pending.result, undefined)
   assert.equal(pending.body.error.data.contents, undefined)
+  assert.equal(JSON.stringify(pending.body).includes('12-3456789'), false)
   assert.ok(pending.decision.classes.some(row => row.class === 'sensitive' && row.do === 'approval'))
   const { approval: handle, requestState } = pending.body.error.data
   const view = await c.personJson('/agents/api/approvals/' + handle.id)
@@ -45,7 +46,7 @@ async function approveRead(h, c, address) {
   return content(read)
 }
 
-async function runResources() {
+export async function runResources() {
   const h = await resourceInstallation()
   try {
     const f = await resourceRecords(h)
@@ -63,6 +64,7 @@ async function runResources() {
         const native = await human.state()
         for (const [kind, collection] of Object.entries(families)) {
           const expected = native[collection].find(row => row.id === f.ids[kind])
+          if (label === 'owner' || kind !== 'reports') assert.ok(expected, `${phase} ${label} seeded ${kind} must be visible`)
           const answer = await c.mcp('resources/read', { uri: uri(kind, f.ids[kind]) })
           if (expected) {
             assert.deepEqual(content(answer), expected, `${phase} ${label} ${kind}`)
@@ -75,6 +77,24 @@ async function runResources() {
           } else unavailable(answer)
         }
       }
+      const title = 'synthetic-locket-link-' + phase
+      const created = await h.a.tool('locket.requests.create', { title, type: 'supplier', party: { name: title, kind: 'supplier' }, idempotency_key: randomUUID() })
+      assert.equal(created.result.isError, false)
+      const id = created.result.structuredContent.id
+      assertAgreementLink(created.result, id)
+      let linked = content(await h.a.mcp('resources/read', { uri: created.result.content.find(item => item.type === 'resource_link').uri }))
+      assert.equal(linked.title, title)
+      assert.deepEqual(linked, (await h.owner.state()).agreements.find(row => row.id === id))
+      const read = await h.a.tool('locket.agreements.read', { agreementId: id })
+      assertAgreementLink(read.result, id)
+      assert.deepEqual(content(await h.a.mcp('resources/read', { uri: uri('agreements', id) })), read.result.structuredContent)
+      const changed = await h.a.tool('locket.requests.update', { agreementId: id, version: linked.version, title: title + '-revised', idempotency_key: randomUUID() })
+      assert.equal(changed.result.isError, false)
+      assertAgreementLink(changed.result, id)
+      linked = content(await h.a.mcp('resources/read', { uri: changed.result.content.find(item => item.type === 'resource_link').uri }))
+      assert.equal(linked.title, title + '-revised')
+      assert.deepEqual(linked, (await h.owner.state()).agreements.find(row => row.id === id))
+      console.log(`PROBE BASE-AGENT-003 links-${phase}: agreement read, create and update MCP outputs -> exact record links and current native state readback`)
       console.log(`PROBE BASE-AGENT-003 native-parity-${phase}: eleven templates and complete owner and viewer native rows -> exact scoped JSON; file metadata only; untrusted markers retained`)
       // Customer, imported and document text is returned as data, not authority.
       const document = await h.b.mcp('resources/read', { uri: uri('versions', f.ids.versions) })
@@ -107,6 +127,34 @@ async function runResources() {
         unavailable(await h.b.mcp('resources/read', { uri: uri(kind, id) }, { token })),
         unavailable(await h.b.mcp('resources/read', { uri: uri(kind, randomUUID()) }, { token })))
       console.log(`PROBE BASE-AGENT-003 revocation-${phase}: same Business-bound viewer credential after access removal -> agreement, version, file and counterparty identical to missing ids`)
+      if (phase === 'held') {
+        const sensitiveUri = uri('counterparties', f.sensitive)
+        const pending = await h.b.mcp('resources/read', { uri: sensitiveUri })
+        assert.equal(errorCode(pending), 'approval_required')
+        const handle = pending.body.error.data.approval
+        const approval = (await h.b.personJson('/agents/api/approvals/' + handle.id)).approval
+        let restricted = (await h.owner.state()).agreements.find(item => item.id === f.sensitiveAgreement)
+        await h.owner.command('access.set', { agreementId: restricted.id, version: restricted.version, operatorId: h.viewerId, grant: 'revoke' })
+        const attempt = await h.jsonRequest(`/agents/api/approvals/${handle.id}/approve`, {
+          revision: approval.revision, summary_sha256: approval.summary_sha256,
+        }, h.viewerCookie)
+        assert.equal(attempt.status, 200)
+        const rejected = (await attempt.json()).approval
+        assert.equal(rejected.state, 'refused')
+        // Base reports classifier refusal during approval execution with this
+        // stable wrapper code; native lookup still withholds the record.
+        assert.equal(rejected.code, 'execution_failed')
+        const denied = await h.b.mcp('resources/read', { uri: sensitiveUri, requestState: pending.body.error.data.requestState })
+        assert.equal(denied.result, undefined)
+        assert.equal(JSON.stringify(denied.body).includes('12-3456789'), false)
+        assert.ok(errorCode(denied))
+        restricted = (await h.owner.state()).agreements.find(item => item.id === restricted.id)
+        await h.owner.command('access.set', { agreementId: restricted.id, version: restricted.version, operatorId: h.viewerId, grant: 'grant' })
+        const replay = await h.b.mcp('resources/read', { uri: sensitiveUri, requestState: pending.body.error.data.requestState })
+        assert.equal(replay.result, undefined)
+        assert.notEqual(errorCode(replay), null)
+        console.log('PROBE BASE-AGENT-003 pending-revocation: revoke sensitive source before approval, restore access, replay old request -> refused, no private content or revival')
+      }
     }
     // Hidden fields use the native redacted projection, including whole-family
     // withholding; an omitted value must not reappear in a resource allowlist.
@@ -145,6 +193,16 @@ async function runResources() {
     assert.equal(errorCode(await h.a.mcp('resources/read', { uri: uri('agreements', f.ids.agreements) })), 'agents_paused')
     assert.ok(h.a.points.every(point => point.ok), JSON.stringify(h.a.points.filter(point => !point.ok)))
     console.log('PROBE BASE-AGENT-003 unset-and-pause: unanswered policy and Business Pause -> empty discovery and no resource content')
+    await h.a.adopt(autonomousPolicy())
+    const token = await accessToken(h.b)
+    assert.equal(content(await h.b.mcp('resources/read', { uri: uri('agreements', f.ids.agreements) }, { token })).id, f.ids.agreements)
+    const stopped = await h.jsonRequest(`/agents/api/agents/${h.b.agentId}/revoke`, {}, h.cookie)
+    assert.equal(stopped.status, 200)
+    assert.equal((await stopped.json()).revoked, true)
+    const revoked = await h.b.mcp('resources/read', { uri: uri('agreements', f.ids.agreements) }, { token })
+    assert.equal(revoked.status, 401)
+    assert.equal(revoked.result, undefined)
+    console.log('PROBE BASE-AGENT-003 credential-revocation: revoke admitted agent, reuse valid Business credential -> HTTP 401 with no native content')
     console.log('Resource parity journey passed: eleven native kinds, owner and viewer, autonomous and held policies, current field and record authority.')
   } finally { await h.close() }
 }
