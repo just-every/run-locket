@@ -5,6 +5,7 @@ import { readAgreementSummary } from './agreement-summaries'
 import { modelHandlers } from './model-settings'
 import { proposalHandoffHandlers } from './proposal-handoffs'
 import { executionCompletionResponse, retrievalHandlers } from './execution-retrieval'
+import { pdfRenditionProgress } from './pdf-rendition-progress'
 import { accountingAllocationHandlers } from './accounting-allocation'
 import { accessReport } from './repository-access'
 import { redactedRenditionHandlers } from './redacted-renditions'
@@ -181,6 +182,7 @@ export async function locketResponse(request: Request, env: Bindings): Promise<R
     const bulk = await repositoryBulkResponse(request,env,actor)
     if(bulk)return bulk
     if(request.method==='GET'&&path==='/exchanges')return reply(await exchangeList(env,actor,url.searchParams.get('agreementId')??''))
+    if(request.method==='GET'&&path==='/pdf-rendition')return reply(await pdfRenditionProgress(env,actor,url.searchParams.get('versionId')??''))
     if(request.method==='GET'&&path==='/word-review')return reply(await wordReviewView(env,actor,url.searchParams.get('versionId')??''))
     if (request.method === 'GET' && path === '/analytics') { await requireFullFields(env.DB,actor); return reply(workflowAnalytics(await state(env, actor), url.searchParams)) }
     if (request.method === 'GET' && path === '/clickwrap/acceptances') {

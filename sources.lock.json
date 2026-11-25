@@ -132,7 +132,7 @@
       "executable": false
     },
     "API.md": {
-      "sha256": "ca07b6235d4cf0e4036cdc3bbc7551086d531e74caa03e47a21d3cca8b855ec0",
+      "sha256": "4cc43e448fe0b016ba7d65a72243cc26fcb6bba51693d4c4bc89bf950192dbb3",
       "executable": false
     },
     "base-copies.json": {
@@ -228,7 +228,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "dfeb36412e487d2b4d1c33ebc69c509ed160cd34a242b165489dc25fed69ad03",
+      "sha256": "9156f5ca2f93711bd01963b49a292f98f4e97813edb7fe3fff0b627e80d8a3c5",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -605,6 +605,10 @@
     },
     "migrations/core/0097_proposal_agent_provenance.sql": {
       "sha256": "8973371981c1d9926f0fbdff5d3a6be34b53c47106b8f2b4b48d01a0e7221e40",
+      "executable": false
+    },
+    "migrations/core/0098_bound_scheduled_reads.sql": {
+      "sha256": "a61f2c0bc7a2d469aac7a6a0d840ef900cf068764446b4767b99f15f96c1d441",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1880,7 +1884,7 @@
       "executable": false
     },
     "src/locket/api.ts": {
-      "sha256": "10c1de5195b5d6301ad3374adc1ff9d971620fe6472d644514958f3313fa8f46",
+      "sha256": "ed7f63ec4b762de3a6dcb7126e8e2a1e606d52cedd03849a28ecb5e8b912bf57",
       "executable": false
     },
     "src/locket/approval-channel-automatic.ts": {
@@ -1912,11 +1916,11 @@
       "executable": false
     },
     "src/locket/approval-reminders.ts": {
-      "sha256": "9eb4a189cd429ced794025bffb348b67bbe3ac495924881ecac12f1174fd9f49",
+      "sha256": "475d3e5c26d0f412d2ba6f5dbfdd5948d3cbaeeac9cf6898ada7152914b4f1b7",
       "executable": false
     },
     "src/locket/approval-rules.ts": {
-      "sha256": "46c4945ac397b1d2fc7a83714a51bb6613a9a0e48457aec4c6d6849540528f1a",
+      "sha256": "f633a10930d02701c0b48879212678cf10dd2575e3d17e148246a11d820284dc",
       "executable": false
     },
     "src/locket/artifacts.ts": {
@@ -2024,11 +2028,11 @@
       "executable": false
     },
     "src/locket/deadline-reminder-dispatch.ts": {
-      "sha256": "48447cb948df929368436300615e9c94093507fcbf0f6fb8c3db84a57db1579a",
+      "sha256": "5fbd4ddaecbcb66326746d18e9bce3b807097df72ce878eb803eeb1796161ec1",
       "executable": false
     },
     "src/locket/deadline-reminders.ts": {
-      "sha256": "56dfba28af8c2cfbe22114fc691a52a36b6e14183f1059b5d0ee07e9e7cf5ea4",
+      "sha256": "ec87103dc0a2d7bac355e984ff57d9051cc86edc17c0de048d6c5ba9f26c1868",
       "executable": false
     },
     "src/locket/diff.ts": {
@@ -2268,7 +2272,7 @@
       "executable": false
     },
     "src/locket/notice-agent-runtime.ts": {
-      "sha256": "cca851a454322e5fbe727b3c212f2bc1a00350bca91c993281468637fe8315ae",
+      "sha256": "066c49372955839d1c9f4ab97a10123c5e76a539e5a57530242a88a1a0823a52",
       "executable": false
     },
     "src/locket/notice-agent.ts": {
@@ -2292,7 +2296,7 @@
       "executable": false
     },
     "src/locket/notification-dispatch.ts": {
-      "sha256": "724259991cf7664f71ee01590f064352ed16c311ccf7b1446228f1dd7e9b7436",
+      "sha256": "48179c27e5f0d99294ed547e57c54f93e38325fde502f4d807e982bed765ba7e",
       "executable": false
     },
     "src/locket/notification-events.ts": {
@@ -2339,8 +2343,12 @@
       "sha256": "1f48ec0d4a5d303534d4a8c684edf6b2a6cb50d3e403e25721234d2bda7ba58f",
       "executable": false
     },
+    "src/locket/pdf-rendition-progress.ts": {
+      "sha256": "516caaadfb22734b25aebc56c987ff572e08185c58c99cd22b2912361d11d87a",
+      "executable": false
+    },
     "src/locket/pdf-renditions.ts": {
-      "sha256": "050b2c64aba87ca774d31fd6e104addb91b1d17724a998f72821f4970fffb187",
+      "sha256": "567f29ebdeb216ea9c20d14528aa9f3c22293796a73d0c5647ded29a61b86739",
       "executable": false
     },
     "src/locket/pdf-text-geometry.ts": {
@@ -2464,7 +2472,7 @@
       "executable": false
     },
     "src/locket/renewal-lifecycle.ts": {
-      "sha256": "2d772f5c813968f977a8918657e2cdcb7bb27b12e48b9cf53f73ff1bf7a06e8d",
+      "sha256": "b37cfc22e7f51ab2f797a5fcfa005dbf8cc6810931caf163b2119ce10b5994b8",
       "executable": false
     },
     "src/locket/renewal-notice-guard.ts": {
@@ -2536,7 +2544,7 @@
       "executable": false
     },
     "src/locket/request-queue.ts": {
-      "sha256": "5110d9e30302a74a5bb686cb2c4a3a7fdb0ee693e2ce63fba7f0092333bf5a9e",
+      "sha256": "ffcb9296c517eb57d06abc8f708caa2dbc60bc205d7a78aad5e4dc06f5d3dc5f",
       "executable": false
     },
     "src/locket/retained-originals.ts": {
@@ -5584,7 +5592,7 @@
       "executable": false
     },
     "src/ui/versions.tsx": {
-      "sha256": "d6d0195662126996dc4783b9e49c2c7da84c6bcac7b79ffc1efe53bfc4d73a64",
+      "sha256": "4824107df57d6753dbf1f72f53f944a9ff622edbe848c5fbdb8fbc4e8194cb7b",
       "executable": false
     },
     "src/ui/word-review.tsx": {
@@ -5723,6 +5731,14 @@
       "sha256": "c9d45fe689e0905afafddde863261b01944c2e54562ba4363c2f9de411a4fbb3",
       "executable": false
     },
+    "tests/api/d1-budget-fixture.mjs": {
+      "sha256": "2e41c8d4342e870d0746c5e4709fc5edd74b2680bb6108df6a3e5321df15f8d8",
+      "executable": false
+    },
+    "tests/api/d1-read-budget.test.mjs": {
+      "sha256": "f446372191cfea333849b3acd6060433b9caec5a9f89d319151f0c4bb17f4704",
+      "executable": false
+    },
     "tests/api/deadline-reminders.test.mjs": {
       "sha256": "d471f27ce59fa94c2c6937bde268f2282e42c55b216dfac208f316f3121e5a46",
       "executable": false
@@ -5801,6 +5817,10 @@
     },
     "tests/api/ironclad-move-in.test.mjs": {
       "sha256": "d3b03b3b87022021aaf123d5ec0139c67ec0a14966a524b1fd2f19eb5d7fd730",
+      "executable": false
+    },
+    "tests/api/metered-worker.ts": {
+      "sha256": "dc7c8fb26a9739ce304703a503cc55e1a85055afdf0c5cd9da6ad04e6a9fb31b",
       "executable": false
     },
     "tests/api/model-settings-fixture.mjs": {

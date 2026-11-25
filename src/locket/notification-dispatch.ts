@@ -157,7 +157,7 @@ async function send(c: Ctx, recipient: string, kind: 'immediate' | 'digest', tim
  * each own-zone digest is claimed once after 9am, with every item reauthorized. */
 export async function runNotifications(env: Bindings, now: number, includeDigests = true) {
   const c: Ctx = { env, db: env.DB, actor: scheduler, now, commandId: crypto.randomUUID() }
-  const rows = (await env.DB.prepare(`SELECT * FROM lk_notifications WHERE ${waiting} ORDER BY created_at,id`).all<NotificationRow>()).results
+  const rows = (await env.DB.prepare(`SELECT * FROM lk_notifications INDEXED BY lk_notifications_pending WHERE ${waiting} ORDER BY created_at,id`).all<NotificationRow>()).results
   const groups = new Map<string, Candidate[]>()
   for (let row of rows) {
     // Immediate bridges belong exclusively to their original one-use sender.

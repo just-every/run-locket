@@ -27,8 +27,12 @@ export async function openDeadlines(db: D1Database, now: number): Promise<Deadli
   const renewals = (await db.prepare(`SELECT r.id, r.agreement_id, r.deadline_date, r.deadline_at, r.timezone, a.owner_id, s.owner_id AS schedule_owner, s.offsets AS schedule_offsets
     FROM lk_renewals r JOIN lk_agreements a ON a.id=r.agreement_id LEFT JOIN lk_reminder_schedules s ON s.agreement_id=r.agreement_id AND s.deadline_at=r.deadline_at
     WHERE r.decision IS NULL AND r.deadline_at>?`).bind(now).all<any>()).results
+  // A reminder is sent at 9:00 local on (due date − offset), at most a day late: only obligations whose due date is an offset
+  // away from the last few days are read, so a far-off or long-open obligation costs nothing here.
+  const today = Date.parse(new Date(now).toISOString().slice(0, 10) + 'T00:00:00Z')
+  const dates = [...new Set(offsets.flatMap(offset => [-2, -1, 0, 1].map(k => new Date(today + (offset + k) * 86_400_000).toISOString().slice(0, 10))))]
   const obligations = (await db.prepare(`SELECT o.id, o.agreement_id, o.due_date, o.owner_id, a.timezone FROM lk_obligations o JOIN lk_agreements a ON a.id=o.agreement_id
-    WHERE o.status='confirmed' AND o.due_date IS NOT NULL`).all<any>()).results
+    WHERE o.status='confirmed' AND o.due_date IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(dates)).all<any>()).results
   return [
     ...renewals.map(r => ({ subjectKind: 'renewal' as const, subjectId: r.id, agreementId: r.agreement_id, deadlineDate: r.deadline_date, deadlineAt: r.deadline_at, zone: r.timezone,
       recipientId: r.schedule_owner ?? r.owner_id, reason: r.schedule_owner ? 'reminder owner' : 'responsible person', offsets: r.schedule_offsets ? JSON.parse(r.schedule_offsets) : offsets })),
@@ -44,7 +48,7 @@ export async function overdueEscalationDays(db: D1Database): Promise<number> {
 /** OBL-002: confirmed obligations whose due date has ended in the agreement's zone and are not done. */
 export async function overdueObligations(db: D1Database, now: number) {
   const rows = (await db.prepare(`SELECT o.id, o.agreement_id, o.due_date, o.owner_id, a.timezone, a.owner_id AS responsible_id FROM lk_obligations o JOIN lk_agreements a ON a.id=o.agreement_id
-    WHERE o.status='confirmed' AND o.due_date IS NOT NULL`).all<any>()).results
+    WHERE o.status='confirmed' AND o.due_date<=?`).bind(new Date(now + 86_400_000).toISOString().slice(0, 10)).all<any>()).results
   return rows.map(o => ({ subjectKind: 'obligation' as const, subjectId: o.id, agreementId: o.agreement_id, deadlineDate: o.due_date, deadlineAt: noticeDeadline(o.due_date, 0, o.timezone).at, zone: o.timezone,
     recipientId: o.owner_id, reason: 'obligation owner', offsets: [-1], responsibleId: o.responsible_id as string })).filter(o => o.deadlineAt <= now)
 }

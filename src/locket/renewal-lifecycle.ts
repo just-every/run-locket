@@ -101,19 +101,24 @@ export async function renewalLifecycleState(db:D1Database,ids:Set<string>) {
   const scoped=async(table:string)=>(await rows(db,`SELECT * FROM ${table}`)).filter(r=>ids.has(r.agreement_id))
   return {renewalHistory:await scoped('lk_renewal_history'),renewalGenerations:await scoped('lk_renewal_generations'),renewalSettings:await scoped('lk_renewal_settings'),renewalTerminations:await scoped('lk_renewal_terminations')}
 }
-/** Hourly invocation is safe; every agreement is checked at least daily. No mail
- * or provider operation is claimed until source/family/version fences pass. */
+const dayMs = 86_400_000
+const recordCheck = (agreementId: string, now: number) => sql('INSERT INTO lk_renewal_checks VALUES(?,?) ON CONFLICT(agreement_id) DO UPDATE SET checked_at=excluded.checked_at', agreementId, now)
+/** Hourly invocation is safe. An agreement is reconciled when it changed since its last check and at least daily
+ * otherwise (lk_renewal_checks), so an hour reads only what is due, never every agreement's terms and notices.
+ * No mail or provider operation is claimed until source/family/version fences pass. */
 export async function runRenewalLifecycle(env:Bindings,now:number) {
   const owner=await env.DB.prepare("SELECT id,display_name AS name,email,version FROM oa_operators WHERE role='owner' AND status='active' LIMIT 1").first<any>()
   if(!owner)return
   const actor:Actor={...owner,role:'owner',sessionId:'',operatorVersion:owner.version}
-  for(const row of await rows(env.DB,"SELECT * FROM lk_agreements WHERE status IN ('executed','imported')")) {
+  const due=await rows(env.DB,"SELECT a.* FROM lk_agreements a LEFT JOIN lk_renewal_checks k ON k.agreement_id=a.id WHERE a.status IN ('executed','imported') AND (k.agreement_id IS NULL OR k.checked_at<=? OR a.updated_at>k.checked_at)",now-dayMs)
+  for(const row of due) {
     const a=row as AgreementRow,c:Ctx={env,db:env.DB,actor,now,commandId:crypto.randomUUID()}
     if(!await notificationCheck(env.DB,[familyClear(a.id)]))continue
     const out=await reconcileRenewalWrites(c,a)
-    if(!out.writes.length)continue
+    const checked=recordCheck(a.id,now)
+    if(!out.writes.length){await notificationBatch(env.DB,[checked]);continue}
     const guard=crypto.randomUUID()
-    try { await notificationBatch(env.DB,[guardSql(guard,[sql("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND role='owner' AND status='active')",owner.id,owner.version),...out.checks]),...out.writes,sql('DELETE FROM lk_guard WHERE id=?',guard)]) }
+    try { await notificationBatch(env.DB,[guardSql(guard,[sql("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND role='owner' AND status='active')",owner.id,owner.version),...out.checks]),...out.writes,checked,sql('DELETE FROM lk_guard WHERE id=?',guard)]) }
     catch(error){if(!/UNIQUE constraint|LOCKET_GUARD|CHECK constraint/.test(String(error)))throw error}
   }
 }

@@ -6,7 +6,8 @@ import { CommentThread } from './comment-threads'
 // the required attachments and submitting for review, and the comment box.
 import { ClauseLibrary } from './clause-library'
 import { useEffect, useState } from 'react'
-import { fileToPayload, type LocketState, type Row } from './api'
+import { fetchJson, fileToPayload, type LocketState, type Row } from './api'
+import type { PdfRenditionProgress } from '../locket/pdf-rendition-progress'
 import type { Locket } from './app'
 import { Field, Form, Icon, value } from './controls'
 import { brief, can, currentVersion, personName, stamp, versionName, versionsOf } from './format'
@@ -197,16 +198,33 @@ export function TemplateVersionForm({ state, busy, onSubmit }: { state: LocketSt
   )
 }
 
-/** Processing is observable without rewriting approval-pinned text. */
+/** Processing is observable without rewriting approval-pinned text. While it runs, one narrow status read is
+ * polled, never the whole workspace; the workspace reloads once when processing ends. */
+const renditionPending = (status: string) => ['queued', 'processing'].includes(status)
 export function PdfTextStatus({state,shown,locket}:{state:LocketState;shown:Row;locket:Locket}){
  const r=state.pdfRenditions.find(r=>r.version_id===shown.id)
- const pending=r&&['queued','processing'].includes(r.status)
- useEffect(()=>{if(!pending)return;const timer=window.setInterval(()=>void locket.refresh(),3000);return()=>window.clearInterval(timer)},[pending,locket.refresh])
- if(!r)return null
+ const [live,setLive]=useState<PdfRenditionProgress|null>(null)
+ useEffect(()=>{setLive(null)},[r])
+ const view:Pick<PdfRenditionProgress,'status'|'processed_pages'|'total_pages'|'error'|'pages'>|undefined=live??r
+ const pending=!!view&&renditionPending(view.status)
+ useEffect(()=>{
+  if(!pending)return
+  let stopped=false
+  const timer=window.setInterval(async()=>{
+   try{
+    const next=await fetchJson<PdfRenditionProgress|null>(`/api/locket/pdf-rendition?versionId=${encodeURIComponent(shown.id)}`)
+    if(stopped)return
+    if(next&&renditionPending(next.status)){setLive(next);return}
+    stopped=true;window.clearInterval(timer);await locket.refresh()
+   }catch{}
+  },3000)
+  return()=>{stopped=true;window.clearInterval(timer)}
+ },[pending,shown.id,locket.refresh])
+ if(!view)return null
  return <section className="lk-panel" aria-label="PDF text processing" style={{fontSize:14}}>
- <p role="status">{r.status==='queued'?'PDF text queued for background processing.':r.status==='processing'?`Reading embedded PDF text: ${r.processed_pages} of ${r.total_pages??'unknown'} pages.`:r.status==='ready'?`Embedded PDF text ready: ${r.processed_pages} pages.`:r.status==='partial'?'Embedded PDF text processed; some pages are unavailable.':r.error??'PDF text is unavailable.'}</p>
- {r.total_pages!==null&&<progress aria-label="PDF pages processed" max={r.total_pages} value={r.processed_pages}/>}
- {r.pages.filter(p=>p.status==='unavailable').map(p=><p key={p.page}>Page {p.page}: {p.reason}</p>)}
- {['ready','partial'].includes(r.status)&&<p>Derived from the original PDF. Approval text and original bytes are unchanged. OCR is unavailable.</p>}
+ <p role="status">{view.status==='queued'?'PDF text queued for background processing.':view.status==='processing'?`Reading embedded PDF text: ${view.processed_pages} of ${view.total_pages??'unknown'} pages.`:view.status==='ready'?`Embedded PDF text ready: ${view.processed_pages} pages.`:view.status==='partial'?'Embedded PDF text processed; some pages are unavailable.':view.error??'PDF text is unavailable.'}</p>
+ {view.total_pages!==null&&<progress aria-label="PDF pages processed" max={view.total_pages} value={view.processed_pages}/>}
+ {view.pages.filter(p=>p.status==='unavailable').map(p=><p key={p.page}>Page {p.page}: {p.reason}</p>)}
+ {['ready','partial'].includes(view.status)&&<p>Derived from the original PDF. Approval text and original bytes are unchanged. OCR is unavailable.</p>}
  </section>
 }

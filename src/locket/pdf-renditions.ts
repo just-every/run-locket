@@ -11,7 +11,7 @@ export interface PdfRendition {
  status:string; processed_pages:number; total_pages:number|null; text:string; pages:PdfTextPage[]; error:string|null; revision:number
 }
 type Stored = Omit<PdfRendition,'pages'> & {pages:string}
-const source = `EXISTS(SELECT 1 FROM lk_artifacts f JOIN lk_versions v ON v.id=f.version_id
+export const source = `EXISTS(SELECT 1 FROM lk_artifacts f JOIN lk_versions v ON v.id=f.version_id
  WHERE f.id=r.artifact_id AND f.agreement_id=r.agreement_id AND v.agreement_id=r.agreement_id
  AND f.sha256=r.source_sha256 AND v.digest=r.version_digest)`
 export function queuePdfRendition(agreementId:string,versionId:string,artifactId:string,digest:string,versionDigest:string,at:number):Sql {

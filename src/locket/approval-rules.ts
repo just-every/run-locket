@@ -158,9 +158,9 @@ export async function syncRulePending(env:Bindings,now:number){
    active.push(id)
    try{await env.DB.batch([guardSql(guard,[...(old?[]:[sql('NOT EXISTS(SELECT 1 FROM lk_rule_pending WHERE id=?)',id)]),sql('(SELECT version FROM lk_agreements WHERE id=?)=?',a.id,a.version),policyVersionCheck(policy.version),sql('COALESCE((SELECT version FROM lk_approval_absences WHERE operator_id=?),0)=?',step.approverId,step.absenceVersion??0)]),...writes,sql('DELETE FROM lk_guard WHERE id=?',guard)].map(s=>env.DB.prepare(s.sql).bind(...s.params)))}catch(error){if(!/LOCKET_GUARD/.test(String(error)))throw error}
   }
-  await env.DB.prepare(`UPDATE lk_rule_pending SET active=0 WHERE agreement_id=? AND agreement_version<=? AND id NOT IN (SELECT value FROM json_each(?)) AND EXISTS(SELECT 1 FROM lk_agreements a WHERE a.id=agreement_id AND a.version=?)`).bind(a.id,a.version,JSON.stringify(active),a.version).run()
+  await env.DB.prepare(`UPDATE lk_rule_pending SET active=0 WHERE active=1 AND agreement_id=? AND agreement_version<=? AND id NOT IN (SELECT value FROM json_each(?)) AND EXISTS(SELECT 1 FROM lk_agreements a WHERE a.id=agreement_id AND a.version=?)`).bind(a.id,a.version,JSON.stringify(active),a.version).run()
  }
- await env.DB.prepare("UPDATE lk_rule_pending SET active=0 WHERE EXISTS(SELECT 1 FROM lk_agreements a WHERE a.id=agreement_id AND a.status<>'in_review')").run()
+ await env.DB.prepare("UPDATE lk_rule_pending SET active=0 WHERE active=1 AND EXISTS(SELECT 1 FROM lk_agreements a WHERE a.id=agreement_id AND a.status<>'in_review')").run()
 }
 
 export async function runRuleReminders(env:Bindings,now:number){

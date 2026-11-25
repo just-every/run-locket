@@ -9,6 +9,7 @@ import type { Bindings } from '../auth.server'
 import { operatorMail } from '../mail.server.mjs'
 import { auditSql, guardSql, type Ctx } from './commands'
 import { defaultZone } from './business-days'
+import { addDays } from './dates'
 import { dueAt, escalationOffset, isReader, openDeadlines, overdueEscalationDays, overdueObligations, preferenceOf, readerSql, stillOpenSql, type Deadline } from './deadline-reminders'
 import { sql, type Actor, type Sql } from './model'
 
@@ -20,6 +21,12 @@ export interface ReminderRow {
 
 /** A reminder goes out at most a day late (after downtime); one longer past, such as an offset already past when the deadline appeared, is never sent. */
 const lateLimitMs = 86_400_000
+const hourMs = 3_600_000
+/** Cheap test before any read: a reminder is due at 9:00 local (UTC-12 to UTC+14, so within -5h..+21h of the date's UTC midnight, with margin)
+ * and sent at most a day late, so only an offset whose date is close to now can be due. */
+export function reminderWindowOpen(deadlineDate: string, offsets: number[], now: number) {
+  return offsets.some(offset => { const day = Date.parse(`${addDays(deadlineDate, -offset)}T00:00:00Z`); return day - 7 * hourMs <= now && day + 23 * hourMs > now - lateLimitMs })
+}
 const scheduler: Actor = { id: 'locket-scheduler', name: 'Locket scheduler', email: '', role: 'viewer', sessionId: '', operatorVersion: 0 }
 const localMail = (env: Bindings) => env.AUTH_LOCAL === 'true' || (env as { RER_DEMO?: string }).RER_DEMO === '1'
 const outcome: Record<string, string> = {
@@ -127,6 +134,7 @@ async function recipient(c: Ctx, d: Deadline) {
 }
 
 async function remind(c: Ctx, d: Deadline) {
+  if (!reminderWindowOpen(d.deadlineDate, d.offsets, c.now)) return
   const to = await recipient(c, d), email = to && (await emailOf(c.db, to.id))
   if (!to || !email) return
   const pref = await preferenceOf(c.db, to.id), zone = pref?.timezone ?? d.zone
@@ -136,13 +144,23 @@ async function remind(c: Ctx, d: Deadline) {
   if (row?.status === 'queued') await deliver(c, row.id)
 }
 
+/** An escalation already recorded and no longer queued is final: skip the recipient, access and preference reads that would only lead back to it. */
+async function settled(c: Ctx, d: Deadline, offset: number, recipientId: string) {
+  const row = await c.db.prepare("SELECT status FROM lk_deadline_reminders WHERE subject_kind=? AND subject_id=? AND deadline_date=? AND kind='escalation' AND offset_days=? AND recipient_id=?")
+    .bind(d.subjectKind, d.subjectId, d.deadlineDate, offset, recipientId).first<{ status: string }>()
+  return !!row && row.status !== 'queued'
+}
+
 /** An undecided renewal escalates at 30 days to the agreement's commercial approver and the owner. */
 async function escalate(c: Ctx, d: Deadline) {
   if (d.subjectKind !== 'renewal') return
+  // 9:00 local falls no earlier than 5 hours before the date's UTC midnight, so before that it is not yet due anywhere.
+  if (Date.parse(`${addDays(d.deadlineDate, -escalationOffset)}T00:00:00Z`) - 7 * hourMs > c.now) return
   const approver = (await c.db.prepare("SELECT actor_id FROM lk_approvals WHERE agreement_id=? AND kind='commercial' AND decision='approved' AND invalidated_at IS NULL ORDER BY at DESC LIMIT 1").bind(d.agreementId).first<{ actor_id: string }>())?.actor_id
   const owner = await ownerId(c.db)
   const targets = [[approver, 'approver'], [owner, 'owner']].filter(([id], i, all) => id && all.findIndex(([x]) => x === id) === i) as [string, string][]
   for (const [id, reason] of targets) {
+    if (await settled(c, d, escalationOffset, id)) continue
     const email = await emailOf(c.db, id)
     if (!email || !(await isReader(c, d.agreementId, id))) continue
     const zone = (await preferenceOf(c.db, id))?.timezone ?? d.zone, at = dueAt(d.deadlineDate, escalationOffset, zone)
@@ -160,6 +178,7 @@ async function overdue(c: Ctx, d: Deadline & { responsibleId: string }, days: nu
   const owner = await ownerId(c.db), offset = -(1 + days)
   const targets = [[d.responsibleId, 'responsible person'], [approver ?? owner, approver ? 'approver' : 'owner']].filter(([id], i, all) => id && all.findIndex(([x]) => x === id) === i) as [string, string][]
   for (const [id, reason] of targets) {
+    if (await settled(c, d, offset, id)) continue
     const email = await emailOf(c.db, id)
     if (!email || !(await isReader(c, d.agreementId, id))) continue
     const zone = (await preferenceOf(c.db, id))?.timezone ?? d.zone, at = dueAt(d.deadlineDate, offset, zone)

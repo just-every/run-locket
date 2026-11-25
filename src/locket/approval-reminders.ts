@@ -34,7 +34,7 @@ export const commercialSql = `(SELECT CASE WHEN o.role='owner' THEN 'owner' ELSE
 /** Pending approvals, optionally for one agreement. */
 export async function pendingApprovals(db: D1Database, agreementId: string | null = null): Promise<Pending[]> {
   const rows = await db.prepare(`SELECT m.agreement_id, m.version_id, m.version_digest, m.recipient_id, o.email, MIN(m.created_at) AS requested_at
-    FROM lk_approval_mail m JOIN lk_agreements a ON a.id=m.agreement_id JOIN lk_versions v ON v.id=a.current_version_id JOIN oa_operators o ON o.id=m.recipient_id
+    FROM lk_agreements a CROSS JOIN lk_approval_mail m ON m.agreement_id=a.id JOIN lk_versions v ON v.id=a.current_version_id JOIN oa_operators o ON o.id=m.recipient_id
     WHERE m.rule_pending_id IS NULL AND m.status<>'cancelled' AND a.status='in_review' AND v.id=m.version_id AND v.digest=m.version_digest AND o.status='active' AND ${routedCommercialSql}
       AND NOT EXISTS(SELECT 1 FROM lk_approvals x WHERE x.agreement_id=a.id AND x.version_id=v.id AND x.version_digest=v.digest AND x.kind='commercial' AND x.invalidated_at IS NULL)
       AND (? IS NULL OR m.agreement_id=?)

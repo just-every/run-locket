@@ -746,6 +746,10 @@ Original bytes and the version's approval-pinned text and digest never change.
 Source changes withhold the rendition; erasure cancels affected mutable work.
 Current agreement permissions and hidden-field policy also apply to this text.
 
+`GET /api/locket/pdf-rendition?versionId=ID` returns one version's rendition progress (status, processed and total pages, error, unavailable pages and their reasons; no text or geometry), or `null` when this person may not read it. The version page polls it every three seconds while processing runs and reloads the workspace once when it ends.
+
+Scheduled runs read rows in proportion to what is open or due, never to retained history (Workers Free allows 5 million D1 rows read a day for the whole account). The hourly run reconciles an agreement's renewal lifecycle when it changed since its last check and at least daily (`lk_renewal_checks`), and indexes cover each run's queries.
+
 PDF search passages add `renditionId`, `artifactId`, `sourceSha256`,
 `versionDigest`, `page` and `position` to the normal immutable text offsets.
 `position` bounds the actual text run containing the literal match. The document

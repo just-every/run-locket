@@ -14,7 +14,7 @@ async function actorFor(env: Bindings, id: string): Promise<Actor | null> {
 export async function runNoticeAgent(env: Bindings, now: number) {
   now = Math.max(now, Date.now())
   const db = env.DB
-  const plans = (await db.prepare("SELECT * FROM lk_notice_plans WHERE status!='draft' ORDER BY send_at,id").all<any>()).results
+  const plans = (await db.prepare("SELECT * FROM lk_notice_plans WHERE status!='draft' AND (alert_at IS NULL OR status='scheduled') ORDER BY send_at,id").all<any>()).results
   for (const plan of plans) {
     const source = await db.prepare('SELECT * FROM lk_notice_sources WHERE id=?').bind(plan.source_id).first<any>()
     const actor = await actorFor(env, plan.approved_by)
