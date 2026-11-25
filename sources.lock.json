@@ -2724,7 +2724,7 @@
       "executable": false
     },
     "src/mail.server.d.mts": {
-      "sha256": "b6a01f3e4d95d590d35b21c3d1be141e60f0049c4025535e1e102b6ca24ca979",
+      "sha256": "4c0babd9b59c3a344a21e5ffda686cf0747b250a0cac5f2303a8286edcd12675",
       "executable": false
     },
     "src/mail.server.mjs": {
