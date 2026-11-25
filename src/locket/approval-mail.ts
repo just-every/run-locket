@@ -2,7 +2,7 @@ import { rulePendingSql } from './approval-rules'
 import { routeRoleSql } from './intake-route'
 import { routeNotification, notificationOutcome } from './notification-dispatch'
 import type { Bindings } from '../auth.server'
-import { operatorMail } from '../mail.server.mjs'
+import { mailIsOff, mailUnavailableCode, operatorMail } from '../mail.server.mjs'
 import { may, requireRole, roleSql, visibleSql } from './access'
 import { auditSql, commit, type Ctx, type Handler } from './commands'
 import { fail, Problem, sql, text, type Sql } from './model'
@@ -46,6 +46,7 @@ export const emailApproval: Handler = async (c, p) => {
   const recipientChecks = recipientGuard(c, a.id, recipientId, recipient.email,selected?.id)
   const eligible = await c.db.prepare(`SELECT CASE WHEN ${recipientChecks.map(s => `(${s.sql})`).join(' AND ')} THEN 1 ELSE 0 END AS ok`).bind(...recipientChecks.flatMap(s => s.params)).first<{ ok: number }>()
   if (!eligible?.ok) fail('RECIPIENT', 'Choose an active commercial approver with access to this agreement.', 400)
+  if (mailIsOff(c.env)) fail('mail_off', 'Outbound email is off.', 503)
   if (!localMail(c) && (!operatorMail(c.env) || !c.env.MAIL_FROM)) fail('MAIL_UNAVAILABLE', 'Configure outbound mail before emailing an approval link.', 503)
   const origin = new URL(c.env.AUTH_ORIGIN).origin
   const reviewUrl = `${origin}/app#agreement/${encodeURIComponent(a.id)}/review`
@@ -97,7 +98,7 @@ export async function dispatchApprovalMail(c: Ctx): Promise<unknown> {
   if (routed.status !== 'immediate') return finish('suppressed', null, null, routed.status === 'deferred' ? 'daily_digest' : 'notification_preferences')
   if (localMail(c)) return finish('suppressed', 'development', null, null)
   const sender = operatorMail(c.env)
-  if (!sender || !c.env.MAIL_FROM) return finish('rejected', null, null, 'mail_unavailable')
+  if (!sender || !c.env.MAIL_FROM) return finish('rejected', null, null, mailUnavailableCode(c.env))
   try {
     const sent = await sender.send({ deliveryId: c.commandId, from: c.env.MAIL_FROM, to: [row.recipient_email], subject: 'Approval requested in Locket', text: `An agreement is ready for your review in Locket. Sign in to review the current version and record your decision.\n\n${row.review_url}`, html: `<p>An agreement is ready for your review in Locket. Sign in to review the current version and record your decision.</p><p><a href="${row.review_url.replaceAll('&', '&amp;').replaceAll('"', '&quot;')}">Review in Locket</a></p>`, headers: {} })
     return finish(sent.status === 'development' ? 'suppressed' : sent.status, sent.provider, sent.providerMessageId, sent.code ?? null)

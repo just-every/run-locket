@@ -1,3 +1,4 @@
+import { mailIsOff } from '../mail.server.mjs'
 // Postmark is the network edge. A claimed or uncertain attempt is never resent.
 import { observeOperation } from './connection-observations'
 import { auditSql, commit, type Ctx } from './commands'
@@ -37,7 +38,7 @@ export async function dispatchExchange(c:Ctx,token:unknown,replyToken:unknown){
     return exchangeReceipt(c)
   }
   if(c.env.AUTH_LOCAL==='true'||(c.env as {RER_DEMO?:string}).RER_DEMO==='1')return finish('suppressed','development',null)
-  if(!c.env.POSTMARK_SERVER_TOKEN||!c.env.MAIL_FROM)return finish('rejected',null,null)
+  if(mailIsOff(c.env)||!c.env.POSTMARK_SERVER_TOKEN||!c.env.MAIL_FROM)return finish('rejected',null,null)
   // Fragment capabilities are not sent in referrers or ordinary page requests.
   const link=`${new URL(c.env.AUTH_ORIGIN).origin}/exchange#${token}`
   try{

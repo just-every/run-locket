@@ -106,6 +106,10 @@
           "label": "Local development only"
         },
         {
+          "value": "none",
+          "label": "Outbound email off"
+        },
+        {
           "value": "rer",
           "label": "RER managed mail"
         },
@@ -126,7 +130,7 @@
           "label": "Postmark"
         }
       ],
-      "help": "Local development suppresses mail. Select a provider and enter its settings before hosting."
+      "help": "Local development suppresses mail. For hosting, choose outbound email off or supply a mail provider and its settings."
     },
     {
       "name": "MAIL_FROM",

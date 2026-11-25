@@ -11,9 +11,12 @@
     }
   ],
   "originVar": "AUTH_ORIGIN",
+  "publicSettings": ["MAIL_PROVIDER", "MAIL_RELAY_URL", "MAIL_ACCOUNT_ID"],
   "vars": {
     "AUTH_LOCAL": "false",
-    "MAIL_RELAY_URL": ""
+    "MAIL_PROVIDER": "",
+    "MAIL_RELAY_URL": "",
+    "MAIL_ACCOUNT_ID": ""
   },
   "secrets": [
     {
@@ -38,8 +41,29 @@
       "environment": "SETUP_TOKEN"
     },
     {
+      "binding": "MAIL_PROVIDER",
+      "environment": "MAIL_PROVIDER",
+      "optional": true
+    },
+    {
+      "binding": "MAIL_FROM",
+      "environment": "MAIL_FROM",
+      "optional": true
+    },
+    {
+      "binding": "MAIL_RELAY_URL",
+      "environment": "MAIL_RELAY_URL",
+      "optional": true
+    },
+    {
+      "binding": "MAIL_ACCOUNT_ID",
+      "environment": "MAIL_ACCOUNT_ID",
+      "optional": true
+    },
+    {
       "binding": "MAIL_API_KEY",
-      "environment": "MAIL_API_KEY"
+      "environment": "MAIL_API_KEY",
+      "optional": true
     },
     {
       "binding": "CLICKWRAP_SIGNING_KEY",

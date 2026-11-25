@@ -218,6 +218,12 @@ and establish fresh authentication before use. Earlier backup copies are exclude
 from subsequent snapshots; retain them under the buyer's backup policy.
 
 Real deployment uses the owner-account procedure and its private credentials.
+For a Business without outbound email, run `MAIL_PROVIDER=none rer deploy`.
+Leave the sender address and mail credentials unset. After claiming the hosted
+installation, run `rer signin` from the same checkout and use its one-time
+owner link. Email sign-in, invitations, and other outbound email require a
+mail provider.
+
 `rer deploy --dry-run` builds locally and reads deployment metadata without
 creating or changing provider resources. For an existing installation it previews
 the previous release, candidate release notes and pending forward migrations.

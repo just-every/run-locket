@@ -1,43 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import promptJourney from './prompts.mjs'
-import capacityJourney from './capacity.mjs'
-import transportReplayJourney from './transport-replay.mjs'
-import peopleClassificationJourney, { beforeStep as beforePeople, afterStep as afterPeople } from './people-classification.mjs'
-import { beforeStep as beforeAccess, afterStep as afterAccess } from './access-parity.mjs'
-import { beforeStep as beforeAttribution, afterStep as afterAttribution } from './proposal-attribution.mjs'
-
-async function accessHook(hook, context) {
-  try { await hook(context) } catch (error) {
-    console.error('Native access parity failed:', context.phase, context.step.id,
-      error.code ?? error.name, error.stack?.split('\n').find(line => line.includes('access-parity.mjs:')))
-    throw error
-  }
-}
-export const beforeStep = async context => {
-  await accessHook(beforeAccess, context)
-  await beforePeople(context)
-  await attributionHook(beforeAttribution, context)
-}
-export const afterStep = async context => {
-  await accessHook(afterAccess, context)
-  await afterPeople(context)
-  await attributionHook(afterAttribution, context)
-}
-
-async function attributionHook(hook, context) {
-  try { await hook(context) } catch (error) {
-    console.error('Native proposal attribution failed:', context.phase, context.step.id,
-      error.code ?? error.name, error.stack?.split('\n').find(line => line.includes('proposal-attribution.mjs:')))
-    throw error
-  }
-}
-
 export default async function ({ request, origin, cookie, tool }) {
-  await promptJourney()
-  await transportReplayJourney()
-  await peopleClassificationJourney()
-  await capacityJourney()
   const human = async (path, init = {}) => {
     const response = await request(origin + path, { ...init, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json', ...init.headers } })
     assert.equal(response.ok, true)

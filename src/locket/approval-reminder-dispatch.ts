@@ -5,7 +5,7 @@ import { routeNotification, notificationOutcome } from './notification-dispatch'
 // approval still waits and the recipient may still decide before any provider call.
 // Sending means in progress or interrupted, never proof of acceptance or delivery.
 import type { Bindings } from '../auth.server'
-import { operatorMail } from '../mail.server.mjs'
+import { mailUnavailableCode, operatorMail } from '../mail.server.mjs'
 import { may, visibleSql } from './access'
 import { recipientGuard } from './approval-mail'
 import { escalationTarget, pendingApprovals, reminderSettings, approverZone, schedule, stillPendingSql, type Pending, type Reason } from './approval-reminders'
@@ -92,7 +92,7 @@ export async function deliverReminder(c: Ctx, id: string, person: boolean) {
   if (routed.status !== 'immediate') return finish('suppressed', null, null, routed.status === 'deferred' ? 'daily_digest' : 'notification_preferences')
   if (localMail(c.env)) return finish('suppressed', 'development', null, null)
   const sender = operatorMail(c.env)
-  if (!sender || !c.env.MAIL_FROM) return finish('rejected', null, null, 'mail_unavailable')
+  if (!sender || !c.env.MAIL_FROM) return finish('rejected', null, null, mailUnavailableCode(c.env))
   try {
     const sent = await sender.send({ deliveryId: id, from: c.env.MAIL_FROM, to: [row.recipient_email], ...message(row), headers: {} })
     return finish(sent.status === 'development' ? 'suppressed' : sent.status, sent.provider, sent.providerMessageId, sent.code ?? null)

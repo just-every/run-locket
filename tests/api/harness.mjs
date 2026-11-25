@@ -34,6 +34,7 @@ export async function installation({ bindings = {}, mailResponse, outboundRespon
   const script = await worker(entryPoint)
   const workerBindings = { AUTH_LOCAL: 'false', AUTH_ORIGIN: origin, OWNER_EMAIL: 'owner@example.test', SESSION_SECRET: randomBytes(32).toString('hex'), SETUP_TOKEN: setup, MAIL_PROVIDER: 'resend', MAIL_FROM: 'auth@example.test', MAIL_API_KEY: 'test-only-key', ...bindings }
   if (typeof bindings === 'function') Object.assign(workerBindings, bindings(origin))
+  for (const name of Object.keys(workerBindings)) if (workerBindings[name] === undefined) delete workerBindings[name]
   const runtimeOptions = () => ({
     ...convertV4MiniflareOptions({
       host: '127.0.0.1', port: Number(new URL(origin).port), https: true, modules: true, script, compatibilityDate: '2026-09-08', compatibilityFlags: ['nodejs_compat'], d1Databases: ['DB'],

@@ -1,3 +1,4 @@
+import { mailIsOff } from '../mail.server.mjs'
 import { installationMail, installationMailLocal, installationMailReady } from './installation-mail'
 import { requireRole } from './access'
 import { auditSql,commit,type Ctx,type Handler } from './commands'
@@ -40,7 +41,7 @@ export async function dispatchServiceClaim(c:Ctx) {
  const claim=await c.db.prepare(`SELECT deadline_at FROM ${native?'lk_service_level_claims':'lk_service_performance_claims'} WHERE id=?`).bind(d.claim_id).first<{deadline_at:number}>()
  if(!claim||Date.now()>=claim.deadline_at)return finish('cancelled',null,'claim_deadline_passed')
  if(installationMailLocal(c.env))return finish('suppressed',null,'local_suppressed')
- if(!installationMailReady(c.env)||c.env.MAIL_FROM!==d.sender)return finish('rejected',null,'mail_unavailable_or_sender_changed')
+ if(!installationMailReady(c.env)||c.env.MAIL_FROM!==d.sender)return finish('rejected',null,mailIsOff(c.env) ? 'mail_off' : 'mail_unavailable_or_sender_changed')
  try{
   const result=await installationMail(c.env)!.send({deliveryId:d.id,from:d.sender,to:[d.recipient],subject:d.subject,text:d.message_text,html:'',headers:{}})
   return finish(result.status==='development'?'suppressed':result.status,result.providerMessageId,result.code??null)

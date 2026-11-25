@@ -2,7 +2,7 @@ import { runChatNotifications } from './chat-notifications'
 // Notification routing and provider claims. An interrupted or uncertain claim
 // remains durable and is never automatically resent.
 import type { Bindings } from '../auth.server'
-import { operatorMail } from '../mail.server.mjs'
+import { mailUnavailableCode, operatorMail } from '../mail.server.mjs'
 import { auditSql, guardSql, type Ctx } from './commands'
 import { sql, type Actor, type Sql } from './model'
 import { notificationSourceChecks, notificationSourceOutcome } from './notification-sources'
@@ -144,7 +144,7 @@ async function send(c: Ctx, recipient: string, kind: 'immediate' | 'digest', tim
   }
   if (localMail(c.env)) return finishDelivery(c, delivery, items, 'suppressed', 'development', null, null)
   const sender = operatorMail(c.env)
-  if (!sender || !c.env.MAIL_FROM) return finishDelivery(c, delivery, items, 'rejected', null, null, 'mail_unavailable')
+  if (!sender || !c.env.MAIL_FROM) return finishDelivery(c, delivery, items, 'rejected', null, null, mailUnavailableCode(c.env))
   try {
     const sent = await sender.send({ deliveryId: delivery.id, from: c.env.MAIL_FROM, to: [person.email], ...message(c.env, delivery, items), headers: {} })
     return finishDelivery(c, delivery, items, sent.status === 'development' ? 'suppressed' : sent.status, sent.provider, sent.providerMessageId, sent.code ?? null)

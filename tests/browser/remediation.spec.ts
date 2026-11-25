@@ -10,7 +10,9 @@ test(`Obligation owner approves a supplier request, rejects $1M and confirms mat
   const shot=async(name:string)=>{expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);if(process.env.LOCKET_SCREENSHOTS){await mkdir(process.env.LOCKET_SCREENSHOTS,{recursive:true});await page.screenshot({path:join(process.env.LOCKET_SCREENSHOTS,`${width}-remediation-${name}.png`),fullPage:true})}}
   const save=async(type:string,button:any)=>{const pending=page.waitForResponse(response=>response.url()===p.origin+'/api/locket/commands'&&response.request().method()==='POST'&&response.request().postDataJSON().type===type);await button.click();const result=await(await pending).json();expect(result.ok,JSON.stringify(result.error)).toBe(true);return result.result}
   try{
-   const x=await remediationFixture(p)
+   // Keep the obligation open throughout this evidence review, including on the live clock.
+   const dueDate = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10)
+   const x=await remediationFixture(p, { dueDate })
    await page.goto(`${p.origin}/app#agreement/${x.a.id}/terms`)
    await page.reload()
    const panel=page.getByRole('region',{name:'Obligation remediation',exact:true})

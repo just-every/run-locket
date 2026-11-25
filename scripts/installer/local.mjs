@@ -32,6 +32,7 @@ export const commandAdapter = createCommandAdapter(lifecycle, {
   export: async context => context.target === 'remote' ? (await exportHosted({...context,environment:'production'})).receipt : portable.export(context),
   import: context => { if (context.target === 'remote') throw refuse('Hosted restore is unsupported. Restore the verified archive into an empty local installation.'); return portable.import(context); },
  },
+ mailOffSignIn: 'rer signin',
  setup: { manifestFile: 'rer-setup.json' }, browserModule: 'scripts/installer/ui/seed.mjs',
  // The public run site (run-locket.com): the homepage, /run and the docs, built by `rer build --site`.
  site: { entry: 'src/site/pages.tsx', output: 'dist/site', declaration: 'deploy-site.json', config: 'vite.site.config.ts' },

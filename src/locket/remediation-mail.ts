@@ -1,3 +1,4 @@
+import { mailIsOff } from '../mail.server.mjs'
 import type { Bindings } from '../auth.server'
 import { may, roleSql } from './access'
 import { auditSql, guardSql, type Ctx } from './commands'
@@ -27,7 +28,7 @@ export async function dispatchRemediation(c:Ctx,occurrenceId:string) {
   const erased=(await c.db.prepare('SELECT address_ciphertext FROM lk_erasure_blocks').all<{address_ciphertext:string}>()).results
   for(const row of erased)if((await openErasedAddress(c,row.address_ciphertext)).toLowerCase()===r.recipient.toLowerCase())return finish('cancelled',null,'recipient_erased')
   if(r.status!=='approved'||r.approved_by!==e.o.owner_id||c.actor.id!==r.approved_by||c.actor.operatorVersion!==r.operator_version||!may.review.includes(c.actor.role)||await remediationDigest(r.recipient,JSON.parse(r.source),e.occurrences)!==r.digest)return finish('cancelled',null,'authority_or_approval_changed')
-  if(!installationMailReady(c.env)||r.sender!==(c.env.MAIL_FROM??''))return finish('cancelled',null,'sender_changed_or_unavailable')
+  if(!installationMailReady(c.env)||r.sender!==(c.env.MAIL_FROM??''))return finish('cancelled',null,mailIsOff(c.env) ? 'mail_off' : 'sender_changed_or_unavailable')
   const guard=crypto.randomUUID(),checks=[...e.checks,sql('(SELECT COUNT(*) FROM lk_erasure_blocks)=?',erased.length),
    sql("EXISTS(SELECT 1 FROM lk_remediation_requests WHERE id=? AND status='approved' AND approved_by=? AND operator_version=? AND digest=?)",r.id,c.actor.id,c.actor.operatorVersion,r.digest),
    sql("EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND version=?)",c.actor.id,c.actor.operatorVersion),sql(`${roleSql} IN (SELECT value FROM json_each(?))`,c.actor.id,JSON.stringify(may.review)),

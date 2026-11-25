@@ -2,7 +2,7 @@ import { observeChat } from './connection-observations'
 import { chatAudienceChecks } from './chat-notifications'
 // One claimed attempt per delivery, even when the provider outcome is unknown.
 import type { Bindings } from '../auth.server'
-import { operatorMail } from '../mail.server.mjs'
+import { mailUnavailableCode, operatorMail } from '../mail.server.mjs'
 import { auditSql, guardSql, type Ctx } from './commands'
 import { Problem, sql, type Actor, type Sql } from './model'
 import { notificationCheck, notificationPreferences, type NotificationRow } from './notifications'
@@ -22,7 +22,7 @@ async function send(c:Ctx,r:ChannelRequest,d:Delivery):Promise<{status:string;me
  if(channelLocal(env))return {status:'suppressed',messageId:null,code:'local_or_demo'}
  if(d.channel==='email'){
   const mail=operatorMail(env)
-  if(!mail||!env.MAIL_FROM)return {status:'rejected',messageId:null,code:'mail_unavailable'}
+  if(!mail||!env.MAIL_FROM)return {status:'rejected',messageId:null,code:mailUnavailableCode(env)}
   const result=await mail.send({deliveryId:d.id,from:env.MAIL_FROM,to:[r.recipient_email],subject:'Approval requested in Locket',text:`${generic}\n\n${url}`,html:`<p>${generic}</p><p><a href="${escape(url)}">Review and decide in Locket</a></p>`,headers:{}})
   return {status:result.status==='development'?'suppressed':result.status,messageId:result.providerMessageId,code:result.code??null}
  }

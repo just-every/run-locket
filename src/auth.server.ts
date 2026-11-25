@@ -5,8 +5,8 @@ import { createOwnerClaimHandler, createIdpOwnerClaimHandler } from './modules/o
 import { firstRunResponse } from './base/setup'
 import { fontDocumentResponse } from './base/font-response'
 import { framedDocument } from './frame'
-import { createOperatorAuth, createAuthHandler, createSignInHandler, type AuthConfig } from './modules/operator-auth/index.mjs'
-import { operatorMail } from './mail.server.mjs'
+import { AuthError, createOperatorAuth, createAuthHandler, createSignInHandler, type AuthConfig } from './modules/operator-auth/index.mjs'
+import { mailIsOff, operatorMail } from './mail.server.mjs'
 import branding from './branding.json'
 
 // The edition's declared theme (public/rer-theme.css), as Base frames link it.
@@ -75,7 +75,7 @@ export interface Bindings {
  INSTALLATION_KEY?: string
  INSTALLATION_KEY_PREVIOUS?: string
  SETUP_TOKEN?: string
- MAIL_PROVIDER?: 'development' | 'rer' | 'resend' | 'sendgrid' | 'cloudflare' | 'postmark'
+ MAIL_PROVIDER?: 'none' | 'development' | 'rer' | 'resend' | 'sendgrid' | 'cloudflare' | 'postmark'
  MAIL_RELAY_URL?: string
  MAIL_FROM?: string
  POSTMARK_REPLY_DOMAIN?: string
@@ -88,14 +88,25 @@ export interface Bindings {
 export const runtimeBindings = (env: Bindings): Bindings => env.RER_DEV_ORIGIN && env.AUTH_LOCAL === 'true' ? { ...env, AUTH_ORIGIN: env.RER_DEV_ORIGIN } : env
 export const authConfig = (env: Bindings): AuthConfig => ({ dependencies: true, externalIssuers: samlIssuers(env), origin: env.AUTH_ORIGIN, local: env.AUTH_LOCAL === 'true', OWNER_EMAIL: env.OWNER_EMAIL, SESSION_SECRET: env.SESSION_SECRET, INSTALLATION_KEY: env.INSTALLATION_KEY, INSTALLATION_KEY_PREVIOUS: env.INSTALLATION_KEY_PREVIOUS, SETUP_TOKEN: env.SETUP_TOKEN, MAIL_FROM: env.MAIL_FROM, branding: { productName: branding.name, accentColor: branding.primaryColor, signInPath: '/signin', theme: theme.href } })
 export function operatorAuth(env: Bindings) {
- const auth=createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: operatorMail(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
+ const auth=createOperatorAuth({ db: env.DB, config: authConfig(env), mailSender: mailIsOff(env) ? undefined : operatorMail(env), clientIp: request => request.headers.get('CF-Connecting-IP') ?? '' })
  const getSession=auth.getSession.bind(auth)
  const managedSession: typeof auth.getSession=async request=>{
   const session=await getSession(request)
   if(session&&session.operator.role!=='owner'&&await env.DB.prepare('SELECT id FROM lk_workforce_users WHERE id=?').bind(session.operator.id).first()&&!await workforceSettings(env))return null
   return session
  }
- return {...auth,getSession:managedSession}
+ const managedAuth = {...auth,getSession:managedSession}
+ if (!mailIsOff(env)) return managedAuth
+ // Keep Base's authority and origin checks, and report that mail was disabled deliberately.
+ const reportMailOff = <Args extends unknown[], Result>(action: (...args: Args) => Promise<Result>) =>
+  async (...args: Args) => {
+   try { return await action(...args) }
+   catch (error) {
+    if (error instanceof AuthError && error.code === 'mail_unavailable') throw new AuthError('mail_off', error.status)
+    throw error
+   }
+  }
+ return { ...managedAuth, requestMagicLink: reportMailOff(auth.requestMagicLink), invite: reportMailOff(auth.invite), requestStepUp: reportMailOff(auth.requestStepUp) }
 }
 
 const privateHeaders = { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', 'x-robots-tag': 'noindex, nofollow' }

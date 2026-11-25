@@ -6,7 +6,7 @@ import { routeNotification, notificationOutcome } from './notification-dispatch'
 // is claimed once after re-checking that the deadline is still open and the
 // recipient may read it. Provider acceptance is never reported as delivery.
 import type { Bindings } from '../auth.server'
-import { operatorMail } from '../mail.server.mjs'
+import { mailUnavailableCode, operatorMail } from '../mail.server.mjs'
 import { auditSql, guardSql, type Ctx } from './commands'
 import { defaultZone } from './business-days'
 import { dueAt, escalationOffset, isReader, openDeadlines, overdueEscalationDays, overdueObligations, preferenceOf, readerSql, stillOpenSql, type Deadline } from './deadline-reminders'
@@ -98,7 +98,7 @@ export async function deliver(c: Ctx, id: string) {
   if (routed.status !== 'immediate') return finish('suppressed', null, null, routed.status === 'deferred' ? 'daily_digest' : 'notification_preferences')
   if (localMail(c.env)) return finish('suppressed', 'development', null, null)
   const sender = operatorMail(c.env)
-  if (!sender || !c.env.MAIL_FROM) return finish('rejected', null, null, 'mail_unavailable')
+  if (!sender || !c.env.MAIL_FROM) return finish('rejected', null, null, mailUnavailableCode(c.env))
   try {
     const sent = await sender.send({ deliveryId: id, from: c.env.MAIL_FROM, to: [row.recipient_email], ...message(c.env, row, items), headers: {} })
     return finish(sent.status === 'development' ? 'suppressed' : sent.status, sent.provider, sent.providerMessageId, sent.code ?? null)

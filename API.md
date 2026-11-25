@@ -710,11 +710,7 @@ An exhausted identity receives HTTP 429 with JSON-RPC error data
 The refused call returns no tool result and performs no native mutation. Wait
 the advertised seconds before trying again; a mutation must retain its
 idempotency key. Admission resumes in the next window, with ordinary policy and
-human approval still enforced. `tests/agent-door/capacity.mjs`, loaded by the
-native conformance journey, exercises these production limits through raw HTTP
-under autonomous and held policies, including refusal without effect, identity
-isolation, person-session access and recovery. It neither lowers the limits nor
-uses the conformance client's automatic 429 retries. Provider spend enforcement,
+human approval still enforced. Provider spend enforcement,
 outside-recipient daily caps and complete per-agent usage remain owed.
 
 Native people lists expose an opaque role `revision`. A caller can pass it as `expected_revision` to `locket.people.update`, or as `expectedRevision` in the person command `role.set`. A stale revision refuses without changing the role. Held role decisions also bind their displayed summary to the current native role revision; a subsequent assignment requires fresh approval. The native command checks the target person's version and role assignment atomically with the write.
