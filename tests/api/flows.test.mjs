@@ -318,6 +318,7 @@ test('10 terms and obligations are confirmed against the executed text, and corr
 
 test('AGENT-003 / RENEW-001 the renewal queue computes notice deadlines in the agreement time zone and keeps sending evidence separate', async t => {
   const h = await installation(); t.after(() => h.close())
+  await h.setTime(Date.parse('2026-09-21T00:00:00Z'))
   const tm = await team(h)
   const agent = await h.invite('agent@example.test', 'agent')
   const lib = await library(h, tm)

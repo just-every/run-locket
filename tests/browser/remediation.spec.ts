@@ -31,7 +31,7 @@ test(`Obligation owner approves a supplier request, rejects $1M and confirms mat
    await panel.getByLabel('Returned evidence PDF',{exact:true}).setInputFiles({name:'insufficient-certificate.pdf',mimeType:'application/pdf',buffer:certificate('1000000')})
    await save('remediation.evidence',panel.getByRole('button',{name:'Check evidence',exact:true}))
    await expect(panel).toContainText('Evidence: rejected');await expect(panel).toContainText('Coverage is below the required USD 2000000.00')
-   await expect(page.locator('.lk-obligations > li').filter({hasText:'Replace expired certificate'}).locator('.lk-badge').first()).toHaveText('Confirmed')
+   await expect(page.locator('.lk-obligations > li').filter({hasText:'Replace expired certificate'}).locator('.lk-badge').first()).toHaveText('Upcoming')
    await shot('rejected')
    await panel.getByLabel('Returned evidence PDF',{exact:true}).setInputFiles({name:'compliant-certificate.pdf',mimeType:'application/pdf',buffer:certificate('2000000')})
    await save('remediation.evidence',panel.getByRole('button',{name:'Check evidence',exact:true}))
