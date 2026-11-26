@@ -628,7 +628,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "425c922e851abb3f01d4d2f9a424b5491004b6519570484277fa347a38554954",
+      "sha256": "61a208cbc2bf4e78c3d6757cce5c8ffc74ad2d6752ec506e0d82bb566029e748",
       "executable": false
     },
     "packaging.json": {
@@ -752,7 +752,7 @@
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "62d3c842056c7d1004821973495bb89da1c8a2cc6c859a3bc123590dd7adef4e",
+      "sha256": "e77bd58d3576d36396d049a10400cece109e35c36e3cf582800243639567f82c",
       "executable": false
     },
     "rer-project.json": {
@@ -1588,7 +1588,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "d8bd4ece7768f21b4eba34782d16dc9ed8091e19a4290323551a3fbfdb302a72",
+      "sha256": "b603a8126fa6af8dca05a470e0bc9281b7483da7ba40868c4cf06aacfec4df2d",
       "executable": false
     },
     "src/agent-door/business.ts": {

@@ -1,0 +1,8 @@
+{
+  "version": "0.1.3",
+  "publicReleaseNotes": "Release with rer 0.2.80 and refreshed hosted installation metadata. Clean Wrangler scratch after runtime verification so native Linux delivery artifacts build successfully. Retain persisted agreement files and the existing brand artwork. Include a fresh native development capture of the agreement workspace.",
+  "previousVersion": "0.1.2",
+  "migrations": [],
+  "breaking": false,
+  "agentUpdateInstructions": "Retain the prior source and a complete data export. Apply only unapplied forward migrations and verify owner sign-in before routing traffic."
+}
