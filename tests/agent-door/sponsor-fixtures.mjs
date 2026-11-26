@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
 import { colleagueIdentity } from './colleague.mjs'
 import { inactiveSponsor } from './negative-sponsor.mjs'
+import { restorePeopleNames } from './people-sensitivity-fixture.mjs'
 
 let suspendedOperators
 let suspendedBinding
 
 export default async function (context) {
+  await restorePeopleNames(context)
   const { phase, request, origin, cookie, database } = context
   const colleague = colleagueIdentity()
   const values = { colleague: { id: colleague.id } }
