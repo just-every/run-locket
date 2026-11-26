@@ -26,7 +26,7 @@ export default {
     Date.now = env.TEST_NOW ? () => Number(env.TEST_NOW) : systemNow
     const path = new URL(request.url).pathname
     if (path === '/api/rer/business-settings') return (await businessSettings(env).handle(request))!
-    if (path === '/mcp' || path === '/api/rer/agent-policy' || path.startsWith('/agents/api/')) {
+    if (path === '/mcp' || path === '/api/rer/agent-policy' || path === '/api/rer/agent-decisions' || path.startsWith('/agents/api/')) {
       return (await (await locketAgentDoor(env)).handle(request))!
     }
     return (await locketResponse(request, env)) ?? (await authResponse(request, env)) ?? new Response('Not found', { status: 404 })

@@ -57,6 +57,18 @@ Preserve ambiguous state and applied migration history. Never place a remote
 credential, owner secret or local resource ID in source. A schema change needs
 a forward migration and verified transition/recovery.
 
+## Business decision custody
+
+A paired Business can retrieve the shared agent-door decision projection using
+a signed request for this installation. The projection carries decision status,
+policy classes, opaque agent and consent identifiers, and resource URIs. The
+Business owner can read that copy. The Business purges it when the installation
+unpairs, changes Business, or stops.
+
+Locket's verified contact erasure follows ERASE-001 for native records and audit
+retention. Business policy decisions follow the shared agent-door retention
+rules, including the installation-private replay aliases.
+
 ## Deployment
 
 `rer deploy --dry-run` validates the real owner-account

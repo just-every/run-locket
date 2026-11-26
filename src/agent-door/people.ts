@@ -8,15 +8,16 @@ import { workforceSettings } from '../locket/workforce'
 export function locketPeople(env: Bindings): PeopleAdapter {
   const native = operatorAuthPeople({ db: env.DB, allowList: authConfig(env).allowList, session: request => operatorAuth(env).getSession(request) })
   const policyRoles = new Map<string, 'owner' | 'editor' | null>()
+  const currentRoster = (id: string, businessId: string) =>
+    env.DB.prepare("SELECT 1 FROM bs_team WHERE business_id=? AND operator_id=? AND state IN ('active','invited')")
+      .bind(businessId, id).first()
   const businessMember: NonNullable<PeopleAdapter['businessMember']> = async person => {
     const member = await native.businessMember?.(person)
     if (!member) return null
     if (member.role === 'owner') return member
     // A removed Business roster entry remains historical attribution, even if
     // a local owner subsequently reactivates that operator for another purpose.
-    const current = await env.DB.prepare("SELECT 1 FROM bs_team WHERE business_id=? AND operator_id=? AND state IN ('active','invited')")
-      .bind(member.id, person.id).first()
-    return current ? member : null
+    return await currentRoster(person.id, member.id) ? member : null
   }
   const person = async (id: string): Promise<Person | null> => {
     const current = await native.person(id)
@@ -29,9 +30,10 @@ export function locketPeople(env: Bindings): PeopleAdapter {
   }
   return {
     person,
+    businessStopped: native.businessStopped,
     async sponsor(claims) {
       const bound = await native.sponsor(claims)
-      if (!bound || (await businessMember(bound))?.id !== claims.sub) return null
+      if (!bound || bound.role !== 'owner' && !await currentRoster(bound.id, claims.sub)) return null
       return person(bound.id)
     },
     async session(request) { const signedIn = await native.session(request); return signedIn ? person(signedIn.id) : null },
