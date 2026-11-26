@@ -139,6 +139,10 @@
       "sha256": "5f999c8ea83d3229e38c70166585fbab9cdc4527d7e0a4aaec09db16d7c7668f",
       "executable": false
     },
+    "CHANGELOG.md": {
+      "sha256": "61adb4501aeb7092b11eb7a4bf663ab6be12116d6a4b678a368d735ea697d900",
+      "executable": false
+    },
     "CONTRACT.md": {
       "sha256": "3f8f574c053bfe2477f49858172570dd307c6e6f106077edbb67649144d40ce5",
       "executable": false
@@ -749,6 +753,10 @@
     },
     "release-history/0.1.2.json": {
       "sha256": "636036ce8244c10269b49806d8bed30ae5397cf47970c0ce5a918ee780df6dc2",
+      "executable": false
+    },
+    "release-history/0.1.3.json": {
+      "sha256": "62d3c842056c7d1004821973495bb89da1c8a2cc6c859a3bc123590dd7adef4e",
       "executable": false
     },
     "RELEASE.json": {
