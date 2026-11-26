@@ -21,7 +21,13 @@ export const columns = {
 type Table = keyof typeof columns
 type Row = Record<string, unknown>
 
-const objectSql = (table: Table) => `json_object(${columns[table].map(c => `'${c}',${c}`).join(',')})`
+// D1 allows 32 arguments per SQL function: json_object takes 15 pairs, json_insert 15 more per layer, same key order.
+const objectSql = (table: Table) => {
+  const names: readonly string[] = columns[table]
+  let sql = `json_object(${names.slice(0, 15).map(c => `'${c}',${c}`).join(',')})`
+  for (let i = 15; i < names.length; i += 15) sql = `json_insert(${sql},${names.slice(i, i + 15).map(c => `'$.${c}',${c}`).join(',')})`
+  return sql
+}
 const ordered = (table: Table, row: Row) => JSON.stringify(Object.fromEntries(columns[table].map(c => [c, row[c] ?? null])))
 const insert = (table: Table, row: Row) => q(`INSERT INTO ${table} (${columns[table].join(',')}) VALUES(${columns[table].map(() => '?').join(',')})`, ...columns[table].map(c => row[c] ?? null))
 const exact = (table: Table, row: Row) => q(`(SELECT ${objectSql(table)} FROM ${table} WHERE id=?)=?`, row.id, ordered(table, row))
