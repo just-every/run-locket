@@ -96,7 +96,7 @@
       "executable": false
     },
     ".github/workflows/run-demo.yml": {
-      "sha256": "cd478e5acaa5b7ecac7c8d93069a928886b59bc48e72c495700e42aa3c1b5232",
+      "sha256": "fa50543c759ff9bc24c7f5da230a9878f0e8ffa0541d9e41306e9d42750fc4d2",
       "executable": false
     },
     ".github/workflows/run-site.yml": {
@@ -136,7 +136,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "4808f90b23e21b202195ee2782780efabcf5ce471e7f7fbdd0437c1d776aa8f7",
+      "sha256": "5f999c8ea83d3229e38c70166585fbab9cdc4527d7e0a4aaec09db16d7c7668f",
       "executable": false
     },
     "CONTRACT.md": {
@@ -2172,7 +2172,7 @@
       "executable": false
     },
     "src/locket/imports/adapter.ts": {
-      "sha256": "d3958c6b0e2ea08cd9e6efd5f08c0dfe073ffa5787a951e5e92a702ba8a62448",
+      "sha256": "882ec5f3e8103257531a0de5ae1bfb5573e242b011e21b43ff7559f690da31ed",
       "executable": false
     },
     "src/locket/imports/commands.ts": {
